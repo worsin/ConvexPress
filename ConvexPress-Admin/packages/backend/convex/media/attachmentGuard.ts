@@ -48,7 +48,7 @@ export async function assertMediaAttachments(ctx: Pick<QueryCtx, "db">, table: s
 export async function insertWithMediaReferences<Table extends ReferenceTable>(ctx: Pick<MutationCtx, "db">, table: Table, value: NoInfer<WithoutSystemFields<Doc<Table>>>, permit?: CanonicalAuthoringWritePermit, ledger?: RequestReadLedger, requiredMediaIds?: readonly string[]): Promise<Id<Table>> {
   assertAuthoringWrite({ table, operation: "insert", value: value as Record<string, unknown> }, permit);
   await assertMediaAttachments(ctx, table, value as Record<string, unknown>, ledger, requiredMediaIds);
-  const id: Id<Table> = await (ctx.db as any).insert(table, value);
+  const id: Id<Table> = await ctx.db.insert(table, value);
   await reconcileOwnerReferences(ctx, table, id, value as Record<string, unknown>, ledger);
   await reconcileCurriculumWrite(ctx, table, id, null, value as Record<string, unknown>, ledger);
   await recordCatalogWrite(ctx, table, "insert", value as Record<string, unknown>, ledger);

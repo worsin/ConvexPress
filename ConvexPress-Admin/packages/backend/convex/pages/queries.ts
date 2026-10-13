@@ -28,7 +28,7 @@
  */
 
 import { v } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { timingSafeEquals } from "../helpers/timingSafe";
 import { currentUserCan, getCurrentUser } from "../helpers/permissions";
@@ -47,7 +47,10 @@ import {
 	listPagesArgs,
 } from "./validators";
 import { PAGE_TEMPLATES } from "./templates";
+import { MAX_PAGE_DEPTH } from "./internals";
+import { boundedTreeValidator, capTreeDepth } from "../helpers/boundedTree";
 
+import { postsDocs } from "../schema/posts.docs.generated";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /** Shape of a node in the hierarchical page tree. */
@@ -62,6 +65,29 @@ interface PageTreeNode {
 	parentId?: string;
 	children: PageTreeNode[];
 }
+
+/**
+ * Levels `getTree` returns. Writes allow MAX_PAGE_DEPTH + 1 levels; imported
+ * pages may nest deeper, so the tree keeps a wider bound and drops only pages
+ * nested below it.
+ */
+const PAGE_TREE_LEVELS = Math.max(MAX_PAGE_DEPTH + 1, 16);
+
+const pageTreeValidator = v.array(
+	boundedTreeValidator<PageTreeNode>(PAGE_TREE_LEVELS, (children) =>
+		v.object({
+			_id: v.string(),
+			title: v.string(),
+			slug: v.string(),
+			status: v.string(),
+			depth: v.number(),
+			menuOrder: v.number(),
+			path: v.string(),
+			parentId: v.optional(v.string()),
+			children,
+		}),
+	),
+);
 
 // ─── List ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +111,82 @@ interface PageTreeNode {
  */
 export const list = query({
 	args: listPagesArgs,
+	returns: v.object({
+   pages: v.array(v.object({
+     author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), email: v.string() })),
+     _id: v.id("posts"),
+     _creationTime: v.number(),
+     blocks: postsDocs.posts.fields.blocks,
+     composedDefinitions: v.optional(v.object({
+       scope: v.object({ websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string() }),
+       definitions: v.array(v.object({ name: v.string(), version: v.number(), digest: v.string(), definitionJson: v.string() })),
+     })),
+     commentCount: v.optional(v.number()),
+     wpSourceSiteId: v.optional(v.id("wordpressSites")),
+     summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+     trashedAt: v.optional(v.number()),
+     previousStatus: v.optional(v.string()),
+     path: v.optional(v.string()),
+     parentId: v.optional(v.id("posts")),
+     menuOrder: v.optional(v.number()),
+     excerpt: v.optional(v.string()),
+     password: v.optional(v.string()),
+     featuredImageId: v.optional(v.id("media")),
+     isSticky: v.optional(v.boolean()),
+     publishedAt: v.optional(v.number()),
+     scheduledAt: v.optional(v.number()),
+     pageTemplate: v.optional(v.string()),
+     blocksVersion: v.optional(v.number()),
+     blocksRevision: v.optional(v.number()),
+     layoutId: v.optional(v.string()),
+     hideHeader: v.optional(v.boolean()),
+     hideFooter: v.optional(v.boolean()),
+     depth: v.optional(v.number()),
+     autosaveContent: v.optional(v.string()),
+     autosaveTitle: v.optional(v.string()),
+     autosavedAt: v.optional(v.number()),
+     hero: v.optional(v.object({
+       title: v.optional(v.string()),
+       content: v.optional(v.string()),
+       subtitle: v.optional(v.string()),
+       imageId: v.optional(v.id("media")),
+       videoUrl: v.optional(v.string()),
+       ctaText: v.optional(v.string()),
+       ctaUrl: v.optional(v.string()),
+     })),
+     topics: v.optional(v.array(v.object({
+       title: v.optional(v.string()),
+       content: v.optional(v.string()),
+       subtitle: v.optional(v.string()),
+       imageId: v.optional(v.id("media")),
+       videoUrl: v.optional(v.string()),
+     }))),
+     sources: v.optional(v.string()),
+     tableOfContents: v.optional(v.string()),
+     pagePrompt: v.optional(v.string()),
+     wpPostId: v.optional(v.number()),
+     wpGuid: v.optional(v.string()),
+     type: v.union(v.literal("post"), v.literal("page")),
+     title: v.string(),
+     visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+     updatedAt: v.number(),
+     createdAt: v.number(),
+     status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+     slug: v.string(),
+     authorId: v.id("users"),
+     commentStatus: v.union(v.literal("open"), v.literal("closed")),
+   })),
+   pagination: v.object({ page: v.number(), perPage: v.number(), total: v.number(), totalPages: v.number() }),
+   counts: v.object({
+     all: v.number(),
+     publish: v.number(),
+     draft: v.number(),
+     pending: v.number(),
+     private: v.number(),
+     trash: v.number(),
+     future: v.number(),
+   }),
+ }),
 	handler: async (ctx, args) => {
 		const user = await getCurrentUser(ctx);
 		if (!user || !(await currentUserCan(ctx, "page.update"))) {
@@ -250,6 +352,144 @@ export const list = query({
  */
 export const get = query({
 	args: getPageArgs,
+	returns: v.union(v.null(), v.object({
+   parent: v.union(v.null(), v.object({ _id: v.id("posts"), title: v.string(), slug: v.string(), path: v.optional(v.string()) })),
+   children: v.array(v.object({
+     _id: v.id("posts"),
+     title: v.string(),
+     slug: v.string(),
+     status: v.union(v.literal("draft"), v.literal("pending"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+     menuOrder: v.optional(v.number()),
+     path: v.optional(v.string()),
+   })),
+   _id: v.id("posts"),
+   _creationTime: v.number(),
+   blocks: postsDocs.posts.fields.blocks,
+   composedDefinitions: v.optional(v.object({
+     scope: v.object({ websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string() }),
+     definitions: v.array(v.object({ name: v.string(), version: v.number(), digest: v.string(), definitionJson: v.string() })),
+   })),
+   commentCount: v.optional(v.number()),
+   wpSourceSiteId: v.optional(v.id("wordpressSites")),
+   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+   trashedAt: v.optional(v.number()),
+   previousStatus: v.optional(v.string()),
+   path: v.optional(v.string()),
+   parentId: v.optional(v.id("posts")),
+   menuOrder: v.optional(v.number()),
+   excerpt: v.optional(v.string()),
+   password: v.optional(v.string()),
+   featuredImageId: v.optional(v.id("media")),
+   isSticky: v.optional(v.boolean()),
+   publishedAt: v.optional(v.number()),
+   scheduledAt: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+   blocksVersion: v.optional(v.number()),
+   blocksRevision: v.optional(v.number()),
+   layoutId: v.optional(v.string()),
+   hideHeader: v.optional(v.boolean()),
+   hideFooter: v.optional(v.boolean()),
+   depth: v.optional(v.number()),
+   autosaveContent: v.optional(v.string()),
+   autosaveTitle: v.optional(v.string()),
+   autosavedAt: v.optional(v.number()),
+   hero: v.optional(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+     ctaText: v.optional(v.string()),
+     ctaUrl: v.optional(v.string()),
+   })),
+   topics: v.optional(v.array(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+   }))),
+   sources: v.optional(v.string()),
+   tableOfContents: v.optional(v.string()),
+   pagePrompt: v.optional(v.string()),
+   wpPostId: v.optional(v.number()),
+   wpGuid: v.optional(v.string()),
+   type: v.union(v.literal("post"), v.literal("page")),
+   title: v.string(),
+   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+   updatedAt: v.number(),
+   createdAt: v.number(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   slug: v.string(),
+   authorId: v.id("users"),
+   commentStatus: v.union(v.literal("open"), v.literal("closed")),
+ }), v.object({
+   parent: v.union(v.null(), v.object({ _id: v.id("posts"), title: v.string(), slug: v.string(), path: v.optional(v.string()) })),
+   children: v.array(v.object({
+     _id: v.id("posts"),
+     title: v.string(),
+     slug: v.string(),
+     status: v.union(v.literal("draft"), v.literal("pending"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+     menuOrder: v.optional(v.number()),
+     path: v.optional(v.string()),
+   })),
+   isPasswordProtected: v.boolean(),
+   passwordVerified: v.boolean(),
+   isMembershipRestricted: v.boolean(),
+   membershipAccess: v.object({
+     allowed: v.boolean(),
+     reason: v.string(),
+     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+     customMessage: v.union(v.null(), v.string()),
+     matchingPlanIds: v.array(v.string()),
+   }),
+   _id: v.id("posts"),
+   _creationTime: v.number(),
+   type: v.union(v.literal("post"), v.literal("page")),
+   title: v.string(),
+   slug: v.string(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+   authorId: v.id("users"),
+   featuredImageId: v.optional(v.id("media")),
+   commentStatus: v.union(v.literal("open"), v.literal("closed")),
+   commentCount: v.optional(v.number()),
+   isSticky: v.optional(v.boolean()),
+   publishedAt: v.optional(v.number()),
+   createdAt: v.number(),
+   updatedAt: v.number(),
+   parentId: v.optional(v.id("posts")),
+   menuOrder: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+   path: v.optional(v.string()),
+   depth: v.optional(v.number()),
+   hideHeader: v.optional(v.boolean()),
+   hideFooter: v.optional(v.boolean()),
+   layoutId: v.optional(v.string()),
+   excerpt: v.optional(v.string()),
+   blocks: postsDocs.posts.fields.blocks,
+   blocksVersion: v.optional(v.number()),
+   blocksRevision: v.optional(v.number()),
+   hero: v.optional(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+     ctaText: v.optional(v.string()),
+     ctaUrl: v.optional(v.string()),
+   })),
+   topics: v.optional(v.array(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+   }))),
+   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+   sources: v.optional(v.string()),
+   tableOfContents: v.optional(v.string()),
+ })),
 	handler: async (ctx, args) => {
 		const page = args.pageId
 			? await ctx.db.get("posts", args.pageId)
@@ -337,6 +577,7 @@ export const get = query({
  */
 export const getTree = query({
 	args: getPageTreeArgs,
+	returns: pageTreeValidator,
 	handler: async (ctx, args) => {
 		const showPublishedOnly = args.status === "publish";
 
@@ -347,7 +588,7 @@ export const getTree = query({
 			.collect();
 
 		// Filter by status
-		const filteredPages = [];
+		const filteredPages: Doc<"posts">[] = [];
 		for (const p of allPages) {
 			if (
 				(showPublishedOnly ? p.status === "publish" : p.status !== "trash") &&
@@ -359,8 +600,7 @@ export const getTree = query({
 
 		// Sort by menuOrder then title
 		filteredPages.sort((a, b) => {
-			const orderCmp =
-				((a.menuOrder as number) ?? 0) - ((b.menuOrder as number) ?? 0);
+			const orderCmp = (a.menuOrder ?? 0) - (b.menuOrder ?? 0);
 			if (orderCmp !== 0) return orderCmp;
 			return a.title.localeCompare(b.title);
 		});
@@ -374,10 +614,10 @@ export const getTree = query({
 				title: p.title,
 				slug: p.slug,
 				status: p.status,
-				depth: (p.depth as number) ?? 0,
-				menuOrder: (p.menuOrder as number) ?? 0,
-				path: (p.path as string) ?? `/${p.slug}`,
-				parentId: p.parentId as string | undefined,
+				depth: p.depth ?? 0,
+				menuOrder: p.menuOrder ?? 0,
+				path: p.path ?? `/${p.slug}`,
+				parentId: p.parentId,
 				children: [],
 			});
 		}
@@ -392,7 +632,8 @@ export const getTree = query({
 			}
 		}
 
-		return rootNodes;
+		// Cap so the result always matches the depth-bounded transport validator.
+		return capTreeDepth(rootNodes, PAGE_TREE_LEVELS);
 	},
 });
 
@@ -411,6 +652,123 @@ export const getTree = query({
  */
 export const getByPath = query({
 	args: getPageByPathArgs,
+	returns: v.union(v.null(), v.object({
+   isPasswordProtected: v.boolean(),
+   passwordVerified: v.boolean(),
+   isMembershipRestricted: v.boolean(),
+   membershipAccess: v.object({
+     allowed: v.boolean(),
+     reason: v.string(),
+     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+     customMessage: v.union(v.null(), v.string()),
+     matchingPlanIds: v.array(v.string()),
+   }),
+   _id: v.id("posts"),
+   _creationTime: v.number(),
+   type: v.union(v.literal("post"), v.literal("page")),
+   title: v.string(),
+   slug: v.string(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+   authorId: v.id("users"),
+   featuredImageId: v.optional(v.id("media")),
+   commentStatus: v.union(v.literal("open"), v.literal("closed")),
+   commentCount: v.optional(v.number()),
+   isSticky: v.optional(v.boolean()),
+   publishedAt: v.optional(v.number()),
+   createdAt: v.number(),
+   updatedAt: v.number(),
+   parentId: v.optional(v.id("posts")),
+   menuOrder: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+   path: v.optional(v.string()),
+   depth: v.optional(v.number()),
+   hideHeader: v.optional(v.boolean()),
+   hideFooter: v.optional(v.boolean()),
+   layoutId: v.optional(v.string()),
+   excerpt: v.optional(v.string()),
+   blocks: postsDocs.posts.fields.blocks,
+   blocksVersion: v.optional(v.number()),
+   blocksRevision: v.optional(v.number()),
+   hero: v.optional(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+     ctaText: v.optional(v.string()),
+     ctaUrl: v.optional(v.string()),
+   })),
+   topics: v.optional(v.array(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+   }))),
+   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+   sources: v.optional(v.string()),
+   tableOfContents: v.optional(v.string()),
+ }), v.object({
+   featuredImageUrl: v.string(),
+   featuredImageAlt: v.optional(v.string()),
+   isPasswordProtected: v.boolean(),
+   passwordVerified: v.boolean(),
+   isMembershipRestricted: v.boolean(),
+   membershipAccess: v.object({
+     allowed: v.boolean(),
+     reason: v.string(),
+     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+     customMessage: v.union(v.null(), v.string()),
+     matchingPlanIds: v.array(v.string()),
+   }),
+   _id: v.id("posts"),
+   _creationTime: v.number(),
+   type: v.union(v.literal("post"), v.literal("page")),
+   title: v.string(),
+   slug: v.string(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+   authorId: v.id("users"),
+   featuredImageId: v.optional(v.id("media")),
+   commentStatus: v.union(v.literal("open"), v.literal("closed")),
+   commentCount: v.optional(v.number()),
+   isSticky: v.optional(v.boolean()),
+   publishedAt: v.optional(v.number()),
+   createdAt: v.number(),
+   updatedAt: v.number(),
+   parentId: v.optional(v.id("posts")),
+   menuOrder: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+   path: v.optional(v.string()),
+   depth: v.optional(v.number()),
+   hideHeader: v.optional(v.boolean()),
+   hideFooter: v.optional(v.boolean()),
+   layoutId: v.optional(v.string()),
+   excerpt: v.optional(v.string()),
+   blocks: postsDocs.posts.fields.blocks,
+   blocksVersion: v.optional(v.number()),
+   blocksRevision: v.optional(v.number()),
+   hero: v.optional(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+     ctaText: v.optional(v.string()),
+     ctaUrl: v.optional(v.string()),
+   })),
+   topics: v.optional(v.array(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+   }))),
+   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+   sources: v.optional(v.string()),
+   tableOfContents: v.optional(v.string()),
+ })),
 	handler: async (ctx, args) => {
 		const normalized = args.path.startsWith("/") ? args.path : `/${args.path}`;
 		const path =
@@ -437,6 +795,16 @@ export const getByPath = query({
  */
 export const getChildren = query({
 	args: getChildrenArgs,
+	returns: v.array(v.object({
+   _id: v.id("posts"),
+   title: v.string(),
+   slug: v.string(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   menuOrder: v.optional(v.number()),
+   path: v.optional(v.string()),
+   depth: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+ })),
 	handler: async (ctx, args) => {
 		const showPublishedOnly = args.status !== "all";
 		const user = await getCurrentUser(ctx);
@@ -450,7 +818,7 @@ export const getChildren = query({
 			.collect();
 
 		// Filter by status
-		const filtered = [];
+		const filtered: Doc<"posts">[] = [];
 		for (const child of children) {
 			if (
 				(!showPublishedOnly &&
@@ -464,8 +832,7 @@ export const getChildren = query({
 
 		// Sort by menuOrder then title
 		filtered.sort((a, b) => {
-			const orderCmp =
-				((a.menuOrder as number) ?? 0) - ((b.menuOrder as number) ?? 0);
+			const orderCmp = (a.menuOrder ?? 0) - (b.menuOrder ?? 0);
 			if (orderCmp !== 0) return orderCmp;
 			return a.title.localeCompare(b.title);
 		});
@@ -699,7 +1066,7 @@ export const getTemplates = query({
    }),
  }))),
 	handler: async () => {
-		return PAGE_TEMPLATES;
+		return [...PAGE_TEMPLATES];
 	},
 });
 
@@ -765,8 +1132,7 @@ export const listPublished = query({
 
 		// Sort by menuOrder then title
 		allPublished.sort((a, b) => {
-			const orderCmp =
-				((a.menuOrder as number) ?? 0) - ((b.menuOrder as number) ?? 0);
+			const orderCmp = (a.menuOrder ?? 0) - (b.menuOrder ?? 0);
 			if (orderCmp !== 0) return orderCmp;
 			return a.title.localeCompare(b.title);
 		});
@@ -820,6 +1186,64 @@ export const listPublished = query({
  */
 export const getFrontPage = query({
 	args: {},
+	returns: v.union(v.null(), v.object({
+   isPasswordProtected: v.boolean(),
+   passwordVerified: v.boolean(),
+   isMembershipRestricted: v.boolean(),
+   membershipAccess: v.object({
+     allowed: v.boolean(),
+     reason: v.string(),
+     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+     customMessage: v.union(v.null(), v.string()),
+     matchingPlanIds: v.array(v.string()),
+   }),
+   _id: v.id("posts"),
+   _creationTime: v.number(),
+   type: v.union(v.literal("post"), v.literal("page")),
+   title: v.string(),
+   slug: v.string(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+   authorId: v.id("users"),
+   featuredImageId: v.optional(v.id("media")),
+   commentStatus: v.union(v.literal("open"), v.literal("closed")),
+   commentCount: v.optional(v.number()),
+   isSticky: v.optional(v.boolean()),
+   publishedAt: v.optional(v.number()),
+   createdAt: v.number(),
+   updatedAt: v.number(),
+   parentId: v.optional(v.id("posts")),
+   menuOrder: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+   path: v.optional(v.string()),
+   depth: v.optional(v.number()),
+   hideHeader: v.optional(v.boolean()),
+   hideFooter: v.optional(v.boolean()),
+   layoutId: v.optional(v.string()),
+   excerpt: v.optional(v.string()),
+   blocks: postsDocs.posts.fields.blocks,
+   blocksVersion: v.optional(v.number()),
+   blocksRevision: v.optional(v.number()),
+   hero: v.optional(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+     ctaText: v.optional(v.string()),
+     ctaUrl: v.optional(v.string()),
+   })),
+   topics: v.optional(v.array(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+   }))),
+   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+   sources: v.optional(v.string()),
+   tableOfContents: v.optional(v.string()),
+ })),
 	handler: async (ctx) => {
 		// Look up reading settings
 		let readingSettings;
@@ -901,6 +1325,64 @@ export const getFrontPage = query({
  */
 export const verifyPassword = query({
 	args: { pageId: v.id("posts"), password: v.string() },
+	returns: v.union(v.null(), v.object({
+   isPasswordProtected: v.boolean(),
+   passwordVerified: v.boolean(),
+   isMembershipRestricted: v.boolean(),
+   membershipAccess: v.object({
+     allowed: v.boolean(),
+     reason: v.string(),
+     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+     customMessage: v.union(v.null(), v.string()),
+     matchingPlanIds: v.array(v.string()),
+   }),
+   _id: v.id("posts"),
+   _creationTime: v.number(),
+   type: v.union(v.literal("post"), v.literal("page")),
+   title: v.string(),
+   slug: v.string(),
+   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+   authorId: v.id("users"),
+   featuredImageId: v.optional(v.id("media")),
+   commentStatus: v.union(v.literal("open"), v.literal("closed")),
+   commentCount: v.optional(v.number()),
+   isSticky: v.optional(v.boolean()),
+   publishedAt: v.optional(v.number()),
+   createdAt: v.number(),
+   updatedAt: v.number(),
+   parentId: v.optional(v.id("posts")),
+   menuOrder: v.optional(v.number()),
+   pageTemplate: v.optional(v.string()),
+   path: v.optional(v.string()),
+   depth: v.optional(v.number()),
+   hideHeader: v.optional(v.boolean()),
+   hideFooter: v.optional(v.boolean()),
+   layoutId: v.optional(v.string()),
+   excerpt: v.optional(v.string()),
+   blocks: postsDocs.posts.fields.blocks,
+   blocksVersion: v.optional(v.number()),
+   blocksRevision: v.optional(v.number()),
+   hero: v.optional(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+     ctaText: v.optional(v.string()),
+     ctaUrl: v.optional(v.string()),
+   })),
+   topics: v.optional(v.array(v.object({
+     title: v.optional(v.string()),
+     content: v.optional(v.string()),
+     subtitle: v.optional(v.string()),
+     imageId: v.optional(v.id("media")),
+     videoUrl: v.optional(v.string()),
+   }))),
+   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+   sources: v.optional(v.string()),
+   tableOfContents: v.optional(v.string()),
+ })),
 	handler: async (ctx, args) => {
 		const page = await ctx.db.get("posts", args.pageId);
 		if (

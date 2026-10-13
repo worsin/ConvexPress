@@ -23,7 +23,7 @@ import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── Publish Scheduled ──────────────────────────────────────────────────────
 
 export const publishScheduled = internalMutation({
@@ -160,7 +160,7 @@ export const cleanupPageViews = internalMutation({
 
 export const getUnsyncedForMeilisearch = internalQuery({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_articles)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_articles)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
@@ -172,7 +172,7 @@ export const getUnsyncedForMeilisearch = internalQuery({
 
 export const getUnsyncedForRag = internalQuery({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_articles)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_articles)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
@@ -301,7 +301,7 @@ export const removeArticleChunks = internalMutation({
  */
 export const getAllRagChunks = internalQuery({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_ragChunks)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_ragChunks)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_ragChunks").take(5000);

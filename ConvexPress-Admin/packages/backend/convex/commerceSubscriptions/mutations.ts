@@ -24,13 +24,19 @@
  *   - revokeEntitlement        Revoke an entitlement
  */
 
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
+import { validate } from "convex-helpers/validators";
 import { internal } from "../_generated/api";
-import { mutation } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { mutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
-import { commerceSubscriptionSourceChannelValidator } from "../schema/commerceSubscriptions";
+import {
+	commerceSubscriptionSourceChannelValidator,
+	commerceSubscriptionStatusValidator,
+} from "../schema/commerceSubscriptions";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { decideBridgeCall } from "./bridgeDecisions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import {
@@ -45,16 +51,50 @@ import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } fro
 // TYPES & CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-type BillingInterval = "week" | "month" | "year";
-type SubscriptionStatus =
-	| "draft"
-	| "trialing"
-	| "active"
-	| "past_due"
-	| "paused"
-	| "pending_cancel"
-	| "cancelled"
-	| "expired";
+type BillingInterval = NonNullable<Doc<"commerce_subscriptions">["billingInterval"]>;
+type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
+type SubscriptionDoc = Doc<"commerce_subscriptions">;
+
+type HistoryEntry = {
+	subscriptionId: Id<"commerce_subscriptions">;
+	eventType: string;
+	message?: string;
+	actorUserId?: Id<"users">;
+	fromStatus?: SubscriptionStatus;
+	toStatus?: SubscriptionStatus;
+	reason?: string;
+	data?: Record<string, unknown>;
+	correlationId?: string;
+};
+
+type TransitionArgs = {
+	subscription: SubscriptionDoc;
+	toStatus: SubscriptionStatus;
+	reason?: string;
+	correlationId?: string;
+	actorUserId?: Id<"users">;
+	patch?: Record<string, unknown>;
+};
+
+type IdempotencyClaim<Response> =
+	| { mode: "none" }
+	| { mode: "replay"; response: Response }
+	| { mode: "claimed"; id: Id<"commerce_subscription_idempotency_keys"> };
+
+const createSubscriptionResponseValidator = v.object({
+	subscriptionId: v.id("commerce_subscriptions"),
+	status: commerceSubscriptionStatusValidator,
+	currentPeriodEndAt: v.number(),
+	nextBillingAt: v.number(),
+	templateId: v.optional(v.id("commerce_subscription_templates")),
+});
+type CreateSubscriptionResponse = Infer<typeof createSubscriptionResponseValidator>;
+
+function isCreateSubscriptionResponse(
+	value: unknown,
+): value is CreateSubscriptionResponse {
+	return validate(createSubscriptionResponseValidator, value);
+}
 
 const STATUS_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
 	draft: ["trialing", "active", "cancelled"],
@@ -101,6 +141,10 @@ function addBillingPeriod(
 	intervalCount: number,
 ): number {
 	const date = new Date(timestamp);
+	if (interval === "day") {
+		date.setDate(date.getDate() + intervalCount);
+		return date.getTime();
+	}
 	if (interval === "week") {
 		date.setDate(date.getDate() + 7 * intervalCount);
 		return date.getTime();
@@ -118,24 +162,27 @@ function createCorrelationId(): string {
 	return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-async function getProductOverride(ctx: any, productId: any) {
+async function getProductOverride(
+	ctx: { db: QueryCtx["db"] },
+	productId: Id<"commerce_products">,
+) {
 	return ctx.db
 		.query("commerce_product_subscription_overrides")
-		.withIndex("by_product", (q: any) => q.eq("productId", productId))
+		.withIndex("by_product", (q) => q.eq("productId", productId))
 		.first();
 }
 
 async function resolveEffectiveConfig(
-	ctx: any,
-	product: any,
-	explicitTemplateId?: any,
-	variant?: any,
+	ctx: { db: QueryCtx["db"] },
+	product: Doc<"commerce_products">,
+	explicitTemplateId?: Id<"commerce_subscription_templates">,
+	variant?: Doc<"commerce_product_variants"> | null,
 ) {
 	const override = await getProductOverride(ctx, product._id);
 	const configuredTemplateId =
 		explicitTemplateId ?? override?.templateId ?? undefined;
 
-	let template: any = null;
+	let template: Doc<"commerce_subscription_templates"> | null = null;
 	if (configuredTemplateId) {
 		template = await ctx.db.get(configuredTemplateId);
 	}
@@ -176,7 +223,7 @@ async function resolveEffectiveConfig(
 	};
 }
 
-async function writeHistory(ctx: any, args: any) {
+async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
 	await ctx.db.insert("commerce_subscription_history", {
 		subscriptionId: args.subscriptionId,
 		eventType: args.eventType,
@@ -202,7 +249,7 @@ async function writeHistory(ctx: any, args: any) {
  * (`syncEntitlementsForStatus`) are also duplicated — that pre-existing smell
  * is out of scope for this task.
  */
-async function isBridgeEnabled(ctx: any): Promise<boolean> {
+async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 	const commerceOn = await isPluginEnabled(ctx, "commerceSubscriptions");
 	if (!commerceOn) return false;
 	const membershipOn = await isPluginEnabled(ctx, "membership");
@@ -211,7 +258,7 @@ async function isBridgeEnabled(ctx: any): Promise<boolean> {
 	try {
 		const settingsRow = await ctx.db
 			.query("settings")
-			.withIndex("by_section", (q: any) =>
+			.withIndex("by_section", (q) =>
 				q.eq("section", "membership.general"),
 			)
 			.unique();
@@ -224,14 +271,14 @@ async function isBridgeEnabled(ctx: any): Promise<boolean> {
 }
 
 async function syncEntitlementsForStatus(
-	ctx: any,
-	subscription: any,
+	ctx: MutationCtx,
+	subscription: SubscriptionDoc,
 	now: number,
 	gracePeriodDays = 3,
 ) {
 	const entitlements = await ctx.db
 		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q: any) =>
+		.withIndex("by_subscription", (q) =>
 			q.eq("subscriptionId", subscription._id),
 		)
 		.collect();
@@ -329,13 +376,13 @@ async function syncEntitlementsForStatus(
 }
 
 async function ensureSubscriptionEntitlement(
-	ctx: any,
-	subscription: any,
+	ctx: MutationCtx,
+	subscription: SubscriptionDoc,
 	now: number,
-) {
+): Promise<Id<"commerce_subscription_entitlements">> {
 	const existing = await ctx.db
 		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q: any) =>
+		.withIndex("by_subscription", (q) =>
 			q.eq("subscriptionId", subscription._id),
 		)
 		.first();
@@ -362,17 +409,18 @@ async function ensureSubscriptionEntitlement(
 	});
 }
 
-async function claimIdempotencyKey(
-	ctx: any,
+async function claimIdempotencyKey<Response>(
+	ctx: MutationCtx,
 	key: string | undefined,
 	scope: string,
-) {
-	if (!key) return { mode: "none" as const };
+	isResponse: (value: unknown) => value is Response,
+): Promise<IdempotencyClaim<Response>> {
+	if (!key) return { mode: "none" };
 
 	const now = Date.now();
 	const existing = await ctx.db
 		.query("commerce_subscription_idempotency_keys")
-		.withIndex("by_scope_key", (q: any) => q.eq("scope", scope).eq("key", key))
+		.withIndex("by_scope_key", (q) => q.eq("scope", scope).eq("key", key))
 		.first();
 
 	if (existing && existing.expiresAt && existing.expiresAt > now) {
@@ -383,10 +431,14 @@ async function claimIdempotencyKey(
 			});
 		}
 		if (existing.status === "completed" && existing.resultRef) {
-			return {
-				mode: "replay" as const,
-				response: JSON.parse(existing.resultRef),
-			};
+			const stored: unknown = JSON.parse(existing.resultRef);
+			if (!isResponse(stored)) {
+				throw new ConvexError({
+					code: "IDEMPOTENCY_REPLAY_INVALID",
+					message: "Stored idempotent response does not match the expected shape.",
+				});
+			}
+			return { mode: "replay", response: stored };
 		}
 	}
 
@@ -401,10 +453,18 @@ async function claimIdempotencyKey(
 		updatedAt: now,
 	});
 
-	return { mode: "claimed" as const, id };
+	return { mode: "claimed", id };
 }
 
-async function finalizeIdempotency(ctx: any, claim: any, response: any) {
+type FinalizableClaim =
+	| { mode: "none" }
+	| { mode: "claimed"; id: Id<"commerce_subscription_idempotency_keys"> };
+
+async function finalizeIdempotency(
+	ctx: MutationCtx,
+	claim: FinalizableClaim,
+	response: CreateSubscriptionResponse,
+) {
 	if (claim.mode !== "claimed") return;
 	await patchDynamicWithMediaReferences(ctx, claim.id, {
 		status: "completed",
@@ -413,7 +473,7 @@ async function finalizeIdempotency(ctx: any, claim: any, response: any) {
 	});
 }
 
-async function failIdempotency(ctx: any, claim: any) {
+async function failIdempotency(ctx: MutationCtx, claim: FinalizableClaim) {
 	if (claim.mode !== "claimed") return;
 	await patchDynamicWithMediaReferences(ctx, claim.id, {
 		status: "failed",
@@ -421,7 +481,10 @@ async function failIdempotency(ctx: any, claim: any) {
 	});
 }
 
-async function transitionSubscription(ctx: any, args: any) {
+async function transitionSubscription(
+	ctx: MutationCtx,
+	args: TransitionArgs,
+): Promise<SubscriptionDoc> {
 	const now = Date.now();
 	if (args.subscription.status === args.toStatus) return args.subscription;
 
@@ -526,11 +589,11 @@ export const createTemplate = mutation({
 		// Check slug uniqueness and determine version
 		const existing = await ctx.db
 			.query("commerce_subscription_templates")
-			.withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+			.withIndex("by_slug", (q) => q.eq("slug", args.slug))
 			.collect();
 		const nextVersion =
 			existing.reduce(
-				(max: number, t: any) => Math.max(max, t.version ?? 0),
+				(max: number, t) => Math.max(max, t.version),
 				0,
 			) + 1;
 
@@ -635,6 +698,7 @@ export const setProductOverride = mutation({
 		overrideGracePeriodDays: v.optional(v.number()),
 		overridePausable: v.optional(v.boolean()),
 	},
+	returns: v.id("commerce_product_subscription_overrides"),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -747,7 +811,8 @@ export const create = mutation({
 		sourceMetadata: v.optional(v.any()),
 		idempotencyKey: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	returns: createSubscriptionResponseValidator,
+	handler: async (ctx, args): Promise<CreateSubscriptionResponse> => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const actor = await requireCan(ctx, "manage_options");
@@ -757,6 +822,7 @@ export const create = mutation({
 			ctx,
 			args.idempotencyKey,
 			"subscription.create",
+			isCreateSubscriptionResponse,
 		);
 		if (idempotency.mode === "replay") {
 			return idempotency.response;
@@ -775,7 +841,7 @@ export const create = mutation({
 				});
 			}
 
-			let variant: any = null;
+			let variant: Doc<"commerce_product_variants"> | null = null;
 			if (args.variantId) {
 				variant = await ctx.db.get(args.variantId);
 				if (!variant || variant.productId !== product._id) {
@@ -876,7 +942,7 @@ export const create = mutation({
 				productId: args.productId,
 				variantId: args.variantId,
 				bundleId: undefined,
-				titleSnapshot: variant?.title ?? product.title ?? product.name,
+				titleSnapshot: variant?.title ?? product.title,
 				quantity,
 				unitAmount: pricing.unitAmount,
 				unitRecurringAmount: pricing.unitAmount,
@@ -951,7 +1017,7 @@ export const create = mutation({
 				// Event emission is best-effort
 			}
 
-			const response = {
+			const response: CreateSubscriptionResponse = {
 				subscriptionId,
 				status,
 				currentPeriodEndAt,
@@ -984,6 +1050,7 @@ export const pause = mutation({
 		subscriptionId: v.id("commerce_subscriptions"),
 		reason: v.optional(v.string()),
 	},
+	returns: commerceSubscriptionsDocs.commerce_subscriptions,
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1037,6 +1104,7 @@ export const resume = mutation({
 	args: {
 		subscriptionId: v.id("commerce_subscriptions"),
 	},
+	returns: commerceSubscriptionsDocs.commerce_subscriptions,
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1077,7 +1145,7 @@ export const resume = mutation({
 			(subscription.currentPeriodEndAt ?? 0) < now
 				? addBillingPeriod(
 						now,
-						(subscription.billingInterval ?? "month") as BillingInterval,
+						subscription.billingInterval ?? "month",
 						subscription.billingIntervalCount ?? 1,
 					)
 				: subscription.currentPeriodEndAt;
@@ -1106,6 +1174,7 @@ export const scheduleCancel = mutation({
 		subscriptionId: v.id("commerce_subscriptions"),
 		reason: v.optional(v.string()),
 	},
+	returns: commerceSubscriptionsDocs.commerce_subscriptions,
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1163,6 +1232,7 @@ export const cancelNow = mutation({
 		subscriptionId: v.id("commerce_subscriptions"),
 		reason: v.optional(v.string()),
 	},
+	returns: commerceSubscriptionsDocs.commerce_subscriptions,
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1359,6 +1429,8 @@ export const createOrderForm = mutation({
 				status: "draft",
 				selectionMode: "single_offer",
 				offerIds: [],
+				accountMode: "require_login",
+				paymentMode: "pay_now",
 				createdAt: now,
 				updatedAt: now,
 			},

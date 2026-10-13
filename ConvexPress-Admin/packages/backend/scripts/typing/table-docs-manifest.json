@@ -1,0 +1,1310 @@
+{
+  "socialFeedSources": {
+    "module": "schema/socialFeeds.docs.generated",
+    "exportName": "socialFeedsDocs"
+  },
+  "canonicalDocumentDrafts": {
+    "module": "schema/canonicalDrafts.docs.generated",
+    "exportName": "canonicalDraftsDocs"
+  },
+  "syncedBlockConsumerDirty": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "syncedBlockConsumerIndex": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "syncedBlockConsumers": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "syncedBlockRefreshFailures": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "syncedBlockRefreshJobs": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "syncedBlockRevisions": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "syncedBlocks": {
+    "module": "schema/syncedBlocks.docs.generated",
+    "exportName": "syncedBlocksDocs"
+  },
+  "blockDefinitionApprovals": {
+    "module": "schema/blockDefinitions.docs.generated",
+    "exportName": "blockDefinitionsDocs"
+  },
+  "blockDefinitionVersions": {
+    "module": "schema/blockDefinitions.docs.generated",
+    "exportName": "blockDefinitionsDocs"
+  },
+  "blockDefinitions": {
+    "module": "schema/blockDefinitions.docs.generated",
+    "exportName": "blockDefinitionsDocs"
+  },
+  "leadMagnetDeliveries": {
+    "module": "schema/leadMagnets.docs.generated",
+    "exportName": "leadMagnetsDocs"
+  },
+  "mailingListConsentEvents": {
+    "module": "schema/leadMagnets.docs.generated",
+    "exportName": "leadMagnetsDocs"
+  },
+  "locale_routing": {
+    "module": "schema/localization.docs.generated",
+    "exportName": "localizationDocs"
+  },
+  "locale_translation_groups": {
+    "module": "schema/localization.docs.generated",
+    "exportName": "localizationDocs"
+  },
+  "locale_translations": {
+    "module": "schema/localization.docs.generated",
+    "exportName": "localizationDocs"
+  },
+  "contentPromotion_backups": {
+    "module": "schema/contentPromotion.docs.generated",
+    "exportName": "contentPromotionDocs"
+  },
+  "contentPromotion_mappings": {
+    "module": "schema/contentPromotion.docs.generated",
+    "exportName": "contentPromotionDocs"
+  },
+  "contentPromotion_mediaRecoveryAudit": {
+    "module": "schema/contentPromotion.docs.generated",
+    "exportName": "contentPromotionDocs"
+  },
+  "contentPromotion_mediaRecoveryGrants": {
+    "module": "schema/contentPromotion.docs.generated",
+    "exportName": "contentPromotionDocs"
+  },
+  "contentPromotion_mediaUploads": {
+    "module": "schema/contentPromotion.docs.generated",
+    "exportName": "contentPromotionDocs"
+  },
+  "contentPromotion_receipts": {
+    "module": "schema/contentPromotion.docs.generated",
+    "exportName": "contentPromotionDocs"
+  },
+  "users": {
+    "module": "schema/users.docs.generated",
+    "exportName": "usersDocs"
+  },
+  "authorPostCounts": {
+    "module": "schema/authorCounts.docs.generated",
+    "exportName": "authorCountsDocs"
+  },
+  "roleChanges": {
+    "module": "schema/roles.docs.generated",
+    "exportName": "rolesDocs"
+  },
+  "roles": {
+    "module": "schema/roles.docs.generated",
+    "exportName": "rolesDocs"
+  },
+  "eventListenerExecutions": {
+    "module": "schema/events.docs.generated",
+    "exportName": "eventsDocs"
+  },
+  "eventListeners": {
+    "module": "schema/events.docs.generated",
+    "exportName": "eventsDocs"
+  },
+  "events": {
+    "module": "schema/events.docs.generated",
+    "exportName": "eventsDocs"
+  },
+  "appearance_drafts": {
+    "module": "schema/settings.docs.generated",
+    "exportName": "settingsDocs"
+  },
+  "legacyAppearanceArchives": {
+    "module": "schema/settings.docs.generated",
+    "exportName": "settingsDocs"
+  },
+  "settings": {
+    "module": "schema/settings.docs.generated",
+    "exportName": "settingsDocs"
+  },
+  "media": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "mediaMaintenance": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "mediaMeta": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "mediaSizes": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "media_epoch_claim": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "media_epoch_import_receipts": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "media_reference_edges": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "media_reference_state": {
+    "module": "schema/media.docs.generated",
+    "exportName": "mediaDocs"
+  },
+  "termRelationships": {
+    "module": "schema/taxonomies.docs.generated",
+    "exportName": "taxonomiesDocs"
+  },
+  "terms": {
+    "module": "schema/taxonomies.docs.generated",
+    "exportName": "taxonomiesDocs"
+  },
+  "fieldDefinitions": {
+    "module": "schema/customFields.docs.generated",
+    "exportName": "customFieldsDocs"
+  },
+  "fieldGroups": {
+    "module": "schema/customFields.docs.generated",
+    "exportName": "customFieldsDocs"
+  },
+  "fieldValues": {
+    "module": "schema/customFields.docs.generated",
+    "exportName": "customFieldsDocs"
+  },
+  "auditEntries": {
+    "module": "schema/auditLogs.docs.generated",
+    "exportName": "auditLogsDocs"
+  },
+  "postMeta": {
+    "module": "schema/posts.docs.generated",
+    "exportName": "postsDocs"
+  },
+  "posts": {
+    "module": "schema/posts.docs.generated",
+    "exportName": "postsDocs"
+  },
+  "mailingListSubscribers": {
+    "module": "schema/audiences.docs.generated",
+    "exportName": "audiencesDocs"
+  },
+  "mailingLists": {
+    "module": "schema/audiences.docs.generated",
+    "exportName": "audiencesDocs"
+  },
+  "emailQueue": {
+    "module": "schema/emails.docs.generated",
+    "exportName": "emailsDocs"
+  },
+  "emailTemplates": {
+    "module": "schema/emails.docs.generated",
+    "exportName": "emailsDocs"
+  },
+  "emailUnsubscribes": {
+    "module": "schema/emails.docs.generated",
+    "exportName": "emailsDocs"
+  },
+  "newsletterSubscribers": {
+    "module": "schema/emails.docs.generated",
+    "exportName": "emailsDocs"
+  },
+  "notificationPreferences": {
+    "module": "schema/notifications.docs.generated",
+    "exportName": "notificationsDocs"
+  },
+  "siteNotifications": {
+    "module": "schema/notifications.docs.generated",
+    "exportName": "notificationsDocs"
+  },
+  "commentFlags": {
+    "module": "schema/comments.docs.generated",
+    "exportName": "commentsDocs"
+  },
+  "commentLikes": {
+    "module": "schema/comments.docs.generated",
+    "exportName": "commentsDocs"
+  },
+  "commentMeta": {
+    "module": "schema/comments.docs.generated",
+    "exportName": "commentsDocs"
+  },
+  "comments": {
+    "module": "schema/comments.docs.generated",
+    "exportName": "commentsDocs"
+  },
+  "editorLocks": {
+    "module": "schema/editor.docs.generated",
+    "exportName": "editorDocs"
+  },
+  "reusableBlocks": {
+    "module": "schema/editor.docs.generated",
+    "exportName": "editorDocs"
+  },
+  "revisions": {
+    "module": "schema/revisions.docs.generated",
+    "exportName": "revisionsDocs"
+  },
+  "invitations": {
+    "module": "schema/registration.docs.generated",
+    "exportName": "registrationDocs"
+  },
+  "menuItems": {
+    "module": "schema/menus.docs.generated",
+    "exportName": "menusDocs"
+  },
+  "menuLocations": {
+    "module": "schema/menus.docs.generated",
+    "exportName": "menusDocs"
+  },
+  "menus": {
+    "module": "schema/menus.docs.generated",
+    "exportName": "menusDocs"
+  },
+  "notFound": {
+    "module": "schema/routing.docs.generated",
+    "exportName": "routingDocs"
+  },
+  "redirects": {
+    "module": "schema/routing.docs.generated",
+    "exportName": "routingDocs"
+  },
+  "searchIndex": {
+    "module": "schema/search.docs.generated",
+    "exportName": "searchDocs"
+  },
+  "searchQueries": {
+    "module": "schema/search.docs.generated",
+    "exportName": "searchDocs"
+  },
+  "searchReindexState": {
+    "module": "schema/search.docs.generated",
+    "exportName": "searchDocs"
+  },
+  "searchSynonyms": {
+    "module": "schema/search.docs.generated",
+    "exportName": "searchDocs"
+  },
+  "seoSettings": {
+    "module": "schema/seo.docs.generated",
+    "exportName": "seoDocs"
+  },
+  "sitemapCache": {
+    "module": "schema/sitemap.docs.generated",
+    "exportName": "sitemapDocs"
+  },
+  "sitemapGenerationLog": {
+    "module": "schema/sitemap.docs.generated",
+    "exportName": "sitemapDocs"
+  },
+  "sitemapPingLog": {
+    "module": "schema/sitemap.docs.generated",
+    "exportName": "sitemapDocs"
+  },
+  "apiKeys": {
+    "module": "schema/api.docs.generated",
+    "exportName": "apiDocs"
+  },
+  "apiRateLimitWindows": {
+    "module": "schema/api.docs.generated",
+    "exportName": "apiDocs"
+  },
+  "webhookDeliveries": {
+    "module": "schema/api.docs.generated",
+    "exportName": "apiDocs"
+  },
+  "webhooks": {
+    "module": "schema/api.docs.generated",
+    "exportName": "apiDocs"
+  },
+  "dashboardPreferences": {
+    "module": "schema/dashboard.docs.generated",
+    "exportName": "dashboardDocs"
+  },
+  "capabilities": {
+    "module": "schema/capabilities.docs.generated",
+    "exportName": "capabilitiesDocs"
+  },
+  "eventDefinitions": {
+    "module": "schema/eventDefinitions.docs.generated",
+    "exportName": "eventDefinitionsDocs"
+  },
+  "routeDefinitions": {
+    "module": "schema/routeDefinitions.docs.generated",
+    "exportName": "routeDefinitionsDocs"
+  },
+  "siteNotificationDefinitions": {
+    "module": "schema/siteNotificationDefinitions.docs.generated",
+    "exportName": "siteNotificationDefinitionsDocs"
+  },
+  "failedLoginAttempts": {
+    "module": "schema/authTracking.docs.generated",
+    "exportName": "authTrackingDocs"
+  },
+  "wordpressSites": {
+    "module": "schema/wordpressSync.docs.generated",
+    "exportName": "wordpressSyncDocs"
+  },
+  "wordpressSyncJobs": {
+    "module": "schema/wordpressSync.docs.generated",
+    "exportName": "wordpressSyncDocs"
+  },
+  "wordpressSyncReconciliationFindings": {
+    "module": "schema/wordpressSync.docs.generated",
+    "exportName": "wordpressSyncDocs"
+  },
+  "wordpressSyncReports": {
+    "module": "schema/wordpressSync.docs.generated",
+    "exportName": "wordpressSyncDocs"
+  },
+  "wpIdMappings": {
+    "module": "schema/wordpressSync.docs.generated",
+    "exportName": "wordpressSyncDocs"
+  },
+  "authSetupState": {
+    "module": "schema/auth.docs.generated",
+    "exportName": "authDocs"
+  },
+  "refreshTokens": {
+    "module": "schema/auth.docs.generated",
+    "exportName": "authDocs"
+  },
+  "websiteOperatorHandoffs": {
+    "module": "schema/auth.docs.generated",
+    "exportName": "authDocs"
+  },
+  "pageAnalyticsDaily": {
+    "module": "schema/analytics.docs.generated",
+    "exportName": "analyticsDocs"
+  },
+  "pageEvents": {
+    "module": "schema/analytics.docs.generated",
+    "exportName": "analyticsDocs"
+  },
+  "gaCache": {
+    "module": "schema/ga4.docs.generated",
+    "exportName": "ga4Docs"
+  },
+  "kb_articleFeedback": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_articleTags": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_articleVersions": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_articleWorkflows": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_article_category_guards": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_articles": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_bookmarks": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_categories": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_category_deletions": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_collectionArticles": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_collections": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_commentVotes": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_comments": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_pageViews": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_ragChunks": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_relatedArticles": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_searchQueries": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_search_jobs": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_tags": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_templates": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_userProgress": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_workflows": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "ticket_cannedResponses": {
+    "module": "schema/tickets.docs.generated",
+    "exportName": "ticketsDocs"
+  },
+  "ticket_counters": {
+    "module": "schema/tickets.docs.generated",
+    "exportName": "ticketsDocs"
+  },
+  "ticket_messages": {
+    "module": "schema/tickets.docs.generated",
+    "exportName": "ticketsDocs"
+  },
+  "ticket_rateLimits": {
+    "module": "schema/tickets.docs.generated",
+    "exportName": "ticketsDocs"
+  },
+  "ticket_sessions": {
+    "module": "schema/tickets.docs.generated",
+    "exportName": "ticketsDocs"
+  },
+  "ticket_tickets": {
+    "module": "schema/tickets.docs.generated",
+    "exportName": "ticketsDocs"
+  },
+  "support_channels": {
+    "module": "schema/support.docs.generated",
+    "exportName": "supportDocs"
+  },
+  "support_deflectionLogs": {
+    "module": "schema/support.docs.generated",
+    "exportName": "supportDocs"
+  },
+  "support_inbound_events": {
+    "module": "schema/support.docs.generated",
+    "exportName": "supportDocs"
+  },
+  "recipe_categories": {
+    "module": "schema/recipes.docs.generated",
+    "exportName": "recipesDocs"
+  },
+  "recipes": {
+    "module": "schema/recipes.docs.generated",
+    "exportName": "recipesDocs"
+  },
+  "commerce_assistant_briefs": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_assistant_messages": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_assistant_requests": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_assistant_sessions": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_product_relations": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_recommendation_events": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_search_facets": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "commerce_shopper_memory": {
+    "module": "schema/commerceAssistant.docs.generated",
+    "exportName": "commerceAssistantDocs"
+  },
+  "gallery_albumItems": {
+    "module": "schema/gallery.docs.generated",
+    "exportName": "galleryDocs"
+  },
+  "gallery_albums": {
+    "module": "schema/gallery.docs.generated",
+    "exportName": "galleryDocs"
+  },
+  "gallery_categories": {
+    "module": "schema/gallery.docs.generated",
+    "exportName": "galleryDocs"
+  },
+  "purchase_order_events": {
+    "module": "schema/purchases.docs.generated",
+    "exportName": "purchasesDocs"
+  },
+  "purchase_order_lines": {
+    "module": "schema/purchases.docs.generated",
+    "exportName": "purchasesDocs"
+  },
+  "purchase_orders": {
+    "module": "schema/purchases.docs.generated",
+    "exportName": "purchasesDocs"
+  },
+  "purchase_payments": {
+    "module": "schema/purchases.docs.generated",
+    "exportName": "purchasesDocs"
+  },
+  "purchase_refunds": {
+    "module": "schema/purchases.docs.generated",
+    "exportName": "purchasesDocs"
+  },
+  "commerce_applied_adjustments": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_cart_items": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_carts": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_catalog_revisions": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_checkout_sessions": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_checkout_shipping_methods": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_customer_addresses": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_customer_group_members": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_customer_groups": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_customer_profiles": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_discount_codes": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_discount_usages": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_draft_order_items": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_draft_orders": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_dynamic_pricing_rules": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_inventory_adjustments": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_inventory_levels": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_low_stock_alerts": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_order_change_actions": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_order_changes": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_order_history": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_order_items": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_order_tax_lines": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_orders": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_payment_captures": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_payment_collections": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_payment_refunds": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_payment_sessions": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_payment_transactions": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_price_lists": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_price_rules": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_price_sets": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_prices": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_brands": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_categories": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_discovery": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_sales": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_sales_channels": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_tags": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_product_variants": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_products": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_regions": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_sales_channels": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_saved_payment_methods": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_shipments": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_shipping_methods": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_stock_reservations": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_tax_classes": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_tax_rate_history": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_tax_rules": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_webhook_events": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_workflow_runs": {
+    "module": "schema/commerce.docs.generated",
+    "exportName": "commerceDocs"
+  },
+  "commerce_address_validations": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_label_batch_jobs": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_product_location_fulfillment": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_rate_pipeline_runs": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_ship_from_locations": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipment_labels": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipment_manifests": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipment_tracking_events": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_classes": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_dimensional": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_flat_rate": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_free": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_local_delivery": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_local_pickup": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_price_based": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_quantity_based": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_table_rate": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_method_weight_based": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_packages": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_profiles": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_rate_quotes": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_rules": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_zone_methods": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_shipping_zones": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_tracking_sync_log": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_provider_accounts": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_provider_connections": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_provider_oauth_tokens": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_provider_secrets": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_provider_services": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_quote_diagnostics": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "shipping_webhook_deliveries": {
+    "module": "schema/shipping.docs.generated",
+    "exportName": "shippingDocs"
+  },
+  "commerce_product_subscription_overrides": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_checkout_intents": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_coupon_redemptions": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_coupons": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_dunning_attempts": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_entitlements": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_form_submissions": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_history": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_idempotency_keys": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_invoice_items": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_invoices": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_items": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_offer_items": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_offers": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_order_forms": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_pricing_card_config": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_proration_events": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscription_templates": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "commerce_subscriptions": {
+    "module": "schema/commerceSubscriptions.docs.generated",
+    "exportName": "commerceSubscriptionsDocs"
+  },
+  "membership_access_log": {
+    "module": "schema/membership.docs.generated",
+    "exportName": "membershipDocs"
+  },
+  "membership_enrollment_repairs": {
+    "module": "schema/membership.docs.generated",
+    "exportName": "membershipDocs"
+  },
+  "membership_grants": {
+    "module": "schema/membership.docs.generated",
+    "exportName": "membershipDocs"
+  },
+  "membership_plan_benefits": {
+    "module": "schema/membership.docs.generated",
+    "exportName": "membershipDocs"
+  },
+  "membership_plans": {
+    "module": "schema/membership.docs.generated",
+    "exportName": "membershipDocs"
+  },
+  "membership_restriction_rules": {
+    "module": "schema/membership.docs.generated",
+    "exportName": "membershipDocs"
+  },
+  "commerce_digital_files": {
+    "module": "schema/commerceDigital.docs.generated",
+    "exportName": "commerceDigitalDocs"
+  },
+  "commerce_download_leases": {
+    "module": "schema/commerceDigital.docs.generated",
+    "exportName": "commerceDigitalDocs"
+  },
+  "commerce_download_log": {
+    "module": "schema/commerceDigital.docs.generated",
+    "exportName": "commerceDigitalDocs"
+  },
+  "commerce_download_tokens": {
+    "module": "schema/commerceDigital.docs.generated",
+    "exportName": "commerceDigitalDocs"
+  },
+  "commerce_license_activations": {
+    "module": "schema/commerceDigital.docs.generated",
+    "exportName": "commerceDigitalDocs"
+  },
+  "commerce_license_keys": {
+    "module": "schema/commerceDigital.docs.generated",
+    "exportName": "commerceDigitalDocs"
+  },
+  "commerce_review_helpful_votes": {
+    "module": "schema/commerceReviews.docs.generated",
+    "exportName": "commerceReviewsDocs"
+  },
+  "commerce_review_items": {
+    "module": "schema/commerceReviews.docs.generated",
+    "exportName": "commerceReviewsDocs"
+  },
+  "commerce_review_ratings": {
+    "module": "schema/commerceReviews.docs.generated",
+    "exportName": "commerceReviewsDocs"
+  },
+  "commerce_wishlist_counts": {
+    "module": "schema/commerceWishlists.docs.generated",
+    "exportName": "commerceWishlistsDocs"
+  },
+  "commerce_wishlist_deletions": {
+    "module": "schema/commerceWishlists.docs.generated",
+    "exportName": "commerceWishlistsDocs"
+  },
+  "commerce_wishlist_items": {
+    "module": "schema/commerceWishlists.docs.generated",
+    "exportName": "commerceWishlistsDocs"
+  },
+  "commerce_wishlist_owner_totals": {
+    "module": "schema/commerceWishlists.docs.generated",
+    "exportName": "commerceWishlistsDocs"
+  },
+  "commerce_wishlists": {
+    "module": "schema/commerceWishlists.docs.generated",
+    "exportName": "commerceWishlistsDocs"
+  },
+  "commerce_bundle_components": {
+    "module": "schema/commerceBundles.docs.generated",
+    "exportName": "commerceBundlesDocs"
+  },
+  "commerce_bundle_selections": {
+    "module": "schema/commerceBundles.docs.generated",
+    "exportName": "commerceBundlesDocs"
+  },
+  "commerce_bundles": {
+    "module": "schema/commerceBundles.docs.generated",
+    "exportName": "commerceBundlesDocs"
+  },
+  "commerce_return_history": {
+    "module": "schema/commerceReturns.docs.generated",
+    "exportName": "commerceReturnsDocs"
+  },
+  "commerce_return_items": {
+    "module": "schema/commerceReturns.docs.generated",
+    "exportName": "commerceReturnsDocs"
+  },
+  "commerce_return_labels": {
+    "module": "schema/commerceReturns.docs.generated",
+    "exportName": "commerceReturnsDocs"
+  },
+  "commerce_return_reasons": {
+    "module": "schema/commerceReturns.docs.generated",
+    "exportName": "commerceReturnsDocs"
+  },
+  "commerce_return_requests": {
+    "module": "schema/commerceReturns.docs.generated",
+    "exportName": "commerceReturnsDocs"
+  },
+  "commerce_store_credit_ledger": {
+    "module": "schema/commerceReturns.docs.generated",
+    "exportName": "commerceReturnsDocs"
+  },
+  "commerce_product_attribute_terms": {
+    "module": "schema/productAttributes.docs.generated",
+    "exportName": "productAttributesDocs"
+  },
+  "commerce_product_attributes": {
+    "module": "schema/productAttributes.docs.generated",
+    "exportName": "productAttributesDocs"
+  },
+  "lms_ai_generations": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_certificate_issues": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_certificates": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_course_catalog": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_course_completions": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_course_prerequisites": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_courses": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_curriculum_counts": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_enrollments": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_jobs": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_lessonVersions": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_nodes": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_progress": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_progress_counts": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "lms_progress_maintenance": {
+    "module": "schema/lms.docs.generated",
+    "exportName": "lmsDocs"
+  },
+  "convexpress_managementAuthorities": {
+    "module": "schema/management.docs.generated",
+    "exportName": "managementDocs"
+  },
+  "convexpress_managementBindings": {
+    "module": "schema/management.docs.generated",
+    "exportName": "managementDocs"
+  },
+  "convexpress_managementNonces": {
+    "module": "schema/management.docs.generated",
+    "exportName": "managementDocs"
+  },
+  "convexpress_managementSessions": {
+    "module": "schema/management.docs.generated",
+    "exportName": "managementDocs"
+  },
+  "convexpress_siteIdentity": {
+    "module": "schema/management.docs.generated",
+    "exportName": "managementDocs"
+  },
+  "integration_checks": {
+    "module": "schema/integrations.docs.generated",
+    "exportName": "integrationsDocs"
+  },
+  "dashboard_layouts": {
+    "module": "extensions/dashboard/schema.docs.generated",
+    "exportName": "dashboardExtensionDocs"
+  },
+  "dashboard_user_layouts": {
+    "module": "extensions/dashboard/schema.docs.generated",
+    "exportName": "dashboardExtensionDocs"
+  },
+  "event_rsvp_entries": {
+    "module": "extensions/events/schema.docs.generated",
+    "exportName": "eventsExtensionDocs"
+  },
+  "event_rsvp_operations": {
+    "module": "extensions/events/schema.docs.generated",
+    "exportName": "eventsExtensionDocs"
+  },
+  "event_rsvp_rate_limits": {
+    "module": "extensions/events/schema.docs.generated",
+    "exportName": "eventsExtensionDocs"
+  },
+  "event_rsvp_totals": {
+    "module": "extensions/events/schema.docs.generated",
+    "exportName": "eventsExtensionDocs"
+  },
+  "extension_event_categories": {
+    "module": "extensions/events/schema.docs.generated",
+    "exportName": "eventsExtensionDocs"
+  },
+  "extension_events": {
+    "module": "extensions/events/schema.docs.generated",
+    "exportName": "eventsExtensionDocs"
+  },
+  "formSubmissionCounts": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_action_runs": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_actions": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_confirmations": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_funnel_public_events": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_funnel_stats": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_notifications": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_orders": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_poll_rate_limits": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_poll_tallies": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_poll_votes": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_security_settings": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_submission_attempts": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_submission_notes": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "form_submissions": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  },
+  "forms": {
+    "module": "extensions/forms/schema.docs.generated",
+    "exportName": "formsExtensionDocs"
+  }
+}

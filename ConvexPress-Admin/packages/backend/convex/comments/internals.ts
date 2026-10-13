@@ -126,11 +126,9 @@ export const updateUserCommentCount = internalMutation({
       .unique();
 
     if (!user) {
-      try {
-        user = await ctx.db.get(authorId as any);
-      } catch {
-        // Invalid ID format
-      }
+      // Not a Clerk ID: try it as a direct users-table ID.
+      const userId = ctx.db.normalizeId("users", authorId);
+      if (userId) user = await ctx.db.get("users", userId);
     }
 
     if (!user) return;

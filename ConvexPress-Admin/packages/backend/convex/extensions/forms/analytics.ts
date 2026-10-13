@@ -21,7 +21,7 @@
  * surface explicit at the requireCan call site.
  */
 
-import { internalMutation, mutation, query } from "../../_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
@@ -422,14 +422,14 @@ export function summarizeOperationalHealth(args: {
  * insert it at 1. Patches `count` ONLY (the row has no `updatedAt` column).
  */
 async function incrementStage(
-  ctx: { db: any },
+  ctx: { db: MutationCtx["db"] },
   formId: Id<"forms">,
   day: string,
   stage: FunnelStage,
 ): Promise<void> {
   const existing = await ctx.db
     .query("form_funnel_stats")
-    .withIndex("by_form_day", (q: any) =>
+    .withIndex("by_form_day", (q) =>
       q.eq("formId", formId).eq("day", day).eq("stage", stage),
     )
     .first();
@@ -501,7 +501,7 @@ export const recordFunnelPublic = mutation({
     if (stage === "started" && normalizedNonce) {
       const prior = await ctx.db
         .query("form_funnel_public_events")
-        .withIndex("by_form_stage_day_nonce", (q: any) =>
+        .withIndex("by_form_stage_day_nonce", (q) =>
           q
             .eq("formId", formId)
             .eq("stage", stage)
@@ -515,7 +515,7 @@ export const recordFunnelPublic = mutation({
     const acceptedInWindow = (
       await ctx.db
         .query("form_funnel_public_events")
-        .withIndex("by_form_stage_window", (q: any) =>
+        .withIndex("by_form_stage_window", (q) =>
           q.eq("formId", formId).eq("stage", stage).eq("windowStart", windowStart),
         )
         .take(PUBLIC_FUNNEL_WINDOW_LIMIT)
@@ -560,15 +560,22 @@ export const onFormSubmitted = internalMutation({
 
     const ev = await ctx.db.get(eventId);
     if (!ev) return;
-    let p: any;
+    let parsed: unknown;
     try {
-      p = JSON.parse(ev.payload);
+      parsed = JSON.parse(ev.payload);
     } catch {
       return;
     }
-    if (!p || !p.isComplete) return;
-    if (!p.formId || typeof p.submittedAt !== "number") return;
-    await incrementStage(ctx, p.formId, utcDay(p.submittedAt), "completed");
+    if (typeof parsed !== "object" || parsed === null) return;
+    const payload: Record<string, unknown> = { ...parsed };
+    if (!payload.isComplete) return;
+    const submittedAt = payload.submittedAt;
+    const formId =
+      typeof payload.formId === "string"
+        ? ctx.db.normalizeId("forms", payload.formId)
+        : null;
+    if (!formId || typeof submittedAt !== "number") return;
+    await incrementStage(ctx, formId, utcDay(submittedAt), "completed");
   },
 });
 
@@ -585,13 +592,30 @@ export const getFunnel = query({
     from: v.string(), // "YYYY-MM-DD" inclusive
     to: v.string(), // "YYYY-MM-DD" inclusive
   },
+  returns: v.object({
+    totals: v.object({ viewed: v.number(), started: v.number(), completed: v.number(), abandoned: v.number() }),
+    rates: v.object({
+      startRate: v.number(),
+      completionRate: v.number(),
+      overallRate: v.number(),
+      dropOff: v.number(),
+      abandoned: v.number(),
+    }),
+    byDay: v.array(v.object({
+      day: v.string(),
+      viewed: v.number(),
+      started: v.number(),
+      completed: v.number(),
+      abandoned: v.number(),
+    })),
+  }),
   handler: async (ctx, { formId, from, to }) => {
     await requireCan(ctx, formCap("form.view_analytics"));
     await requirePluginEnabled(ctx, "forms");
 
     const rows = await ctx.db
       .query("form_funnel_stats")
-      .withIndex("by_form_day", (q: any) =>
+      .withIndex("by_form_day", (q) =>
         q.eq("formId", formId).gte("day", from).lte("day", to),
       )
       .collect();
@@ -649,49 +673,49 @@ export const getOperationalHealth = query({
     ] = await Promise.all([
       ctx.db
         .query("form_action_runs")
-        .withIndex("by_form_status", (q: any) =>
+        .withIndex("by_form_status", (q) =>
           q.eq("formId", formId).eq("status", "failed"),
         )
         .order("desc")
         .take(ACTION_HEALTH_LIMIT),
       ctx.db
         .query("form_action_runs")
-        .withIndex("by_form_status", (q: any) =>
+        .withIndex("by_form_status", (q) =>
           q.eq("formId", formId).eq("status", "pending"),
         )
         .order("desc")
         .take(ACTION_HEALTH_LIMIT),
       ctx.db
         .query("form_action_runs")
-        .withIndex("by_form_status", (q: any) =>
+        .withIndex("by_form_status", (q) =>
           q.eq("formId", formId).eq("status", "awaiting_payment"),
         )
         .order("desc")
         .take(ACTION_HEALTH_LIMIT),
       ctx.db
         .query("form_submission_attempts")
-        .withIndex("by_form_window", (q: any) =>
+        .withIndex("by_form_window", (q) =>
           q.eq("formId", formId).gte("windowStart", windowStart),
         )
         .take(ATTEMPT_HEALTH_LIMIT),
       ctx.db
         .query("form_funnel_public_events")
-        .withIndex("by_form_stage_window", (q: any) =>
+        .withIndex("by_form_stage_window", (q) =>
           q.eq("formId", formId).eq("stage", "viewed").gte("windowStart", windowStart),
         )
         .take(PUBLIC_EVENT_HEALTH_LIMIT),
       ctx.db
         .query("form_funnel_public_events")
-        .withIndex("by_form_stage_window", (q: any) =>
+        .withIndex("by_form_stage_window", (q) =>
           q.eq("formId", formId).eq("stage", "started").gte("windowStart", windowStart),
         )
         .take(PUBLIC_EVENT_HEALTH_LIMIT),
       ctx.db
         .query("form_submissions")
-        .withIndex("by_form_status", (q: any) =>
+        .withIndex("by_form_status", (q) =>
           q.eq("formId", formId).eq("status", "partial"),
         )
-        .filter((q: any) => q.lt(q.field("submittedAt"), staleCutoff))
+        .filter((q) => q.lt(q.field("submittedAt"), staleCutoff))
         .take(PARTIAL_DRAFT_HEALTH_LIMIT),
     ]);
 
@@ -734,8 +758,8 @@ export const sweepAbandoned = internalMutation({
     const cutoff = abandonCutoff(Date.now());
     const rows = await ctx.db
       .query("form_submissions")
-      .withIndex("by_status", (q: any) => q.eq("status", "partial"))
-      .filter((q: any) => q.lt(q.field("submittedAt"), cutoff))
+      .withIndex("by_status", (q) => q.eq("status", "partial"))
+      .filter((q) => q.lt(q.field("submittedAt"), cutoff))
       .take(SWEEP_BATCH);
 
     let swept = 0;
@@ -778,7 +802,7 @@ export const sweepPublicFunnelEvents = internalMutation({
     const cutoff = now - PUBLIC_FUNNEL_EVENT_RETENTION_MS;
     const rows = await ctx.db
       .query("form_funnel_public_events")
-      .withIndex("by_createdAt", (q: any) => q.lt("createdAt", cutoff))
+      .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
       .take(PUBLIC_FUNNEL_SWEEP_BATCH);
 
     let deleted = 0;

@@ -23,7 +23,7 @@ import {
 } from "../helpers/permissions";
 import { getPasswordStatusArgs } from "./validators";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { usersDocs } from "../schema/users.docs.generated";
 // ─── getPasswordStatus (Public Query) ───────────────────────────────────────
 
 /**
@@ -172,7 +172,7 @@ export const getUserBySubject = internalQuery({
  */
 export const getUserById = internalQuery({
   args: { userId: v.id("users") },
-  returns: v.union(v.null(), tableDocs.users),
+  returns: v.union(v.null(), usersDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.userId);
   },
@@ -266,7 +266,7 @@ export const getSiteUrl = internalQuery({
  */
 export const getUserByEmail = internalQuery({
   args: { email: v.string() },
-  returns: v.union(v.null(), tableDocs.users),
+  returns: v.union(v.null(), usersDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")

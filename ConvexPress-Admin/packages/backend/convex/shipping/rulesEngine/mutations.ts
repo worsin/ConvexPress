@@ -5,6 +5,7 @@ import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
 import { validateRuleAST } from "./validator";
+import { METHOD_TYPES, listAllMethodRows, methodTableFor } from "../methods/tables";
 
 const RULE_SCHEMA_VERSION = 1;
 
@@ -92,21 +93,10 @@ export const deleteRule = mutation({
     // Guard: every B1-B9 method table may reference this rule via `ruleId`.
     // Refuse delete when any method still depends on it so admins don't
     // silently break rate calculation.
-    const methodTables = [
-      "commerce_shipping_method_flat_rate",
-      "commerce_shipping_method_weight_based",
-      "commerce_shipping_method_dimensional",
-      "commerce_shipping_method_price_based",
-      "commerce_shipping_method_quantity_based",
-      "commerce_shipping_method_free",
-      "commerce_shipping_method_local_pickup",
-      "commerce_shipping_method_local_delivery",
-      "commerce_shipping_method_table_rate",
-    ] as const;
     const refs: Array<{ table: string; methodId: string; name?: string }> = [];
-    for (const table of methodTables) {
-      const rows = await ctx.db.query(table as any).collect();
-      for (const row of rows as any[]) {
+    for (const methodType of METHOD_TYPES) {
+      const table = methodTableFor(methodType);
+      for (const row of await listAllMethodRows(ctx, methodType)) {
         if (row.ruleId === args.ruleId) {
           refs.push({ table, methodId: String(row._id), name: row.name });
         }

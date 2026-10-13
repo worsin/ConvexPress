@@ -10,30 +10,30 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceReturnsDocs } from "../schema/commerceReturns.docs.generated";
 export const list = query({
   args: { activeOnly: v.optional(v.boolean()) },
-  returns: v.array(tableDocs.commerce_return_reasons),
+  returns: v.array(commerceReturnsDocs.commerce_return_reasons),
   handler: async (ctx, args) => {
     const q = ctx.db.query("commerce_return_reasons");
     const rows = args.activeOnly
       ? await q
-          .withIndex("by_active", (idx: any) => idx.eq("isActive", true))
+          .withIndex("by_active", (idx) => idx.eq("isActive", true))
           .collect()
       : await q.collect();
     return rows.sort(
-      (a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
     );
   },
 });
 
 export const getByCode = query({
   args: { code: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_return_reasons),
+  returns: v.union(v.null(), commerceReturnsDocs.commerce_return_reasons),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("commerce_return_reasons")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
   },
 });
@@ -52,7 +52,7 @@ export const create = mutation({
     await requireCan(ctx, "commerce.returns.manage");
     const existing = await ctx.db
       .query("commerce_return_reasons")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
     if (existing) {
       throw new ConvexError({

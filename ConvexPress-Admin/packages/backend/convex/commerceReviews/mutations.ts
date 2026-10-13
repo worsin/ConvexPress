@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Reviews — Mutations
  *
@@ -24,6 +23,8 @@
 import { ConvexError, v } from "convex/values";
 
 import { mutation } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceReviewsEnabled } from "./helpers";
 import { commerceReviewStatusValidator } from "../schema/commerceReviews";
@@ -48,7 +49,7 @@ export const submit = mutation({
     content: v.optional(v.string()),
   },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
@@ -72,7 +73,7 @@ export const submit = mutation({
     // Check for existing review
     const existingReview = await ctx.db
       .query("commerce_review_items")
-      .withIndex("by_product_user", (q: any) =>
+      .withIndex("by_product_user", (q) =>
         q.eq("productId", args.productId).eq("userId", user._id),
       )
       .first();
@@ -86,19 +87,19 @@ export const submit = mutation({
 
     // Check for verified purchase
     let isVerifiedPurchase = false;
-    let orderId: any = undefined;
+    let orderId: Id<"commerce_orders"> | undefined = undefined;
 
     const orders = await ctx.db
       .query("commerce_orders")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
-      .filter((q: any) => q.eq(q.field("status"), "completed"))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("status"), "completed"))
       .collect();
 
     for (const order of orders) {
       const item = await ctx.db
         .query("commerce_order_items")
-        .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
-        .filter((q: any) => q.eq(q.field("productId"), args.productId))
+        .withIndex("by_order", (q) => q.eq("orderId", order._id))
+        .filter((q) => q.eq(q.field("productId"), args.productId))
         .first();
 
       if (item) {
@@ -139,7 +140,7 @@ export const update = mutation({
     content: v.optional(v.string()),
   },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
@@ -175,7 +176,7 @@ export const update = mutation({
       });
     }
 
-    const updates: any = { updatedAt: Date.now() };
+    const updates: Partial<WithoutSystemFields<Doc<"commerce_review_items">>> = { updatedAt: Date.now() };
     if (args.rating !== undefined) updates.rating = Math.round(args.rating);
     if (args.title !== undefined) updates.title = args.title.trim();
     if (args.content !== undefined) updates.content = args.content.trim();
@@ -196,7 +197,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
@@ -226,7 +227,7 @@ export const remove = mutation({
     // Delete helpful votes
     const votes = await ctx.db
       .query("commerce_review_helpful_votes")
-      .withIndex("by_review", (q: any) => q.eq("reviewId", args.reviewId))
+      .withIndex("by_review", (q) => q.eq("reviewId", args.reviewId))
       .collect();
 
     for (const vote of votes) {
@@ -247,7 +248,7 @@ export const remove = mutation({
 export const voteHelpful = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   returns: v.object({ voted: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
@@ -270,7 +271,7 @@ export const voteHelpful = mutation({
     // Check if already voted
     const existingVote = await ctx.db
       .query("commerce_review_helpful_votes")
-      .withIndex("by_review_user", (q: any) =>
+      .withIndex("by_review_user", (q) =>
         q.eq("reviewId", args.reviewId).eq("userId", user._id),
       )
       .unique();
@@ -307,7 +308,7 @@ export const voteHelpful = mutation({
 export const approve = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
@@ -343,7 +344,7 @@ export const reject = mutation({
     reason: v.optional(v.string()),
   },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
@@ -376,7 +377,7 @@ export const reject = mutation({
 export const markSpam = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
@@ -408,7 +409,7 @@ export const markSpam = mutation({
 export const bulkApprove = mutation({
   args: { reviewIds: v.array(v.id("commerce_review_items")) },
   returns: v.object({ approved: v.number() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
@@ -445,7 +446,7 @@ export const bulkReject = mutation({
     reason: v.optional(v.string()),
   },
   returns: v.object({ rejected: v.number() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
@@ -479,7 +480,7 @@ export const bulkReject = mutation({
 export const adminDelete = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   returns: v.id("commerce_review_items"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     await requireCan(ctx, "commerce.reviews.delete");
@@ -495,7 +496,7 @@ export const adminDelete = mutation({
     // Delete helpful votes
     const votes = await ctx.db
       .query("commerce_review_helpful_votes")
-      .withIndex("by_review", (q: any) => q.eq("reviewId", args.reviewId))
+      .withIndex("by_review", (q) => q.eq("reviewId", args.reviewId))
       .collect();
 
     for (const vote of votes) {

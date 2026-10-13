@@ -3,12 +3,12 @@
  */
 
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { query, type QueryCtx } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan } from "../../helpers/permissions";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
-async function canReadTopicAuthoring(ctx: any) {
+import { lmsDocs } from "../../schema/lms.docs.generated";
+async function canReadTopicAuthoring(ctx: QueryCtx) {
   return (
     (await currentUserCan(ctx, "lms.course.view")) ||
     (await currentUserCan(ctx, "lms.builder.manage")) ||
@@ -18,7 +18,7 @@ async function canReadTopicAuthoring(ctx: any) {
 
 export const getTopic = query({
   args: { nodeId: v.id("lms_nodes") },
-  returns: v.union(v.null(), tableDocs.lms_nodes),
+  returns: v.union(v.null(), lmsDocs.lms_nodes),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     if (!(await canReadTopicAuthoring(ctx))) return null;
@@ -30,7 +30,7 @@ export const getTopic = query({
 
 export const listTopics = query({
   args: { courseId: v.id("lms_courses") },
-  returns: v.array(tableDocs.lms_nodes),
+  returns: v.array(lmsDocs.lms_nodes),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     if (!(await canReadTopicAuthoring(ctx))) return [];
@@ -45,10 +45,10 @@ export const listTopics = query({
 export const getTopicWithLessons = query({
   args: { nodeId: v.id("lms_nodes") },
   returns: v.union(v.null(), v.object({
-    topic: tableDocs.lms_nodes,
-    lessons: v.array(tableDocs.lms_nodes),
-    headings: v.array(tableDocs.lms_nodes),
-    children: v.array(tableDocs.lms_nodes),
+    topic: lmsDocs.lms_nodes,
+    lessons: v.array(lmsDocs.lms_nodes),
+    headings: v.array(lmsDocs.lms_nodes),
+    children: v.array(lmsDocs.lms_nodes),
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;

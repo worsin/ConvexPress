@@ -14,7 +14,9 @@ import {
   listArgs,
   getByPostArgs,
   DEFAULT_PER_PAGE,
+  MAX_CATEGORY_DEPTH,
 } from "./validators";
+import { boundedTreeValidator } from "../helpers/boundedTree";
 
 async function canReadTaxonomyAdmin(ctx: QueryCtx): Promise<boolean> {
   const user=await getCurrentUser(ctx);
@@ -36,6 +38,28 @@ type CategoryTreeNode = {
   depth: number;
   children: CategoryTreeNode[];
 };
+
+/**
+ * Levels `getCategoryTree` returns. Writes allow MAX_CATEGORY_DEPTH levels;
+ * imported hierarchies may nest deeper, so the tree keeps a wider bound and
+ * drops only categories nested below it.
+ */
+const CATEGORY_TREE_LEVELS = Math.max(MAX_CATEGORY_DEPTH, 16);
+
+const categoryTreeValidator = v.array(
+  boundedTreeValidator<CategoryTreeNode>(CATEGORY_TREE_LEVELS, (children) =>
+    v.object({
+      _id: v.id("terms"),
+      name: v.string(),
+      slug: v.string(),
+      count: v.number(),
+      countReady: v.boolean(),
+      isDefault: v.boolean(),
+      depth: v.number(),
+      children,
+    }),
+  ),
+);
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -277,6 +301,7 @@ export const getByPost = query({
  */
 export const getCategoryTree = query({
   args: {},
+  returns: categoryTreeValidator,
   handler: async (ctx) => {
     if(!(await canReadTaxonomyAdmin(ctx)))return [];
     // Fetch all categories in one query, bounded to 1000 max
@@ -315,7 +340,7 @@ export const getCategoryTree = query({
         countReady: cat.countReady === true,
         isDefault: cat.isDefault,
         depth,
-        children: buildTree(cat._id, depth + 1),
+        children: depth + 1 < CATEGORY_TREE_LEVELS ? buildTree(cat._id, depth + 1) : [],
       }));
     }
 

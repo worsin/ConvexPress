@@ -5,7 +5,7 @@
  * linear-progression decisions so UI hints cannot become the only gate.
  */
 
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import {
@@ -49,7 +49,7 @@ export async function getActiveEnrollment(
   budget?.beforeRead();
   const enrollment = await ctx.db
     .query("lms_enrollments")
-    .withIndex("by_user_course", (q: any) =>
+    .withIndex("by_user_course", (q) =>
       q.eq("userId", userId).eq("courseId", courseId),
     )
     .first();
@@ -88,13 +88,13 @@ export async function requireCourseAuthorOrEditor(
   courseId: Id<"lms_courses">,
   capability: Capability = "lms.course.edit",
 ) {
-  const user = await requireCan(ctx as any, capability);
+  const user = await requireCan(ctx, capability);
   const course = await ctx.db.get(courseId);
   if (!course) {
     throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
   }
 
-  const roleLevel = await getCurrentRoleLevel(ctx as any);
+  const roleLevel = await getCurrentRoleLevel(ctx);
   if (roleLevel >= 80 || String(course.authorId) === String(user._id)) {
     return { user, course };
   }
@@ -226,7 +226,7 @@ export async function prerequisitesSatisfied(
 
   const prereqs = await ctx.db
     .query("lms_course_prerequisites")
-    .withIndex("by_course", (q: any) => q.eq("courseId", courseId))
+    .withIndex("by_course", (q) => q.eq("courseId", courseId))
     .collect();
   if (prereqs.length === 0) {
     return { allowed: true, reason: "no_prerequisites", requiresLogin: false };
@@ -234,14 +234,14 @@ export async function prerequisitesSatisfied(
 
   const completions = await ctx.db
     .query("lms_course_completions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
   const completedCourseIds = new Set(
     completions
-      .filter((completion: any) => completion.percent >= 100)
-      .map((completion: any) => String(completion.courseId)),
+      .filter((completion) => completion.percent >= 100)
+      .map((completion) => String(completion.courseId)),
   );
-  const required = prereqs.map((prereq: any) => String(prereq.prereqCourseId));
+  const required = prereqs.map((prereq) => String(prereq.prereqCourseId));
   const mode = course.prereqMode ?? "all";
   const ok =
     mode === "any"
@@ -258,10 +258,10 @@ export async function prerequisitesSatisfied(
 export async function resolveNodeUnlock(
   ctx: LmsCtx,
   userId: Id<"users">,
-  node: any,
+  node: Doc<"lms_nodes">,
 ): Promise<LmsAccessDecision> {
   const enrollment = await getActiveEnrollment(ctx, userId, node.courseId);
-  const topic = node.parentId ? await ctx.db.get(node.parentId) : null;
+  const topic = node.parentId ? await ctx.db.get("lms_nodes", node.parentId) : null;
   const mode = node.lessonDripMode ?? topic?.topicDripMode ?? "immediately";
   if (mode === "immediately") {
     return { allowed: true, reason: "unlocked", requiresLogin: false };
@@ -291,9 +291,9 @@ export async function resolveNodeUnlock(
 
 export async function resolveAnonymousSpecificDateUnlock(
   ctx: LmsCtx,
-  node: any,
+  node: Doc<"lms_nodes">,
 ): Promise<LmsAccessDecision> {
-  const topic = node.parentId ? await ctx.db.get(node.parentId) : null;
+  const topic = node.parentId ? await ctx.db.get("lms_nodes", node.parentId) : null;
   const mode = node.lessonDripMode ?? topic?.topicDripMode ?? "immediately";
   if (mode !== "specific_date") {
     return { allowed: true, reason: "unlocked", requiresLogin: false };
@@ -314,17 +314,17 @@ export async function resolveAnonymousSpecificDateUnlock(
 async function getOrderedLessons(ctx: LmsCtx, courseId: Id<"lms_courses">) {
   const nodes = await ctx.db
     .query("lms_nodes")
-    .withIndex("by_course", (q: any) => q.eq("courseId", courseId))
+    .withIndex("by_course", (q) => q.eq("courseId", courseId))
     .collect();
   const topics = nodes
-    .filter((node: any) => node.kind === "topic")
-    .sort((a: any, b: any) => a.position - b.position);
-  const ordered: any[] = [];
+    .filter((node) => node.kind === "topic")
+    .sort((a, b) => a.position - b.position);
+  const ordered: Doc<"lms_nodes">[] = [];
   for (const topic of topics) {
     ordered.push(
       ...nodes
-        .filter((node: any) => node.parentId === topic._id && node.kind === "lesson")
-        .sort((a: any, b: any) => a.position - b.position),
+        .filter((node) => node.parentId === topic._id && node.kind === "lesson")
+        .sort((a, b) => a.position - b.position),
     );
   }
   return ordered;
@@ -333,9 +333,9 @@ async function getOrderedLessons(ctx: LmsCtx, courseId: Id<"lms_courses">) {
 export async function linearProgressionSatisfied(
   ctx: LmsCtx,
   userId: Id<"users">,
-  node: any,
+  node: Doc<"lms_nodes">,
 ): Promise<LmsAccessDecision> {
-  const course = await ctx.db.get(node.courseId);
+  const course = await ctx.db.get("lms_courses", node.courseId);
   if (!course || (course.progressionMode ?? "linear") !== "linear") {
     return { allowed: true, reason: "free_form", requiresLogin: false };
   }
@@ -348,12 +348,12 @@ export async function linearProgressionSatisfied(
 
   const progress = await ctx.db
     .query("lms_progress")
-    .withIndex("by_user_course", (q: any) =>
+    .withIndex("by_user_course", (q) =>
       q.eq("userId", userId).eq("courseId", node.courseId),
     )
     .collect();
   const completed = new Set(
-    progress.filter((row: any) => row.completed).map((row: any) => String(row.nodeId)),
+    progress.filter((row) => row.completed).map((row) => String(row.nodeId)),
   );
   const missingPrior = ordered.slice(0, index).find((lesson) => !completed.has(String(lesson._id)));
   return {
@@ -372,7 +372,7 @@ export async function canUserAccessNode(
     return { allowed: false, reason: "not_found", requiresLogin: false };
   }
 
-  const me = await getCurrentUser(ctx as any);
+  const me = await getCurrentUser(ctx);
   const userId = args.userId ?? me?._id;
   const courseDecision = await canUserAccessCourse(ctx, {
     courseId: node.courseId,

@@ -144,6 +144,11 @@ export const menuTables = {
     // === WordPress Import Fields ===
     wpPostId: v.optional(v.number()), // Original WordPress nav_menu_item post ID
     wpSourceSiteId: v.optional(v.id("wordpressSites")), // Source WordPress site
+    // The WordPress object the item links to (nav item `object_id` / `object`,
+    // e.g. 42 / "page"), kept so reconciliation can re-resolve links whose
+    // target was imported after the menu.
+    wpObjectId: v.optional(v.number()),
+    wpObjectType: v.optional(v.string()),
   })
     .index("by_menu", ["menuId"])
     .index("by_menu_position", ["menuId", "position"])

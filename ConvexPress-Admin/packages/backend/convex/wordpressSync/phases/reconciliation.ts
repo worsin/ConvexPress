@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Reconciliation Phase
  *
@@ -23,10 +22,20 @@
  * Cursor encoding: passIndex * 1_000_000_000 + innerCursor
  */
 
-import { internalAction } from "../../_generated/server";
+import { internalAction, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
+import type { FunctionReturnType } from "convex/server";
 import { internal } from "../../_generated/api";
-import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
+import type { Id } from "../../_generated/dataModel";
+import { MAPPED_ENTITY_TABLE, type MappedEntityTable, type WpObjectType } from "../internals";
+import {
+  normalizeImportConfig,
+  FINDING_CODES,
+  siteCredentialsValidator,
+  type ImportConfig,
+  type PhaseProgress,
+  type SyncError,
+} from "../validators";
 
 const BATCH_SIZE = 100;
 const PASS_COUNT = 11; // 10 repair passes + 1 tombstone pass
@@ -61,6 +70,21 @@ function decodeCursor(cursor?: number): { passIndex: number; innerCursor: number
   };
 }
 
+// ─── Typed entity lookup ──────────────────────────────────────────────────
+
+type MappedEntity = NonNullable<FunctionReturnType<typeof internal.wordpressSync.internals.getEntityById>>;
+
+/**
+ * The `table` row whose ID is `id`, tagged with its table (null when absent or
+ * not a `table` ID). Callers narrow with `entity?.table === "<table>"`.
+ */
+async function getEntity(ctx: ActionCtx, table: MappedEntityTable, id: string): Promise<MappedEntity | null> {
+  return await ctx.runQuery(internal.wordpressSync.internals.getEntityById, { table, id });
+}
+
+type SiteId = Id<"wordpressSites">;
+type JobId = Id<"wordpressSyncJobs">;
+
 // ─── Pass Result ──────────────────────────────────────────────────────────
 
 interface PassResult {
@@ -78,7 +102,24 @@ export const runBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }) => {
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
+  handler: async (
+    ctx,
+    { jobId, siteId },
+  ): Promise<{ progress: PhaseProgress; errors: SyncError[]; hasMore: boolean }> => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     if (!job) {
       return {
@@ -141,14 +182,14 @@ export const runBatch = internalAction({
 // ─── Pass Dispatcher ──────────────────────────────────────────────────────
 
 async function runPass(
-  ctx: any,
+  ctx: ActionCtx,
   passName: PassName,
-  siteId: any,
-  jobId: any,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
-  importConfig: any,
+  importConfig: ImportConfig,
 ): Promise<PassResult> {
-  const isDryRun = importConfig?.behavior?.dryRun === true;
+  const isDryRun = importConfig.behavior.dryRun === true;
 
   if (isDryRun && passName !== "media_rewrite" && passName !== "tombstone_detection") {
     return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
@@ -185,9 +226,9 @@ async function runPass(
 // ─── Pass 0: Taxonomy Hierarchy ───────────────────────────────────────────
 
 async function repairTaxonomyHierarchy(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -202,10 +243,8 @@ async function repairTaxonomyHierarchy(
 
   for (const mapping of mappings) {
     try {
-      const localTerm = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "terms",
-        id: mapping.convexId,
-      });
+      const localTermEntity = await getEntity(ctx, "terms", mapping.convexId);
+      const localTerm = localTermEntity?.table === "terms" ? localTermEntity.doc : null;
       if (!localTerm) continue;
 
       // If term already has a resolved parentId, skip
@@ -240,9 +279,9 @@ async function repairTaxonomyHierarchy(
 // ─── Pass 1: Comment Hierarchy ────────────────────────────────────────────
 
 async function repairCommentHierarchy(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -257,10 +296,8 @@ async function repairCommentHierarchy(
 
   for (const mapping of mappings) {
     try {
-      const localComment = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "comments",
-        id: mapping.convexId,
-      });
+      const localCommentEntity = await getEntity(ctx, "comments", mapping.convexId);
+      const localComment = localCommentEntity?.table === "comments" ? localCommentEntity.doc : null;
       if (!localComment) continue;
 
       // Check if this comment has a wpCommentId for its parent but parentId is unresolved
@@ -287,9 +324,9 @@ async function repairCommentHierarchy(
 // ─── Pass 2: Menu Hierarchy ───────────────────────────────────────────────
 
 async function repairMenuHierarchy(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -304,93 +341,31 @@ async function repairMenuHierarchy(
 
   for (const mapping of mappings) {
     try {
-      const localItem = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "menuItems",
-        id: mapping.convexId,
-      });
+      const localItemEntity = await getEntity(ctx, "menuItems", mapping.convexId);
+      const localItem = localItemEntity?.table === "menuItems" ? localItemEntity.doc : null;
       if (!localItem) continue;
 
-      // Resolve objectId references for content-linked items
-      // Menu items of type "post" or "page" may have objectId that needs
-      // resolution from WP IDs to Convex IDs. The menu import phase handles
-      // this inline, but if the referenced post/page was in a later batch,
-      // the objectId may be unresolved.
-      if (localItem.itemType === "post" && !localItem.objectId) {
-        // Look up post mapping by wpPostId if available
-        if (localItem.wpPostId) {
-          const postMapping = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "post", wpId: localItem.wpPostId },
-          );
-          if (postMapping) {
-            await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
-              table: "menuItems",
-              id: mapping.convexId,
-              fields: { objectId: postMapping },
-            });
-            repaired++;
-          } else {
-            await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
-              siteId,
-              jobId,
-              severity: "warning",
-              phase: "reconciliation",
-              code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
-              message: `Menu item ${mapping.convexId} references unmapped post WP ID ${localItem.wpPostId}`,
-              sourceType: "menuItem",
-              sourceId: String(mapping.wpId),
-              createdAt: Date.now(),
-            });
-            failed++;
-          }
-        }
-      }
-
-      if (localItem.itemType === "page" && !localItem.objectId) {
-        if (localItem.wpPostId) {
-          const pageMapping = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "page", wpId: localItem.wpPostId },
-          );
-          if (pageMapping) {
-            await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
-              table: "menuItems",
-              id: mapping.convexId,
-              fields: { objectId: pageMapping },
-            });
-            repaired++;
-          } else {
-            await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
-              siteId,
-              jobId,
-              severity: "warning",
-              phase: "reconciliation",
-              code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
-              message: `Menu item ${mapping.convexId} references unmapped page WP ID ${localItem.wpPostId}`,
-              sourceType: "menuItem",
-              sourceId: String(mapping.wpId),
-              createdAt: Date.now(),
-            });
-            failed++;
-          }
-        }
-      }
-
-      if (localItem.itemType === "category" && !localItem.objectId) {
-        if (localItem.wpPostId) {
-          const catMapping = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "category", wpId: localItem.wpPostId },
-          );
-          if (catMapping) {
-            await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
-              table: "menuItems",
-              id: mapping.convexId,
-              fields: { objectId: catMapping },
-            });
-            repaired++;
-          }
-        }
+      // Content-linked items whose target was not resolved by the menu
+      // import. The import stores only the nav item's own WordPress ID
+      // (wpPostId), not the linked object's ID, so the target cannot be
+      // re-resolved here. Looking it up by wpPostId would match an unrelated
+      // object; record the gap for the operator instead.
+      if (
+        (localItem.itemType === "post" || localItem.itemType === "page" || localItem.itemType === "category") &&
+        !localItem.objectId
+      ) {
+        await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+          siteId,
+          jobId,
+          severity: "warning",
+          phase: "reconciliation",
+          code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
+          message: `Menu item ${mapping.convexId} (${localItem.itemType}) has no resolved link target`,
+          sourceType: "menuItem",
+          sourceId: String(mapping.wpId),
+          createdAt: Date.now(),
+        });
+        failed++;
       }
     } catch {
       failed++;
@@ -408,9 +383,9 @@ async function repairMenuHierarchy(
 // ─── Pass 3: Product Variations ───────────────────────────────────────────
 
 async function repairProductVariations(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -425,18 +400,14 @@ async function repairProductVariations(
 
   for (const mapping of mappings) {
     try {
-      const localVariant = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "commerce_product_variants",
-        id: mapping.convexId,
-      });
+      const localVariantEntity = await getEntity(ctx, "commerce_product_variants", mapping.convexId);
+      const localVariant = localVariantEntity?.table === "commerce_product_variants" ? localVariantEntity.doc : null;
       if (!localVariant) continue;
 
       // Verify productId points to a valid local product
       if (localVariant.productId) {
-        const product = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_products",
-          id: localVariant.productId,
-        });
+        const productEntity = await getEntity(ctx, "commerce_products", localVariant.productId);
+        const product = productEntity?.table === "commerce_products" ? productEntity.doc : null;
         if (!product) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -468,9 +439,9 @@ async function repairProductVariations(
 // ─── Pass 4: Order Customers ──────────────────────────────────────────────
 
 async function repairOrderCustomers(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -485,18 +456,14 @@ async function repairOrderCustomers(
 
   for (const mapping of mappings) {
     try {
-      const localOrder = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "commerce_orders",
-        id: mapping.convexId,
-      });
+      const localOrderEntity = await getEntity(ctx, "commerce_orders", mapping.convexId);
+      const localOrder = localOrderEntity?.table === "commerce_orders" ? localOrderEntity.doc : null;
       if (!localOrder) continue;
 
       // If customerId is already set, verify it exists
       if (localOrder.customerId) {
-        const customer = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_customer_profiles",
-          id: localOrder.customerId,
-        });
+        const customerEntity = await getEntity(ctx, "commerce_customer_profiles", localOrder.customerId);
+        const customer = customerEntity?.table === "commerce_customer_profiles" ? customerEntity.doc : null;
         if (!customer) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -519,10 +486,8 @@ async function repairOrderCustomers(
 
       // Verify userId resolves if set — links imported customer to auth user
       if (localOrder.userId) {
-        const user = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "users",
-          id: localOrder.userId,
-        });
+        const userEntity = await getEntity(ctx, "users", localOrder.userId);
+        const user = userEntity?.table === "users" ? userEntity.doc : null;
         if (!user) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -558,9 +523,9 @@ async function repairOrderCustomers(
 // ─── Pass 5: Order Items ──────────────────────────────────────────────────
 
 async function repairOrderItems(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -575,18 +540,14 @@ async function repairOrderItems(
 
   for (const mapping of mappings) {
     try {
-      const localItem = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "commerce_order_items",
-        id: mapping.convexId,
-      });
+      const localItemEntity = await getEntity(ctx, "commerce_order_items", mapping.convexId);
+      const localItem = localItemEntity?.table === "commerce_order_items" ? localItemEntity.doc : null;
       if (!localItem) continue;
 
       // Verify parent orderId reference
       if (localItem.orderId) {
-        const order = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_orders",
-          id: localItem.orderId,
-        });
+        const orderEntity = await getEntity(ctx, "commerce_orders", localItem.orderId);
+        const order = orderEntity?.table === "commerce_orders" ? orderEntity.doc : null;
         if (!order) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -609,10 +570,8 @@ async function repairOrderItems(
 
       // Verify productId reference
       if (localItem.productId) {
-        const product = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_products",
-          id: localItem.productId,
-        });
+        const productEntity = await getEntity(ctx, "commerce_products", localItem.productId);
+        const product = productEntity?.table === "commerce_products" ? productEntity.doc : null;
         if (!product) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -635,10 +594,8 @@ async function repairOrderItems(
 
       // Verify variantId reference if present
       if (localItem.variantId) {
-        const variant = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_product_variants",
-          id: localItem.variantId,
-        });
+        const variantEntity = await getEntity(ctx, "commerce_product_variants", localItem.variantId);
+        const variant = variantEntity?.table === "commerce_product_variants" ? variantEntity.doc : null;
         if (!variant) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -675,9 +632,9 @@ async function repairOrderItems(
 // ─── Pass 6: Refund Linkage ───────────────────────────────────────────────
 
 async function repairRefundLinkage(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -692,18 +649,14 @@ async function repairRefundLinkage(
 
   for (const mapping of mappings) {
     try {
-      const localRefund = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "commerce_payment_refunds",
-        id: mapping.convexId,
-      });
+      const localRefundEntity = await getEntity(ctx, "commerce_payment_refunds", mapping.convexId);
+      const localRefund = localRefundEntity?.table === "commerce_payment_refunds" ? localRefundEntity.doc : null;
       if (!localRefund) continue;
 
       // Verify orderId reference
       if (localRefund.orderId) {
-        const order = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_orders",
-          id: localRefund.orderId,
-        });
+        const orderEntity = await getEntity(ctx, "commerce_orders", localRefund.orderId);
+        const order = orderEntity?.table === "commerce_orders" ? orderEntity.doc : null;
         if (!order) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -741,9 +694,9 @@ async function repairRefundLinkage(
 // ─── Pass 7: Review Linkage ──────────────────────────────────────────────
 
 async function repairReviewLinkage(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
@@ -758,18 +711,14 @@ async function repairReviewLinkage(
 
   for (const mapping of mappings) {
     try {
-      const localReview = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "commerce_review_items",
-        id: mapping.convexId,
-      });
+      const localReviewEntity = await getEntity(ctx, "commerce_review_items", mapping.convexId);
+      const localReview = localReviewEntity?.table === "commerce_review_items" ? localReviewEntity.doc : null;
       if (!localReview) continue;
 
       // Verify productId reference
       if (localReview.productId) {
-        const product = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_products",
-          id: localReview.productId,
-        });
+        const productEntity = await getEntity(ctx, "commerce_products", localReview.productId);
+        const product = productEntity?.table === "commerce_products" ? productEntity.doc : null;
         if (!product) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -790,36 +739,10 @@ async function repairReviewLinkage(
         }
       }
 
-      // Verify customerId reference (when set)
-      if (localReview.customerId) {
-        const customer = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "commerce_customer_profiles",
-          id: localReview.customerId,
-        });
-        if (!customer) {
-          await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
-            siteId,
-            jobId,
-            severity: "warning",
-            phase: "reconciliation",
-            code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
-            message: `Review ${mapping.convexId} references missing customer ${localReview.customerId}`,
-            sourceType: "review",
-            sourceId: String(mapping.wpId),
-            destinationTable: "commerce_review_items",
-            wpId: mapping.wpId,
-            convexId: mapping.convexId,
-            createdAt: Date.now(),
-          });
-        }
-      }
-
       // Verify userId reference
       if (localReview.userId) {
-        const user = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-          table: "users",
-          id: localReview.userId,
-        });
+        const userEntity = await getEntity(ctx, "users", localReview.userId);
+        const user = userEntity?.table === "users" ? userEntity.doc : null;
         if (!user) {
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
@@ -856,9 +779,9 @@ async function repairReviewLinkage(
 // ─── Pass 8: Upsell / Cross-sell ──────────────────────────────────────────
 
 async function repairUpsellCrosssell(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
 ): Promise<PassResult> {
   // Products store raw WP upsell/cross-sell IDs in `rawSourceMeta` (JSON string)
@@ -877,25 +800,19 @@ async function repairUpsellCrosssell(
 
   for (const mapping of mappings) {
     try {
-      const product = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "commerce_products",
-        id: mapping.convexId,
-      });
+      const productEntity = await getEntity(ctx, "commerce_products", mapping.convexId);
+      const product = productEntity?.table === "commerce_products" ? productEntity.doc : null;
       if (!product || !product.rawSourceMeta) continue;
 
-      let meta: any;
+      let meta: unknown;
       try {
         meta = JSON.parse(product.rawSourceMeta);
       } catch {
         continue;
       }
 
-      const upsellWpIds: number[] = Array.isArray(meta?.upsell_ids_wp)
-        ? meta.upsell_ids_wp.filter((n: any) => typeof n === "number")
-        : [];
-      const crossSellWpIds: number[] = Array.isArray(meta?.cross_sell_ids_wp)
-        ? meta.cross_sell_ids_wp.filter((n: any) => typeof n === "number")
-        : [];
+      const upsellWpIds = wpIdList(meta, "upsell_ids_wp");
+      const crossSellWpIds = wpIdList(meta, "cross_sell_ids_wp");
 
       if (upsellWpIds.length === 0 && crossSellWpIds.length === 0) continue;
 
@@ -954,7 +871,7 @@ async function repairUpsellCrosssell(
 
       // Patch the product with resolved local IDs (only if we have at least one)
       if (upsellLocalIds.length > 0 || crossSellLocalIds.length > 0) {
-        const patch: any = {};
+        const patch: { upsellProductIds?: string[]; crossSellProductIds?: string[] } = {};
         if (upsellLocalIds.length > 0) patch.upsellProductIds = upsellLocalIds;
         if (crossSellLocalIds.length > 0) patch.crossSellProductIds = crossSellLocalIds;
 
@@ -978,215 +895,44 @@ async function repairUpsellCrosssell(
   };
 }
 
+/** Numeric WordPress IDs stored under `key` in a product's raw source meta. */
+function wpIdList(meta: unknown, key: string): number[] {
+  if (typeof meta !== "object" || meta === null || Array.isArray(meta)) return [];
+  const value: unknown = Object.getOwnPropertyDescriptor(meta, key)?.value;
+  return Array.isArray(value)
+    ? value.filter((entry): entry is number => typeof entry === "number")
+    : [];
+}
+
 // ─── Pass 9: Media URL Rewrite ────────────────────────────────────────────
 
-// Cursor offset to separate post range from page range within the media_rewrite pass.
-// Cursors < PAGE_CURSOR_OFFSET process posts; cursors >= PAGE_CURSOR_OFFSET process pages.
-const PAGE_CURSOR_OFFSET = 500_000_000;
-
+/**
+ * Formerly rewrote WordPress media URLs inside a `posts.content` string. Posts
+ * no longer have a `content` column: imported bodies are stored as canonical
+ * `blocks` through the canonical document service, and direct block patches
+ * are refused by the authoring version fence. The old pass read the missing
+ * column, so it never rewrote anything; it now completes immediately instead
+ * of scanning every post/page mapping. Rewriting media inside canonical blocks
+ * needs canonical-service support and is not done here.
+ */
 async function rewriteMediaUrls(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  _ctx: ActionCtx,
+  _siteId: SiteId,
+  _jobId: JobId,
   cursor: number,
-  isDryRun: boolean,
+  _isDryRun: boolean,
 ): Promise<PassResult> {
-  const isPagePhase = cursor >= PAGE_CURSOR_OFFSET;
-  const objectType = isPagePhase ? "page" : "post";
-  const realCursor = isPagePhase ? cursor - PAGE_CURSOR_OFFSET : cursor;
-
-  const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
-    siteId,
-    objectType,
-    afterWpId: realCursor,
-    limit: BATCH_SIZE,
-  });
-
-  if (mappings.length === 0) {
-    if (!isPagePhase) {
-      // Posts exhausted — switch to pages
-      return { repaired: 0, failed: 0, hasMore: true, nextCursor: PAGE_CURSOR_OFFSET };
-    }
-    // Pages also exhausted — pass complete
-    return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
-  }
-
-  // Get all media mappings with source URLs for this site
-  const mediaMappings = await ctx.runQuery(
-    internal.wordpressSync.internals.getMediaMappingsWithUrls,
-    { siteId, limit: 5000 },
-  );
-
-  // Build URL replacement map: every WordPress original/size URL -> local media.
-  const urlMap = new Map<string, MediaRewriteTarget>();
-  for (const m of mediaMappings) {
-    if (!m.convexId || !m.url) continue;
-    const sourceUrls = new Set<string>();
-    if (m.sourceUrl) sourceUrls.add(m.sourceUrl);
-    for (const sourceUrl of m.sourceUrls ?? []) {
-      if (sourceUrl) sourceUrls.add(sourceUrl);
-    }
-    for (const sourceUrl of sourceUrls) {
-      urlMap.set(sourceUrl, { mediaId: m.convexId, url: m.url });
-    }
-  }
-
-  let repaired = 0;
-  let failed = 0;
-
-  if (urlMap.size === 0) {
-    const lastWpId = mappings[mappings.length - 1].wpId;
-    return {
-      repaired: 0,
-      failed: 0,
-      hasMore: mappings.length === BATCH_SIZE,
-      nextCursor: isPagePhase ? lastWpId + PAGE_CURSOR_OFFSET : lastWpId,
-    };
-  }
-
-  for (const mapping of mappings) {
-    try {
-      const entity = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: objectType === "page" ? "pages" : "posts",
-        id: mapping.convexId,
-      });
-      if (!entity || !entity.content) continue;
-
-      const rewriteResult = rewriteMediaReferences(entity.content, urlMap);
-      const newContent = rewriteResult.content;
-      const replacementCount = rewriteResult.replacementCount;
-
-      if (replacementCount > 0) {
-        if (!isDryRun) {
-          await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
-            table: objectType === "page" ? "pages" : "posts",
-            id: mapping.convexId,
-            fields: { content: newContent },
-          });
-        }
-
-        await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
-          siteId,
-          jobId,
-          severity: "info",
-          phase: "reconciliation",
-          code: FINDING_CODES.MEDIA_REWRITE_APPLIED,
-          message: `${isDryRun ? "Would rewrite" : "Rewrote"} ${replacementCount} media URL(s) in ${objectType} ${mapping.convexId}`,
-          sourceType: objectType,
-          sourceId: String(mapping.wpId),
-          createdAt: Date.now(),
-        });
-
-        repaired++;
-      }
-    } catch {
-      failed++;
-    }
-  }
-
-  const lastWpId = mappings[mappings.length - 1].wpId;
-  return {
-    repaired,
-    failed,
-    hasMore: mappings.length === BATCH_SIZE,
-    nextCursor: isPagePhase ? lastWpId + PAGE_CURSOR_OFFSET : lastWpId,
-  };
-}
-
-function rewriteMediaReferences(
-  content: string,
-  urlMap: Map<string, MediaRewriteTarget>,
-): { content: string; replacementCount: number } {
-  try {
-    const parsed = JSON.parse(content);
-    const replacementCount = rewriteMediaNode(parsed, urlMap);
-    if (replacementCount > 0) {
-      return { content: JSON.stringify(parsed), replacementCount };
-    }
-  } catch {
-    const rewriteResult = rewriteHtmlString(content, urlMap);
-    if (rewriteResult.replacementCount > 0) {
-      return rewriteResult;
-    }
-  }
-
-  return { content, replacementCount: 0 };
-}
-
-interface MediaRewriteTarget {
-  mediaId: string;
-  url: string;
-}
-
-function rewriteMediaNode(node: unknown, urlMap: Map<string, MediaRewriteTarget>): number {
-  if (!node || typeof node !== "object") return 0;
-
-  let replacementCount = 0;
-  const record = node as Record<string, unknown>;
-  const attrs = record.attrs;
-
-  if (attrs && typeof attrs === "object") {
-    const attrRecord = attrs as Record<string, unknown>;
-    const src = attrRecord.src;
-    if (typeof src === "string") {
-      const target = urlMap.get(src);
-      if (target) {
-        if (attrRecord.mediaId !== target.mediaId) {
-          attrRecord.mediaId = target.mediaId;
-          replacementCount++;
-        }
-        if (attrRecord.src !== target.url) {
-          attrRecord.src = target.url;
-          replacementCount++;
-        }
-      }
-    }
-
-    const htmlContent = attrRecord.content;
-    if (typeof htmlContent === "string") {
-      const rewriteResult = rewriteHtmlString(htmlContent, urlMap);
-      if (rewriteResult.replacementCount > 0) {
-        attrRecord.content = rewriteResult.content;
-        replacementCount += rewriteResult.replacementCount;
-      }
-    }
-  }
-
-  const content = record.content;
-  if (Array.isArray(content)) {
-    for (const child of content) {
-      replacementCount += rewriteMediaNode(child, urlMap);
-    }
-  }
-
-  return replacementCount;
-}
-
-function rewriteHtmlString(
-  content: string,
-  urlMap: Map<string, MediaRewriteTarget>,
-): { content: string; replacementCount: number } {
-  let rewritten = content;
-  let replacementCount = 0;
-
-  const entries = Array.from(urlMap.entries()).sort((a, b) => b[0].length - a[0].length);
-  for (const [sourceUrl, target] of entries) {
-    if (!sourceUrl || !rewritten.includes(sourceUrl)) continue;
-    rewritten = rewritten.split(sourceUrl).join(target.url);
-    replacementCount++;
-  }
-
-  return { content: rewritten, replacementCount };
+  return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
 }
 
 // ─── Pass 10: Tombstone Detection ─────────────────────────────────────────
 
 async function detectTombstones(
-  ctx: any,
-  siteId: any,
-  jobId: any,
+  ctx: ActionCtx,
+  siteId: SiteId,
+  jobId: JobId,
   cursor: number,
-  importConfig: any,
+  importConfig: ImportConfig,
 ): Promise<PassResult> {
   const tombstoneMode = importConfig.behavior.tombstoneMode ?? "never";
   if (tombstoneMode === "never") {
@@ -1214,7 +960,7 @@ async function detectTombstones(
     return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
   }
 
-  const objectTypes: string[] = [];
+  const objectTypes: WpObjectType[] = [];
   if (importConfig.scope.wpContent) {
     objectTypes.push("user", "category", "tag", "post", "page");
   }
@@ -1260,22 +1006,7 @@ async function detectTombstones(
   let repaired = 0;
   let failed = 0;
 
-  const tableForType: Record<string, string> = {
-    post: "posts",
-    page: "posts",
-    category: "terms",
-    tag: "terms",
-    media: "media",
-    comment: "comments",
-    menu: "menus",
-    menuItem: "menuItems",
-    commerceCategory: "commerce_product_categories",
-    commerceProduct: "commerce_products",
-    commerceCustomer: "commerce_customer_profiles",
-    commerceOrder: "commerce_orders",
-    commerceDiscount: "commerce_discount_codes",
-    commerceReview: "commerce_review_items",
-  };
+  const table = MAPPED_ENTITY_TABLE[objectType];
 
   for (const mapping of mappings) {
     try {
@@ -1286,10 +1017,7 @@ async function detectTombstones(
         continue;
       }
 
-      const localEntity = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: tableForType[objectType] || "posts",
-        id: mapping.convexId,
-      });
+      const localEntity = await getEntity(ctx, table, mapping.convexId);
 
       await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
         siteId,
@@ -1302,7 +1030,7 @@ async function detectTombstones(
           : `Mapped ${objectType} WP#${mapping.wpId} -> ${mapping.convexId} was not seen in this import and the local entity is also missing`,
         sourceType: objectType,
         sourceId: String(mapping.wpId),
-        destinationTable: tableForType[objectType],
+        destinationTable: table,
         wpId: mapping.wpId,
         objectType,
         convexId: mapping.convexId,

@@ -172,8 +172,11 @@ const lines = [
 ];
 const content = lines.join("\n");
 const fnCount = [...functions.values()].reduce((n, l) => n + l.length, 0);
+// The Convex CLI (codegen.staticApi) writes the same declarations formatted by
+// prettier; compare independent of whitespace and trailing commas.
+const normalize = (s: string) => s.replace(/\s+/g, "").replace(/,([}\]>)])/g, "$1");
 if (check) {
-  if (content !== existing) {
+  if (normalize(content) !== normalize(existing)) {
     console.error("static api.d.ts is stale — run bun scripts/typing/generate-static-api.ts");
     process.exit(1);
   }

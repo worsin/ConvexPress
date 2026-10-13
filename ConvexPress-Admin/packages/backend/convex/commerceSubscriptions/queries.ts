@@ -20,7 +20,8 @@
 
 import { v } from "convex/values";
 
-import { query } from "../_generated/server";
+import { query, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import {
@@ -34,12 +35,13 @@ import {
 } from "./pricing";
 import { computeProration } from "../helpers/proration";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER: Resolve effective subscription config for a product
 // ═══════════════════════════════════════════════════════════════════════════
 
-type BillingInterval = "week" | "month" | "year";
+type BillingInterval = NonNullable<Doc<"commerce_subscriptions">["billingInterval"]>;
+type DunningAttemptStatus = Doc<"commerce_subscription_dunning_attempts">["status"];
 
 const DEFAULT_DUNNING_POLICY = {
   maxAttempts: 3,
@@ -47,7 +49,7 @@ const DEFAULT_DUNNING_POLICY = {
   cancelAfterFinalFailure: true,
 };
 
-const DUNNING_STATUS_RANK: Record<string, number> = {
+const DUNNING_STATUS_RANK: Record<DunningAttemptStatus, number> = {
   processing: 0,
   scheduled: 1,
   failed: 2,
@@ -55,27 +57,57 @@ const DUNNING_STATUS_RANK: Record<string, number> = {
   succeeded: 4,
 };
 
-function isDunningAttemptStatus(value: unknown): value is string {
+function isDunningAttemptStatus(value: unknown): value is DunningAttemptStatus {
   return typeof value === "string" && value in DUNNING_STATUS_RANK;
 }
 
-async function getProductOverride(ctx: any, productId: any) {
+const productSummaryValidator = v.object({
+  _id: v.id("commerce_products"),
+  title: v.string(),
+  slug: v.string(),
+});
+
+const customerSummaryValidator = v.object({
+  _id: v.id("commerce_customer_profiles"),
+  email: v.string(),
+  firstName: v.optional(v.string()),
+  lastName: v.optional(v.string()),
+});
+
+function productSummary(product: Doc<"commerce_products"> | null) {
+  return product
+    ? { _id: product._id, title: product.title, slug: product.slug }
+    : null;
+}
+
+function customerSummary(customer: Doc<"commerce_customer_profiles"> | null) {
+  return customer
+    ? {
+        _id: customer._id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+      }
+    : null;
+}
+
+async function getProductOverride(ctx: QueryCtx, productId: Id<"commerce_products">) {
   return ctx.db
     .query("commerce_product_subscription_overrides")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
+    .withIndex("by_product", (q) => q.eq("productId", productId))
     .first();
 }
 
 async function resolveEffectiveConfig(
-  ctx: any,
-  product: any,
-  explicitTemplateId?: any,
-  variant?: any,
+  ctx: QueryCtx,
+  product: Doc<"commerce_products">,
+  explicitTemplateId?: Id<"commerce_subscription_templates">,
+  variant?: Doc<"commerce_product_variants"> | null,
 ) {
   const override = await getProductOverride(ctx, product._id);
   const configuredTemplateId = explicitTemplateId ?? override?.templateId ?? undefined;
 
-  let template: any = null;
+  let template: Doc<"commerce_subscription_templates"> | null = null;
   if (configuredTemplateId) {
     template = await ctx.db.get(configuredTemplateId);
   }
@@ -126,7 +158,7 @@ export const listTemplates = query({
       v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
     ),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_subscription_templates)),
+  returns: v.union(v.null(), v.array(commerceSubscriptionsDocs.commerce_subscription_templates)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -135,9 +167,9 @@ export const listTemplates = query({
     let templates = await ctx.db
       .query("commerce_subscription_templates")
       .collect();
-    templates = templates.sort((a: any, b: any) => b.createdAt - a.createdAt);
+    templates = templates.sort((a, b) => b.createdAt - a.createdAt);
     if (args.status) {
-      templates = templates.filter((t: any) => t.status === args.status);
+      templates = templates.filter((t) => t.status === args.status);
     }
     return templates;
   },
@@ -150,7 +182,7 @@ export const getTemplate = query({
   args: {
     templateId: v.id("commerce_subscription_templates"),
   },
-  returns: v.union(v.null(), tableDocs.commerce_subscription_templates),
+  returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_templates),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -168,6 +200,34 @@ export const resolveProductConfig = query({
     variantId: v.optional(v.id("commerce_product_variants")),
     templateId: v.optional(v.id("commerce_subscription_templates")),
   },
+  returns: v.union(v.null(), v.object({
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    productTitle: v.string(),
+    variantTitle: v.optional(v.string()),
+    templateId: v.optional(v.id("commerce_subscription_templates")),
+    templateVersion: v.optional(v.number()),
+    config: v.object({
+      isSubscriptionEnabled: v.boolean(),
+      allowOneTimePurchase: v.boolean(),
+      templateId: v.optional(v.id("commerce_subscription_templates")),
+      templateVersion: v.optional(v.number()),
+      unitPrice: v.number(),
+      currencyCode: v.string(),
+      billingInterval: v.union(v.literal("year"), v.literal("month"), v.literal("day"), v.literal("week")),
+      billingIntervalCount: v.number(),
+      trialDays: v.optional(v.number()),
+      gracePeriodDays: v.number(),
+      pausable: v.boolean(),
+      cancelAtPeriodEndDefault: v.boolean(),
+      dunningPolicy: v.object({
+        maxAttempts: v.number(),
+        retryIntervalsDays: v.array(v.number()),
+        cancelAfterFinalFailure: v.boolean(),
+      }),
+    }),
+    override: v.union(v.null(), commerceSubscriptionsDocs.commerce_product_subscription_overrides),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -175,7 +235,7 @@ export const resolveProductConfig = query({
     const product = await ctx.db.get(args.productId);
     if (!product) throw new Error("Product not found");
 
-    let variant: any = null;
+    let variant: Doc<"commerce_product_variants"> | null = null;
     if (args.variantId) {
       variant = await ctx.db.get(args.variantId);
       if (!variant || variant.productId !== product._id) {
@@ -194,7 +254,7 @@ export const resolveProductConfig = query({
     return {
       productId: product._id,
       variantId: variant?._id,
-      productTitle: product.title ?? product.name,
+      productTitle: product.title,
       variantTitle: variant?.title,
       templateId: config.templateId,
       templateVersion: config.templateVersion,
@@ -215,6 +275,15 @@ export const listMySubscriptions = query({
   args: {
     status: v.optional(commerceSubscriptionStatusValidator),
   },
+  returns: v.union(
+    v.null(),
+    v.array(
+      commerceSubscriptionsDocs.commerce_subscriptions.extend({
+        product: v.union(v.null(), productSummaryValidator),
+        entitlements: v.array(commerceSubscriptionsDocs.commerce_subscription_entitlements),
+      }),
+    ),
+  ),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -223,34 +292,28 @@ export const listMySubscriptions = query({
 
     let subscriptions = await ctx.db
       .query("commerce_subscriptions")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
     if (args.status) {
-      subscriptions = subscriptions.filter((sub: any) => sub.status === args.status);
+      subscriptions = subscriptions.filter((sub) => sub.status === args.status);
     }
 
     return Promise.all(
-      subscriptions.map(async (subscription: any) => {
+      subscriptions.map(async (subscription) => {
         const product = subscription.productId
           ? await ctx.db.get(subscription.productId)
           : null;
         const entitlements = await ctx.db
           .query("commerce_subscription_entitlements")
-          .withIndex("by_subscription", (q: any) =>
+          .withIndex("by_subscription", (q) =>
             q.eq("subscriptionId", subscription._id),
           )
           .collect();
 
         return {
           ...subscription,
-          product: product
-            ? {
-                _id: product._id,
-                title: product.title ?? product.name,
-                slug: product.slug,
-              }
-            : null,
+          product: productSummary(product),
           entitlements,
         };
       }),
@@ -268,30 +331,37 @@ export const list = query({
     userId: v.optional(v.id("users")),
     limit: v.optional(v.number()),
   },
+  returns: v.array(
+    commerceSubscriptionsDocs.commerce_subscriptions.extend({
+      customer: v.union(v.null(), customerSummaryValidator),
+      product: v.union(v.null(), productSummaryValidator),
+    }),
+  ),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const limit = args.limit ?? 100;
-    let subscriptions: any[] = [];
+    let subscriptions: Doc<"commerce_subscriptions">[] = [];
 
     if (args.customerId) {
       subscriptions = await ctx.db
         .query("commerce_subscriptions")
-        .withIndex("by_customer", (q: any) =>
+        .withIndex("by_customer", (q) =>
           q.eq("customerId", args.customerId),
         )
         .collect();
     } else if (args.userId) {
       subscriptions = await ctx.db
         .query("commerce_subscriptions")
-        .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
         .collect();
     } else if (args.status) {
+      const status = args.status;
       subscriptions = await ctx.db
         .query("commerce_subscriptions")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     } else {
       subscriptions = await ctx.db
@@ -300,11 +370,11 @@ export const list = query({
     }
 
     subscriptions = subscriptions
-      .sort((a: any, b: any) => b.createdAt - a.createdAt)
+      .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit);
 
     return Promise.all(
-      subscriptions.map(async (subscription: any) => {
+      subscriptions.map(async (subscription) => {
         const customer = subscription.customerId
           ? await ctx.db.get(subscription.customerId)
           : null;
@@ -313,21 +383,8 @@ export const list = query({
           : null;
         return {
           ...subscription,
-          customer: customer
-            ? {
-                _id: customer._id,
-                email: customer.email,
-                firstName: customer.firstName,
-                lastName: customer.lastName,
-              }
-            : null,
-          product: product
-            ? {
-                _id: product._id,
-                title: product.title ?? product.name,
-                slug: product.slug,
-              }
-            : null,
+          customer: customerSummary(customer),
+          product: productSummary(product),
         };
       }),
     );
@@ -342,6 +399,24 @@ export const getById = query({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
   },
+  returns: v.union(
+    v.null(),
+    commerceSubscriptionsDocs.commerce_subscriptions.extend({
+      product: v.union(v.null(), productSummaryValidator),
+      template: v.union(
+        v.null(),
+        v.object({
+          _id: v.id("commerce_subscription_templates"),
+          title: v.string(),
+          slug: v.string(),
+        }),
+      ),
+      items: v.array(commerceSubscriptionsDocs.commerce_subscription_items),
+      history: v.array(commerceSubscriptionsDocs.commerce_subscription_history),
+      entitlements: v.array(commerceSubscriptionsDocs.commerce_subscription_entitlements),
+      invoices: v.array(commerceSubscriptionsDocs.commerce_subscription_invoices),
+    }),
+  ),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -367,28 +442,28 @@ export const getById = query({
 
     const items = await ctx.db
       .query("commerce_subscription_items")
-      .withIndex("by_subscription", (q: any) =>
+      .withIndex("by_subscription", (q) =>
         q.eq("subscriptionId", args.subscriptionId),
       )
       .collect();
 
     const history = await ctx.db
       .query("commerce_subscription_history")
-      .withIndex("by_subscription", (q: any) =>
+      .withIndex("by_subscription", (q) =>
         q.eq("subscriptionId", args.subscriptionId),
       )
       .collect();
 
     const entitlements = await ctx.db
       .query("commerce_subscription_entitlements")
-      .withIndex("by_subscription", (q: any) =>
+      .withIndex("by_subscription", (q) =>
         q.eq("subscriptionId", args.subscriptionId),
       )
       .collect();
 
     const invoices = await ctx.db
       .query("commerce_subscription_invoices")
-      .withIndex("by_subscription", (q: any) =>
+      .withIndex("by_subscription", (q) =>
         q.eq("subscriptionId", args.subscriptionId),
       )
       .collect();
@@ -402,16 +477,14 @@ export const getById = query({
 
     return {
       ...subscription,
-      product: product
-        ? { _id: product._id, title: product.title ?? product.name, slug: product.slug }
-        : null,
+      product: productSummary(product),
       template: template
         ? { _id: template._id, title: template.title, slug: template.slug }
         : null,
       items,
-      history: history.sort((a: any, b: any) => b.createdAt - a.createdAt),
+      history: history.sort((a, b) => b.createdAt - a.createdAt),
       entitlements,
-      invoices: invoices.sort((a: any, b: any) => b.createdAt - a.createdAt),
+      invoices: invoices.sort((a, b) => b.createdAt - a.createdAt),
     };
   },
 });
@@ -444,16 +517,16 @@ export const getMetrics = query({
       .collect();
 
     const activeLike = subscriptions.filter(
-      (sub: any) => sub.status === "active" || sub.status === "trialing",
+      (sub) => sub.status === "active" || sub.status === "trialing",
     );
-    const paused = subscriptions.filter((sub: any) => sub.status === "paused");
-    const pastDue = subscriptions.filter((sub: any) => sub.status === "past_due");
+    const paused = subscriptions.filter((sub) => sub.status === "paused");
+    const pastDue = subscriptions.filter((sub) => sub.status === "past_due");
     const cancelled = subscriptions.filter(
-      (sub: any) => sub.status === "cancelled",
+      (sub) => sub.status === "cancelled",
     );
 
     // Monthly Recurring Revenue — sum recurring amount for monthly-billed active subs
-    const mrr = activeLike.reduce((sum: number, sub: any) => {
+    const mrr = activeLike.reduce((sum: number, sub) => {
       const amount = sub.recurringAmount ?? 0;
       // Normalize to monthly
       if (sub.currencyCode) {
@@ -466,10 +539,10 @@ export const getMetrics = query({
 
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
     const startedLast30 = subscriptions.filter(
-      (sub: any) => sub.createdAt >= thirtyDaysAgo,
+      (sub) => sub.createdAt >= thirtyDaysAgo,
     ).length;
     const cancelledLast30 = cancelled.filter(
-      (sub: any) => (sub.cancelledAt ?? 0) >= thirtyDaysAgo,
+      (sub) => (sub.cancelledAt ?? 0) >= thirtyDaysAgo,
     ).length;
 
     return {
@@ -501,25 +574,54 @@ export const listInvoices = query({
     status: v.optional(commerceSubscriptionInvoiceStatusValidator),
     limit: v.optional(v.number()),
   },
+  returns: v.array(v.object({
+    subscription: v.union(v.null(), v.object({
+      _id: v.id("commerce_subscriptions"),
+      status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
+      productId: v.optional(v.id("commerce_products")),
+    })),
+    _id: v.id("commerce_subscription_invoices"),
+    _creationTime: v.number(),
+    paidAt: v.optional(v.number()),
+    purchaseOrderId: v.optional(v.id("purchase_orders")),
+    checkoutIntentId: v.optional(v.id("commerce_subscription_checkout_intents")),
+    sourceChannel: v.optional(v.union(v.literal("api"), v.literal("admin"), v.literal("cart"), v.literal("direct_form"))),
+    paymentProvider: v.optional(v.string()),
+    paymentTransactionId: v.optional(v.string()),
+    savedPaymentMethodId: v.optional(v.string()),
+    manualBilling: v.optional(v.boolean()),
+    invoiceNumber: v.optional(v.string()),
+    dueAt: v.optional(v.number()),
+    prorationEventId: v.optional(v.id("commerce_subscription_proration_events")),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("draft"), v.literal("failed"), v.literal("open"), v.literal("paid"), v.literal("void")),
+    subscriptionId: v.id("commerce_subscriptions"),
+    currencyCode: v.string(),
+    subtotalAmount: v.number(),
+    taxAmount: v.number(),
+    totalAmount: v.number(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const limit = args.limit ?? 100;
-    let invoices: any[] = [];
+    let invoices: Doc<"commerce_subscription_invoices">[] = [];
 
-    if (args.subscriptionId) {
+    const { subscriptionId, status } = args;
+    if (subscriptionId) {
       invoices = await ctx.db
         .query("commerce_subscription_invoices")
-        .withIndex("by_subscription", (q: any) =>
-          q.eq("subscriptionId", args.subscriptionId),
+        .withIndex("by_subscription", (q) =>
+          q.eq("subscriptionId", subscriptionId),
         )
         .collect();
-    } else if (args.status) {
+    } else if (status) {
       invoices = await ctx.db
         .query("commerce_subscription_invoices")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     } else {
       invoices = await ctx.db
@@ -528,11 +630,11 @@ export const listInvoices = query({
     }
 
     invoices = invoices
-      .sort((a: any, b: any) => b.createdAt - a.createdAt)
+      .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit);
 
     return Promise.all(
-      invoices.map(async (invoice: any) => {
+      invoices.map(async (invoice) => {
         const subscription = await ctx.db.get(invoice.subscriptionId);
         return {
           ...invoice,
@@ -557,7 +659,7 @@ export const getInvoice = query({
     invoiceId: v.id("commerce_subscription_invoices"),
   },
   returns: v.union(v.null(), v.object({
-    items: v.array(tableDocs.commerce_subscription_invoice_items),
+    items: v.array(commerceSubscriptionsDocs.commerce_subscription_invoice_items),
     _id: v.id("commerce_subscription_invoices"),
     _creationTime: v.number(),
     paidAt: v.optional(v.number()),
@@ -606,7 +708,7 @@ export const getInvoice = query({
 
     const items = await ctx.db
       .query("commerce_subscription_invoice_items")
-      .withIndex("by_invoice", (q: any) => q.eq("invoiceId", args.invoiceId))
+      .withIndex("by_invoice", (q) => q.eq("invoiceId", args.invoiceId))
       .collect();
 
     return { ...invoice, items };
@@ -627,6 +729,40 @@ export const listDunningAttempts = query({
     status: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
+  returns: v.union(v.null(), v.array(v.object({
+    subscription: v.union(v.null(), v.object({
+      _id: v.id("commerce_subscriptions"),
+      status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
+      userId: v.optional(v.id("users")),
+      customerId: v.optional(v.id("commerce_customer_profiles")),
+      customer: v.union(v.null(), v.object({
+        _id: v.id("commerce_customer_profiles"),
+        email: v.string(),
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+      })),
+    })),
+    invoice: v.union(v.null(), v.object({
+      _id: v.id("commerce_subscription_invoices"),
+      status: v.union(v.literal("draft"), v.literal("failed"), v.literal("open"), v.literal("paid"), v.literal("void")),
+      currencyCode: v.string(),
+      totalAmount: v.number(),
+      paymentProvider: v.optional(v.string()),
+      dueAt: v.optional(v.number()),
+      updatedAt: v.number(),
+    })),
+    _id: v.id("commerce_subscription_dunning_attempts"),
+    _creationTime: v.number(),
+    processedAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("failed"), v.literal("processing"), v.literal("scheduled"), v.literal("succeeded"), v.literal("aborted")),
+    scheduledAt: v.number(),
+    subscriptionId: v.id("commerce_subscriptions"),
+    attemptNumber: v.number(),
+  }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -637,19 +773,20 @@ export const listDunningAttempts = query({
       ? args.status
       : undefined;
     if (args.status && !requestedStatus) return [];
-    let attempts: any[] = [];
+    let attempts: Doc<"commerce_subscription_dunning_attempts">[] = [];
 
-    if (args.subscriptionId) {
+    const subscriptionId = args.subscriptionId;
+    if (subscriptionId) {
       attempts = await ctx.db
         .query("commerce_subscription_dunning_attempts")
-        .withIndex("by_subscription", (q: any) =>
-          q.eq("subscriptionId", args.subscriptionId),
+        .withIndex("by_subscription", (q) =>
+          q.eq("subscriptionId", subscriptionId),
         )
         .collect();
     } else if (requestedStatus) {
       attempts = await ctx.db
         .query("commerce_subscription_dunning_attempts")
-        .withIndex("by_status", (q: any) => q.eq("status", requestedStatus))
+        .withIndex("by_status", (q) => q.eq("status", requestedStatus))
         .collect();
     } else {
       attempts = await ctx.db
@@ -658,24 +795,23 @@ export const listDunningAttempts = query({
     }
 
     if (args.invoiceId) {
-      attempts = attempts.filter((attempt: any) => attempt.invoiceId === args.invoiceId);
+      attempts = attempts.filter((attempt) => attempt.invoiceId === args.invoiceId);
     }
     if (requestedStatus && args.subscriptionId) {
-      attempts = attempts.filter((attempt: any) => attempt.status === requestedStatus);
+      attempts = attempts.filter((attempt) => attempt.status === requestedStatus);
     }
 
     attempts = attempts
-      .sort((a: any, b: any) => {
+      .sort((a, b) => {
         const statusDelta =
-          (DUNNING_STATUS_RANK[a.status] ?? 99) -
-          (DUNNING_STATUS_RANK[b.status] ?? 99);
+          DUNNING_STATUS_RANK[a.status] - DUNNING_STATUS_RANK[b.status];
         if (statusDelta !== 0) return statusDelta;
-        return (b.scheduledAt ?? b.createdAt ?? 0) - (a.scheduledAt ?? a.createdAt ?? 0);
+        return b.scheduledAt - a.scheduledAt;
       })
       .slice(0, limit);
 
     return Promise.all(
-      attempts.map(async (attempt: any) => {
+      attempts.map(async (attempt) => {
         const subscription = await ctx.db.get(attempt.subscriptionId);
         const invoice = attempt.invoiceId ? await ctx.db.get(attempt.invoiceId) : null;
 
@@ -691,14 +827,7 @@ export const listDunningAttempts = query({
                 status: subscription.status,
                 userId: subscription.userId,
                 customerId: subscription.customerId,
-                customer: customer
-                  ? {
-                      _id: customer._id,
-                      email: customer.email,
-                      firstName: customer.firstName,
-                      lastName: customer.lastName,
-                    }
-                  : null,
+                customer: customerSummary(customer),
               }
             : null,
           invoice: invoice
@@ -738,6 +867,7 @@ export const listEntitlements = query({
       ),
     ),
   },
+  returns: v.array(commerceSubscriptionsDocs.commerce_subscription_entitlements),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -753,25 +883,26 @@ export const listEntitlements = query({
       // Non-admin users may only read their own entitlement data.
     }
 
-    let entitlements: any[] = [];
+    let entitlements: Doc<"commerce_subscription_entitlements">[] = [];
 
-    if (args.subscriptionId) {
-      const subscription = await ctx.db.get(args.subscriptionId);
+    const { subscriptionId, userId, status } = args;
+    if (subscriptionId) {
+      const subscription = await ctx.db.get(subscriptionId);
       if (!subscription) return [];
       if (!isAdmin && subscription.userId !== user._id) return [];
 
       entitlements = await ctx.db
         .query("commerce_subscription_entitlements")
-        .withIndex("by_subscription", (q: any) =>
-          q.eq("subscriptionId", args.subscriptionId),
+        .withIndex("by_subscription", (q) =>
+          q.eq("subscriptionId", subscriptionId),
         )
         .collect();
-    } else if (args.userId && args.status) {
-      if (!isAdmin && args.userId !== user._id) return [];
+    } else if (userId && status) {
+      if (!isAdmin && userId !== user._id) return [];
       entitlements = await ctx.db
         .query("commerce_subscription_entitlements")
-        .withIndex("by_user_status", (q: any) =>
-          q.eq("userId", args.userId).eq("status", args.status),
+        .withIndex("by_user_status", (q) =>
+          q.eq("userId", userId).eq("status", status),
         )
         .collect();
     } else if (args.userId) {
@@ -781,7 +912,7 @@ export const listEntitlements = query({
       for (const s of statuses) {
         const batch = await ctx.db
           .query("commerce_subscription_entitlements")
-          .withIndex("by_user_status", (q: any) =>
+          .withIndex("by_user_status", (q) =>
             q.eq("userId", args.userId).eq("status", s),
           )
           .collect();
@@ -797,7 +928,7 @@ export const listEntitlements = query({
         for (const s of statuses) {
           const batch = await ctx.db
             .query("commerce_subscription_entitlements")
-            .withIndex("by_user_status", (q: any) =>
+            .withIndex("by_user_status", (q) =>
               q.eq("userId", user._id).eq("status", s),
             )
             .collect();
@@ -807,7 +938,7 @@ export const listEntitlements = query({
     }
 
     if (args.status && !args.userId) {
-      entitlements = entitlements.filter((e: any) => e.status === args.status);
+      entitlements = entitlements.filter((e) => e.status === args.status);
     }
 
     return entitlements;
@@ -823,19 +954,11 @@ export const checkEntitlement = query({
     userId: v.id("users"),
     entitlementCode: v.string(),
   },
-  returns: v.union(v.object({
+  returns: v.object({
     hasEntitlement: v.boolean(),
-    entitlement: v.null(),
-    inGracePeriod: v.optional(v.null()),
-  }), v.object({
-    hasEntitlement: v.boolean(),
-    entitlement: tableDocs.commerce_subscription_entitlements,
-    inGracePeriod: v.optional(v.null()),
-  }), v.object({
-    hasEntitlement: v.boolean(),
-    inGracePeriod: v.boolean(),
-    entitlement: tableDocs.commerce_subscription_entitlements,
-  })),
+    entitlement: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_entitlements),
+    inGracePeriod: v.optional(v.boolean()),
+  }),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
       return { hasEntitlement: false, entitlement: null };
@@ -861,13 +984,13 @@ export const checkEntitlement = query({
 
     const activeEntitlements = await ctx.db
       .query("commerce_subscription_entitlements")
-      .withIndex("by_user_status", (q: any) =>
+      .withIndex("by_user_status", (q) =>
         q.eq("userId", args.userId).eq("status", "active"),
       )
       .collect();
 
     const match = activeEntitlements.find(
-      (e: any) => e.entitlementCode === args.entitlementCode,
+      (e) => e.entitlementCode === args.entitlementCode,
     );
 
     if (match) {
@@ -877,13 +1000,13 @@ export const checkEntitlement = query({
     // Also check grace period entitlements
     const graceEntitlements = await ctx.db
       .query("commerce_subscription_entitlements")
-      .withIndex("by_user_status", (q: any) =>
+      .withIndex("by_user_status", (q) =>
         q.eq("userId", args.userId).eq("status", "grace"),
       )
       .collect();
 
     const graceMatch = graceEntitlements.find(
-      (e: any) => e.entitlementCode === args.entitlementCode,
+      (e) => e.entitlementCode === args.entitlementCode,
     );
 
     if (graceMatch) {
@@ -918,8 +1041,6 @@ export const checkEntitlement = query({
  *   - `currencyCode`      From the contract
  *
  * Auth: admin (manage_options) OR contract owner.
- *
- * `@ts-nocheck` carried — matches the file-level pragma. Wave 7 removes.
  */
 export const previewProration = query({
   args: {
@@ -963,12 +1084,12 @@ export const previewProration = query({
     // Resolve the current offer via the first active item.
     const items = await ctx.db
       .query("commerce_subscription_items")
-      .withIndex("by_subscription", (q: any) =>
+      .withIndex("by_subscription", (q) =>
         q.eq("subscriptionId", args.contractId),
       )
       .collect();
     const activeItem = items.find(
-      (it: any) => it.status === "active" || it.status === "pending_cancel",
+      (it) => it.status === "active" || it.status === "pending_cancel",
     );
     if (!activeItem || !activeItem.sourceOfferId) {
       return null;
@@ -1026,7 +1147,7 @@ export const getLiveChargingStatus = query({
   handler: async (ctx): Promise<{ live: boolean; publishableKey: string | null }> => {
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: any) => q.eq("section", "commerce.payments"))
+      .withIndex("by_section", (q) => q.eq("section", "commerce.payments"))
       .unique();
     const values = (doc?.values ?? {}) as Record<string, unknown>;
     const live = values.subscriptionChargingEnabled === true;
@@ -1044,7 +1165,7 @@ export const getLiveChargingStatus = query({
 
 export const listOrderForms = query({
   args: {},
-  returns: v.array(tableDocs.commerce_subscription_order_forms),
+  returns: v.array(commerceSubscriptionsDocs.commerce_subscription_order_forms),
   handler: async (ctx) => {
     await requireCommerceSubscriptionsEnabled(ctx);
     const rows = await ctx.db
@@ -1059,7 +1180,7 @@ export const getOrderForm = query({
   args: {
     orderFormId: v.id("commerce_subscription_order_forms"),
   },
-  returns: v.union(v.null(), tableDocs.commerce_subscription_order_forms),
+  returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_order_forms),
   handler: async (ctx, args) => {
     await requireCommerceSubscriptionsEnabled(ctx);
     return await ctx.db.get(args.orderFormId);
@@ -1068,6 +1189,13 @@ export const getOrderForm = query({
 
 export const listFormSubmissions = query({
   args: {},
+  returns: v.array(v.object({
+    _id: v.id("commerce_subscription_form_submissions"),
+    email: v.string(),
+    status: v.union(v.literal("draft"), v.literal("approved"), v.literal("expired"), v.literal("rejected"), v.literal("payment_pending"), v.literal("submitted"), v.literal("approval_pending"), v.literal("activated")),
+    submittedAt: v.number(),
+    formTitle: v.optional(v.string()),
+  })),
   handler: async (ctx) => {
     await requireCommerceSubscriptionsEnabled(ctx);
     const rows = await ctx.db
@@ -1075,12 +1203,12 @@ export const listFormSubmissions = query({
       .order("desc")
       .take(200);
     const withForm = await Promise.all(
-      rows.map(async (r: any) => {
-        const form = r.formId ? await ctx.db.get(r.formId) : null;
+      rows.map(async (r) => {
+        const form = await ctx.db.get(r.formId);
         return {
           _id: r._id,
           email: r.email ?? "(no email)",
-          status: r.status ?? "pending",
+          status: r.status,
           submittedAt: r.createdAt,
           formTitle: form?.title,
         };
@@ -1094,7 +1222,7 @@ export const getFormSubmission = query({
   args: {
     submissionId: v.id("commerce_subscription_form_submissions"),
   },
-  returns: v.union(v.null(), tableDocs.commerce_subscription_form_submissions),
+  returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_form_submissions),
   handler: async (ctx, args) => {
     await requireCommerceSubscriptionsEnabled(ctx);
     return await ctx.db.get(args.submissionId);

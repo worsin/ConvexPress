@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import {
@@ -7,10 +6,11 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 // ============================================
 // QUERIES — Customer Profile (self-service)
 // ============================================
@@ -30,6 +30,26 @@ export const list = query({
     page: v.optional(v.number()),
     perPage: v.optional(v.number()),
   },
+  returns: v.object({
+    items: v.array(v.object({
+      _id: v.id("commerce_customer_profiles"),
+      userId: v.optional(v.id("users")),
+      email: v.string(),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      isGuest: v.optional(v.boolean()),
+      totalOrders: v.number(),
+      totalSpentAmount: v.number(),
+      currencyCode: v.string(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -37,12 +57,12 @@ export const list = query({
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
 
-    let scoped: any[];
+    let scoped: Doc<"commerce_customer_profiles">[];
     if (args.search && args.search.trim()) {
       const term = args.search.trim().toLowerCase();
       scoped = await ctx.db
         .query("commerce_customer_profiles")
-        .withSearchIndex("search_customers", (q: any) =>
+        .withSearchIndex("search_customers", (q) =>
           q.search("email", term),
         )
         .take(2000);
@@ -56,10 +76,10 @@ export const list = query({
 
     let filtered = scoped;
     if (args.isGuest !== undefined) {
-      filtered = filtered.filter((c: any) => Boolean(c.isGuest) === args.isGuest);
+      filtered = filtered.filter((c) => Boolean(c.isGuest) === args.isGuest);
     }
     if (args.hasOrders !== undefined) {
-      filtered = filtered.filter((c: any) =>
+      filtered = filtered.filter((c) =>
         args.hasOrders ? (c.totalOrders ?? 0) > 0 : (c.totalOrders ?? 0) === 0,
       );
     }
@@ -67,7 +87,7 @@ export const list = query({
     // Also search firstName/lastName client-side since search index can only target one field
     if (args.search && args.search.trim()) {
       const term = args.search.trim().toLowerCase();
-      filtered = filtered.filter((c: any) => {
+      filtered = filtered.filter((c) => {
         const haystack = [c.email, c.firstName, c.lastName].filter(Boolean).join(" ").toLowerCase();
         return haystack.includes(term);
       });
@@ -75,9 +95,9 @@ export const list = query({
 
     const dir = args.orderDir === "asc" ? 1 : -1;
     const key = args.orderBy ?? "createdAt";
-    filtered.sort((a: any, b: any) => {
-      let av: any;
-      let bv: any;
+    filtered.sort((a, b) => {
+      let av: string | number;
+      let bv: string | number;
       switch (key) {
         case "email":
           av = (a.email ?? "").toLowerCase();
@@ -112,7 +132,7 @@ export const list = query({
     const slice = filtered.slice((page - 1) * perPage, page * perPage);
 
     return {
-      items: slice.map((c: any) => ({
+      items: slice.map((c) => ({
         _id: c._id,
         userId: c.userId,
         email: c.email,
@@ -152,14 +172,14 @@ export const counts = query({
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let pool: any[];
+    let pool: Doc<"commerce_customer_profiles">[];
     if (args.search && args.search.trim()) {
       const term = args.search.trim().toLowerCase();
       pool = await ctx.db
         .query("commerce_customer_profiles")
-        .withSearchIndex("search_customers", (q: any) => q.search("email", term))
+        .withSearchIndex("search_customers", (q) => q.search("email", term))
         .take(2000);
-      pool = pool.filter((c: any) => {
+      pool = pool.filter((c) => {
         const haystack = [c.email, c.firstName, c.lastName].filter(Boolean).join(" ").toLowerCase();
         return haystack.includes(term);
       });
@@ -194,8 +214,8 @@ export const counts = query({
 export const getMine = query({
   args: {},
   returns: v.union(v.null(), v.object({
-    defaultBillingAddress: v.union(v.null(), tableDocs.commerce_customer_addresses),
-    defaultShippingAddress: v.union(v.null(), tableDocs.commerce_customer_addresses),
+    defaultBillingAddress: v.union(v.null(), commerceDocs.commerce_customer_addresses),
+    defaultShippingAddress: v.union(v.null(), commerceDocs.commerce_customer_addresses),
     _id: v.id("commerce_customer_profiles"),
     _creationTime: v.number(),
     userId: v.optional(v.id("users")),
@@ -219,7 +239,7 @@ export const getMine = query({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (!profile) return null;
@@ -249,7 +269,7 @@ export const getMyAddresses = query({
       v.union(v.literal("billing"), v.literal("shipping")),
     ),
   },
-  returns: v.array(tableDocs.commerce_customer_addresses),
+  returns: v.array(commerceDocs.commerce_customer_addresses),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -257,17 +277,17 @@ export const getMyAddresses = query({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
     if (!profile) return [];
 
     const addresses = await ctx.db
       .query("commerce_customer_addresses")
-      .withIndex("by_customer", (q: any) => q.eq("customerId", profile._id))
+      .withIndex("by_customer", (q) => q.eq("customerId", profile._id))
       .collect();
 
     if (args.type) {
-      return addresses.filter((a: any) => a.addressType === args.type);
+      return addresses.filter((a) => a.addressType === args.type);
     }
 
     return addresses;
@@ -279,7 +299,7 @@ export const getMyAddresses = query({
  */
 export const getAddress = query({
   args: { addressId: v.id("commerce_customer_addresses") },
-  returns: v.union(v.null(), tableDocs.commerce_customer_addresses),
+  returns: v.union(v.null(), commerceDocs.commerce_customer_addresses),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -287,7 +307,7 @@ export const getAddress = query({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
     if (!profile) return null;
 
@@ -318,7 +338,7 @@ export const listCustomers = query({
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     limit: v.optional(v.number()),
   },
-  returns: v.array(tableDocs.commerce_customer_profiles),
+  returns: v.array(commerceDocs.commerce_customer_profiles),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -331,7 +351,7 @@ export const listCustomers = query({
     // Search by email
     if (args.search) {
       const search = args.search.toLowerCase();
-      customers = customers.filter((c: any) =>
+      customers = customers.filter((c) =>
         c.email.toLowerCase().includes(search),
       );
     }
@@ -339,7 +359,7 @@ export const listCustomers = query({
     // Sort
     const sortBy = args.sortBy || "createdAt";
     const sortOrder = args.sortOrder || "desc";
-    customers.sort((a: any, b: any) => {
+    customers.sort((a, b) => {
       const aVal = a[sortBy] ?? 0;
       const bVal = b[sortBy] ?? 0;
       if (typeof aVal === "number" && typeof bVal === "number") {
@@ -358,6 +378,26 @@ export const listCustomers = query({
  */
 export const getCustomer = query({
   args: { customerId: v.id("commerce_customer_profiles") },
+  returns: v.union(v.null(), v.object({
+    addresses: v.array(commerceDocs.commerce_customer_addresses),
+    recentOrders: v.array(commerceDocs.commerce_orders),
+    user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), displayName: v.optional(v.string()) })),
+    _id: v.id("commerce_customer_profiles"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    isGuest: v.optional(v.boolean()),
+    defaultBillingAddressId: v.optional(v.id("commerce_customer_addresses")),
+    defaultShippingAddressId: v.optional(v.id("commerce_customer_addresses")),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    email: v.string(),
+    currencyCode: v.string(),
+    totalOrders: v.number(),
+    totalSpentAmount: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -368,15 +408,15 @@ export const getCustomer = query({
     // Addresses
     const addresses = await ctx.db
       .query("commerce_customer_addresses")
-      .withIndex("by_customer", (q: any) => q.eq("customerId", args.customerId))
+      .withIndex("by_customer", (q) => q.eq("customerId", args.customerId))
       .collect();
 
     // Recent orders
-    let recentOrders: any[] = [];
+    let recentOrders: Doc<"commerce_orders">[] = [];
     try {
       recentOrders = await ctx.db
         .query("commerce_orders")
-        .withIndex("by_customer", (q: any) =>
+        .withIndex("by_customer", (q) =>
           q.eq("customerId", args.customerId),
         )
         .order("desc")
@@ -430,16 +470,16 @@ export const getCustomerStats = query({
       .take(100000);
 
     const newCustomers = allCustomers.filter(
-      (c: any) => c.createdAt >= startTime,
+      (c) => c.createdAt >= startTime,
     );
 
     const totalSpent = allCustomers.reduce(
-      (sum: number, c: any) => sum + (c.totalSpentAmount ?? 0),
+      (sum: number, c) => sum + (c.totalSpentAmount ?? 0),
       0,
     );
 
     const totalOrders = allCustomers.reduce(
-      (sum: number, c: any) => sum + (c.totalOrders ?? 0),
+      (sum: number, c) => sum + (c.totalOrders ?? 0),
       0,
     );
 
@@ -477,7 +517,7 @@ export const ensureMine = mutation({
     // Check if profile already exists
     const existing = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (existing) return existing._id;
@@ -485,7 +525,7 @@ export const ensureMine = mutation({
     // Also check by email
     const byEmail = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_email", (q: any) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
 
     if (byEmail) {
@@ -532,7 +572,7 @@ export const createCustomer = mutation({
     // Check duplicate email
     const existing = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_email", (q: any) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
 
     if (existing) {
@@ -585,10 +625,11 @@ export const updateCustomer = mutation({
     }
 
     // If changing email, check for duplicates
-    if (args.email && args.email !== customer.email) {
+    const nextEmail = args.email;
+    if (nextEmail && nextEmail !== customer.email) {
       const dup = await ctx.db
         .query("commerce_customer_profiles")
-        .withIndex("by_email", (q: any) => q.eq("email", args.email))
+        .withIndex("by_email", (q) => q.eq("email", nextEmail))
         .unique();
 
       if (dup) {
@@ -626,7 +667,7 @@ export const updateMyProfile = mutation({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (!profile) {
@@ -667,7 +708,7 @@ export const deleteCustomer = mutation({
     // Delete all addresses
     const addresses = await ctx.db
       .query("commerce_customer_addresses")
-      .withIndex("by_customer", (q: any) =>
+      .withIndex("by_customer", (q) =>
         q.eq("customerId", args.customerId),
       )
       .collect();
@@ -714,7 +755,7 @@ export const addAddress = mutation({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (!profile) {
@@ -727,7 +768,7 @@ export const addAddress = mutation({
     // Check address limit (max 10)
     const existing = await ctx.db
       .query("commerce_customer_addresses")
-      .withIndex("by_customer", (q: any) =>
+      .withIndex("by_customer", (q) =>
         q.eq("customerId", profile._id),
       )
       .collect();
@@ -741,13 +782,13 @@ export const addAddress = mutation({
 
     // Determine default status
     const typeAddresses = existing.filter(
-      (a: any) => a.addressType === args.addressType,
+      (a) => a.addressType === args.addressType,
     );
     const isDefault = args.setAsDefault || typeAddresses.length === 0;
 
     // Unset previous defaults of this type
     if (isDefault) {
-      for (const addr of typeAddresses.filter((a: any) => a.isDefault)) {
+      for (const addr of typeAddresses.filter((a) => a.isDefault)) {
         await ctx.db.patch("commerce_customer_addresses", addr._id, { isDefault: false });
       }
     }
@@ -778,7 +819,7 @@ export const addAddress = mutation({
 
     // Update profile default reference
     if (isDefault) {
-      const profileUpdate: Record<string, any> = { updatedAt: now };
+      const profileUpdate: Partial<Doc<"commerce_customer_profiles">> = { updatedAt: now };
       if (args.addressType === "shipping") {
         profileUpdate.defaultShippingAddressId = addressId;
       } else {
@@ -831,7 +872,7 @@ export const updateAddress = mutation({
     // Verify ownership
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (!profile || address.customerId !== profile._id) {
@@ -843,15 +884,14 @@ export const updateAddress = mutation({
 
     const { addressId, label, addressType, ...addressParts } = args;
 
-    // Build updated address object by merging
+    // Build updated address object by merging the provided parts
     const updatedAddress = { ...address.address };
-    for (const [key, value] of Object.entries(addressParts)) {
-      if (value !== undefined) {
-        (updatedAddress as any)[key] = value;
-      }
+    for (const key of Object.keys(addressParts) as (keyof typeof addressParts)[]) {
+      const value = addressParts[key];
+      if (value !== undefined) updatedAddress[key] = value;
     }
 
-    const patch: Record<string, any> = {
+    const patch: Partial<Doc<"commerce_customer_addresses">> = {
       address: updatedAddress,
       updatedAt: Date.now(),
     };
@@ -886,7 +926,7 @@ export const deleteAddress = mutation({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (!profile || address.customerId !== profile._id) {
@@ -897,7 +937,7 @@ export const deleteAddress = mutation({
     }
 
     // Clear default references on profile
-    const profileUpdate: Record<string, any> = {};
+    const profileUpdate: Partial<Doc<"commerce_customer_profiles">> = {};
     if (profile.defaultShippingAddressId === args.addressId) {
       profileUpdate.defaultShippingAddressId = undefined;
     }
@@ -940,7 +980,7 @@ export const setDefaultAddress = mutation({
 
     const profile = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
 
     if (!profile || address.customerId !== profile._id) {
@@ -953,7 +993,7 @@ export const setDefaultAddress = mutation({
     // Unset other defaults of this type
     const allAddresses = await ctx.db
       .query("commerce_customer_addresses")
-      .withIndex("by_customer", (q: any) =>
+      .withIndex("by_customer", (q) =>
         q.eq("customerId", profile._id),
       )
       .collect();
@@ -975,7 +1015,7 @@ export const setDefaultAddress = mutation({
     });
 
     // Update profile reference
-    const profileUpdate: Record<string, any> = { updatedAt: Date.now() };
+    const profileUpdate: Partial<Doc<"commerce_customer_profiles">> = { updatedAt: Date.now() };
     if (args.addressType === "shipping") {
       profileUpdate.defaultShippingAddressId = args.addressId;
     } else {
@@ -1022,7 +1062,7 @@ export const adminAddAddress = mutation({
 
     const existing = await ctx.db
       .query("commerce_customer_addresses")
-      .withIndex("by_customer", (q: any) =>
+      .withIndex("by_customer", (q) =>
         q.eq("customerId", args.customerId),
       )
       .collect();
@@ -1035,12 +1075,12 @@ export const adminAddAddress = mutation({
     }
 
     const typeAddresses = existing.filter(
-      (a: any) => a.addressType === args.addressType,
+      (a) => a.addressType === args.addressType,
     );
     const isDefault = args.setAsDefault || typeAddresses.length === 0;
 
     if (isDefault) {
-      for (const addr of typeAddresses.filter((a: any) => a.isDefault)) {
+      for (const addr of typeAddresses.filter((a) => a.isDefault)) {
         await ctx.db.patch("commerce_customer_addresses", addr._id, { isDefault: false });
       }
     }
@@ -1068,7 +1108,7 @@ export const adminAddAddress = mutation({
     });
 
     if (isDefault) {
-      const profileUpdate: Record<string, any> = { updatedAt: now };
+      const profileUpdate: Partial<Doc<"commerce_customer_profiles">> = { updatedAt: now };
       if (args.addressType === "shipping") {
         profileUpdate.defaultShippingAddressId = addressId;
       } else {
@@ -1102,7 +1142,7 @@ export const adminDeleteAddress = mutation({
     // Clear profile defaults if needed
     const customer = await ctx.db.get(address.customerId);
     if (customer) {
-      const profileUpdate: Record<string, any> = {};
+      const profileUpdate: Partial<Doc<"commerce_customer_profiles">> = {};
       if (customer.defaultShippingAddressId === args.addressId) {
         profileUpdate.defaultShippingAddressId = undefined;
       }
@@ -1175,11 +1215,11 @@ export const decrementOrderStats = internalMutation({
  */
 export const getByEmail = internalQuery({
   args: { email: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_customer_profiles),
+  returns: v.union(v.null(), commerceDocs.commerce_customer_profiles),
   handler: async (ctx, args) => {
     return ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_email", (q: any) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
   },
 });
@@ -1189,11 +1229,11 @@ export const getByEmail = internalQuery({
  */
 export const getByUserId = internalQuery({
   args: { userId: v.id("users") },
-  returns: v.union(v.null(), tableDocs.commerce_customer_profiles),
+  returns: v.union(v.null(), commerceDocs.commerce_customer_profiles),
   handler: async (ctx, args) => {
     return ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .unique();
   },
 });
@@ -1212,7 +1252,7 @@ export const ensureForCheckout = internalMutation({
     if (args.userId) {
       const byUser = await ctx.db
         .query("commerce_customer_profiles")
-        .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
         .unique();
 
       if (byUser) return byUser._id;
@@ -1221,7 +1261,7 @@ export const ensureForCheckout = internalMutation({
     // Try by email
     const byEmail = await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_email", (q: any) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
 
     if (byEmail) {

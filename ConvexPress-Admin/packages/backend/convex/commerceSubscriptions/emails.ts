@@ -12,15 +12,21 @@
 
 import { v } from "convex/values";
 
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
+import { asSnapshotBag, snapshotString } from "./snapshot";
 
 async function buildVariables(
-  ctx: any,
-  event: any,
+  ctx: MutationCtx,
+  event: Doc<"events">,
 ): Promise<{ to: string; name?: string; userId?: string; variables: Record<string, string> } | null> {
-  const payload = JSON.parse(event.payload ?? "{}") as Record<string, unknown>;
-  const subscriptionId = payload.subscriptionId as string | undefined;
+  const parsed: unknown = JSON.parse(event.payload || "{}");
+  const payload = asSnapshotBag(parsed);
+  const rawSubscriptionId = snapshotString(payload, "subscriptionId");
+  const subscriptionId = rawSubscriptionId
+    ? ctx.db.normalizeId("commerce_subscriptions", rawSubscriptionId)
+    : null;
   if (!subscriptionId) return null;
 
   const subscription = await ctx.db.get(subscriptionId);
@@ -28,7 +34,10 @@ async function buildVariables(
   const user = await ctx.db.get(subscription.userId);
   if (!user || !user.email) return null;
 
-  const offerId = subscription.pricingSnapshot?.offerId;
+  const rawOfferId = snapshotString(subscription.pricingSnapshot, "offerId");
+  const offerId = rawOfferId
+    ? ctx.db.normalizeId("commerce_subscription_offers", rawOfferId)
+    : null;
   const offer = offerId ? await ctx.db.get(offerId) : null;
 
   const currency = subscription.currencyCode ?? "USD";
@@ -63,8 +72,8 @@ async function buildVariables(
 }
 
 async function dispatch(
-  ctx: any,
-  args: { eventId: string },
+  ctx: MutationCtx,
+  args: { eventId: Id<"events"> },
   templateSlug: string,
 ): Promise<void> {
   const event = await ctx.db.get("events", args.eventId);

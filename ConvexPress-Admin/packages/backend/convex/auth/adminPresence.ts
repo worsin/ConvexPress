@@ -1,4 +1,7 @@
-type DbCtx = { db: any };
+import type { Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
+
+type DbCtx = Pick<QueryCtx, "db">;
 
 type AdminCandidate = {
   _id?: unknown;
@@ -42,7 +45,7 @@ function isExcluded(user: AdminCandidate, excludedUserId?: unknown): boolean {
  */
 async function hasActiveAdminExcept(
   ctx: DbCtx,
-  excludedUserId?: unknown,
+  excludedUserId?: Id<"users">,
 ): Promise<boolean> {
   const adminRole = await ctx.db
     .query("roles")
@@ -57,7 +60,7 @@ async function hasActiveAdminExcept(
 
     if (
       roleAdmins.some(
-        (user: AdminCandidate) =>
+        (user) =>
           !isExcluded(user, excludedUserId) && canUseLocalAdminLogin(user),
       )
     ) {
@@ -71,9 +74,25 @@ async function hasActiveAdminExcept(
     .collect();
 
   return legacyAdmins.some(
-    (user: AdminCandidate) =>
+    (user) =>
       !isExcluded(user, excludedUserId) && isActiveLegacyAdmin(user),
   );
+}
+
+/**
+ * Whether a user may sign in to the admin surface with local credentials:
+ * an active internal role, or the legacy `isInternal` flag when no role is set.
+ */
+export async function canUseAdminLocalAuth(
+  ctx: DbCtx,
+  user: { isInternal?: boolean; roleId?: Id<"roles"> },
+): Promise<boolean> {
+  if (user.roleId) {
+    const role = await ctx.db.get("roles", user.roleId);
+    return !!role && role.status === "active" && role.type === "internal";
+  }
+
+  return user.isInternal === true;
 }
 
 export async function hasActiveAdmin(ctx: DbCtx): Promise<boolean> {
@@ -82,7 +101,7 @@ export async function hasActiveAdmin(ctx: DbCtx): Promise<boolean> {
 
 export async function hasOtherActiveAdmin(
   ctx: DbCtx,
-  excludedUserId: unknown,
+  excludedUserId: Id<"users">,
 ): Promise<boolean> {
   return await hasActiveAdminExcept(ctx, excludedUserId);
 }

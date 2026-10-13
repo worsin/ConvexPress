@@ -10,7 +10,8 @@
  */
 
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { patchWithMediaReferences , deleteDynamicWithMediaReferences, patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 function stripHtml(value: string | undefined): string {
@@ -71,25 +72,33 @@ export function buildProductSearchText(
  * Recompute searchText and the site-wide search entry for one product.
  * Safe to call from any mutation that touched the product.
  */
-export async function syncProductSearch(ctx: any, productId: any): Promise<void> {
-  const product = await ctx.db.get(productId);
+export async function syncProductSearch(
+  ctx: Pick<MutationCtx, "db">,
+  productId: Id<"commerce_products">,
+): Promise<void> {
+  const product = await ctx.db.get("commerce_products", productId);
   if (!product) {
     const stale = await ctx.db
       .query("searchIndex")
-      .withIndex("by_content", (q: any) => q.eq("contentType", "product").eq("contentId", String(productId)))
+      .withIndex("by_content", (q) => q.eq("contentType", "product").eq("contentId", String(productId)))
       .unique();
     if (stale) await deleteDynamicWithMediaReferences(ctx, stale._id);
     return;
   }
 
-  const categories = await Promise.all((product.categoryIds ?? []).map((id: any) => ctx.db.get(id)));
-  const categoryNames = categories.filter(Boolean).map((category: any) => category.name as string);
+  const categories = await Promise.all(
+    product.categoryIds.map((id) => ctx.db.get("commerce_product_categories", id)),
+  );
+  const categoryNames = categories.flatMap((category) => (category ? [category.name] : []));
   const searchText = buildProductSearchText(product, categoryNames);
   if (product.searchText !== searchText) {
     await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", productId, { searchText });
   }
 
-  const author = product.authorId ? await ctx.db.get(product.authorId) : null;
+  const author = await ctx.db.get("users", product.authorId);
+  const authorName =
+    author?.displayName ??
+    ([author?.firstName, author?.lastName].filter(Boolean).join(" ") || "");
   const content = stripHtml(product.description) || stripHtml(product.excerpt) || product.title;
   const excerpt = (stripHtml(product.excerpt) || content).slice(0, 200);
   const now = Date.now();
@@ -99,9 +108,9 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
     title: product.title.slice(0, 500),
     content: searchText.slice(0, 100_000),
     excerpt,
-    authorId: String(product.authorId ?? ""),
-    authorName: author?.displayName ?? author?.name ?? "",
-    status: product.status === "publish" ? "publish" : product.status,
+    authorId: String(product.authorId),
+    authorName,
+    status: product.status,
     categoryNames,
     tagNames: [] as string[],
     url: `/products/${product.slug}`,
@@ -114,7 +123,7 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
 
   const existing = await ctx.db
     .query("searchIndex")
-    .withIndex("by_content", (q: any) => q.eq("contentType", "product").eq("contentId", String(productId)))
+    .withIndex("by_content", (q) => q.eq("contentType", "product").eq("contentId", String(productId)))
     .unique();
   if (existing) {
     await patchDynamicWithMediaReferences(ctx, existing._id, entry);
@@ -126,15 +135,17 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
 export const syncProduct = internalMutation({
   args: { productId: v.id("commerce_products") },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await syncProductSearch(ctx, args.productId);
+    return null;
   },
 });
 
 /** Backfill every product's searchText and search entry (paged). */
 export const syncAllProducts = internalMutation({
   args: { cursor: v.optional(v.string()), batch: v.optional(v.number()) },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({ processed: v.number(), cursor: v.union(v.null(), v.string()) }),
+  handler: async (ctx, args) => {
     const page = await ctx.db
       .query("commerce_products")
       .paginate({ cursor: args.cursor ?? null, numItems: Math.min(100, args.batch ?? 50) });

@@ -4,7 +4,9 @@ import { readStockTarget as resolveInventoryTarget } from "./stockTarget";
 import { settleOrderCoupon } from "./couponLifecycle";
 import { ConvexError } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 import { internal } from "../_generated/api";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { getBundlePurchaseDelta } from "../commerceBundles/runtime";
@@ -33,46 +35,76 @@ import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/interna
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-import { v } from "convex/values";
-async function enrichOrder(ctx: any, order: any) {
+import { v, type Infer } from "convex/values";
+
+type OrderDoc = Doc<"commerce_orders">;
+type Actor = { _id: Id<"users"> };
+
+const ORDER_STATUSES: readonly OrderDoc["status"][] = ["pending", "processing", "paid", "fulfilled", "completed", "cancelled", "refunded", "failed"];
+
+/** An order with everything its detail views show. */
+const enrichedOrderValidator = v.object({
+  ...commerceDocs.commerce_orders.fields,
+  items: v.array(commerceDocs.commerce_order_items),
+  history: v.array(commerceDocs.commerce_order_history),
+  transactions: v.array(commerceDocs.commerce_payment_transactions),
+  refunds: v.array(commerceDocs.commerce_payment_refunds),
+  shipments: v.array(commerceDocs.commerce_shipments),
+});
+
+/** An order row for the admin list. */
+const orderListRowValidator = v.object({
+  ...commerceDocs.commerce_orders.fields,
+  itemCount: v.number(),
+  itemTotalQuantity: v.number(),
+  customer: v.union(v.null(), v.object({
+    _id: v.id("commerce_customer_profiles"),
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+  })),
+});
+type OrderListRow = Infer<typeof orderListRowValidator>;
+
+async function enrichOrder(ctx: Pick<QueryCtx, "db">, order: OrderDoc) {
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   const history = await ctx.db
     .query("commerce_order_history")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   const transactions = await ctx.db
     .query("commerce_payment_transactions")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   const refunds = await ctx.db
     .query("commerce_payment_refunds")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   const shipments = await ctx.db
     .query("commerce_shipments")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
 
   return {
     ...order,
     items,
-    history: history.sort((a: any, b: any) => a.createdAt - b.createdAt),
-    transactions: transactions.sort((a: any, b: any) => b.createdAt - a.createdAt),
-    refunds: refunds.sort((a: any, b: any) => b.createdAt - a.createdAt),
-    shipments: shipments.sort((a: any, b: any) => b.createdAt - a.createdAt),
+    history: history.sort((a, b) => a.createdAt - b.createdAt),
+    transactions: transactions.sort((a, b) => b.createdAt - a.createdAt),
+    refunds: refunds.sort((a, b) => b.createdAt - a.createdAt),
+    shipments: shipments.sort((a, b) => b.createdAt - a.createdAt),
   };
 }
 
 async function appendOrderHistory(
-  ctx: any,
+  ctx: Pick<MutationCtx, "db">,
   args: {
-    orderId: any;
+    orderId: Id<"commerce_orders">;
     eventType: string;
     message: string;
-    actorUserId?: any;
+    actorUserId?: Id<"users">;
     metadata?: Record<string, unknown>;
   },
 ) {
@@ -86,25 +118,29 @@ async function appendOrderHistory(
   });
 }
 
-async function commitReservedInventoryForOrder(ctx: any, order: any) {
-  if (!order.checkoutSessionId) return false;
+async function commitReservedInventoryForOrder(ctx: MutationCtx, order: OrderDoc) {
+  const checkoutSessionId = order.checkoutSessionId;
+  if (!checkoutSessionId) return false;
   const activeReservations = await ctx.db
     .query("commerce_stock_reservations")
-    .withIndex("by_checkout", (q: any) =>
-      q.eq("checkoutSessionId", order.checkoutSessionId),
+    .withIndex("by_checkout", (q) =>
+      q.eq("checkoutSessionId", checkoutSessionId),
     )
-    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .filter((q) => q.eq(q.field("status"), "active"))
     .collect();
   if (!activeReservations.length) return false;
 
   await ctx.runMutation(internal.commerce.inventory.commit, {
-    checkoutSessionId: order.checkoutSessionId,
+    checkoutSessionId,
     orderId: order._id,
   });
   return true;
 }
 
-async function createManualPaymentCollection(ctx: any, args: any) {
+async function createManualPaymentCollection(
+  ctx: Pick<MutationCtx, "db">,
+  args: { order: OrderDoc; amount: number; provider: string; providerTransactionId?: string },
+) {
   const now = Date.now();
   const collectionId = await ctx.db.insert("commerce_payment_collections", {
     orderId: args.order._id,
@@ -146,16 +182,16 @@ async function createManualPaymentCollection(ctx: any, args: any) {
 }
 
 async function adjustBundleStockCapForOrderItem(
-  ctx: any,
+  ctx: Pick<MutationCtx, "db">,
   args: {
-    item: any;
+    item: Doc<"commerce_order_items">;
     mode: "decrement" | "restore";
   },
 ) {
   const delta = getBundlePurchaseDelta(args.item.metadata, args.item.quantity);
   if (!delta) return;
 
-  const bundle: any = await ctx.db.get(delta.bundleId);
+  const bundle = await ctx.db.get("commerce_bundles", delta.bundleId);
   if (!bundle?.trackInventory || typeof bundle.stockCount !== "number") return;
 
   const nextStock =
@@ -177,17 +213,17 @@ async function adjustBundleStockCapForOrderItem(
 }
 
 async function adjustInventoryForOrder(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    order: any;
-    actorUserId?: any;
+    order: OrderDoc;
+    actorUserId?: Id<"users">;
     mode: "decrement" | "restore";
     reason: string;
   },
 ) {
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", args.order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", args.order._id))
     .collect();
 
   const restoredRecordedStock = args.mode === "restore" && await restoreRecordedOrderStock(ctx,args.order,args.actorUserId);
@@ -235,10 +271,10 @@ async function adjustInventoryForOrder(
   }
 }
 
-async function listShipmentsByOrder(ctx: any, orderId: any) {
+async function listShipmentsByOrder(ctx: Pick<QueryCtx, "db">, orderId: Id<"commerce_orders">) {
   return ctx.db
     .query("commerce_shipments")
-    .withIndex("by_order", (q: any) => q.eq("orderId", orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
     .collect();
 }
 
@@ -246,13 +282,13 @@ function shipmentCountsTowardFulfillment(status: string) {
   return status === "label_created" || status === "shipped" || status === "delivered";
 }
 
-async function recalculateOrderFulfillment(ctx: any, orderId: any) {
-  const order = await ctx.db.get(orderId);
+async function recalculateOrderFulfillment(ctx: Pick<MutationCtx, "db">, orderId: Id<"commerce_orders">) {
+  const order = await ctx.db.get("commerce_orders", orderId);
   if (!order) return;
 
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
     .collect();
   const shipments = await listShipmentsByOrder(ctx, orderId);
 
@@ -265,9 +301,9 @@ async function recalculateOrderFulfillment(ctx: any, orderId: any) {
     }
   }
 
-  const totalQuantity = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+  const totalQuantity = items.reduce((sum: number, item) => sum + item.quantity, 0);
   const shippedQuantity = items.reduce(
-    (sum: number, item: any) =>
+    (sum: number, item) =>
       sum + Math.min(item.quantity, shippedByItem.get(item._id.toString()) ?? 0),
     0,
   );
@@ -295,22 +331,22 @@ function buildShipmentNumber() {
 
 // Lightweight enrichment for list rows - only what the OrderListTable needs.
 // Skips history/transactions/refunds/shipments (heavy, only needed on detail).
-async function enrichOrderForList(ctx: any, order: any) {
+async function enrichOrderForList(ctx: Pick<QueryCtx, "db">, order: OrderDoc): Promise<OrderListRow> {
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
-  const customer = order.customerId ? await ctx.db.get(order.customerId) : null;
+  const customer = order.customerId ? await ctx.db.get("commerce_customer_profiles", order.customerId) : null;
   return {
     ...order,
     itemCount: items.length,
-    itemTotalQuantity: items.reduce((sum: number, item: any) => sum + (item.quantity ?? 0), 0),
+    itemTotalQuantity: items.reduce((sum: number, item) => sum + (item.quantity ?? 0), 0),
     customer: customer
       ? {
           _id: customer._id,
-          email: (customer as any).email,
-          firstName: (customer as any).firstName,
-          lastName: (customer as any).lastName,
+          email: customer.email,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
         }
       : null,
   };
@@ -321,7 +357,14 @@ const ORDERS_MAX_PER_PAGE = 100;
 
 export const list = query({
   args: listOrdersArgs,
-  handler: async (ctx, args): Promise<any> => {
+  returns: v.object({
+    items: v.array(orderListRowValidator),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -331,23 +374,26 @@ export const list = query({
     // ── Search path: use search index for orderNumber matches ─────────────
     if (args.search && args.search.trim()) {
       const term = args.search.trim();
-      const searchResults = await ctx.db
-        .query("commerce_orders")
-        .withSearchIndex("search_orders", (q: any) => {
-          let sq = q.search("orderNumber", term);
-          if (args.status) sq = sq.eq("status", args.status);
-          return sq;
-        })
-        .take(2000);
+      const searchStatus = ORDER_STATUSES.find((candidate) => candidate === args.status);
+      const searchResults = args.status && !searchStatus
+        ? []
+        : await ctx.db
+            .query("commerce_orders")
+            .withSearchIndex("search_orders", (q) => {
+              let sq = q.search("orderNumber", term);
+              if (searchStatus) sq = sq.eq("status", searchStatus);
+              return sq;
+            })
+            .take(2000);
 
       // Also search by email (search index can't OR across fields)
       const emailMatches = await ctx.db
         .query("commerce_orders")
-        .withIndex("by_email", (q: any) => q.eq("email", term.toLowerCase()))
+        .withIndex("by_email", (q) => q.eq("email", term.toLowerCase()))
         .take(500);
 
       const seen = new Set<string>();
-      const merged: any[] = [];
+      const merged: OrderDoc[] = [];
       for (const o of [...searchResults, ...emailMatches]) {
         const id = o._id.toString();
         if (seen.has(id)) continue;
@@ -361,27 +407,32 @@ export const list = query({
       const total = filtered.length;
       const totalPages = Math.ceil(total / perPage);
       const slice = filtered.slice((page - 1) * perPage, page * perPage);
-      const items = await Promise.all(slice.map((o: any) => enrichOrderForList(ctx, o)));
+      const items = await Promise.all(slice.map((o) => enrichOrderForList(ctx, o)));
       return { items, total, page, perPage, totalPages };
     }
 
     // ── Index-scoped path ─────────────────────────────────────────────────
-    let scoped: any[];
-    if (args.status) {
+    let scoped: OrderDoc[];
+    const status = ORDER_STATUSES.find((candidate) => candidate === args.status);
+    const { customerId, userId } = args;
+    if (args.status && !status) {
+      // Not an order status: nothing can match.
+      scoped = [];
+    } else if (status) {
       scoped = await ctx.db
         .query("commerce_orders")
-        .withIndex("by_status_createdAt", (q: any) => q.eq("status", args.status!))
+        .withIndex("by_status_createdAt", (q) => q.eq("status", status))
         .order("desc")
         .take(20000);
-    } else if (args.customerId) {
+    } else if (customerId) {
       scoped = await ctx.db
         .query("commerce_orders")
-        .withIndex("by_customer", (q: any) => q.eq("customerId", args.customerId!))
+        .withIndex("by_customer", (q) => q.eq("customerId", customerId))
         .take(20000);
-    } else if (args.userId) {
+    } else if (userId) {
       scoped = await ctx.db
         .query("commerce_orders")
-        .withIndex("by_user", (q: any) => q.eq("userId", args.userId!))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .take(20000);
     } else {
       scoped = await ctx.db
@@ -397,29 +448,40 @@ export const list = query({
     const total = filtered.length;
     const totalPages = Math.ceil(total / perPage);
     const slice = filtered.slice((page - 1) * perPage, page * perPage);
-    const items = await Promise.all(slice.map((o: any) => enrichOrderForList(ctx, o)));
+    const items = await Promise.all(slice.map((o) => enrichOrderForList(ctx, o)));
 
     return { items, total, page, perPage, totalPages };
   },
 });
 
-function applyOrderFilters(orders: any[], args: any) {
+function applyOrderFilters(
+  orders: OrderDoc[],
+  args: {
+    dateFrom?: number;
+    dateTo?: number;
+    paymentStatus?: string;
+    fulfillmentStatus?: string;
+    customerId?: Id<"commerce_customer_profiles">;
+    userId?: Id<"users">;
+  },
+) {
   let out = orders;
-  if (args.dateFrom) out = out.filter((o: any) => o.createdAt >= args.dateFrom);
-  if (args.dateTo) out = out.filter((o: any) => o.createdAt <= args.dateTo);
-  if (args.paymentStatus) out = out.filter((o: any) => o.paymentStatus === args.paymentStatus);
-  if (args.fulfillmentStatus) out = out.filter((o: any) => o.fulfillmentStatus === args.fulfillmentStatus);
-  if (args.customerId) out = out.filter((o: any) => o.customerId?.toString() === args.customerId.toString());
-  if (args.userId) out = out.filter((o: any) => o.userId?.toString() === args.userId.toString());
+  const { dateFrom, dateTo, paymentStatus, fulfillmentStatus, customerId, userId } = args;
+  if (dateFrom) out = out.filter((o) => o.createdAt >= dateFrom);
+  if (dateTo) out = out.filter((o) => o.createdAt <= dateTo);
+  if (paymentStatus) out = out.filter((o) => o.paymentStatus === paymentStatus);
+  if (fulfillmentStatus) out = out.filter((o) => o.fulfillmentStatus === fulfillmentStatus);
+  if (customerId) out = out.filter((o) => o.customerId?.toString() === customerId.toString());
+  if (userId) out = out.filter((o) => o.userId?.toString() === userId.toString());
   return out;
 }
 
-function sortOrders(orders: any[], orderBy?: string, orderDir?: "asc" | "desc") {
+function sortOrders(orders: OrderDoc[], orderBy?: string, orderDir?: "asc" | "desc") {
   const dir = orderDir === "asc" ? 1 : -1;
   const key = orderBy ?? "createdAt";
-  orders.sort((a: any, b: any) => {
-    let av: any;
-    let bv: any;
+  orders.sort((a, b) => {
+    let av: string | number;
+    let bv: string | number;
     switch (key) {
       case "orderNumber":
         av = a.orderNumber;
@@ -455,7 +517,8 @@ function sortOrders(orders: any[], orderBy?: string, orderDir?: "asc" | "desc") 
 
 export const counts = query({
   args: orderCountsArgs,
-  handler: async (ctx, args): Promise<any> => {
+  returns: v.record(v.string(), v.number()),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -522,6 +585,7 @@ export const bulkCancel = mutation({
 
 export const get = query({
   args: getOrderArgs,
+  returns: v.union(v.null(), enrichedOrderValidator),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -532,6 +596,7 @@ export const get = query({
 
 export const listMine = query({
   args: {},
+  returns: v.array(enrichedOrderValidator),
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -539,16 +604,17 @@ export const listMine = query({
 
     const orders = await ctx.db
       .query("commerce_orders")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    orders.sort((a: any, b: any) => b.createdAt - a.createdAt);
-    return Promise.all(orders.map((order: any) => enrichOrder(ctx, order)));
+    orders.sort((a, b) => b.createdAt - a.createdAt);
+    return Promise.all(orders.map((order) => enrichOrder(ctx, order)));
   },
 });
 
 export const getMineById = query({
   args: getOrderArgs,
+  returns: v.union(v.null(), enrichedOrderValidator),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -570,6 +636,7 @@ export const getMineById = query({
 
 export const getByCheckoutSession = query({
   args: getOrderByCheckoutSessionArgs,
+  returns: v.union(v.null(), enrichedOrderValidator),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const order = await ctx.db.get(args.orderId);
@@ -592,8 +659,54 @@ export const getByCheckoutSession = query({
   },
 });
 
+const orderField = commerceDocs.commerce_orders.fields;
+const shipmentField = commerceDocs.commerce_shipments.fields;
+
 export const getByTrackingToken = query({
   args: getOrderByTrackingTokenArgs,
+  returns: v.union(v.null(), v.object({
+    _id: v.id("commerce_orders"),
+    orderNumber: orderField.orderNumber,
+    trackingToken: orderField.trackingToken,
+    status: orderField.status,
+    paymentStatus: orderField.paymentStatus,
+    fulfillmentStatus: orderField.fulfillmentStatus,
+    currencyCode: orderField.currencyCode,
+    email: orderField.email,
+    selectedShippingMethodCode: orderField.selectedShippingMethodCode,
+    selectedShippingMethodLabel: orderField.selectedShippingMethodLabel,
+    selectedPaymentMethodCode: orderField.selectedPaymentMethodCode,
+    selectedPaymentMethodLabel: orderField.selectedPaymentMethodLabel,
+    totalAmount: orderField.totalAmount,
+    createdAt: orderField.createdAt,
+    items: v.array(v.object({
+      _id: v.id("commerce_order_items"),
+      productTitle: commerceDocs.commerce_order_items.fields.productTitle,
+      quantity: commerceDocs.commerce_order_items.fields.quantity,
+      lineTotalAmount: commerceDocs.commerce_order_items.fields.lineTotalAmount,
+      metadata: commerceDocs.commerce_order_items.fields.metadata,
+    })),
+    shipments: v.array(v.object({
+      _id: v.id("commerce_shipments"),
+      shipmentNumber: shipmentField.shipmentNumber,
+      provider: shipmentField.provider,
+      status: shipmentField.status,
+      carrier: shipmentField.carrier,
+      carrierCode: shipmentField.carrierCode,
+      serviceName: shipmentField.serviceName,
+      trackingNumber: shipmentField.trackingNumber,
+      trackingUrl: shipmentField.trackingUrl,
+      trackingStatus: shipmentField.trackingStatus,
+      shippedAt: shipmentField.shippedAt,
+      deliveredAt: shipmentField.deliveredAt,
+    })),
+    history: v.array(v.object({
+      _id: v.id("commerce_order_history"),
+      eventType: v.string(),
+      message: v.string(),
+      createdAt: v.number(),
+    })),
+  })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const trackingToken = args.trackingToken.trim();
@@ -601,7 +714,7 @@ export const getByTrackingToken = query({
 
     const order = await ctx.db
       .query("commerce_orders")
-      .withIndex("by_trackingToken", (q: any) =>
+      .withIndex("by_trackingToken", (q) =>
         q.eq("trackingToken", trackingToken),
       )
       .unique();
@@ -624,14 +737,14 @@ export const getByTrackingToken = query({
       selectedPaymentMethodLabel: enriched.selectedPaymentMethodLabel,
       totalAmount: enriched.totalAmount,
       createdAt: enriched.createdAt,
-      items: enriched.items.map((item: any) => ({
+      items: enriched.items.map((item) => ({
         _id: item._id,
         productTitle: item.productTitle,
         quantity: item.quantity,
         lineTotalAmount: item.lineTotalAmount,
         metadata: item.metadata,
       })),
-      shipments: enriched.shipments.map((shipment: any) => ({
+      shipments: enriched.shipments.map((shipment) => ({
         _id: shipment._id,
         shipmentNumber: shipment.shipmentNumber,
         provider: shipment.provider,
@@ -646,7 +759,7 @@ export const getByTrackingToken = query({
         deliveredAt: shipment.deliveredAt,
       })),
       history: enriched.history
-        .filter((entry: any) =>
+        .filter((entry) =>
           [
             "order_created",
             "status_changed",
@@ -657,7 +770,7 @@ export const getByTrackingToken = query({
             "fulfillment_updated",
           ].includes(entry.eventType),
         )
-        .map((entry: any) => ({
+        .map((entry) => ({
           _id: entry._id,
           eventType: entry.eventType,
           message: entry.message,
@@ -667,8 +780,12 @@ export const getByTrackingToken = query({
   },
 });
 
-async function transitionOrderStatus(ctx: any, args: any, actor: any) {
-    const order = await ctx.db.get(args.orderId);
+async function transitionOrderStatus(
+  ctx: MutationCtx,
+  args: { orderId: Id<"commerce_orders">; status: string; note?: string },
+  actor: Actor,
+) {
+    const order = await ctx.db.get("commerce_orders", args.orderId);
 
     if (!order) {
       throw new ConvexError({
@@ -680,8 +797,12 @@ async function transitionOrderStatus(ctx: any, args: any, actor: any) {
     if (order.status === args.status) return order._id;
 
     const now = Date.now();
-    const patch: Record<string, unknown> = {
-      status: args.status,
+    const nextStatus = ORDER_STATUSES.find((candidate) => candidate === args.status);
+    if (!nextStatus) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: `Unknown order status "${args.status}".` });
+    }
+    const patch: Partial<OrderDoc> = {
+      status: nextStatus,
       updatedAt: now,
     };
 
@@ -790,7 +911,7 @@ async function transitionOrderStatus(ctx: any, args: any, actor: any) {
       });
     }
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId: order._id,
       eventType:
         args.status === "paid"
@@ -810,6 +931,7 @@ async function transitionOrderStatus(ctx: any, args: any, actor: any) {
 
 export const updateStatus = mutation({
   args: updateOrderStatusArgs,
+  returns: v.id("commerce_orders"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -854,7 +976,7 @@ export const updateFulfillment = mutation({
       },
     });
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId: order._id,
       eventType: "status_changed",
       metadata: {
@@ -990,7 +1112,7 @@ export const capturePayment = mutation({
       },
     });
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId: order._id,
       eventType: "payment_captured",
       metadata: {
@@ -1028,10 +1150,10 @@ export const createRefund = mutation({
 
     const refunds = await ctx.db
       .query("commerce_payment_refunds")
-      .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
       .collect();
     const refundedAmount = refunds.reduce(
-      (sum: number, refund: any) => sum + refund.amount.amount,
+      (sum: number, refund) => sum + refund.amount.amount,
       0,
     );
 
@@ -1127,7 +1249,7 @@ export const createRefund = mutation({
       updatedAt: now,
     });
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId: order._id,
       eventType: "refund_created",
       metadata: {
@@ -1164,7 +1286,7 @@ export const createShipment = mutation({
 
     const orderItems = await ctx.db
       .query("commerce_order_items")
-      .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
       .collect();
     const shipments = await listShipmentsByOrder(ctx, order._id);
 
@@ -1185,10 +1307,10 @@ export const createShipment = mutation({
       : orderItems.reduce(
           (
             acc: Array<{
-              orderItemId: any;
+              orderItemId: Id<"commerce_order_items">;
               quantity: number;
             }>,
-            item: any,
+            item,
           ) => {
             const remaining =
               item.quantity - (alreadyAllocated.get(item._id.toString()) ?? 0);
@@ -1212,7 +1334,7 @@ export const createShipment = mutation({
 
     for (const shipmentItem of requestedItems) {
       const orderItem = orderItems.find(
-        (item: any) => item._id.toString() === shipmentItem.orderItemId.toString(),
+        (item) => item._id.toString() === shipmentItem.orderItemId.toString(),
       );
 
       if (!orderItem) {
@@ -1239,11 +1361,11 @@ export const createShipment = mutation({
     // downstream D3 manifest routing works. Prefer the order's stored
     // shipFromLocationId (set at checkout finalize); fall back to the
     // default location.
-    let manualShipFromLocationId: any = (order as any).shipFromLocationId;
+    let manualShipFromLocationId = order.shipFromLocationId;
     if (!manualShipFromLocationId) {
-      const defaultLoc: any = await ctx.db
+      const defaultLoc = await ctx.db
         .query("commerce_ship_from_locations")
-        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+        .withIndex("by_default", (q) => q.eq("isDefault", true))
         .first();
       manualShipFromLocationId = defaultLoc?._id;
     }
@@ -1256,7 +1378,7 @@ export const createShipment = mutation({
       trackingNumber: args.trackingNumber?.trim() || undefined,
       trackingUrl: args.trackingUrl?.trim() || undefined,
       shipFromLocationId: manualShipFromLocationId,
-      items: requestedItems as any,
+      items: requestedItems,
       note: args.note?.trim() || undefined,
       shippedAt: status === "shipped" || status === "delivered" ? now : undefined,
       deliveredAt: status === "delivered" ? now : undefined,
@@ -1280,7 +1402,7 @@ export const createShipment = mutation({
       },
     });
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId: order._id,
       eventType: "status_changed",
       metadata: {
@@ -1338,7 +1460,7 @@ export const updateShipmentStatus = mutation({
       },
     });
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId: shipment.orderId,
       eventType: "status_changed",
       metadata: {

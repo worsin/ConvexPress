@@ -36,6 +36,13 @@ import { computeChanges } from "../settings/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { SECRET_SENTINEL } from "../helpers/settingsSecret";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import {
+  flagSetting,
+  nullableChoiceSetting,
+  readSettingsGroup,
+  textSetting,
+  type SettingsSpec,
+} from "../helpers/settingsReader";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -70,6 +77,51 @@ export const SUPPORT_AI_DEFAULTS: {
 
 // ─── getSupportSettings ───────────────────────────────────────────────────────
 
+interface SupportWidgetSettings {
+  enabled: boolean;
+  widgetTitle: string;
+  widgetSubtitle: string;
+  widgetColor: string;
+  showKbSearch: boolean;
+  showTicketHistory: boolean;
+  aiEnabled: boolean;
+  escalationButtonLabel: string;
+}
+
+interface SupportAiSettings {
+  aiProvider: "openai" | "anthropic" | null;
+  aiApiKey: string;
+  aiModel: string;
+  meilisearchEnabled: boolean;
+  meilisearchUrl: string;
+  meilisearchApiKey: string;
+  ragEnabled: boolean;
+}
+
+const SUPPORT_WIDGET_SETTINGS_DEFAULTS: SupportWidgetSettings = { ...SUPPORT_WIDGET_DEFAULTS };
+const SUPPORT_AI_SETTINGS_DEFAULTS: SupportAiSettings = { ...SUPPORT_AI_DEFAULTS };
+
+const SUPPORT_WIDGET_SPEC: SettingsSpec<SupportWidgetSettings> = {
+  enabled: flagSetting,
+  widgetTitle: textSetting,
+  widgetSubtitle: textSetting,
+  widgetColor: textSetting,
+  showKbSearch: flagSetting,
+  showTicketHistory: flagSetting,
+  aiEnabled: flagSetting,
+  escalationButtonLabel: textSetting,
+};
+
+const SUPPORT_AI_SPEC: SettingsSpec<SupportAiSettings> = {
+  aiProvider: nullableChoiceSetting(["openai", "anthropic"]),
+  aiApiKey: textSetting,
+  aiModel: textSetting,
+  meilisearchEnabled: flagSetting,
+  meilisearchUrl: textSetting,
+  meilisearchApiKey: textSetting,
+  ragEnabled: flagSetting,
+};
+
 /**
  * Get all support settings, merged with defaults.
  *
@@ -83,14 +135,14 @@ export const getSupportSettings = query({
   args: {},
   returns: v.union(v.null(), v.object({
     widget: v.object({
-      enabled: v.literal(true),
-      widgetTitle: v.literal("Support"),
-      widgetSubtitle: v.literal("How can we help you today?"),
-      widgetColor: v.literal("#3b82f6"),
-      showKbSearch: v.literal(true),
-      showTicketHistory: v.literal(true),
-      aiEnabled: v.literal(false),
-      escalationButtonLabel: v.literal("Contact Support"),
+      enabled: v.boolean(),
+      widgetTitle: v.string(),
+      widgetSubtitle: v.string(),
+      widgetColor: v.string(),
+      showKbSearch: v.boolean(),
+      showTicketHistory: v.boolean(),
+      aiEnabled: v.boolean(),
+      escalationButtonLabel: v.string(),
     }),
     ai: v.object({
       aiProvider: v.union(v.null(), v.literal("anthropic"), v.literal("openai")),
@@ -118,27 +170,15 @@ export const getSupportSettings = query({
         .unique(),
     ]);
 
-    const ai = {
-      ...SUPPORT_AI_DEFAULTS,
-      ...(aiDoc ? (aiDoc.values as Record<string, unknown>) : {}),
-    } as Record<string, unknown>;
+    const widget = readSettingsGroup(SUPPORT_WIDGET_SPEC, SUPPORT_WIDGET_SETTINGS_DEFAULTS, widgetDoc?.values);
+    const ai = readSettingsGroup(SUPPORT_AI_SPEC, SUPPORT_AI_SETTINGS_DEFAULTS, aiDoc?.values);
 
     // Mask API keys before returning to the client. updateSupportSettings treats
     // this sentinel as "keep the existing stored secret."
-    if (ai.aiApiKey && typeof ai.aiApiKey === "string") {
-      ai.aiApiKey = SECRET_SENTINEL;
-    }
-    if (ai.meilisearchApiKey && typeof ai.meilisearchApiKey === "string") {
-      ai.meilisearchApiKey = SECRET_SENTINEL;
-    }
+    if (ai.aiApiKey) ai.aiApiKey = SECRET_SENTINEL;
+    if (ai.meilisearchApiKey) ai.meilisearchApiKey = SECRET_SENTINEL;
 
-    return {
-      widget: {
-        ...SUPPORT_WIDGET_DEFAULTS,
-        ...(widgetDoc ? (widgetDoc.values as Record<string, unknown>) : {}),
-      } as unknown as typeof SUPPORT_WIDGET_DEFAULTS,
-      ai: ai as unknown as typeof SUPPORT_AI_DEFAULTS,
-    };
+    return { widget, ai };
   },
 });
 

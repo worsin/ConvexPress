@@ -9,8 +9,8 @@ import { BRAND_EVENTS, SYSTEM } from "../events/constants";
 import { insertWithMediaReferences, patchWithMediaReferences, requireAttachableMedia } from "../media/attachmentGuard";
 
 type BrandStatus = "draft" | "publish" | "archived";
-interface CreateBrandArgs { name: string; slug?: string; description?: string; logoMediaId?: Id<"media">; status?: BrandStatus; sortOrder?: number }
-interface UpdateBrandArgs { brandId: Id<"commerce_product_brands">; name?: string; slug?: string; description?: string; logoMediaId?: Id<"media"> | null; status?: BrandStatus; sortOrder?: number }
+type CreateBrandArgs = { name: string; slug?: string; description?: string; logoMediaId?: Id<"media">; status?: BrandStatus; sortOrder?: number };
+type UpdateBrandArgs = { brandId: Id<"commerce_product_brands">; name?: string; slug?: string; description?: string; logoMediaId?: Id<"media"> | null; status?: BrandStatus; sortOrder?: number };
 
 const brandStatus = v.union(v.literal("draft"), v.literal("publish"), v.literal("archived"));
 const brandFields = { name: v.string(), slug: v.string(), description: v.string(), logoMediaId: v.optional(v.id("media")), status: brandStatus, sortOrder: v.number(), createdAt: v.number(), updatedAt: v.number() };

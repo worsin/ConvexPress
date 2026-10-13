@@ -10,9 +10,9 @@ import { assistantScope } from "./scope";
 import { isClosedCart } from "../cartLifecycle";
 import { ConvexError, v } from "convex/values";
 import { api, internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
-import { getSettingsDoc, mergeWithDefaults } from "../../settings/helpers";
-import { internalMutation, mutation } from "../../_generated/server";
+import type { Doc, Id } from "../../_generated/dataModel";
+import { internalMutation, mutation, type MutationCtx } from "../../_generated/server";
+import { readAssistantSettings } from "../settingsInternals";
 import {
   assistantBlockValidator,
   recommendationEventValidator,
@@ -20,9 +20,12 @@ import {
   shopperMemoryKindValidator,
 } from "../../schema/commerceAssistant";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
+import { convexErrorCode } from "../errorCode";
 
 
-export async function ensureSessionDoc(ctx: any, sessionToken: string) {
+type AssistantSession = Doc<"commerce_assistant_sessions">;
+
+export async function ensureSessionDoc(ctx: MutationCtx, sessionToken: string): Promise<AssistantSession> {
   const { session: existing, user } = await assistantScope(ctx, sessionToken);
   const userId = user?._id;
   const now = Date.now();
@@ -37,11 +40,13 @@ export async function ensureSessionDoc(ctx: any, sessionToken: string) {
     createdAt: now,
     updatedAt: now,
   });
-  return await ctx.db.get(id);
+  const created = await ctx.db.get("commerce_assistant_sessions", id);
+  if (!created) throw new ConvexError({ code: "SESSION_MISSING", message: "Please refresh the shop to start a new session." });
+  return created;
 }
 
 /** Used only after the caller has authorized a cart recovery/merge. */
-export async function adoptAssistantSession(ctx: any, sourceToken: string, destinationToken: string) {
+export async function adoptAssistantSession(ctx: MutationCtx, sourceToken: string, destinationToken: string) {
   const scope = await assistantScope(ctx, sourceToken);
   if (!scope.user) return;
   const source = await ensureSessionDoc(ctx, sourceToken);
@@ -61,7 +66,7 @@ export const resolveSession = mutation({
     try {
       scope = await assistantScope(ctx, sessionToken);
     } catch (error) {
-      const code = error instanceof ConvexError ? (error.data as { code?: string }).code : undefined;
+      const code = convexErrorCode(error);
       if (code !== "SESSION_OWNER_MISMATCH" && code !== "INVALID_SESSION") throw error;
       sessionToken = crypto.randomUUID();
       scope = await assistantScope(ctx, sessionToken);
@@ -73,7 +78,7 @@ export const resolveSession = mutation({
       // after earlier lines have moved. Never commit those partial transfers.
       cartId = await ctx.runMutation(api.commerce.cart.merge, { sessionToken });
     } catch (error) {
-      const code = error instanceof ConvexError ? (error.data as { code?: string }).code : undefined;
+      const code = convexErrorCode(error);
       const recoverable = ["CART_CONTEXT_MISMATCH", "CART_MERGE_LIMIT", "INSUFFICIENT_STOCK", "NOT_FOUND", "VALIDATION_ERROR", "BUNDLE_UNAVAILABLE", "BUNDLE_CHANGED", "invalid_bundle_selection"].includes(code ?? "");
       if (!recoverable || !scope.cart || isClosedCart(scope.cart)) throw error;
       // Preserve the current basket without repricing it. The signed-in cart
@@ -91,10 +96,10 @@ export const resolveSession = mutation({
 export const ensureSession = mutation({
   args: { sessionToken: v.string(), route: v.optional(v.string()), query: v.optional(v.string()) },
   returns: v.string(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await assistantScope(ctx, args.sessionToken);
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    const patch: Record<string, unknown> = { updatedAt: Math.max(Date.now(), session.updatedAt) };
+    const patch: Partial<AssistantSession> = { updatedAt: Math.max(Date.now(), session.updatedAt) };
     if (args.route) patch.lastRoute = args.route;
     if (typeof args.query === "string" && args.query.trim()) patch.lastQuery = args.query.trim().slice(0, 200);
     await patchDynamicWithMediaReferences(ctx, session._id, patch);
@@ -102,21 +107,25 @@ export const ensureSession = mutation({
   },
 });
 
-export async function appendMessageToSession(ctx: any, session: any, args: any) {
+export async function appendMessageToSession(
+  ctx: MutationCtx,
+  session: AssistantSession,
+  args: Pick<Doc<"commerce_assistant_messages">, "role" | "text" | "toolCalls" | "model" | "latencyMs" | "tokensIn" | "tokensOut" | "error"> & { blocks: unknown[] },
+): Promise<Id<"commerce_assistant_messages">> {
   const now = Math.max(Date.now(), session.updatedAt, (session.clearedBefore ?? 0) + 1);
   let recentUserTurnTimes: number[] | undefined;
   if (args.role === "user") {
-    const doc = await getSettingsDoc(ctx, "commerce.assistant");
-    const settings = mergeWithDefaults("commerce.assistant", doc?.values ?? null);
+    const settings = await readAssistantSettings(ctx);
     if (settings.enabled === false) throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
-    const configured = Number(settings.rateLimitPerMinute ?? 12);
+    const configured = settings.rateLimitPerMinute;
     const limit = Number.isFinite(configured) ? Math.min(120, Math.max(1, Math.floor(configured))) : 12;
     const windowStart = Date.now() - 60_000;
     const times = session.recentUserTurnTimes ?? (await ctx.db.query("commerce_assistant_messages")
-      .withIndex("by_session_role", (q: any) => q.eq("sessionId", session._id).eq("role", "user").gte("createdAt", windowStart)).take(120)).map((row: any) => row.createdAt);
-    recentUserTurnTimes = times.filter((time: number) => time >= windowStart);
-    if (recentUserTurnTimes!.length >= limit) throw new ConvexError({ code: "RATE_LIMITED", message: "Please try again in a minute." });
-    recentUserTurnTimes!.push(now);
+      .withIndex("by_session_role", (q) => q.eq("sessionId", session._id).eq("role", "user").gte("createdAt", windowStart)).take(120)).map((row) => row.createdAt);
+    const turns = times.filter((time) => time >= windowStart);
+    if (turns.length >= limit) throw new ConvexError({ code: "RATE_LIMITED", message: "Please try again in a minute." });
+    turns.push(now);
+    recentUserTurnTimes = turns;
   }
   const id = await ctx.db.insert("commerce_assistant_messages", {
     sessionId: session._id,
@@ -132,7 +141,7 @@ export async function appendMessageToSession(ctx: any, session: any, args: any) 
     createdAt: now,
   });
   await patchDynamicWithMediaReferences(ctx, session._id, { messageCount: session.messageCount + 1, updatedAt: now, ...(recentUserTurnTimes ? { recentUserTurnTimes } : {}) });
-  return String(id);
+  return id;
 }
 
 export const appendMessage = internalMutation({
@@ -149,7 +158,7 @@ export const appendMessage = internalMutation({
     error: v.optional(v.string()),
   },
   returns: v.string(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
     return appendMessageToSession(ctx, session, args);
   },
@@ -162,7 +171,7 @@ export const setFeedback = mutation({
     feedback: v.union(v.literal("up"), v.literal("down"), v.null()),
   },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const scope = await assistantScope(ctx, args.sessionToken);
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
@@ -175,12 +184,12 @@ export const setFeedback = mutation({
 export const clearThread = mutation({
   args: { sessionToken: v.string() },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const { session } = await assistantScope(ctx, args.sessionToken);
     if (!session) return;
     const cutoff = Math.max(Date.now(), session.updatedAt);
     await patchDynamicWithMediaReferences(ctx, session._id, { clearedBefore: cutoff, messageCount: 0, updatedAt: cutoff });
-    await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.purgeThread, { sessionId: session._id, cutoff });
+    await ctx.scheduler.runAfter(0, internal.commerce.assistant.mutations.purgeThread, { sessionId: session._id, cutoff });
   },
 });
 
@@ -195,7 +204,7 @@ export const purgeThread = internalMutation({
       .withIndex("by_session_adopted", q => q.eq("sessionId", args.sessionId).gt("adoptedAt", 0).lte("adoptedAt", args.cutoff)).take(250 - ordinary.length) : [];
     const messages = [...ordinary, ...adopted];
     for (const message of messages) await deleteDynamicWithMediaReferences(ctx, message._id);
-    if (messages.length === 250) await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.purgeThread, args);
+    if (messages.length === 250) await ctx.scheduler.runAfter(0, internal.commerce.assistant.mutations.purgeThread, args);
     return null;
   },
 });
@@ -214,13 +223,12 @@ export const transferHistory = internalMutation({
 // ─── Memory ──────────────────────────────────────────────────────────────────
 
 export async function rememberFactInternal(
-  ctx: any,
+  ctx: MutationCtx,
   input: { subjectKey: string; fact: string; kind?: string; source: "stated" | "inferred"; retentionDays: number; consented: boolean },
 ) {
   // Read the setting in the write transaction, including for a provider turn
   // that started while memory was enabled.
-  const settings = await getSettingsDoc(ctx, "commerce.assistant");
-  const assistant = mergeWithDefaults("commerce.assistant", settings?.values ?? null);
+  const assistant = await readAssistantSettings(ctx);
   if (assistant.memoryEnabled === false) {
     throw new ConvexError({ code: "MEMORY_DISABLED", message: "Shopper memory is disabled." });
   }
@@ -228,10 +236,10 @@ export async function rememberFactInternal(
   if (!fact) return null;
   const rows = await ctx.db
     .query("commerce_shopper_memory")
-    .withIndex("by_subject", (q: any) => q.eq("subjectKey", input.subjectKey))
+    .withIndex("by_subject", (q) => q.eq("subjectKey", input.subjectKey))
     .take(41);
   if (rows.length > 40) throw new ConvexError({ code: "MEMORY_LIMIT", message: "Please clear saved preferences before adding another." });
-  const duplicate = rows.find((row: any) => row.fact.toLowerCase() === fact.toLowerCase());
+  const duplicate = rows.find((row) => row.fact.toLowerCase() === fact.toLowerCase());
   const now = Date.now();
   const days = Number.isFinite(input.retentionDays) ? Math.min(3650, Math.max(1, input.retentionDays)) : 90;
   const expiresAt = now + days * 86_400_000;
@@ -240,12 +248,11 @@ export async function rememberFactInternal(
     return String(duplicate._id);
   }
   if (rows.length >= 40) {
-    const oldest = [...rows].sort((a: any, b: any) => a.updatedAt - b.updatedAt)[0];
+    const oldest = [...rows].sort((a, b) => a.updatedAt - b.updatedAt)[0];
     if (oldest) await deleteDynamicWithMediaReferences(ctx, oldest._id);
   }
-  const kind = ["constraint", "preference", "household", "project", "other"].includes(input.kind ?? "")
-    ? (input.kind as any)
-    : "other";
+  const kinds: readonly Doc<"commerce_shopper_memory">["kind"][] = ["constraint", "preference", "household", "project", "other"];
+  const kind = kinds.find((candidate) => candidate === input.kind) ?? "other";
   const id = await ctx.db.insert("commerce_shopper_memory", {
     subjectKey: input.subjectKey,
     kind,
@@ -263,7 +270,7 @@ export async function rememberFactInternal(
 export const rememberFact = mutation({
   args: { sessionToken: v.string(), fact: v.string(), kind: v.optional(shopperMemoryKindValidator) },
   returns: v.union(v.null(), v.string()),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await assistantScope(ctx, args.sessionToken);
     await ensureSessionDoc(ctx, args.sessionToken);
     const scope = await assistantScope(ctx, args.sessionToken);
@@ -286,7 +293,7 @@ export const rememberFactFromAssistant = internalMutation({
     retentionDays: v.number(),
   },
   returns: v.union(v.null(), v.string()),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ensureSessionDoc(ctx, args.sessionToken);
     const scope = await assistantScope(ctx, args.sessionToken);
     return rememberFactInternal(ctx, {
@@ -303,7 +310,7 @@ export const rememberFactFromAssistant = internalMutation({
 export const forgetFact = mutation({
   args: { sessionToken: v.string(), memoryId: v.id("commerce_shopper_memory") },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await assistantScope(ctx, args.sessionToken);
     const row = await ctx.db.get(args.memoryId);
     const scope = await assistantScope(ctx, args.sessionToken);
@@ -315,12 +322,12 @@ export const forgetFact = mutation({
 export const forgetAll = mutation({
   args: { sessionToken: v.string() },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await assistantScope(ctx, args.sessionToken);
     const scope = await assistantScope(ctx, args.sessionToken);
     for (const subjectKey of scope.memoryKeys) {
       const rows = await ctx.db.query("commerce_shopper_memory")
-        .withIndex("by_subject", (q: any) => q.eq("subjectKey", subjectKey)).take(201);
+        .withIndex("by_subject", (q) => q.eq("subjectKey", subjectKey)).take(201);
       if (rows.length > 200) throw new ConvexError({ code: "MEMORY_LIMIT", message: "Saved preferences need maintenance before they can be cleared." });
       for (const row of rows) await deleteDynamicWithMediaReferences(ctx, row._id);
     }
@@ -340,12 +347,12 @@ export const storeBrief = internalMutation({
     ttlMs: v.number(),
   },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await ensureSessionDoc(ctx, args.sessionToken);
     const now = Date.now();
     const existing = await ctx.db
       .query("commerce_assistant_briefs")
-      .withIndex("by_cache_key", (q: any) => q.eq("cacheKey", args.cacheKey))
+      .withIndex("by_cache_key", (q) => q.eq("cacheKey", args.cacheKey))
       .unique();
     const doc = {
       kind: args.kind,
@@ -369,10 +376,10 @@ export const storeFacets = internalMutation({
     chips: v.array(v.object({ label: v.string(), query: v.optional(v.string()), categorySlug: v.optional(v.string()) })),
   },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("commerce_search_facets")
-      .withIndex("by_query_hash", (q: any) => q.eq("queryHash", args.queryHash))
+      .withIndex("by_query_hash", (q) => q.eq("queryHash", args.queryHash))
       .unique();
     if (existing?.pinned || existing?.banned) return;
     const doc = { queryHash: args.queryHash, query: args.query, chips: args.chips, pinned: false, banned: false, generatedAt: Date.now() };
@@ -384,7 +391,7 @@ export const storeFacets = internalMutation({
 export const markTip = internalMutation({
   args: { sessionToken: v.string() },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
     await patchDynamicWithMediaReferences(ctx, session._id, { lastTipAt: Date.now(), updatedAt: Math.max(Date.now(), session.updatedAt) });
   },
@@ -401,7 +408,7 @@ export const logEvent = mutation({
     groupKey: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await assistantScope(ctx, args.sessionToken);
     const now = Date.now();
     for (const productId of args.productIds.slice(0, 24)) {

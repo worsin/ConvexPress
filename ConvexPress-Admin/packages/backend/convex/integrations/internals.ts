@@ -24,6 +24,20 @@ export function envPresence(name: string | undefined): boolean {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+export interface ProviderConfiguration {
+  /** Stored string and boolean settings (secrets still ciphertext). Other value types are never used for verification. */
+  values: Record<string, string | boolean>;
+  envValues: Record<string, string>;
+  fingerprint: string;
+}
+
+/** A settings document's `values` as a plain record ({} when absent or not an object). */
+export function settingsValues(stored: unknown): Record<string, unknown> {
+  return typeof stored === "object" && stored !== null && !Array.isArray(stored)
+    ? Object.fromEntries(Object.entries(stored))
+    : {};
+}
+
 /**
  * Raw configuration for a provider: stored section values (secrets remain
  * ciphertext), the env fallbacks that exist, and the fingerprint the check
@@ -31,7 +45,12 @@ export function envPresence(name: string | undefined): boolean {
  */
 export const loadProviderConfiguration = internalQuery({
   args: { providerId: v.string() },
-  handler: async (ctx, args) => {
+  returns: v.object({
+    values: v.record(v.string(), v.union(v.boolean(), v.string())),
+    envValues: v.record(v.string(), v.string()),
+    fingerprint: v.string(),
+  }),
+  handler: async (ctx, args): Promise<ProviderConfiguration> => {
     const definition = getIntegration(args.providerId);
     if (!definition) throw new Error(`Unknown integration: ${args.providerId}`);
 
@@ -40,9 +59,9 @@ export const loadProviderConfiguration = internalQuery({
       const section = definition.storage.section as SettingsSection;
       const doc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: any) => q.eq("section", section))
+        .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
-      values = { ...getDefaults(section), ...((doc?.values as Record<string, unknown>) ?? {}) };
+      values = { ...getDefaults(section), ...settingsValues(doc?.values) };
     }
 
     // Env fallbacks apply only where nothing is stored, mirroring the
@@ -69,8 +88,13 @@ export const loadProviderConfiguration = internalQuery({
       if (envPresence(envName)) envValues.apiKey = process.env[envName] as string;
     }
 
+    const verifiableValues: Record<string, string | boolean> = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (typeof value === "string" || typeof value === "boolean") verifiableValues[key] = value;
+    }
+
     return {
-      values,
+      values: verifiableValues,
       envValues,
       fingerprint: fingerprintConfiguration({
         ...Object.fromEntries(
@@ -98,7 +122,7 @@ export const recordCheck = internalMutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("integration_checks")
-      .withIndex("by_provider", (q: any) => q.eq("providerId", args.providerId))
+      .withIndex("by_provider", (q) => q.eq("providerId", args.providerId))
       .unique();
     const row = {
       providerId: args.providerId,

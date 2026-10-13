@@ -11,7 +11,7 @@ import { requireCan } from "../helpers/permissions";
 import type { RegisteredQuery } from "convex/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { wordpressSyncDocs } from "../schema/wordpressSync.docs.generated";
 // ─── Site Queries ──────────────────────────────────────────────────────────
 
 /**
@@ -186,7 +186,7 @@ export const listJobs = query({
     siteId: v.id("wordpressSites"),
     limit: v.optional(v.number()),
   },
-  returns: v.array(tableDocs.wordpressSyncJobs),
+  returns: v.array(wordpressSyncDocs.wordpressSyncJobs),
   handler: async (ctx, { siteId, limit = 10 }) => {
     await requireCan(ctx, "manage_options");
 
@@ -207,7 +207,7 @@ export const getJob: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJobs"> 
   args: {
     jobId: v.id("wordpressSyncJobs"),
   },
-  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSyncJobs),
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -222,7 +222,7 @@ export const getActiveJob: RegisteredQuery<"public", { siteId: Id<"wordpressSite
   args: {
     siteId: v.id("wordpressSites"),
   },
-  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSyncJobs),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -257,7 +257,7 @@ export const getLatestJob: RegisteredQuery<"public", { siteId: Id<"wordpressSite
   args: {
     siteId: v.id("wordpressSites"),
   },
-  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSyncJobs),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -486,7 +486,7 @@ export const getJobErrors: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJ
  */
 export const getLatestReport: RegisteredQuery<"public", { siteId: Id<"wordpressSites"> }, Doc<"wordpressSyncReports"> | null> = query({
   args: { siteId: v.id("wordpressSites") },
-  returns: v.union(v.null(), tableDocs.wordpressSyncReports),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSyncReports),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
@@ -502,7 +502,7 @@ export const getLatestReport: RegisteredQuery<"public", { siteId: Id<"wordpressS
  */
 export const getJobReport: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJobs"> }, Doc<"wordpressSyncReports"> | null> = query({
   args: { jobId: v.id("wordpressSyncJobs") },
-  returns: v.union(v.null(), tableDocs.wordpressSyncReports),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSyncReports),
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
@@ -520,7 +520,7 @@ export const listReports: RegisteredQuery<"public", { siteId: Id<"wordpressSites
     siteId: v.id("wordpressSites"),
     limit: v.optional(v.number()),
   },
-  returns: v.array(tableDocs.wordpressSyncReports),
+  returns: v.array(wordpressSyncDocs.wordpressSyncReports),
   handler: async (ctx, { siteId, limit = 20 }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
@@ -544,7 +544,7 @@ export const listFindings: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJ
     code: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  returns: v.array(tableDocs.wordpressSyncReconciliationFindings),
+  returns: v.array(wordpressSyncDocs.wordpressSyncReconciliationFindings),
   handler: async (ctx, { jobId, severity, code, limit = 50 }) => {
     await requireCan(ctx, "manage_options");
 

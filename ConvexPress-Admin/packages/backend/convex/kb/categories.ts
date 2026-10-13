@@ -18,7 +18,8 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { generateCategorySlug } from "./helpers/utils";
-import { validateCategoryFields, validateCategoryParent, assertCategoryNotDeleting } from "./helpers/categoryHierarchy";
+import { validateCategoryFields, validateCategoryParent, assertCategoryNotDeleting, MAX_CATEGORY_ANCESTORS } from "./helpers/categoryHierarchy";
+import { boundedTreeValidator, capTreeDepth } from "../helpers/boundedTree";
 import {
   createCategoryArgs,
   updateCategoryArgs,
@@ -31,7 +32,7 @@ import { createPublicKbAccess } from "./publicAccess";
 import { beginCategoryDeletion } from "./categoryDeletion";
 import { kbTables } from "../schema/kb";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list: RegisteredQuery<"public", Record<string, never>, Doc<"kb_categories">[] | null> = query({
@@ -57,6 +58,7 @@ export const list: RegisteredQuery<"public", Record<string, never>, Doc<"kb_cate
 
 export const listPublished = query({
   args: {},
+  returns: v.union(v.null(), v.array(kbDocs.kb_categories)),
   handler: async (ctx) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
@@ -65,7 +67,7 @@ export const listPublished = query({
       .withIndex("by_published_order", (q) => q.eq("isPublished", true))
       .take(500);
 
-    const visible = [];
+    const visible: Doc<"kb_categories">[] = [];
     for (const category of categories) {
       if (await access.allowedRoute(`/help/${encodeURIComponent(category.slug)}`)) visible.push(category);
     }
@@ -77,7 +79,7 @@ export const listPublished = query({
 
 export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_categories"> | null> = query({
   args: getCategoryBySlugArgs,
-  returns: v.union(v.null(), tableDocs.kb_categories),
+  returns: v.union(v.null(), kbDocs.kb_categories),
   handler: async (ctx, args) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
@@ -93,8 +95,25 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_cate
 
 // ─── Get Hierarchy (Public) ─────────────────────────────────────────────────
 
+interface KbCategoryNode extends Doc<"kb_categories"> {
+  children: KbCategoryNode[];
+}
+
+/** Levels `getHierarchy` returns: a category plus up to MAX_CATEGORY_ANCESTORS ancestors. */
+const KB_HIERARCHY_LEVELS = MAX_CATEGORY_ANCESTORS + 1;
+
+const kbHierarchyValidator = v.union(
+  v.null(),
+  v.array(
+    boundedTreeValidator<KbCategoryNode>(KB_HIERARCHY_LEVELS, (children) =>
+      v.object({ ...kbDocs.kb_categories.fields, children }),
+    ),
+  ),
+);
+
 export const getHierarchy = query({
   args: {},
+  returns: kbHierarchyValidator,
   handler: async (ctx) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
@@ -104,9 +123,8 @@ export const getHierarchy = query({
       .take(500);
 
     // Build tree structure
-    type CategoryNode = (typeof categories)[0] & { children: CategoryNode[] };
-    const map = new Map<string, CategoryNode>();
-    const roots: CategoryNode[] = [];
+    const map = new Map<string, KbCategoryNode>();
+    const roots: KbCategoryNode[] = [];
 
     for (const cat of categories) {
       if (!await access.allowedRoute(`/help/${encodeURIComponent(cat.slug)}`)) continue;
@@ -128,7 +146,9 @@ export const getHierarchy = query({
       }
     }
 
-    return roots;
+    // Writes keep categories within MAX_CATEGORY_ANCESTORS; cap anyway so the
+    // result always matches the depth-bounded transport validator.
+    return capTreeDepth(roots, KB_HIERARCHY_LEVELS);
   },
 });
 

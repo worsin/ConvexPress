@@ -30,6 +30,7 @@ import { applyCouponToInvoice } from "../helpers/coupons";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { readMergedSettingsSection } from "../settings/read";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -112,10 +113,10 @@ function disabledProviderFallback(
   };
 }
 
-async function allocateProrationInvoiceNumber(ctx: any): Promise<string> {
+async function allocateProrationInvoiceNumber(ctx: MutationCtx): Promise<string> {
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) =>
+    .withIndex("by_section", (q) =>
       q.eq("section", "commerce.subscriptions.counters"),
     )
     .unique();
@@ -136,15 +137,9 @@ async function allocateProrationInvoiceNumber(ctx: any): Promise<string> {
   return formatted;
 }
 
-async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
-  const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
-  );
-  const flag =
-    settings?.values?.subscriptionChargingEnabled ??
-    settings?.subscriptionChargingEnabled;
-  return flag === true;
+async function isLiveChargingEnabled(ctx: MutationCtx): Promise<boolean> {
+  const values = await readMergedSettingsSection(ctx, "commerce.payments");
+  return values.subscriptionChargingEnabled === true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

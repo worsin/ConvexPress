@@ -1,8 +1,8 @@
-// @ts-nocheck
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, internalMutation, internalQuery } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { internalAction, internalMutation, internalQuery, type ActionCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import { getServiceKeyFromAction } from "../helpers/serviceKeys";
 import {
   buildClerkCreateUserPayload,
@@ -14,7 +14,7 @@ import {
 } from "./clerkManagementHelpers";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { usersDocs } from "../schema/users.docs.generated";
 const clerkSourceValidator = v.union(
   v.literal("wordpress_import"),
   v.literal("wordpress_credential_backfill"),
@@ -44,7 +44,7 @@ export const getUserForClerkProvisioning = internalQuery({
   args: {
     userId: v.id("users"),
   },
-  returns: v.union(v.null(), tableDocs.users),
+  returns: v.union(v.null(), usersDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.userId);
   },
@@ -63,7 +63,7 @@ export const markClerkProvisioning = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const now = Date.now();
-    const patch: Record<string, unknown> = {
+    const patch: Partial<WithoutSystemFields<Doc<"users">>> = {
       clerkProvisioningStatus: args.status,
       clerkProvisioningSource: args.source,
       clerkProvisioningReason: args.reason,
@@ -89,10 +89,10 @@ export const markClerkProvisioning = internalMutation({
 });
 
 async function recordProvisioningResult(
-  ctx: { runMutation: (ref: any, args: any) => Promise<any> },
+  ctx: Pick<ActionCtx, "runMutation">,
   args: {
     userId: Id<"users">;
-    source: string;
+    source: Infer<typeof clerkSourceValidator>;
     setAuthSourceToClerk?: boolean;
   },
   result: ClerkProvisioningResult,

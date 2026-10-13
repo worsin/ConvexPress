@@ -5,7 +5,8 @@
  * All mutations require Administrator capability (manage_options).
  */
 
-import { mutation } from "../_generated/server";
+import { mutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { requireCan } from "../helpers/permissions";
@@ -18,6 +19,7 @@ import {
   validateSiteUrl,
 } from "./validators";
 import { deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+import { wordpressSyncDocs } from "../schema/wordpressSync.docs.generated";
 
 
 // Environment variable for encrypting application passwords
@@ -25,11 +27,11 @@ const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
 const ARTIFACT_DELETE_BATCH_SIZE = 500;
 const ACTIVE_JOB_STATUSES = ["pending", "running", "paused"] as const;
 
-async function findActiveJobForSite(ctx: any, siteId: any) {
+async function findActiveJobForSite(ctx: Pick<QueryCtx, "db">, siteId: Id<"wordpressSites">) {
   for (const status of ACTIVE_JOB_STATUSES) {
     const job = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q: any) => q.eq("siteId", siteId).eq("status", status))
+      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", status))
       .first();
 
     if (job) return job;
@@ -38,7 +40,7 @@ async function findActiveJobForSite(ctx: any, siteId: any) {
   return null;
 }
 
-async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
+async function deleteImportArtifactsForJob(ctx: Pick<MutationCtx, "db">, jobId: Id<"wordpressSyncJobs">) {
   let reportsDeleted = 0;
   let findingsDeleted = 0;
   let reportBatch;
@@ -47,7 +49,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
   do {
     reportBatch = await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
+      .withIndex("by_job", (q) => q.eq("jobId", jobId))
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const report of reportBatch) {
@@ -59,7 +61,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
   do {
     findingBatch = await ctx.db
       .query("wordpressSyncReconciliationFindings")
-      .withIndex("by_job_created", (q: any) => q.eq("jobId", jobId))
+      .withIndex("by_job_created", (q) => q.eq("jobId", jobId))
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const finding of findingBatch) {
@@ -71,7 +73,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
   return { reportsDeleted, findingsDeleted };
 }
 
-async function deleteImportArtifactsForSite(ctx: any, siteId: any) {
+async function deleteImportArtifactsForSite(ctx: Pick<MutationCtx, "db">, siteId: Id<"wordpressSites">) {
   let reportsDeleted = 0;
   let findingsDeleted = 0;
   let reportBatch;
@@ -80,7 +82,7 @@ async function deleteImportArtifactsForSite(ctx: any, siteId: any) {
   do {
     reportBatch = await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_site_created", (q: any) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const report of reportBatch) {
@@ -92,7 +94,7 @@ async function deleteImportArtifactsForSite(ctx: any, siteId: any) {
   do {
     findingBatch = await ctx.db
       .query("wordpressSyncReconciliationFindings")
-      .withIndex("by_site_created", (q: any) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const finding of findingBatch) {
@@ -384,7 +386,7 @@ export const updateConnectionTest = mutation({
     siteName: v.optional(v.string()),
     siteDescription: v.optional(v.string()),
     error: v.optional(v.string()),
-    capabilities: v.optional(v.any()),
+    capabilities: wordpressSyncDocs.wordpressSites.fields.capabilities,
   },
   returns: v.id("wordpressSites"),
   handler: async (ctx, { siteId, success, wpVersion, siteName, siteDescription, error, capabilities }) => {

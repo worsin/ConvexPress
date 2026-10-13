@@ -164,8 +164,10 @@ describe("settings queries", () => {
     });
 
     expect(ga4?.ga4ServiceAccountJson).toBe("__set__");
-    expect(ga4?.ga4ServiceAccountEmail).toBe("ga4@example.test");
+    // Non-secret fields survive redaction; keys the section does not declare
+    // are not part of its type and are not returned.
     expect(ga4?.ga4PropertyId).toBe("properties/123456789");
+    expect(ga4).not.toHaveProperty("ga4ServiceAccountEmail");
   });
 
   test("projects only plugin availability booleans to an active lower-role user", async () => {

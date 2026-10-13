@@ -1,7 +1,8 @@
-// @ts-nocheck TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 import { ConvexError, v } from "convex/values";
 
-import { query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { query, type QueryCtx } from "../_generated/server";
+import { purchasesDocs } from "../schema/purchases.docs.generated";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 
 const DEFAULT_PER_PAGE = 20;
@@ -63,10 +64,37 @@ const listArgs = {
   orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
 };
 
-function applyFilters(rows: any[], args: any) {
+type PurchaseOrder = Doc<"purchase_orders">;
+
+type PurchaseFilterArgs = {
+  search?: string;
+  sourceType?: PurchaseOrder["sourceType"];
+  status?: PurchaseOrder["status"];
+  paymentStatus?: PurchaseOrder["paymentStatus"];
+  userId?: Id<"users">;
+  customerId?: Id<"commerce_customer_profiles">;
+  email?: string;
+  dateFrom?: number;
+  dateTo?: number;
+};
+
+const purchaseWithCountsValidator = purchasesDocs.purchase_orders.extend({
+  lineCount: v.number(),
+  itemTotalQuantity: v.number(),
+});
+
+const purchaseDetailValidator = purchasesDocs.purchase_orders.extend({
+  lines: v.array(purchasesDocs.purchase_order_lines),
+  payments: v.array(purchasesDocs.purchase_payments),
+  refunds: v.array(purchasesDocs.purchase_refunds),
+  events: v.array(purchasesDocs.purchase_order_events),
+});
+
+function applyFilters(rows: PurchaseOrder[], args: PurchaseFilterArgs): PurchaseOrder[] {
   let out = rows;
-  if (args.search?.trim()) {
-    const needle = args.search.trim().toLowerCase();
+  const search = args.search?.trim();
+  if (search) {
+    const needle = search.toLowerCase();
     out = out.filter((row) =>
       [
         row.orderNumber,
@@ -82,119 +110,138 @@ function applyFilters(rows: any[], args: any) {
   if (args.paymentStatus) {
     out = out.filter((row) => row.paymentStatus === args.paymentStatus);
   }
-  if (args.userId) out = out.filter((row) => String(row.userId) === String(args.userId));
-  if (args.customerId) out = out.filter((row) => String(row.customerId) === String(args.customerId));
-  if (args.email?.trim()) {
-    const email = args.email.trim().toLowerCase();
-    out = out.filter((row) => String(row.email ?? "").toLowerCase() === email);
+  if (args.userId) out = out.filter((row) => row.userId === args.userId);
+  if (args.customerId) out = out.filter((row) => row.customerId === args.customerId);
+  const email = args.email?.trim().toLowerCase();
+  if (email) {
+    out = out.filter((row) => (row.email ?? "").toLowerCase() === email);
   }
-  if (args.dateFrom) out = out.filter((row) => Number(row.createdAt ?? 0) >= args.dateFrom);
-  if (args.dateTo) out = out.filter((row) => Number(row.createdAt ?? 0) <= args.dateTo);
+  const { dateFrom, dateTo } = args;
+  if (dateFrom) out = out.filter((row) => row.createdAt >= dateFrom);
+  if (dateTo) out = out.filter((row) => row.createdAt <= dateTo);
   return out;
 }
 
-function sortPurchases(rows: any[], orderBy?: string, orderDir?: "asc" | "desc") {
+/** Orders two field values the way the admin table sorts: numbers numerically, strings lexically. */
+function comparePurchaseValues(a: unknown, b: unknown): number {
+  const av = a ?? 0;
+  const bv = b ?? 0;
+  if (typeof av === "number" && typeof bv === "number") return av - bv;
+  if (typeof av === "boolean" && typeof bv === "boolean") return Number(av) - Number(bv);
+  if (typeof av === "string" && typeof bv === "string") {
+    return av < bv ? -1 : av > bv ? 1 : 0;
+  }
+  return 0;
+}
+
+function sortPurchases(rows: PurchaseOrder[], orderBy?: string, orderDir?: "asc" | "desc") {
   const direction = orderDir === "asc" ? 1 : -1;
   const key = orderBy ?? "createdAt";
   rows.sort((a, b) => {
-    const av = a[key] ?? 0;
-    const bv = b[key] ?? 0;
-    if (av < bv) return -1 * direction;
-    if (av > bv) return 1 * direction;
-    return 0;
+    const left: Record<string, unknown> = a;
+    const right: Record<string, unknown> = b;
+    return Math.sign(comparePurchaseValues(left[key], right[key])) * direction;
   });
 }
 
-async function withCounts(ctx: any, purchase: any) {
+async function withCounts(ctx: { db: QueryCtx["db"] }, purchase: PurchaseOrder) {
   const lines = await ctx.db
     .query("purchase_order_lines")
-    .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchase._id))
+    .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchase._id))
     .collect();
   return {
     ...purchase,
     lineCount: lines.length,
-    itemTotalQuantity: lines.reduce((sum: number, line: any) => sum + Number(line.quantity ?? 0), 0),
+    itemTotalQuantity: lines.reduce((sum, line) => sum + line.quantity, 0),
   };
 }
 
-async function enrich(ctx: any, purchase: any) {
+async function enrich(ctx: { db: QueryCtx["db"] }, purchase: PurchaseOrder) {
   const [lines, payments, refunds, events] = await Promise.all([
     ctx.db
       .query("purchase_order_lines")
-      .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchase._id))
+      .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchase._id))
       .collect(),
     ctx.db
       .query("purchase_payments")
-      .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchase._id))
+      .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchase._id))
       .collect(),
     ctx.db
       .query("purchase_refunds")
-      .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchase._id))
+      .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchase._id))
       .collect(),
     ctx.db
       .query("purchase_order_events")
-      .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchase._id))
+      .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchase._id))
       .collect(),
   ]);
 
   return {
     ...purchase,
-    lines: lines.sort((a: any, b: any) => a.createdAt - b.createdAt),
-    payments: payments.sort((a: any, b: any) => b.createdAt - a.createdAt),
-    refunds: refunds.sort((a: any, b: any) => b.createdAt - a.createdAt),
-    events: events.sort((a: any, b: any) => a.createdAt - b.createdAt),
+    lines: lines.sort((a, b) => a.createdAt - b.createdAt),
+    payments: payments.sort((a, b) => b.createdAt - a.createdAt),
+    refunds: refunds.sort((a, b) => b.createdAt - a.createdAt),
+    events: events.sort((a, b) => a.createdAt - b.createdAt),
   };
 }
 
 export const list = query({
   args: listArgs,
+  returns: v.object({
+    items: v.array(purchaseWithCountsValidator),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(MAX_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_PER_PAGE));
 
-    let rows: any[] = [];
-    if (args.search?.trim()) {
-      const term = args.search.trim();
+    const { sourceType, status, paymentStatus } = args;
+    let rows: PurchaseOrder[] = [];
+    const term = args.search?.trim();
+    if (term) {
       const searchResults = await ctx.db
         .query("purchase_orders")
-        .withSearchIndex("search_purchase_orders", (q: any) => {
+        .withSearchIndex("search_purchase_orders", (q) => {
           let sq = q.search("orderNumber", term);
-          if (args.sourceType) sq = sq.eq("sourceType", args.sourceType);
-          if (args.status) sq = sq.eq("status", args.status);
-          if (args.paymentStatus) sq = sq.eq("paymentStatus", args.paymentStatus);
+          if (sourceType) sq = sq.eq("sourceType", sourceType);
+          if (status) sq = sq.eq("status", status);
+          if (paymentStatus) sq = sq.eq("paymentStatus", paymentStatus);
           return sq;
         })
         .take(2000);
       const emailMatches = term.includes("@")
         ? await ctx.db
             .query("purchase_orders")
-            .withIndex("by_email", (q: any) => q.eq("email", term.toLowerCase()))
+            .withIndex("by_email", (q) => q.eq("email", term.toLowerCase()))
             .take(500)
         : [];
       const seen = new Set<string>();
-      rows = [...searchResults, ...emailMatches].filter((row: any) => {
+      rows = [...searchResults, ...emailMatches].filter((row) => {
         const key = String(row._id);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
-    } else if (args.sourceType) {
+    } else if (sourceType) {
       rows = await ctx.db
         .query("purchase_orders")
-        .withIndex("by_source_type", (q: any) => q.eq("sourceType", args.sourceType))
+        .withIndex("by_source_type", (q) => q.eq("sourceType", sourceType))
         .order("desc")
         .take(20000);
-    } else if (args.status) {
+    } else if (status) {
       rows = await ctx.db
         .query("purchase_orders")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .order("desc")
         .take(20000);
-    } else if (args.paymentStatus) {
+    } else if (paymentStatus) {
       rows = await ctx.db
         .query("purchase_orders")
-        .withIndex("by_payment_status", (q: any) => q.eq("paymentStatus", args.paymentStatus))
+        .withIndex("by_payment_status", (q) => q.eq("paymentStatus", paymentStatus))
         .order("desc")
         .take(20000);
     } else {
@@ -257,6 +304,7 @@ export const counts = query({
 
 export const get = query({
   args: { purchaseOrderId: v.id("purchase_orders") },
+  returns: v.union(v.null(), purchaseDetailValidator),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const purchase = await ctx.db.get(args.purchaseOrderId);
@@ -266,6 +314,7 @@ export const get = query({
 
 export const getByAnyId = query({
   args: { id: v.string() },
+  returns: v.union(v.null(), purchaseDetailValidator),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const purchase = await findPurchaseByAnyId(ctx, args.id);
@@ -273,15 +322,17 @@ export const getByAnyId = query({
   },
 });
 
-async function findPurchaseByAnyId(ctx: any, id: string) {
-  try {
-    const direct = await ctx.db.get(id as any);
-    if (direct && direct.sourceType && direct.sourceId) return direct;
-  } catch {
-    // Continue to source lookups.
+async function findPurchaseByAnyId(
+  ctx: { db: QueryCtx["db"] },
+  id: string,
+): Promise<PurchaseOrder | null> {
+  const directId = ctx.db.normalizeId("purchase_orders", id);
+  if (directId) {
+    const direct = await ctx.db.get(directId);
+    if (direct) return direct;
   }
 
-  const sourceTypes = [
+  const sourceTypes: PurchaseOrder["sourceType"][] = [
     "storefront_order",
     "form_order",
     "subscription_signup",
@@ -290,52 +341,58 @@ async function findPurchaseByAnyId(ctx: any, id: string) {
   for (const sourceType of sourceTypes) {
     const row = await ctx.db
       .query("purchase_orders")
-      .withIndex("by_source", (q: any) => q.eq("sourceType", sourceType).eq("sourceId", id))
+      .withIndex("by_source", (q) => q.eq("sourceType", sourceType).eq("sourceId", id))
       .first();
     if (row) return row;
   }
   return null;
 }
 
-function ownsPurchase(user: any, purchase: any): boolean {
-  if (purchase.userId && String(purchase.userId) === String(user._id)) return true;
+function ownsPurchase(
+  user: { _id: Id<"users">; email?: string },
+  purchase: PurchaseOrder,
+): boolean {
+  if (purchase.userId && purchase.userId === user._id) return true;
   if (purchase.email && user.email) {
-    return String(purchase.email).toLowerCase() === String(user.email).toLowerCase();
+    return purchase.email.toLowerCase() === user.email.toLowerCase();
   }
   return false;
 }
 
 export const listMine = query({
   args: {},
+  returns: v.array(purchaseWithCountsValidator),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
     const byUser = await ctx.db
       .query("purchase_orders")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
-    const byEmail = user.email
+    const userEmail = user.email;
+    const byEmail = userEmail
       ? await ctx.db
           .query("purchase_orders")
-          .withIndex("by_email", (q: any) => q.eq("email", user.email.toLowerCase()))
+          .withIndex("by_email", (q) => q.eq("email", userEmail.toLowerCase()))
           .collect()
       : [];
 
     const seen = new Set<string>();
-    const rows = [...byUser, ...byEmail].filter((row: any) => {
+    const rows = [...byUser, ...byEmail].filter((row) => {
       const key = String(row._id);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-    rows.sort((a: any, b: any) => b.createdAt - a.createdAt);
-    return Promise.all(rows.map((row: any) => withCounts(ctx, row)));
+    rows.sort((a, b) => b.createdAt - a.createdAt);
+    return Promise.all(rows.map((row) => withCounts(ctx, row)));
   },
 });
 
 export const getMineByAnyId = query({
   args: { id: v.string() },
+  returns: v.union(v.null(), purchaseDetailValidator),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

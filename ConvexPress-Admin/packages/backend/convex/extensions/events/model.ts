@@ -1,5 +1,6 @@
 import {rsvpSettingsSchema,type RsvpSettings} from "../../canonicalDocuments/foundation/rsvpContracts";
 import { ConvexError } from "convex/values";
+import type { Doc } from "../../_generated/dataModel";
 export interface EventFields { title: string; slug: string; description: string; startsAt: number; endsAt: number; timeZone: string; venue: string; venueAddress: string; registrationUrl?: string; rsvp?: RsvpSettings }
 export function validateEvent(fields: EventFields) {
   if (!fields.title.trim() || fields.title.length > 200 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fields.slug) || fields.slug.length > 100) throw new ConvexError({ code: "INVALID_EVENT", message: "Enter a title and a lowercase hyphenated slug." });
@@ -21,6 +22,6 @@ export function validateEvent(fields: EventFields) {
     catch { throw new ConvexError({ code: "INVALID_EVENT", message: "Registration links must use HTTP or HTTPS." }); }
   }
 }
-export function publicEvent(event: EventFields & { _id: unknown; status: string }) {
+export function publicEvent(event: Doc<"extension_events">) {
   return { _id: event._id, title: event.title, slug: event.slug, description: event.description, startsAt: event.startsAt, endsAt: event.endsAt, timeZone: event.timeZone, venue: event.venue, venueAddress: event.venueAddress, registrationUrl: event.registrationUrl ?? null, status: event.status };
 }

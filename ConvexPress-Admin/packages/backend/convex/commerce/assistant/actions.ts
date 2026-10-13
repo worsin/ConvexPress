@@ -13,7 +13,8 @@
  */
 
 import { ConvexError, v } from "convex/values";
-import { action } from "../../_generated/server";
+import type { FunctionReturnType } from "convex/server";
+import { action, type ActionCtx } from "../../_generated/server";
 import { api, internal } from "../../_generated/api";
 import { assistantChat, resolveAssistantProvider, ASSISTANT_UNAVAILABLE, type ChatMessage } from "./provider";
 import {
@@ -32,8 +33,13 @@ import {
   type StoreContext,
 } from "./prompts";
 
-const anyApi = api as any;
-const anyInternal = internal as any;
+type ContextBundle = FunctionReturnType<typeof internal.commerce.assistant.queries.contextBundle>;
+type CardResult = FunctionReturnType<typeof api.commerce.storefront.productCards>[number];
+type RelatedGroupsResult = FunctionReturnType<typeof api.commerce.storefront.relatedForProducts>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 const MAX_TOOL_ROUNDS = 6;
 const BRIEF_TTL_MS = 30 * 60_000;
@@ -100,29 +106,29 @@ const TOOLS = [
   },
 ];
 
-async function resolveProvider(ctx: any, assistantModel: string) {
-  const settings = await ctx.runQuery(anyInternal.settings.httpInternals.getBySectionInternal, { section: "ai" });
-  return resolveAssistantProvider(settings ?? {}, assistantModel);
+async function resolveProvider(ctx: ActionCtx, assistantModel: string) {
+  const settings = await ctx.runQuery(internal.commerce.settingsInternals.getAssistantAiSettings, {});
+  return resolveAssistantProvider(settings, assistantModel);
 }
 
-function storeContextFrom(bundle: any): StoreContext {
-  const assistant = bundle.assistant ?? {};
+function storeContextFrom(bundle: ContextBundle): StoreContext {
+  const assistant = bundle.assistant;
   return {
     storeName: bundle.store.storeName,
     tagline: bundle.store.tagline,
     currencyCode: bundle.store.currencyCode,
     currencySymbol: bundle.store.currencySymbol,
-    tone: String(assistant.tone ?? "warm, expert, concise"),
-    disclosureText: String(assistant.disclosureText ?? ""),
+    tone: assistant.tone,
+    disclosureText: assistant.disclosureText,
     brandVoice: bundle.store.brandVoice,
     hardRules: bundle.store.hardRules,
-    groups: assistant.groups ?? {},
-    maxPicks: Number(assistant.maxPicks ?? 5),
-    cardsPerGroup: Number(assistant.cardsPerGroup ?? 2),
+    groups: assistant.groups,
+    maxPicks: assistant.maxPicks,
+    cardsPerGroup: assistant.cardsPerGroup,
   };
 }
 
-function briefCardContext(card: any) {
+function briefCardContext(card: CardResult) {
   // pricedAt records when the reader observed the price, not a catalog change.
   // Keep resolved price and sale schedules so crossing a sale boundary still
   // invalidates the brief while repeated reads can reuse unchanged grounding.
@@ -130,7 +136,7 @@ function briefCardContext(card: any) {
   return { ...card, pricing };
 }
 
-function relatedGroupsText(groups: any[], store: StoreContext): string {
+function relatedGroupsText(groups: RelatedGroupsResult, store: StoreContext): string {
   if (!groups?.length) return "";
   return groups
     .map(
@@ -138,7 +144,7 @@ function relatedGroupsText(groups: any[], store: StoreContext): string {
         `${group.label}:\n` +
         group.items
           .map(
-            (item: any) =>
+            (item) =>
               `  - [${item.card.productId}] ${item.card.title} — ${formatMoney(item.card.price.amount, store.currencyCode, store.currencySymbol)} — ${item.reason ?? "goes with your cart"} (for ${item.forProductId})`,
           )
           .join("\n"),
@@ -194,25 +200,25 @@ export const respond = action({
     }))),
     productIds: v.array(v.string()),
   }),
-  handler: async (ctx: any, args: any): Promise<{ messageId: string | null; blocks: AssistantBlock[]; productIds: string[] }> => {
+  handler: async (ctx, args): Promise<{ messageId: string | null; blocks: AssistantBlock[]; productIds: string[] }> => {
     const startedAt = Date.now();
     const message = args.message.trim().slice(0, 2000);
     if (!args.requestId) throw new ConvexError({ code: "INVALID_REQUEST", message: "Please refresh the shop before sending this request." });
     if (!message) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Say something first." });
 
-    const bundle = await ctx.runQuery(anyInternal.commerce.assistant.queries.contextBundle, {
+    const bundle = await ctx.runQuery(internal.commerce.assistant.queries.contextBundle, {
       sessionToken: args.sessionToken,
       route: args.route,
       query: args.query,
     });
-    if (bundle.assistant?.enabled === false) {
+    if (bundle.assistant.enabled === false) {
       throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
     }
 
 
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([message, args.route ?? null, args.query ?? null])));
     const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
-    const claim = await ctx.runMutation(anyInternal.commerce.assistant.requests.claim, {
+    const claim = await ctx.runMutation(internal.commerce.assistant.requests.claim, {
       sessionToken: args.sessionToken, requestId: args.requestId, fingerprint, message, route: args.route, query: args.query,
     });
     if (claim.state === "finished") return claim.result;
@@ -220,33 +226,33 @@ export const respond = action({
 
     try {
       const store = storeContextFrom(bundle);
-      const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
+      const provider = await resolveProvider(ctx, bundle.assistant.model);
       if (!provider.apiKey) {
         const blocks: AssistantBlock[] = [
           { type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE },
         ];
-        return await ctx.runMutation(anyInternal.commerce.assistant.requests.complete, {
+        return await ctx.runMutation(internal.commerce.assistant.requests.complete, {
           requestId: args.requestId, blocks, error: "missing_api_key",
         });
       }
 
-      const known = new Set<string>(bundle.cart.lines.map((line: any) => line.productId));
+      const known = new Set<string>(bundle.cart.lines.map((line) => line.productId));
       const history: ChatMessage[] = bundle.recent
-        .filter((entry: any) => entry.role !== "system")
+        .filter((entry) => entry.role !== "system")
         .slice(-8)
-        .map((entry: any) => ({
+        .map((entry) => ({
           role: entry.role,
           content:
             entry.role === "user"
               ? entry.text ?? ""
               : (entry.blocks ?? [])
-                  .map((block: any) =>
+                  .map((block) =>
                     block.type === "text" || block.type === "callout"
                       ? block.markdown
                       : block.type === "cart_proposal"
                         ? `${block.added ? "Shopper added" : "Prepared only; not added"}: ${block.quantity} × ${block.title}`
                       : block.type === "product_group"
-                        ? `${block.title}: ${block.items.map((item: any) => item.productId).join(", ")}`
+                        ? `${block.title}: ${block.items.map((item) => item.productId).join(", ")}`
                         : "",
                   )
                   .filter(Boolean)
@@ -257,11 +263,11 @@ export const respond = action({
         `Live cart (${bundle.cart.itemCount} items, subtotal ${formatMoney(bundle.cart.subtotalAmount, store.currencyCode, store.currencySymbol)}):\n${describeCart(bundle.cart.lines, store)}`,
         bundle.cartCards.length ? `Cart product details:\n${describeProducts(bundle.cartCards, store)}` : "",
         bundle.related.length ? `Relation graph for the cart:\n${relatedGroupsText(bundle.related, store)}` : "",
-        bundle.assistant?.memoryEnabled === false
+        bundle.assistant.memoryEnabled === false
           ? "Saved shopper memory is disabled. Do not claim to remember or save preferences."
           : `Remembered about this shopper:\n${describeMemory(bundle.memory)}`,
         bundle.session?.lastQuery ? `Most recent search: "${bundle.session.lastQuery}"` : "",
-        bundle.categories.length ? `Categories: ${bundle.categories.map((c: any) => c.name).join(", ")}` : "",
+        bundle.categories.length ? `Categories: ${bundle.categories.map((c) => c.name).join(", ")}` : "",
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -274,7 +280,7 @@ export const respond = action({
         { role: "user", content: message },
       ];
 
-      const toolLog: any[] = [];
+      const toolLog: Array<{ name: string; args: Record<string, unknown>; ok: boolean }> = [];
       const actionBlocks: AssistantBlock[] = [];
       const toolReceipts = new Map<string, { input: string; result: unknown }>();
       let tokensIn = 0;
@@ -302,9 +308,10 @@ export const respond = action({
         }
 
         for (const call of reply.tool_calls) {
-          let parsed: any = {};
+          let parsed: Record<string, unknown> = {};
           try {
-            parsed = call.function.arguments ? JSON.parse(call.function.arguments) : {};
+            const decoded: unknown = call.function.arguments ? JSON.parse(call.function.arguments) : {};
+            parsed = isRecord(decoded) ? decoded : {};
           } catch {
             parsed = {};
           }
@@ -318,7 +325,7 @@ export const respond = action({
           } catch (error) {
             result = { error: error instanceof Error ? error.message : String(error) };
           }
-          toolLog.push({ name: call.function.name, args: parsed, ok: !(result as any)?.error });
+          toolLog.push({ name: call.function.name, args: parsed, ok: !(isRecord(result) && result.error) });
           messages.push({
             role: "tool",
             tool_call_id: call.id,
@@ -328,8 +335,9 @@ export const respond = action({
         }
       }
 
-      const parsed = extractJsonObject(finalText) as any;
-      let blocks = normalizeBlocks(parsed?.blocks, known);
+      const extracted = extractJsonObject(finalText);
+      const parsed = isRecord(extracted) ? extracted : {};
+      let blocks = normalizeBlocks(parsed.blocks, known);
       if (providerFailed) blocks = [{ type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE }];
       if (!blocks.length) {
         const fallback = finalText.replace(/```[\s\S]*?```/g, "").trim();
@@ -337,32 +345,33 @@ export const respond = action({
       }
       blocks = [...actionBlocks, ...blocks];
 
-      if (bundle.assistant?.memoryEnabled !== false && Array.isArray(parsed?.memory)) {
+      if (bundle.assistant.memoryEnabled !== false && Array.isArray(parsed.memory)) {
         for (const entry of parsed.memory.slice(0, 3)) {
-          if (entry && typeof entry.fact === "string" && entry.fact.trim()) {
+          if (isRecord(entry) && typeof entry.fact === "string" && entry.fact.trim()) {
             try {
-              await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
+              await ctx.runMutation(internal.commerce.assistant.mutations.rememberFactFromAssistant, {
                 sessionToken: args.sessionToken,
                 fact: entry.fact,
                 kind: typeof entry.kind === "string" ? entry.kind : undefined,
-                retentionDays: Number(bundle.assistant?.memoryRetentionDays ?? 90),
+                retentionDays: bundle.assistant.memoryRetentionDays,
               });
             } catch (error) {
               // A setting change during generation must not discard the answer or
               // a completed cart action. Other failures remain visible.
-              if ((error as any)?.data?.code !== "MEMORY_DISABLED") throw error;
+              const code = error instanceof ConvexError && isRecord(error.data) ? error.data.code : undefined;
+              if (code !== "MEMORY_DISABLED") throw error;
             }
           }
         }
       }
-      if (Array.isArray(parsed?.suggestedPrompts) && !blocks.some((block) => block.type === "chips")) {
-        const items = parsed.suggestedPrompts.filter((p: unknown) => typeof p === "string").slice(0, 4);
+      if (Array.isArray(parsed.suggestedPrompts) && !blocks.some((block) => block.type === "chips")) {
+        const items = parsed.suggestedPrompts.filter((p: unknown): p is string => typeof p === "string").slice(0, 4);
         if (items.length) blocks.push({ type: "chips", items });
       }
 
-      return await ctx.runMutation(anyInternal.commerce.assistant.requests.complete, {
+      return await ctx.runMutation(internal.commerce.assistant.requests.complete, {
         requestId: args.requestId,
-        text: blocks.find((block) => block.type === "text")?.type === "text" ? (blocks.find((block) => block.type === "text") as any).markdown : undefined,
+        text: blocks.find((block): block is Extract<AssistantBlock, { type: "text" }> => block.type === "text")?.markdown,
         blocks,
         toolCalls: toolLog,
         ...(providerFailed ? { error: "provider_unavailable" } : {}),
@@ -374,7 +383,7 @@ export const respond = action({
     } catch (error) {
       // Persist an uncertain outcome without reclaiming the execution. A cart
       // mutation may already have committed even if its acknowledgement failed.
-      await ctx.runMutation(anyInternal.commerce.assistant.requests.complete, {
+      await ctx.runMutation(internal.commerce.assistant.requests.complete, {
         requestId: args.requestId, error: "request_interrupted",
         blocks: [{ type: "callout", tone: "warning", markdown: "This request was interrupted. Check your cart before sending a new request; retrying this request will not repeat its actions." }],
       });
@@ -384,15 +393,15 @@ export const respond = action({
 });
 
 async function runTool(
-  ctx: any,
+  ctx: ActionCtx,
   name: string,
-  input: any,
-  scope: { sessionToken: string; bundle: any; store: StoreContext; known: Set<string>; actionBlocks: AssistantBlock[] },
+  input: Record<string, unknown>,
+  scope: { sessionToken: string; bundle: ContextBundle; store: StoreContext; known: Set<string>; actionBlocks: AssistantBlock[] },
 ): Promise<unknown> {
   const toMinor = (major: unknown) => (typeof major === "number" && Number.isFinite(major) ? Math.round(major * 100) : undefined);
   switch (name) {
     case "search_products": {
-      const result = await ctx.runQuery(anyApi.commerce.storefront.searchProducts, {
+      const result = await ctx.runQuery(api.commerce.storefront.searchProducts, {
         q: String(input.query ?? "").slice(0, 200),
         categorySlug: typeof input.category_slug === "string" ? input.category_slug : undefined,
         maxPriceAmount: toMinor(input.max_price),
@@ -406,11 +415,11 @@ async function runTool(
     case "get_products":
     case "compare_products": {
       const ids = Array.isArray(input.product_ids) ? input.product_ids.map(String).slice(0, 12) : [];
-      const cards = await ctx.runQuery(anyApi.commerce.storefront.productCards, { productIds: ids });
+      const cards = await ctx.runQuery(api.commerce.storefront.productCards, { productIds: ids });
       for (const card of cards) scope.known.add(card.productId);
       if (name === "compare_products") {
         return {
-          products: cards.map((card: any) => ({
+          products: cards.map((card) => ({
             productId: card.productId,
             title: card.title,
             price: formatMoney(card.price.amount, scope.store.currencyCode, scope.store.currencySymbol),
@@ -424,7 +433,7 @@ async function runTool(
     }
     case "related_products": {
       const ids = Array.isArray(input.product_ids) ? input.product_ids.map(String).slice(0, 8) : [];
-      const groups = await ctx.runQuery(anyApi.commerce.storefront.relatedForProducts, {
+      const groups = await ctx.runQuery(api.commerce.storefront.relatedForProducts, {
         productIds: ids,
         perGroup: Math.min(6, Math.max(1, Number(input.per_group ?? scope.store.cardsPerGroup))),
       });
@@ -438,11 +447,11 @@ async function runTool(
       }
       const quantity = Number(input.quantity ?? 1);
       if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20) return { error: "Quantity must be a whole number from 1 to 20." };
-      const cards = await ctx.runQuery(anyApi.commerce.storefront.productCards, { productIds: [productId] });
+      const cards = await ctx.runQuery(api.commerce.storefront.productCards, { productIds: [productId] });
       const card = cards[0];
       if (!card) return { error: "That product is no longer available." };
       const variantId = typeof input.variant_id === "string" ? input.variant_id : card.defaultVariantId ?? undefined;
-      const variantTitle = variantId ? await ctx.runQuery(anyInternal.commerce.assistant.cartActions.variantTitle, { productId, variantId }) : null;
+      const variantTitle = variantId ? await ctx.runQuery(internal.commerce.assistant.cartActions.variantTitle, { productId, variantId }) : null;
       if (variantId && variantTitle === null) return { error: "That product option is no longer available." };
       const title = variantTitle ? `${card.title} — ${variantTitle}` : card.title;
       const existing = scope.actionBlocks.find(block => block.type === "cart_proposal" && block.productId === productId && block.variantId === variantId && block.quantity === quantity);
@@ -455,14 +464,14 @@ async function runTool(
         instruction: "The cart has NOT changed. The shopper must press the displayed Add button to add this exact item and quantity. Do not claim it was added." };
     }
     case "remember": {
-      if (scope.bundle.assistant?.memoryEnabled === false) return { ok: false, reason: "memory disabled" };
+      if (scope.bundle.assistant.memoryEnabled === false) return { ok: false, reason: "memory disabled" };
       const fact = String(input.fact ?? "").trim();
       if (!fact) return { error: "fact is required" };
-      await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
+      await ctx.runMutation(internal.commerce.assistant.mutations.rememberFactFromAssistant, {
         sessionToken: scope.sessionToken,
         fact,
         kind: typeof input.kind === "string" ? input.kind : undefined,
-        retentionDays: Number(scope.bundle.assistant?.memoryRetentionDays ?? 90),
+        retentionDays: scope.bundle.assistant.memoryRetentionDays,
       });
       scope.actionBlocks.push({ type: "action_result", action: "remember", ok: true, summary: `Remembered: ${fact}` });
       return { ok: true };
@@ -519,31 +528,31 @@ export const brief = action({
     cached: v.boolean(),
     productIds: v.array(v.string()),
   }),
-  handler: async (ctx: any, args: any): Promise<{ cacheKey: string; blocks: AssistantBlock[]; cached: boolean; productIds: string[] }> => {
-    const bundle = await ctx.runQuery(anyInternal.commerce.assistant.queries.contextBundle, {
+  handler: async (ctx, args): Promise<{ cacheKey: string; blocks: AssistantBlock[]; cached: boolean; productIds: string[] }> => {
+    const bundle = await ctx.runQuery(internal.commerce.assistant.queries.contextBundle, {
       sessionToken: args.sessionToken,
       query: args.query,
     });
-    if (bundle.assistant?.enabled === false) {
+    if (bundle.assistant.enabled === false) {
       throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
     }
     const store = storeContextFrom(bundle);
     const query = (args.query ?? "").trim().slice(0, 200);
-    const cartIds = [...new Set(bundle.cart.lines.map((line: any) => line.productId))].sort();
+    const cartIds = [...new Set(bundle.cart.lines.map((line) => line.productId))].sort();
 
     // Deterministic groundwork.
-    const known = new Set<string>(cartIds as string[]);
-    let candidates: any[] = [];
+    const known = new Set<string>(cartIds);
+    let candidates: CardResult[] = [];
     if (args.kind === "query" && query) {
-      const result = await ctx.runQuery(anyApi.commerce.storefront.searchProducts, { q: query, perPage: 12 });
+      const result = await ctx.runQuery(api.commerce.storefront.searchProducts, { q: query, perPage: 12 });
       candidates = result.items;
     } else if (args.kind === "product" && args.productId) {
-      candidates = await ctx.runQuery(anyApi.commerce.storefront.productCards, { productIds: [args.productId] });
+      candidates = await ctx.runQuery(api.commerce.storefront.productCards, { productIds: [args.productId] });
     }
     for (const card of candidates) known.add(card.productId);
-    const seedIds = args.kind === "product" && args.productId ? [args.productId] : (cartIds as string[]);
+    const seedIds = args.kind === "product" && args.productId ? [args.productId] : cartIds;
     const related = seedIds.length
-      ? await ctx.runQuery(anyApi.commerce.storefront.relatedForProducts, { productIds: seedIds, perGroup: store.cardsPerGroup })
+      ? await ctx.runQuery(api.commerce.storefront.relatedForProducts, { productIds: seedIds, perGroup: store.cardsPerGroup })
       : [];
     for (const group of related) for (const item of group.items) known.add(item.card.productId);
 
@@ -553,18 +562,18 @@ export const brief = action({
       fallback.push({
         type: "product_group",
         title: `Top matches for “${query}”`,
-        items: candidates.slice(0, store.maxPicks).map((card: any) => ({ productId: card.productId, rationale: card.summary ?? undefined })),
+        items: candidates.slice(0, store.maxPicks).map((card) => ({ productId: card.productId, rationale: card.summary ?? undefined })),
       });
     }
     for (const group of related) {
       fallback.push({
         type: "product_group",
         title: group.label,
-        items: group.items.slice(0, store.cardsPerGroup).map((item: any) => ({ productId: item.card.productId, rationale: item.reason ?? undefined })),
+        items: group.items.slice(0, store.cardsPerGroup).map((item) => ({ productId: item.card.productId, rationale: item.reason ?? undefined })),
       });
     }
 
-    const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
+    const provider = await resolveProvider(ctx, bundle.assistant.model);
     // Read current catalog data before checking the cache: IDs alone cannot
     // detect changed variants, quantities, prices or unpublished products.
     const grounding = JSON.stringify({
@@ -572,18 +581,18 @@ export const brief = action({
       assistant: bundle.assistant, store, cart: bundle.cart,
       memory: bundle.memory, categories: bundle.categories,
       candidates: candidates.map(briefCardContext),
-      related: related.map((group: any) => ({ ...group, items: group.items.map((item: any) => ({ ...item, card: briefCardContext(item.card) })) })),
+      related: related.map((group) => ({ ...group, items: group.items.map((item) => ({ ...item, card: briefCardContext(item.card) })) })),
       provider: { kind: provider.kind, model: provider.model, available: Boolean(provider.apiKey) },
     });
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(grounding));
     const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
     const cacheKey = `${args.sessionToken}:${args.kind}:v2:${fingerprint}`;
     if (!args.force) {
-      const cached = await ctx.runQuery(anyApi.commerce.assistant.queries.getBrief, { cacheKey, sessionToken: args.sessionToken });
+      const cached = await ctx.runQuery(api.commerce.assistant.queries.getBrief, { cacheKey, sessionToken: args.sessionToken });
       if (cached) return { cacheKey, blocks: cached.blocks, cached: true, productIds: productIdsInBlocks(cached.blocks) };
     }
     if (query) {
-      await ctx.runMutation(anyApi.commerce.assistant.mutations.ensureSession, { sessionToken: args.sessionToken, query });
+      await ctx.runMutation(api.commerce.assistant.mutations.ensureSession, { sessionToken: args.sessionToken, query });
     }
     let blocks: AssistantBlock[] = fallback;
     let model: string | undefined;
@@ -596,7 +605,7 @@ export const brief = action({
         memory: bundle.memory,
         candidates: candidates.length ? describeProducts(candidates, store) : "",
         relatedGroups: relatedGroupsText(related, store),
-        categories: bundle.categories.map((c: any) => c.name),
+        categories: bundle.categories.map((c) => c.name),
       });
       try {
         const { message } = await assistantChat(
@@ -607,8 +616,8 @@ export const brief = action({
           ],
           { maxTokens: 1200, json: true },
         );
-        const parsed = extractJsonObject(message.content ?? "") as any;
-        const normalized = normalizeBlocks(parsed?.blocks, known);
+        const extracted = extractJsonObject(message.content ?? "");
+        const normalized = normalizeBlocks(isRecord(extracted) ? extracted.blocks : undefined, known);
         if (normalized.some((block) => block.type === "product_group" || block.type === "text")) {
           blocks = normalized;
           model = provider.model;
@@ -622,12 +631,12 @@ export const brief = action({
       }
     }
 
-    await ctx.runMutation(anyInternal.commerce.assistant.mutations.storeBrief, {
+    await ctx.runMutation(internal.commerce.assistant.mutations.storeBrief, {
       kind: args.kind,
       cacheKey,
       sessionToken: args.sessionToken,
       query: query || undefined,
-      payload: { blocks, memoryEnabled: bundle.assistant?.memoryEnabled !== false },
+      payload: { blocks, memoryEnabled: bundle.assistant.memoryEnabled !== false },
       model,
       ttlMs: BRIEF_TTL_MS,
     });

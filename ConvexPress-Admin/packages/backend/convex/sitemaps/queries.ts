@@ -42,7 +42,7 @@ import type { SitemapType } from "./validators";
 import { readSitemapSettings } from "./helpers/settings";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { sitemapDocs } from "../schema/sitemap.docs.generated";
 // ─── getSettings ─────────────────────────────────────────────────────────────
 
 /**
@@ -195,8 +195,8 @@ export const getStatus = query({
     }),
     lastGenerated: v.union(v.null(), v.number()),
     hasStale: v.boolean(),
-    recentGenerations: v.array(tableDocs.sitemapGenerationLog),
-    recentPings: v.array(tableDocs.sitemapPingLog),
+    recentGenerations: v.array(sitemapDocs.sitemapGenerationLog),
+    recentPings: v.array(sitemapDocs.sitemapPingLog),
   }),
   handler: async (ctx) => {
     // Require admin access

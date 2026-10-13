@@ -17,6 +17,13 @@ export interface LmsOutline {
   topics: LmsOutlineTopic[];
 }
 
+/** An own field of a stored AI brief/sources JSON object (undefined when absent or not an object). */
+export function briefField(brief: unknown, key: string): unknown {
+  return typeof brief === "object" && brief !== null && !Array.isArray(brief)
+    ? Object.getOwnPropertyDescriptor(brief, key)?.value
+    : undefined;
+}
+
 export function parseJsonObject(raw: string): unknown {
   const cleaned = String(raw)
     .replace(/^```json\s*/i, "")

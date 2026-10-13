@@ -12,6 +12,7 @@
 import { action } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
+import type { FunctionReturnType } from "convex/server";
 import {
   cleanGeneratedLessonText,
   normalizeOutline,
@@ -42,7 +43,7 @@ export const generateCourse = action({
     topicCount: number;
     lessonCount: number;
   }> => {
-    await ctx.runQuery((internal as any).lms.ai.internals.assertCourseGenerationAccess, {
+    await ctx.runQuery(internal.lms.ai.internals.assertCourseGenerationAccess, {
       courseId: args.courseId,
     });
     const topic = args.topic.trim();
@@ -55,24 +56,24 @@ export const generateCourse = action({
     const audience = args.audience?.trim().slice(0, 300);
     const tone = args.tone?.trim().slice(0, 100);
     const n = Math.min(Math.max(args.topicsCount ?? 5, 1), 12);
-    const jobId = await ctx.runMutation((internal as any).lms.ai.internals.createJob, {
+    const jobId = await ctx.runMutation(internal.lms.ai.internals.createJob, {
       courseId: args.courseId,
       kind: "outline",
     });
-    await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+    await ctx.runMutation(internal.lms.ai.internals.updateJob, {
       jobId,
       status: "running",
       progress: 10,
     });
 
-    let research: any;
+    let research: FunctionReturnType<typeof internal.ai.internals.researchTopic>;
     try {
-      research = await ctx.runAction((internal as any).ai.internals.researchTopic, {
+      research = await ctx.runAction(internal.ai.internals.researchTopic, {
         query: `${topic} course curriculum ${audience ?? ""}`.trim(),
         maxResults: 6,
       });
     } catch (error) {
-      await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+      await ctx.runMutation(internal.lms.ai.internals.updateJob, {
         jobId,
         status: "failed",
         error: "Tavily research is required before LMS course generation.",
@@ -101,11 +102,11 @@ export const generateCourse = action({
     let raw: string;
     try {
       raw = await ctx.runAction(
-        (internal as any).ai.internals.generateWithClaude,
+        internal.ai.internals.generateWithClaude,
         { systemPrompt, userPrompt, maxTokens: 8000, task: "pageGeneration" },
       );
     } catch (error) {
-      await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+      await ctx.runMutation(internal.lms.ai.internals.updateJob, {
         jobId,
         status: "failed",
         error: error instanceof Error ? error.message : String(error),
@@ -123,7 +124,7 @@ export const generateCourse = action({
     try {
       outline = normalizeOutline(parseJsonObject(raw));
     } catch (firstParseError) {
-      await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+      await ctx.runMutation(internal.lms.ai.internals.updateJob, {
         jobId,
         status: "running",
         progress: 70,
@@ -137,7 +138,7 @@ export const generateCourse = action({
           `{"topics":[{"title":"...","summary":"...","lessons":[{"title":"...","brief":"...","outcomes":["..."]}]}]}. ` +
           `Preserve useful lesson titles, briefs, outcomes, and topic ordering. Malformed content:\n${raw.slice(0, 20000)}`;
         raw = await ctx.runAction(
-          (internal as any).ai.internals.generateWithClaude,
+          internal.ai.internals.generateWithClaude,
           {
             systemPrompt: repairSystemPrompt,
             userPrompt: repairPrompt,
@@ -147,7 +148,7 @@ export const generateCourse = action({
         );
         outline = normalizeOutline(parseJsonObject(raw));
       } catch (repairError) {
-        await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+        await ctx.runMutation(internal.lms.ai.internals.updateJob, {
           jobId,
           status: "failed",
           progress: 0,
@@ -167,7 +168,7 @@ export const generateCourse = action({
 
     const stats = outlineStats(outline);
     const generationId = await ctx.runMutation(
-      (internal as any).lms.ai.internals.recordOutlineGeneration,
+      internal.lms.ai.internals.recordOutlineGeneration,
       {
         courseId: args.courseId,
         prompt: userPrompt,
@@ -183,7 +184,7 @@ export const generateCourse = action({
         lessonCount: stats.lessonCount,
       },
     );
-    await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+    await ctx.runMutation(internal.lms.ai.internals.updateJob, {
       jobId,
       status: "done",
       progress: 100,
@@ -198,7 +199,7 @@ export const regenerateLesson = action({
   returns: v.object({ ok: v.boolean(), generationId: v.string() }),
   handler: async (ctx, args): Promise<{ ok: boolean; generationId: string }> => {
     const lesson = await ctx.runQuery(
-      (internal as any).lms.ai.internals.assertNodeGenerationAccess,
+      internal.lms.ai.internals.assertNodeGenerationAccess,
       { nodeId: args.nodeId },
     );
     const title: string = lesson.title;
@@ -209,7 +210,7 @@ export const regenerateLesson = action({
       `Write the lesson body for a lesson titled "${title}". 3-5 short paragraphs of teaching content.` +
       (instructions ? ` Additional guidance: ${instructions}.` : "");
     const generationId = await ctx.runMutation(
-      (internal as any).lms.ai.internals.recordLessonRegeneration,
+      internal.lms.ai.internals.recordLessonRegeneration,
       {
         courseId: lesson.courseId,
         nodeId: args.nodeId,
@@ -217,27 +218,27 @@ export const regenerateLesson = action({
         instructions,
       },
     );
-    const jobId = await ctx.runMutation((internal as any).lms.ai.internals.createJob, {
+    const jobId = await ctx.runMutation(internal.lms.ai.internals.createJob, {
       courseId: lesson.courseId,
       generationId,
       kind: "lesson_body",
       targetId: String(args.nodeId),
     });
-    await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+    await ctx.runMutation(internal.lms.ai.internals.updateJob, {
       jobId,
       status: "running",
       progress: 25,
     });
     let raw: string;
     try {
-      raw = await ctx.runAction((internal as any).ai.internals.generateWithClaude, {
+      raw = await ctx.runAction(internal.ai.internals.generateWithClaude, {
         systemPrompt,
         userPrompt,
         maxTokens: 4000,
         task: "default",
       });
     } catch (error) {
-      await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+      await ctx.runMutation(internal.lms.ai.internals.updateJob, {
         jobId,
         status: "failed",
         progress: 0,
@@ -255,7 +256,7 @@ export const regenerateLesson = action({
     try {
       bodyText = cleanGeneratedLessonText(raw);
     } catch (error) {
-      await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+      await ctx.runMutation(internal.lms.ai.internals.updateJob, {
         jobId,
         status: "failed",
         progress: 0,
@@ -263,7 +264,7 @@ export const regenerateLesson = action({
       });
       throw error;
     }
-    await ctx.runMutation((internal as any).lms.ai.internals.storeLessonBodyDraft, {
+    await ctx.runMutation(internal.lms.ai.internals.storeLessonBodyDraft, {
       jobId,
       generationId,
       nodeId: args.nodeId,

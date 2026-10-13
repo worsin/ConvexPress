@@ -17,46 +17,26 @@ import { internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import {
   getDefaults,
+  isValidSection,
   AUTOLOADED_SECTIONS,
-  type SettingsSection,
 } from "./defaults";
+import { readSectionWithMeta, sectionWithMetaValidator } from "./sectionValues";
 
 /**
  * Internal version of getBySection for HTTP API.
  * No client-side auth - caller (HTTP handler) handles API key auth.
+ * Secrets are returned as stored; the HTTP handler masks them.
  */
 export const getBySectionInternal = internalQuery({
   args: {
     section: v.string(),
   },
-  returns: v.object({
-    _id: v.union(v.null(), v.id("settings")),
-    updatedAt: v.union(v.null(), v.number()),
-    updatedBy: v.union(v.null(), v.id("users")),
-  }),
+  returns: sectionWithMetaValidator,
   handler: async (ctx, args) => {
-    const section = args.section as SettingsSection;
-
-    // Get defaults
-    const defaults = getDefaults(section);
-
-    // Get stored document
-    const doc = await ctx.db
-      .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", section))
-      .unique();
-
-    // Merge defaults with stored values
-    const values = doc
-      ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-      : { ...defaults };
-
-    return {
-      ...values,
-      _id: doc?._id ?? null,
-      updatedAt: doc?.updatedAt ?? null,
-      updatedBy: doc?.updatedBy ?? null,
-    };
+    if (!isValidSection(args.section)) {
+      throw new Error(`Unknown settings section: ${args.section}`);
+    }
+    return await readSectionWithMeta(ctx, args.section, { redact: false });
   },
 });
 
@@ -64,8 +44,61 @@ export const getBySectionInternal = internalQuery({
  * Internal version of getPublic for HTTP API.
  * No client-side auth - caller handles API key auth.
  */
+function publicString(value: unknown): string | undefined { return typeof value === "string" ? value : undefined; }
+function publicBoolean(value: unknown): boolean | undefined { return typeof value === "boolean" ? value : undefined; }
+function publicNumber(value: unknown): number | undefined { return typeof value === "number" && Number.isFinite(value) ? value : undefined; }
+
 export const getPublicInternal = internalQuery({
   args: {},
+  returns: v.object({
+    siteTitle: v.optional(v.string()),
+    tagline: v.optional(v.string()),
+    siteUrl: v.optional(v.string()),
+    homeUrl: v.optional(v.string()),
+    membershipEnabled: v.optional(v.boolean()),
+    siteLanguage: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    dateFormat: v.optional(v.string()),
+    timeFormat: v.optional(v.string()),
+    weekStartsOn: v.optional(v.number()),
+    homepageDisplays: v.optional(v.string()),
+    homepageId: v.optional(v.string()),
+    postsPageId: v.optional(v.string()),
+    postsPerPage: v.optional(v.number()),
+    feedItemCount: v.optional(v.number()),
+    feedContentDisplay: v.optional(v.string()),
+    searchEngineVisibility: v.optional(v.boolean()),
+    allowComments: v.optional(v.boolean()),
+    requireNameEmail: v.optional(v.boolean()),
+    requireRegistration: v.optional(v.boolean()),
+    enableThreadedComments: v.optional(v.boolean()),
+    threadedCommentsDepth: v.optional(v.number()),
+    commentOrder: v.optional(v.string()),
+    showAvatars: v.optional(v.boolean()),
+    avatarRating: v.optional(v.string()),
+    defaultAvatar: v.optional(v.string()),
+    permalinkStructure: v.optional(v.string()),
+    categoryBase: v.optional(v.string()),
+    tagBase: v.optional(v.string()),
+    privacyPolicyPageId: v.optional(v.string()),
+    showPrivacyPolicyLink: v.optional(v.boolean()),
+    plugins: v.object({
+      commerceEnabled: v.optional(v.boolean()),
+      commerceSubscriptionsEnabled: v.optional(v.boolean()),
+      commerceDigitalEnabled: v.optional(v.boolean()),
+      commerceReviewsEnabled: v.optional(v.boolean()),
+      commerceWishlistsEnabled: v.optional(v.boolean()),
+      commerceBundlesEnabled: v.optional(v.boolean()),
+      commerceReturnsEnabled: v.optional(v.boolean()),
+      membershipEnabled: v.optional(v.boolean()),
+      knowledgeBaseEnabled: v.optional(v.boolean()),
+      ticketsEnabled: v.optional(v.boolean()),
+      customFieldsEnabled: v.optional(v.boolean()),
+      recipesEnabled: v.optional(v.boolean()),
+      galleryEnabled: v.optional(v.boolean()),
+      formsEnabled: v.optional(v.boolean()),
+    }),
+  }),
   handler: async (ctx) => {
     // Fetch all autoloaded sections
     const sections: Record<string, Record<string, unknown>> = {};
@@ -100,62 +133,62 @@ export const getPublicInternal = internalQuery({
 
     return {
       // General (excluding adminEmail)
-      siteTitle: general.siteTitle,
-      tagline: general.tagline,
-      siteUrl: general.siteUrl,
-      homeUrl: general.homeUrl,
-      membershipEnabled: general.membershipEnabled,
-      siteLanguage: general.siteLanguage,
-      timezone: general.timezone,
-      dateFormat: general.dateFormat,
-      timeFormat: general.timeFormat,
-      weekStartsOn: general.weekStartsOn,
+      siteTitle: publicString(general.siteTitle),
+      tagline: publicString(general.tagline),
+      siteUrl: publicString(general.siteUrl),
+      homeUrl: publicString(general.homeUrl),
+      membershipEnabled: publicBoolean(general.membershipEnabled),
+      siteLanguage: publicString(general.siteLanguage),
+      timezone: publicString(general.timezone),
+      dateFormat: publicString(general.dateFormat),
+      timeFormat: publicString(general.timeFormat),
+      weekStartsOn: publicNumber(general.weekStartsOn),
 
       // Reading
-      homepageDisplays: reading.homepageDisplays,
-      homepageId: reading.homepageId,
-      postsPageId: reading.postsPageId,
-      postsPerPage: reading.postsPerPage,
-      feedItemCount: reading.feedItemCount,
-      feedContentDisplay: reading.feedContentDisplay,
-      searchEngineVisibility: reading.searchEngineVisibility,
+      homepageDisplays: publicString(reading.homepageDisplays),
+      homepageId: publicString(reading.homepageId),
+      postsPageId: publicString(reading.postsPageId),
+      postsPerPage: publicNumber(reading.postsPerPage),
+      feedItemCount: publicNumber(reading.feedItemCount),
+      feedContentDisplay: publicString(reading.feedContentDisplay),
+      searchEngineVisibility: publicBoolean(reading.searchEngineVisibility),
 
       // Discussion (excluding word lists)
-      allowComments: discussion.allowComments,
-      requireNameEmail: discussion.requireNameEmail,
-      requireRegistration: discussion.requireRegistration,
-      enableThreadedComments: discussion.enableThreadedComments,
-      threadedCommentsDepth: discussion.threadedCommentsDepth,
-      commentOrder: discussion.commentOrder,
-      showAvatars: discussion.showAvatars,
-      avatarRating: discussion.avatarRating,
-      defaultAvatar: discussion.defaultAvatar,
+      allowComments: publicBoolean(discussion.allowComments),
+      requireNameEmail: publicBoolean(discussion.requireNameEmail),
+      requireRegistration: publicBoolean(discussion.requireRegistration),
+      enableThreadedComments: publicBoolean(discussion.enableThreadedComments),
+      threadedCommentsDepth: publicNumber(discussion.threadedCommentsDepth),
+      commentOrder: publicString(discussion.commentOrder),
+      showAvatars: publicBoolean(discussion.showAvatars),
+      avatarRating: publicString(discussion.avatarRating),
+      defaultAvatar: publicString(discussion.defaultAvatar),
 
       // Permalinks
-      permalinkStructure: permalinks.structure,
-      categoryBase: permalinks.categoryBase,
-      tagBase: permalinks.tagBase,
+      permalinkStructure: publicString(permalinks.structure),
+      categoryBase: publicString(permalinks.categoryBase),
+      tagBase: publicString(permalinks.tagBase),
 
       // Privacy
-      privacyPolicyPageId: privacy.privacyPolicyPageId,
-      showPrivacyPolicyLink: privacy.showPrivacyPolicyLink,
+      privacyPolicyPageId: publicString(privacy.privacyPolicyPageId),
+      showPrivacyPolicyLink: publicBoolean(privacy.showPrivacyPolicyLink),
 
       // Public plugin flags. These are feature visibility controls, not secrets.
       plugins: {
-        commerceEnabled: plugins.commerceEnabled,
-        commerceSubscriptionsEnabled: plugins.commerceSubscriptionsEnabled,
-        commerceDigitalEnabled: plugins.commerceDigitalEnabled,
-        commerceReviewsEnabled: plugins.commerceReviewsEnabled,
-        commerceWishlistsEnabled: plugins.commerceWishlistsEnabled,
-        commerceBundlesEnabled: plugins.commerceBundlesEnabled,
-        commerceReturnsEnabled: plugins.commerceReturnsEnabled,
-        membershipEnabled: plugins.membershipEnabled,
-        knowledgeBaseEnabled: plugins.knowledgeBaseEnabled,
-        ticketsEnabled: plugins.ticketsEnabled,
-        customFieldsEnabled: plugins.customFieldsEnabled,
-        recipesEnabled: plugins.recipesEnabled,
-        galleryEnabled: plugins.galleryEnabled,
-        formsEnabled: plugins.formsEnabled,
+        commerceEnabled: publicBoolean(plugins.commerceEnabled),
+        commerceSubscriptionsEnabled: publicBoolean(plugins.commerceSubscriptionsEnabled),
+        commerceDigitalEnabled: publicBoolean(plugins.commerceDigitalEnabled),
+        commerceReviewsEnabled: publicBoolean(plugins.commerceReviewsEnabled),
+        commerceWishlistsEnabled: publicBoolean(plugins.commerceWishlistsEnabled),
+        commerceBundlesEnabled: publicBoolean(plugins.commerceBundlesEnabled),
+        commerceReturnsEnabled: publicBoolean(plugins.commerceReturnsEnabled),
+        membershipEnabled: publicBoolean(plugins.membershipEnabled),
+        knowledgeBaseEnabled: publicBoolean(plugins.knowledgeBaseEnabled),
+        ticketsEnabled: publicBoolean(plugins.ticketsEnabled),
+        customFieldsEnabled: publicBoolean(plugins.customFieldsEnabled),
+        recipesEnabled: publicBoolean(plugins.recipesEnabled),
+        galleryEnabled: publicBoolean(plugins.galleryEnabled),
+        formsEnabled: publicBoolean(plugins.formsEnabled),
       },
     };
   },

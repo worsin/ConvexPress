@@ -13,24 +13,37 @@
  *      a redemption row. This is the ONLY trusted public activation path —
  *      admin-side `mutations.create` is a separate admin-only provisioning
  *      flow.
- *
- * `@ts-nocheck` matches the existing subscriptions backend file pattern.
- * Wave 7 removes it across all subscriptions files in one pass.
  */
 
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
-import { mutation } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { mutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import { normalizeFormReturnUrl } from "../extensions/forms/redirects";
+import { commerceSubscriptionStatusValidator } from "../schema/commerceSubscriptions";
+import { snapshotNumber, snapshotString } from "./snapshot";
 
 // ─── Helpers (duplicated with intentional care; see mutations.ts) ───────────
 
 type BillingInterval = "day" | "week" | "month" | "year";
+type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
+
+type HistoryEntry = {
+	subscriptionId: Id<"commerce_subscriptions">;
+	eventType: string;
+	message?: string;
+	actorUserId?: Id<"users">;
+	fromStatus?: SubscriptionStatus;
+	toStatus?: SubscriptionStatus;
+	reason?: string;
+	data?: Record<string, unknown>;
+	correlationId?: string;
+};
 
 function addDays(timestamp: number, days: number): number {
 	return timestamp + days * 24 * 60 * 60 * 1000;
@@ -63,7 +76,7 @@ function createCorrelationId(): string {
 	return `ck_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-async function writeHistory(ctx: any, args: any) {
+async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
 	await ctx.db.insert("commerce_subscription_history", {
 		subscriptionId: args.subscriptionId,
 		eventType: args.eventType,
@@ -80,7 +93,7 @@ async function writeHistory(ctx: any, args: any) {
 	});
 }
 
-async function isBridgeEnabled(ctx: any): Promise<boolean> {
+async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 	const commerceOn = await isPluginEnabled(ctx, "commerceSubscriptions");
 	if (!commerceOn) return false;
 	const membershipOn = await isPluginEnabled(ctx, "membership");
@@ -89,7 +102,7 @@ async function isBridgeEnabled(ctx: any): Promise<boolean> {
 	try {
 		const settingsRow = await ctx.db
 			.query("settings")
-			.withIndex("by_section", (q: any) =>
+			.withIndex("by_section", (q) =>
 				q.eq("section", "membership.general"),
 			)
 			.unique();
@@ -102,10 +115,12 @@ async function isBridgeEnabled(ctx: any): Promise<boolean> {
 	return true;
 }
 
-async function isLiveSubscriptionChargingEnabled(ctx: any): Promise<boolean> {
+async function isLiveSubscriptionChargingEnabled(
+	ctx: QueryCtx | MutationCtx,
+): Promise<boolean> {
 	const settingsRow = await ctx.db
 		.query("settings")
-		.withIndex("by_section", (q: any) =>
+		.withIndex("by_section", (q) =>
 			q.eq("section", "commerce.payments"),
 		)
 		.unique();
@@ -223,7 +238,7 @@ export const createCheckoutIntent = mutation({
 				// Anonymous: check the non-customer-limit gates only.
 				const coupon = await ctx.db
 					.query("commerce_subscription_coupons")
-					.withIndex("by_code", (q: any) => q.eq("code", code))
+					.withIndex("by_code", (q) => q.eq("code", code))
 					.unique();
 				if (!coupon) {
 					throw new ConvexError({
@@ -282,10 +297,11 @@ export const createCheckoutIntent = mutation({
 				email: customerEmail,
 				orderId: undefined,
 				orderItemIds: undefined,
-				// Stamp the form linkage when present (form-driven checkout); the
-				// existing direct-signup callers pass neither, so this stays undefined.
-				formId: args.formId,
-				formSubmissionId: args.formSubmissionId,
+				// `formId` / `formSubmissionId` on this table reference subscription
+				// order forms; a Forms-extension checkout records its generic form
+				// linkage in metadata instead.
+				formId: undefined,
+				formSubmissionId: undefined,
 				selectedOfferIds: [args.offerId],
 				pricingSnapshot: {
 					offerId: args.offerId,
@@ -312,6 +328,8 @@ export const createCheckoutIntent = mutation({
 				metadata: {
 					couponCode: couponCodeNormalized,
 					returnUrl,
+					sourceFormId: args.formId,
+					sourceFormSubmissionId: args.formSubmissionId,
 				},
 				createdAt: now,
 				updatedAt: now,
@@ -373,6 +391,16 @@ export const activateFromIntent = mutation({
 			stripeCustomerId: v.optional(v.string()),
 		}),
 	},
+	returns: v.union(
+		v.object({
+			ok: v.literal(true),
+			contractId: v.id("commerce_subscriptions"),
+			status: commerceSubscriptionStatusValidator,
+			trialDays: v.number(),
+			currentPeriodEndAt: v.optional(v.number()),
+		}),
+		v.object({ ok: v.literal(false), reason: v.literal("payment_failed") }),
+	),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -390,14 +418,14 @@ export const activateFromIntent = mutation({
 
 		if (intent.status === "activated" && intent.subscriptionId) {
 			const existingSubscription = await ctx.db.get(intent.subscriptionId);
-			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionCheckoutIntent, {
+			await ctx.runMutation(internal.purchases.internals.syncSubscriptionCheckoutIntent, {
 				intentId: args.intentId,
 			});
 			return {
-				ok: true,
+				ok: true as const,
 				contractId: intent.subscriptionId,
 				status: existingSubscription?.status ?? "active",
-				trialDays: intent.pricingSnapshot?.trialDays ?? 0,
+				trialDays: snapshotNumber(intent.pricingSnapshot, "trialDays") ?? 0,
 				currentPeriodEndAt:
 					existingSubscription?.currentPeriodEndAt ??
 					existingSubscription?.nextBillingAt,
@@ -422,7 +450,7 @@ export const activateFromIntent = mutation({
 				paymentTransactionId: args.paymentResult.providerTransactionId,
 				updatedAt: now,
 			});
-			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionCheckoutIntent, {
+			await ctx.runMutation(internal.purchases.internals.syncSubscriptionCheckoutIntent, {
 				intentId: args.intentId,
 				eventType: "subscription_signup_payment_failed",
 				metadata: {
@@ -431,8 +459,8 @@ export const activateFromIntent = mutation({
 				},
 			});
 			return {
-				ok: false,
-				reason: "payment_failed",
+				ok: false as const,
+				reason: "payment_failed" as const,
 			};
 		}
 
@@ -486,7 +514,8 @@ export const activateFromIntent = mutation({
 		// if the caller was logged in). Else look up by customerEmail.
 		let userId = intent.userId;
 		if (!userId) {
-			if (!intent.email) {
+			const intentEmail = intent.email;
+			if (!intentEmail) {
 				throw new ConvexError({
 					code: "VALIDATION_ERROR",
 					message:
@@ -495,8 +524,8 @@ export const activateFromIntent = mutation({
 			}
 			const existingUser = await ctx.db
 				.query("users")
-				.withIndex("by_email", (q: any) =>
-					q.eq("email", intent.email!.trim().toLowerCase()),
+				.withIndex("by_email", (q) =>
+					q.eq("email", intentEmail.trim().toLowerCase()),
 				)
 				.first();
 			// If not found, throw — the website is expected to complete Clerk signup
@@ -513,8 +542,7 @@ export const activateFromIntent = mutation({
 		}
 
 		// Build the contract.
-		const billingInterval: BillingInterval =
-			(template?.billingInterval as BillingInterval) ?? "month";
+		const billingInterval: BillingInterval = template?.billingInterval ?? "month";
 		const billingIntervalCount = template?.billingIntervalCount ?? 1;
 		const trialDays = offer.trialDaysOverride ?? template?.trialDays ?? 0;
 		// gracePeriodDays reserved for dunning config; not used in the activate handler itself.
@@ -584,8 +612,8 @@ export const activateFromIntent = mutation({
 			pricingSnapshot,
 			sourceMetadata: {
 				intentId: args.intentId,
-				couponCode: intent.pricingSnapshot?.couponCode,
-				returnUrl: intent.pricingSnapshot?.returnUrl,
+				couponCode: snapshotString(intent.pricingSnapshot, "couponCode"),
+				returnUrl: snapshotString(intent.pricingSnapshot, "returnUrl"),
 			},
 			offerHistory: [
 				{
@@ -687,9 +715,9 @@ export const activateFromIntent = mutation({
 		// up the redemption — actual discount application happens on the next
 		// invoice via helpers/coupons.applyCouponToInvoice (Wave 7 wires this to
 		// the renewal billing action).
-		const couponCode = intent.pricingSnapshot?.couponCode;
-		let redemptionId: any;
-		if (typeof couponCode === "string" && couponCode.length > 0) {
+		const couponCode = snapshotString(intent.pricingSnapshot, "couponCode");
+		let redemptionId: Id<"commerce_subscription_coupon_redemptions"> | undefined;
+		if (couponCode !== undefined && couponCode.length > 0) {
 			const validation = await validateCoupon(
 				ctx,
 				couponCode,
@@ -754,7 +782,7 @@ export const activateFromIntent = mutation({
 			updatedAt: now,
 		});
 
-		await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionCheckoutIntent, {
+		await ctx.runMutation(internal.purchases.internals.syncSubscriptionCheckoutIntent, {
 			intentId: args.intentId,
 			eventType: "subscription_signup_paid",
 			metadata: {
@@ -781,7 +809,7 @@ export const activateFromIntent = mutation({
 		}
 
 		return {
-			ok: true,
+			ok: true as const,
 			contractId: subscriptionId,
 			status,
 			trialDays,

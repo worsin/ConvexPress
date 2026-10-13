@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { insertCountedWishlist, insertCountedWishlistItem } from "./counts";
 /**
  * Commerce Wishlists — Mutations
@@ -23,7 +22,7 @@ import { mergeGuestProducts } from "./guestMerge";
 import { beginWishlistDeletion } from "./deletion";
 
 import { makeFunctionReference } from "convex/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 
 import { requireCommerceWishlistsEnabled, getActiveWishlistUser as getCurrentUser, requireSaveableWishlistProduct } from "./helpers";
@@ -56,7 +55,7 @@ export const createWishlist = mutation({
     isPublic: v.optional(v.boolean()),
   },
   returns: v.id("commerce_wishlists"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
@@ -93,7 +92,8 @@ export const updateWishlist = mutation({
     description: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_wishlists"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
@@ -121,7 +121,7 @@ export const updateWishlist = mutation({
       });
     }
 
-    const updates: any = { updatedAt: Date.now() };
+    const updates: Partial<Doc<"commerce_wishlists">> = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.description !== undefined) updates.description = args.description;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
@@ -150,7 +150,8 @@ export const addItem = mutation({
     variantId: v.optional(v.id("commerce_product_variants")),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_wishlist_items"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
@@ -175,7 +176,7 @@ export const addItem = mutation({
     if (!wishlistId) {
       const firstExisting = await ctx.db
         .query("commerce_wishlists")
-        .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
         .first();
       if (firstExisting) {
         wishlistId = firstExisting._id;
@@ -196,7 +197,7 @@ export const addItem = mutation({
 
     // One indexed product/variant identity, including the no-choice state.
     const existing = await ctx.db.query("commerce_wishlist_items")
-      .withIndex("by_wishlist_product_variant", (q: any) => q.eq("wishlistId", wishlistId!)
+      .withIndex("by_wishlist_product_variant", (q) => q.eq("wishlistId", wishlistId!)
         .eq("productId", args.productId).eq("variantId", args.variantId))
       .first();
 
@@ -230,7 +231,8 @@ export const addItem = mutation({
  */
 export const removeItem = mutation({
   args: { itemId: v.id("commerce_wishlist_items") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_wishlist_items"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
@@ -287,7 +289,7 @@ export const moveToCart = mutation({
     quantity: v.optional(v.number()),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
@@ -343,7 +345,8 @@ export const moveToCart = mutation({
  */
 export const toggleShare = mutation({
   args: { wishlistId: v.id("commerce_wishlists") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({ isPublic: v.boolean(), shareToken: v.string() }),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 

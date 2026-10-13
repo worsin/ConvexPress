@@ -72,9 +72,10 @@ export async function prepareReservationCommit(
   return {alreadyCommitted:false,entries};
 }
 
-export function isInventoryCommitConflict(error: unknown): boolean {
-  return error instanceof ConvexError && typeof error.data === "object" && error.data !== null && "code" in error.data && [
+export function isInventoryCommitConflict(error: unknown): error is ConvexError<{ code: string }> {
+  return error instanceof ConvexError && typeof error.data === "object" && error.data !== null && "code" in error.data &&
+    typeof error.data.code === "string" && [
     "INVENTORY_ORDER_MISMATCH","INVENTORY_ALREADY_RELEASED","INVENTORY_RESERVATION_MISSING",
     "INVENTORY_RESERVATION_EXPIRED","INVENTORY_TARGET_MISSING","INSUFFICIENT_STOCK","INVALID_STOCK",
-  ].includes(String(error.data.code));
+  ].includes(error.data.code);
 }

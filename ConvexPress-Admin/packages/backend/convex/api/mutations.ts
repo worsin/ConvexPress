@@ -64,7 +64,7 @@ import {
 } from "./crypto_helpers";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { apiDocs } from "../schema/api.docs.generated";
 // ─── createKey ──────────────────────────────────────────────────────────────
 
 /**
@@ -468,7 +468,9 @@ export const createWebhook = mutation({
  */
 export const updateWebhook = mutation({
   args: updateWebhookArgs,
-  returns: tableDocs.webhooks,
+  // The encrypted secret is never returned; the plaintext secret is present
+  // only in the response to a regeneration.
+  returns: v.object({ ...apiDocs.webhooks.fields, secret: v.optional(v.string()) }),
   handler: async (ctx, args) => {
     // 1. Check authorization
     await requireCan(ctx, "api.update_webhook");

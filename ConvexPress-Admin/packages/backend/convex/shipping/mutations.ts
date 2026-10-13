@@ -1,12 +1,24 @@
 import { ConvexError, v } from "convex/values";
 
 import { mutation } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
 import { encryptSecret } from "../api/crypto_helpers";
 import { requireShippingAdmin } from "./helpers";
 import { shippingProviderValidator } from "../schema/shipping";
 import { saveProviderSecretArgs, upsertConnectionMetadataArgs } from "./validators";
+import { slugifyZoneName } from "./helpers/zoneMatching";
+import { ensureUniqueSlug } from "./zones/mutations";
 
 const SHIPPING_ENCRYPTION_KEY = process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;
+
+/** Copies only the keys whose value is defined (a patch with `undefined` would clear the field). */
+function definedEntries<T extends Record<string, unknown>>(value: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key of Object.keys(value) as (keyof T)[]) {
+    if (value[key] !== undefined) result[key] = value[key];
+  }
+  return result;
+}
 
 export const upsertConnectionMetadata = mutation({
   args: upsertConnectionMetadataArgs,
@@ -16,12 +28,12 @@ export const upsertConnectionMetadata = mutation({
 
     const existing = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
 
     const now = Date.now();
     if (existing) {
-      const patch: Record<string, unknown> = {
+      const patch: Partial<Doc<"shipping_provider_connections">> = {
         displayName: args.displayName,
         enabled: args.enabled,
         mode: args.mode,
@@ -33,7 +45,7 @@ export const upsertConnectionMetadata = mutation({
       if (args.webhookSecret !== undefined) {
         patch.webhookSecret = args.webhookSecret || undefined;
       }
-      await ctx.db.patch("shipping_provider_connections", existing._id, patch as any);
+      await ctx.db.patch("shipping_provider_connections", existing._id, patch);
       return existing._id;
     }
 
@@ -68,7 +80,7 @@ export const saveProviderSecret = mutation({
 
     let connection = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
 
     const now = Date.now();
@@ -112,7 +124,7 @@ export const saveProviderSecret = mutation({
 
     const existingSecret = await ctx.db
       .query("shipping_provider_secrets")
-      .withIndex("by_connection", (q: any) => q.eq("connectionId", connection._id))
+      .withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
       .unique();
 
     if (existingSecret) {
@@ -152,6 +164,9 @@ export const createZone = mutation({
     const now = Date.now();
     return ctx.db.insert("commerce_shipping_zones", {
       name: args.name,
+      // The schema requires a unique slug and an explicit fallback flag.
+      slug: await ensureUniqueSlug(ctx, slugifyZoneName(args.name)),
+      isFallback: false,
       countries: args.countries,
       states: args.states ?? [],
       postalCodeRules: args.postalCodeRules ?? [],
@@ -192,7 +207,7 @@ export const deleteZone = mutation({
     await requireShippingAdmin(ctx);
     const methods = await ctx.db
       .query("commerce_shipping_zone_methods")
-      .withIndex("by_zone", (q: any) => q.eq("zoneId", args.zoneId))
+      .withIndex("by_zone", (q) => q.eq("zoneId", args.zoneId))
       .collect();
     for (const method of methods) {
       await ctx.db.delete("commerce_shipping_zone_methods", method._id);
@@ -309,7 +324,7 @@ export const createPackage = mutation({
     // Ensure unique code
     const existing = await ctx.db
       .query("commerce_shipping_packages")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
 
     if (existing) {
@@ -357,10 +372,11 @@ export const updatePackage = mutation({
     }
 
     // If code changed, check uniqueness
-    if (args.code && args.code !== existing.code) {
+    const nextCode = args.code;
+    if (nextCode && nextCode !== existing.code) {
       const dup = await ctx.db
         .query("commerce_shipping_packages")
-        .withIndex("by_code", (q: any) => q.eq("code", args.code))
+        .withIndex("by_code", (q) => q.eq("code", nextCode))
         .unique();
       if (dup) {
         throw new ConvexError({ code: "DUPLICATE", message: `Package code "${args.code}" already exists.` });
@@ -368,10 +384,7 @@ export const updatePackage = mutation({
     }
 
     const { packageId, ...updates } = args;
-    const patch: Record<string, any> = { updatedAt: Date.now() };
-    for (const [key, val] of Object.entries(updates)) {
-      if (val !== undefined) patch[key] = val;
-    }
+    const patch: Partial<Doc<"commerce_shipping_packages">> = { ...definedEntries(updates), updatedAt: Date.now() };
     await ctx.db.patch("commerce_shipping_packages", packageId, patch);
     return packageId;
   },

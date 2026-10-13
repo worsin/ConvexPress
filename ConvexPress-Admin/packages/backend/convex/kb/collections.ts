@@ -34,12 +34,12 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_collections)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_collections)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -55,7 +55,7 @@ export const list = query({
 
 export const listPublic = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_collections)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_collections)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db

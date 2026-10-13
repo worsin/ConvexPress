@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 
-import { query } from "../_generated/server";
+import { query, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { getCurrentUser, currentUserCan } from "../helpers/permissions";
 import { createPublicRecipeReader, publicCategory, publicRecipeCategoryValidator, publicRecipeValidator, publicRecipeListValidator, type PublicRecipe, type PublicRecipeCategory, type PublicRecipeList } from "./publicRead";
 import {
@@ -21,42 +22,55 @@ function slugify(value: string) {
     .slice(0, 120);
 }
 
-async function getRoleLevel(ctx: any, roleId: string | undefined) {
+type ReadCtx = Pick<QueryCtx, "db">;
+
+async function getRoleLevel(ctx: ReadCtx, roleId: Id<"roles"> | undefined) {
   if (!roleId) return 0;
-  const role = await ctx.db.get("roles", roleId as any);
+  const role = await ctx.db.get("roles", roleId);
   return role?.level ?? 0;
 }
 
-async function isRecipesEnabled(ctx: any) {
+async function isRecipesEnabled(ctx: ReadCtx) {
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
+    .withIndex("by_section", (q) => q.eq("section", "plugins"))
     .unique();
-  const values = (doc?.values as Record<string, unknown> | undefined) ?? {};
-  return values.recipesEnabled !== false;
+  const values: unknown = doc?.values;
+  return !(
+    typeof values === "object" &&
+    values !== null &&
+    "recipesEnabled" in values &&
+    values.recipesEnabled === false
+  );
 }
 
-async function enrichCategories(ctx: any, categoryIds: readonly string[]): Promise<Array<{ _id: string; name: string; slug: string; color?: string } | null>> {
-  return (
-    await Promise.all(
-      categoryIds.map(async (categoryId) => {
-        const category = await ctx.db.get(
-          "recipe_categories",
-          categoryId as any,
-        );
-        if (!category) return null;
-        return {
-          _id: category._id,
-          name: category.name,
-          slug: category.slug,
-          color: category.color,
-        };
-      }),
-    )
-  ).filter(Boolean);
+interface RecipeCategorySummary {
+  _id: Id<"recipe_categories">;
+  name: string;
+  slug: string;
+  color?: string;
 }
 
-export const listCategories: import("convex/server").RegisteredQuery<"public", Record<string, never>, import("../_generated/dataModel").Doc<"recipe_categories">[] | null> = query({
+async function enrichCategories(
+  ctx: ReadCtx,
+  categoryIds: readonly Id<"recipe_categories">[],
+): Promise<RecipeCategorySummary[]> {
+  const categories = await Promise.all(
+    categoryIds.map(async (categoryId): Promise<RecipeCategorySummary | null> => {
+      const category = await ctx.db.get("recipe_categories", categoryId);
+      if (!category) return null;
+      return {
+        _id: category._id,
+        name: category.name,
+        slug: category.slug,
+        color: category.color,
+      };
+    }),
+  );
+  return categories.filter((category): category is RecipeCategorySummary => category !== null);
+}
+
+export const listCategories = query({
   args: {},
   returns: v.union(v.array(v.object({ _id: v.id("recipe_categories"), _creationTime: v.number(), ...recipeTables.recipe_categories.validator.fields })), v.null()),
   handler: async (ctx) => {
@@ -64,13 +78,55 @@ export const listCategories: import("convex/server").RegisteredQuery<"public", R
     const user = await getCurrentUser(ctx);
     if (!user || user.status !== "active" || !(await currentUserCan(ctx, "post.create") || await currentUserCan(ctx, "post.update") || await currentUserCan(ctx, "manage_options"))) return [];
     const categories = await ctx.db.query("recipe_categories").withIndex("by_name").take(200);
-    categories.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    categories.sort((a, b) => a.name.localeCompare(b.name));
     return categories;
   },
 });
 
-export const list: import("convex/server").RegisteredQuery<"public", { search?: string; status?: import("../_generated/dataModel").Doc<"recipes">["status"] }, Array<import("../_generated/dataModel").Doc<"recipes"> & { categories: Awaited<ReturnType<typeof enrichCategories>> }>> = query({
+export const list = query({
   args: listRecipesArgs,
+  returns: v.array(v.object({
+    categories: v.array(v.object({
+      _id: v.id("recipe_categories"),
+      name: v.string(),
+      slug: v.string(),
+      color: v.optional(v.string()),
+    })),
+    _id: v.id("recipes"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    excerpt: v.optional(v.string()),
+    featuredImageId: v.optional(v.id("media")),
+    publishedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    scanMediaId: v.optional(v.id("media")),
+    prepMinutes: v.optional(v.number()),
+    cookMinutes: v.optional(v.number()),
+    totalMinutes: v.optional(v.number()),
+    servings: v.optional(v.string()),
+    yieldText: v.optional(v.string()),
+    difficulty: v.optional(v.union(v.literal("medium"), v.literal("easy"), v.literal("hard"))),
+    nutrition: v.optional(v.object({
+      calories: v.optional(v.string()),
+      protein: v.optional(v.string()),
+      carbs: v.optional(v.string()),
+      fat: v.optional(v.string()),
+      fiber: v.optional(v.string()),
+      sugar: v.optional(v.string()),
+    })),
+    scannedText: v.optional(v.string()),
+    title: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("draft"), v.literal("trash"), v.literal("publish")),
+    slug: v.string(),
+    authorId: v.id("users"),
+    instructions: v.array(v.string()),
+    isFeatured: v.boolean(),
+    categoryIds: v.array(v.id("recipe_categories")),
+    ingredients: v.array(v.string()),
+    aiExtractedFromScan: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return [];
     const user = await getCurrentUser(ctx);
@@ -81,43 +137,40 @@ export const list: import("convex/server").RegisteredQuery<"public", { search?: 
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     const allRecipes = await ctx.db.query("recipes").take(500);
     const searchLower = args.search?.trim().toLowerCase();
 
-    let filtered = allRecipes.filter((recipe: any) =>
+    let filtered = allRecipes.filter((recipe) =>
       roleLevel >= 80 ? true : recipe.authorId.toString() === user._id.toString(),
     );
 
     if (args.status) {
-      filtered = filtered.filter((recipe: any) => recipe.status === args.status);
+      filtered = filtered.filter((recipe) => recipe.status === args.status);
     } else {
-      filtered = filtered.filter((recipe: any) => recipe.status !== "trash");
+      filtered = filtered.filter((recipe) => recipe.status !== "trash");
     }
 
     if (searchLower) {
       filtered = filtered.filter(
-        (recipe: any) =>
+        (recipe) =>
           recipe.title.toLowerCase().includes(searchLower) ||
           recipe.slug.toLowerCase().includes(searchLower),
       );
     }
 
-    filtered.sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+    filtered.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
     return Promise.all(
-      filtered.map(async (recipe: any) => ({
+      filtered.map(async (recipe) => ({
         ...recipe,
-        categories: await enrichCategories(
-          ctx,
-          recipe.categoryIds.map((id: any) => id.toString()),
-        ),
+        categories: await enrichCategories(ctx, recipe.categoryIds),
       })),
     );
   },
 });
 
-export const counts: import("convex/server").RegisteredQuery<"public", Record<string, never>, { enabled: boolean; all: number; draft: number; published: number; trash: number } | null> = query({
+export const counts = query({
   args: {},
   returns: v.union(v.null(), v.object({
     enabled: v.boolean(),
@@ -137,20 +190,20 @@ export const counts: import("convex/server").RegisteredQuery<"public", Record<st
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     const visibleRecipes = (await ctx.db.query("recipes").take(1000)).filter(
-      (recipe: any) =>
+      (recipe) =>
         roleLevel >= 80 || recipe.authorId.toString() === user._id.toString(),
     );
 
     return {
       enabled,
-      all: visibleRecipes.filter((recipe: any) => recipe.status !== "trash").length,
-      draft: visibleRecipes.filter((recipe: any) => recipe.status === "draft")
+      all: visibleRecipes.filter((recipe) => recipe.status !== "trash").length,
+      draft: visibleRecipes.filter((recipe) => recipe.status === "draft")
         .length,
-      published: visibleRecipes.filter((recipe: any) => recipe.status === "publish")
+      published: visibleRecipes.filter((recipe) => recipe.status === "publish")
         .length,
-      trash: visibleRecipes.filter((recipe: any) => recipe.status === "trash")
+      trash: visibleRecipes.filter((recipe) => recipe.status === "trash")
         .length,
     };
   },
@@ -159,7 +212,12 @@ export const counts: import("convex/server").RegisteredQuery<"public", Record<st
 export const get = query({
   args: getRecipeArgs,
   returns: v.union(v.null(), v.object({
-    categories: v.array(v.union(v.null(), v.object({ _id: v.string(), name: v.string(), slug: v.string(), color: v.optional(v.string()) }))),
+    categories: v.array(v.object({
+      _id: v.id("recipe_categories"),
+      name: v.string(),
+      slug: v.string(),
+      color: v.optional(v.string()),
+    })),
     _id: v.id("recipes"),
     _creationTime: v.number(),
     description: v.optional(v.string()),
@@ -208,7 +266,7 @@ export const get = query({
     const recipe = await ctx.db.get("recipes", args.recipeId);
     if (!recipe) return null;
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && recipe.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -220,7 +278,7 @@ export const get = query({
       ...recipe,
       categories: await enrichCategories(
         ctx,
-        recipe.categoryIds.map((id: any) => id.toString()),
+        recipe.categoryIds,
       ),
     };
   },
@@ -228,7 +286,7 @@ export const get = query({
 
 /** Legacy numbered-page archive. Refuse overflow instead of claiming a truncated
  * total is complete. Cursor-based archive replacement remains tracked separately. */
-export const listPublished: import("convex/server").RegisteredQuery<"public", { page?: number; perPage?: number; categorySlug?: string }, PublicRecipeList | null> = query({
+export const listPublished = query({
   args: listPublicRecipesArgs,
   returns: v.union(publicRecipeListValidator, v.null()),
   handler: async (ctx, args) => {
@@ -264,7 +322,7 @@ export const listPublished: import("convex/server").RegisteredQuery<"public", { 
   },
 });
 
-export const getBySlug: import("convex/server").RegisteredQuery<"public", {slug:string}, PublicRecipe | null> = query({
+export const getBySlug = query({
   args: getRecipeBySlugArgs,
   returns: v.union(publicRecipeValidator, v.null()),
   handler: async (ctx, args) => {
@@ -278,7 +336,7 @@ export const getBySlug: import("convex/server").RegisteredQuery<"public", {slug:
   },
 });
 
-export const getCategoryBySlug: import("convex/server").RegisteredQuery<"public", {slug:string}, PublicRecipeCategory | null> = query({
+export const getCategoryBySlug = query({
   args: { slug: getRecipeBySlugArgs.slug },
   returns: v.union(publicRecipeCategoryValidator, v.null()),
   handler: async (ctx, args) => {

@@ -22,6 +22,14 @@ export const beginFirstCharge = action({
   args: {
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
   },
+  returns: v.object({
+    clientSecret: v.union(v.null(), v.string()),
+    paymentIntentId: v.string(),
+    amount: v.number(),
+    currency: v.string(),
+    stripeCustomerId: v.string(),
+    mode: v.union(v.literal("payment"), v.literal("setup")),
+  }),
   handler: async (ctx, args) => {
     return await ctx.runAction(
       internal.commerceSubscriptions.stripeCharge.beginSubscriptionFirstCharge,

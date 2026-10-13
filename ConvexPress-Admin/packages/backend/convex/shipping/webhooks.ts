@@ -18,8 +18,10 @@
  * Signature verification uses Web Crypto (available in Convex Node runtime).
  */
 
-import { httpAction } from "../_generated/server";
+import { httpAction, type ActionCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
+import { at, str, timeOf } from "./helpers/json";
 import {
   normalizeShipStationStatus,
   normalizeFedexStatus,
@@ -31,7 +33,7 @@ import {
  * Order of precedence: per-connection `webhookSecret` field, then env var fallback.
  */
 async function resolveWebhookSecret(
-  ctx: any,
+  ctx: ActionCtx,
   provider: "shipstation" | "fedex" | "ups",
   envVarName: string,
 ): Promise<string> {
@@ -49,7 +51,7 @@ async function resolveWebhookSecret(
  * true if this delivery has already been processed within the 7-day window.
  */
 async function isReplayedDelivery(
-  ctx: any,
+  ctx: ActionCtx,
   provider: "shipstation" | "fedex" | "ups",
   signature: string,
   body: string,
@@ -99,15 +101,16 @@ async function verifySignatureHmacSha256(
 }
 
 async function findShipmentByTracking(
-  ctx: any,
+  ctx: ActionCtx,
   trackingNumber: string,
-): Promise<{ shipmentId: any; orderId: any; labelId?: any } | null> {
+): Promise<{ shipmentId: Id<"commerce_shipments">; orderId: Id<"commerce_orders">; labelId?: Id<"commerce_shipment_labels"> } | null> {
   // Try the shipment_labels index first (more granular per-package match).
-  const label = await ctx.runQuery(
+  const match = await ctx.runQuery(
     internal.shipping.tracking.internals.findShipmentByTracking,
     { trackingNumber },
   );
-  return label ?? null;
+  // Legacy shipments have no label row; the tracking event then carries no labelId.
+  return match ? { shipmentId: match.shipmentId, orderId: match.orderId, labelId: match.labelId ?? undefined } : null;
 }
 
 /**
@@ -144,7 +147,7 @@ export const shipstationWebhookHandler = httpAction(async (ctx, request) => {
     });
   }
 
-  let payload: any;
+  let payload: unknown;
   try {
     payload = JSON.parse(body);
   } catch {
@@ -156,7 +159,7 @@ export const shipstationWebhookHandler = httpAction(async (ctx, request) => {
 
   // ShipStation/ShipEngine TRACK_UPDATE shape:
   // { resource_type: "TRACK", resource_url, data: { tracking_number, status_code, status_description, events: [...] } }
-  const trackingNumber = payload?.data?.tracking_number ?? payload?.tracking_number;
+  const trackingNumber = str(at(payload, "data", "tracking_number")) ?? str(at(payload, "tracking_number"));
   if (!trackingNumber) {
     return new Response(JSON.stringify({ error: "No tracking number" }), {
       status: 400,
@@ -173,33 +176,34 @@ export const shipstationWebhookHandler = httpAction(async (ctx, request) => {
     });
   }
 
-  const events = Array.isArray(payload?.data?.events)
-    ? payload.data.events
+  const payloadEvents = at(payload, "data", "events");
+  const events: unknown[] = Array.isArray(payloadEvents)
+    ? payloadEvents
     : [
         {
-          status_code: payload?.data?.status_code ?? payload?.status_code,
-          status_description: payload?.data?.status_description ?? payload?.status_description,
-          occurred_at: payload?.data?.actual_delivery_date ?? new Date().toISOString(),
-          city_locality: payload?.data?.city_locality,
+          status_code: at(payload, "data", "status_code") ?? at(payload, "status_code"),
+          status_description: at(payload, "data", "status_description") ?? at(payload, "status_description"),
+          occurred_at: at(payload, "data", "actual_delivery_date") ?? new Date().toISOString(),
+          city_locality: at(payload, "data", "city_locality"),
         },
       ];
 
   for (const event of events) {
-    const code = String(event.status_code ?? "");
+    const code = String(at(event, "status_code") ?? "");
     const normalized = normalizeShipStationStatus(code);
+    const occurred = at(event, "occurred_at");
+    const statusDescription = str(at(event, "status_description"));
     await ctx.runMutation(
       internal.shipping.tracking.mutations.recordTrackingEvent,
       {
         shipmentId: shipment.shipmentId,
         labelId: shipment.labelId,
-        eventId: `shipstation:${code}:${event.occurred_at ?? Date.now()}`,
-        occurredAt: event.occurred_at
-          ? new Date(event.occurred_at).getTime()
-          : Date.now(),
+        eventId: `shipstation:${code}:${str(occurred) ?? Date.now()}`,
+        occurredAt: timeOf(occurred) ?? Date.now(),
         normalizedStatus: normalized,
-        carrierStatus: event.status_description ?? code,
-        description: event.status_description,
-        location: event.city_locality,
+        carrierStatus: statusDescription ?? code,
+        description: statusDescription,
+        location: str(at(event, "city_locality")),
         rawMetadata: event,
         receivedVia: "webhook",
       },
@@ -245,7 +249,7 @@ export const fedexWebhookHandler = httpAction(async (ctx, request) => {
     });
   }
 
-  let payload: any;
+  let payload: unknown;
   try {
     payload = JSON.parse(body);
   } catch {
@@ -256,8 +260,8 @@ export const fedexWebhookHandler = httpAction(async (ctx, request) => {
   }
 
   const trackingNumber =
-    payload?.trackingNumber ??
-    payload?.output?.completeTrackResults?.[0]?.trackingNumber;
+    str(at(payload, "trackingNumber")) ??
+    str(at(payload, "output", "completeTrackResults", 0, "trackingNumber"));
   if (!trackingNumber) {
     return new Response(JSON.stringify({ error: "No tracking number" }), {
       status: 400,
@@ -273,8 +277,8 @@ export const fedexWebhookHandler = httpAction(async (ctx, request) => {
     });
   }
 
-  const trackResult = payload?.output?.completeTrackResults?.[0]?.trackResults?.[0] ?? payload;
-  const code = String(trackResult?.latestStatusDetail?.code ?? "");
+  const trackResult = at(payload, "output", "completeTrackResults", 0, "trackResults", 0) ?? payload;
+  const code = String(at(trackResult, "latestStatusDetail", "code") ?? "");
   const normalized = normalizeFedexStatus(code);
 
   await ctx.runMutation(
@@ -285,9 +289,9 @@ export const fedexWebhookHandler = httpAction(async (ctx, request) => {
       eventId: `fedex:${code}:${Date.now()}`,
       occurredAt: Date.now(),
       normalizedStatus: normalized,
-      carrierStatus: trackResult?.latestStatusDetail?.statusByLocale ?? code,
-      description: trackResult?.latestStatusDetail?.description,
-      location: trackResult?.latestStatusDetail?.scanLocation?.city,
+      carrierStatus: str(at(trackResult, "latestStatusDetail", "statusByLocale")) ?? code,
+      description: str(at(trackResult, "latestStatusDetail", "description")),
+      location: str(at(trackResult, "latestStatusDetail", "scanLocation", "city")),
       rawMetadata: trackResult,
       receivedVia: "webhook",
     },
@@ -332,7 +336,7 @@ export const upsWebhookHandler = httpAction(async (ctx, request) => {
     });
   }
 
-  let payload: any;
+  let payload: unknown;
   try {
     payload = JSON.parse(body);
   } catch {
@@ -344,8 +348,8 @@ export const upsWebhookHandler = httpAction(async (ctx, request) => {
 
   // UPS pubsub format varies. Common shape: { trackingNumber, localActivityDate, activityStatus: { description, code, type } }
   const trackingNumber =
-    payload?.trackingNumber ??
-    payload?.shipment?.[0]?.package?.[0]?.trackingNumber;
+    str(at(payload, "trackingNumber")) ??
+    str(at(payload, "shipment", 0, "package", 0, "trackingNumber"));
   if (!trackingNumber) {
     return new Response(JSON.stringify({ error: "No tracking number" }), {
       status: 400,
@@ -362,9 +366,10 @@ export const upsWebhookHandler = httpAction(async (ctx, request) => {
   }
 
   const description =
-    payload?.activityStatus?.description ??
-    payload?.shipment?.[0]?.package?.[0]?.activity?.[0]?.status?.description ??
+    str(at(payload, "activityStatus", "description")) ??
+    str(at(payload, "shipment", 0, "package", 0, "activity", 0, "status", "description")) ??
     "";
+  const localActivityDate = at(payload, "localActivityDate");
   const normalized = normalizeUpsStatus(description);
 
   await ctx.runMutation(
@@ -372,10 +377,8 @@ export const upsWebhookHandler = httpAction(async (ctx, request) => {
     {
       shipmentId: shipment.shipmentId,
       labelId: shipment.labelId,
-      eventId: `ups:${description}:${payload?.localActivityDate ?? Date.now()}`,
-      occurredAt: payload?.localActivityDate
-        ? new Date(payload.localActivityDate).getTime()
-        : Date.now(),
+      eventId: `ups:${description}:${str(localActivityDate) ?? Date.now()}`,
+      occurredAt: timeOf(localActivityDate) ?? Date.now(),
       normalizedStatus: normalized,
       carrierStatus: description,
       description,

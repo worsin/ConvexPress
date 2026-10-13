@@ -1,7 +1,10 @@
-import type { Doc } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences, requireAttachableMedia } from "../media/attachmentGuard";
+
+type ReadCtx = Pick<QueryCtx, "db">;
+type WriteCtx = Pick<MutationCtx, "db">;
 
 export function slugify(value: string) {
   return value
@@ -12,25 +15,30 @@ export function slugify(value: string) {
     .slice(0, 120);
 }
 
-export async function getRoleLevel(ctx: any, roleId: string | undefined) {
+export async function getRoleLevel(ctx: ReadCtx, roleId: Id<"roles"> | undefined) {
   if (!roleId) return 0;
-  const role = await ctx.db.get("roles", roleId as any);
+  const role = await ctx.db.get("roles", roleId);
   return role?.level ?? 0;
 }
 
-export async function isGalleryEnabled(ctx: any) {
+export async function isGalleryEnabled(ctx: ReadCtx) {
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
+    .withIndex("by_section", (q) => q.eq("section", "plugins"))
     .unique();
-  const values = (doc?.values as Record<string, unknown> | undefined) ?? {};
-  return values.galleryEnabled !== false;
+  const values: unknown = doc?.values;
+  return !(
+    typeof values === "object" &&
+    values !== null &&
+    "galleryEnabled" in values &&
+    values.galleryEnabled === false
+  );
 }
 
 export async function getUniqueAlbumSlug(
-  ctx: any,
+  ctx: ReadCtx,
   seed: string,
-  excludeId?: string,
+  excludeId?: Id<"gallery_albums">,
 ) {
   const base = slugify(seed) || "album";
   let slug = base;
@@ -39,9 +47,9 @@ export async function getUniqueAlbumSlug(
   while (true) {
     const existing = await ctx.db
       .query("gallery_albums")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
-    if (!existing || existing._id.toString() === excludeId) {
+    if (!existing || existing._id === excludeId) {
       return slug;
     }
     slug = `${base}-${counter}`;
@@ -50,9 +58,9 @@ export async function getUniqueAlbumSlug(
 }
 
 export async function getUniqueCategorySlug(
-  ctx: any,
+  ctx: ReadCtx,
   seed: string,
-  excludeId?: string,
+  excludeId?: Id<"gallery_categories">,
 ) {
   const base = slugify(seed) || "gallery-category";
   let slug = base;
@@ -61,9 +69,9 @@ export async function getUniqueCategorySlug(
   while (true) {
     const existing = await ctx.db
       .query("gallery_categories")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
-    if (!existing || existing._id.toString() === excludeId) {
+    if (!existing || existing._id === excludeId) {
       return slug;
     }
     slug = `${base}-${counter}`;
@@ -71,9 +79,9 @@ export async function getUniqueCategorySlug(
   }
 }
 
-export async function requireImageMedia(ctx: any, mediaId: string | undefined) {
+export async function requireImageMedia(ctx: ReadCtx, mediaId: Id<"media"> | undefined) {
   if (!mediaId) return null;
-  const media = await requireAttachableMedia(ctx, mediaId as any);
+  const media = await requireAttachableMedia(ctx, mediaId);
   if (!media || media.mediaType !== "image") {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
@@ -83,26 +91,38 @@ export async function requireImageMedia(ctx: any, mediaId: string | undefined) {
   return media;
 }
 
-export async function enrichCategories(ctx: any, categoryIds: readonly string[]): Promise<Array<{ _id: string; name: string; slug: string; description?: string; albumCount: number } | null>> {
-  return (
-    await Promise.all(
-      categoryIds.map(async (categoryId) => {
-        const category = await ctx.db.get("gallery_categories", categoryId as any);
-        if (!category) return null;
-        return {
-          _id: category._id,
-          name: category.name,
-          slug: category.slug,
-          description: category.description,
-          albumCount: category.albumCount,
-        };
-      }),
-    )
-  ).filter(Boolean);
+export interface GalleryCategorySummary {
+  _id: Id<"gallery_categories">;
+  name: string;
+  slug: string;
+  description?: string;
+  albumCount: number;
 }
 
-export async function enrichMedia(ctx: any, mediaId: string): Promise<Pick<Doc<"media">, "_id" | "title" | "url" | "altText" | "caption" | "width" | "height" | "mimeType"> | null> {
-  const media = await ctx.db.get("media", mediaId as any);
+export async function enrichCategories(
+  ctx: ReadCtx,
+  categoryIds: readonly Id<"gallery_categories">[],
+): Promise<GalleryCategorySummary[]> {
+  const categories = await Promise.all(
+    categoryIds.map(async (categoryId): Promise<GalleryCategorySummary | null> => {
+      const category = await ctx.db.get("gallery_categories", categoryId);
+      if (!category) return null;
+      return {
+        _id: category._id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        albumCount: category.albumCount,
+      };
+    }),
+  );
+  return categories.filter((category): category is GalleryCategorySummary => category !== null);
+}
+
+export type GalleryMediaSummary = Pick<Doc<"media">, "_id" | "title" | "url" | "altText" | "caption" | "width" | "height" | "mimeType">;
+
+export async function enrichMedia(ctx: ReadCtx, mediaId: Id<"media">): Promise<GalleryMediaSummary | null> {
+  const media = await ctx.db.get("media", mediaId);
   if (!media) return null;
   // Gallery albums are public-facing. Only expose active media so
   // validating/failed uploads don't leak into the public surface.
@@ -120,42 +140,57 @@ export async function enrichMedia(ctx: any, mediaId: string): Promise<Pick<Doc<"
   };
 }
 
-export async function listAlbumItems(ctx: any, albumId: string) {
-  const items = await ctx.db
-    .query("gallery_albumItems")
-    .withIndex("by_album_sort", (q: any) => q.eq("albumId", albumId as any))
-    .collect();
-
-  return (
-    await Promise.all(
-      items
-        .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
-        .map(async (item: any) => {
-          const media = await enrichMedia(ctx, item.mediaId.toString());
-          if (!media) return null;
-
-          return {
-            _id: item._id,
-            mediaId: item.mediaId,
-            sortOrder: item.sortOrder,
-            caption: item.caption ?? media.caption,
-            altText: item.altText ?? media.altText,
-            linkUrl: item.linkUrl,
-            media,
-          };
-        }),
-    )
-  ).filter(Boolean);
+export interface GalleryAlbumItemSummary {
+  _id: Id<"gallery_albumItems">;
+  mediaId: Id<"media">;
+  sortOrder: number;
+  caption?: string;
+  altText?: string;
+  linkUrl?: string;
+  media: GalleryMediaSummary;
 }
 
-export async function enrichAlbum(ctx: QueryCtx, album: Doc<"gallery_albums">): Promise<Doc<"gallery_albums"> & { categories: Awaited<ReturnType<typeof enrichCategories>>; items: Awaited<ReturnType<typeof listAlbumItems>>; coverMedia: Awaited<ReturnType<typeof enrichMedia>> }> {
-  const categories = await enrichCategories(
-    ctx,
-    album.categoryIds.map((id: { toString(): string }) => id.toString()),
+export async function listAlbumItems(
+  ctx: ReadCtx,
+  albumId: Id<"gallery_albums">,
+): Promise<GalleryAlbumItemSummary[]> {
+  const items = await ctx.db
+    .query("gallery_albumItems")
+    .withIndex("by_album_sort", (q) => q.eq("albumId", albumId))
+    .collect();
+
+  const enriched = await Promise.all(
+    items
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(async (item): Promise<GalleryAlbumItemSummary | null> => {
+        const media = await enrichMedia(ctx, item.mediaId);
+        if (!media) return null;
+
+        return {
+          _id: item._id,
+          mediaId: item.mediaId,
+          sortOrder: item.sortOrder,
+          caption: item.caption ?? media.caption,
+          altText: item.altText ?? media.altText,
+          linkUrl: item.linkUrl,
+          media,
+        };
+      }),
   );
-  const items = await listAlbumItems(ctx, album._id.toString());
+  return enriched.filter((item): item is GalleryAlbumItemSummary => item !== null);
+}
+
+export type EnrichedGalleryAlbum = Doc<"gallery_albums"> & {
+  categories: GalleryCategorySummary[];
+  items: GalleryAlbumItemSummary[];
+  coverMedia: GalleryMediaSummary | null;
+};
+
+export async function enrichAlbum(ctx: ReadCtx, album: Doc<"gallery_albums">): Promise<EnrichedGalleryAlbum> {
+  const categories = await enrichCategories(ctx, album.categoryIds);
+  const items = await listAlbumItems(ctx, album._id);
   const coverMedia =
-    (album.coverMediaId && (await enrichMedia(ctx, album.coverMediaId.toString()))) ||
+    (album.coverMediaId && (await enrichMedia(ctx, album.coverMediaId))) ||
     (items[0]?.media ?? null);
 
   return {
@@ -167,23 +202,20 @@ export async function enrichAlbum(ctx: QueryCtx, album: Doc<"gallery_albums">): 
 }
 
 export async function recomputeCategoryCounts(
-  ctx: any,
-  categoryIds: readonly string[],
+  ctx: WriteCtx,
+  categoryIds: readonly Id<"gallery_categories">[],
 ) {
   if (categoryIds.length === 0) return;
 
   const albums = await ctx.db.query("gallery_albums").take(5000);
   for (const categoryId of categoryIds) {
     const count = albums.filter(
-      (album: {
-        status: string;
-        categoryIds: Array<{ toString(): string }>;
-      }) =>
+      (album) =>
         album.status === "publish" &&
-        album.categoryIds.some((entry) => entry.toString() === categoryId),
+        album.categoryIds.some((entry) => entry === categoryId),
     ).length;
 
-    await ctx.db.patch("gallery_categories", categoryId as any, {
+    await ctx.db.patch("gallery_categories", categoryId, {
       albumCount: count,
       updatedAt: Date.now(),
     });
@@ -191,10 +223,10 @@ export async function recomputeCategoryCounts(
 }
 
 export async function replaceAlbumItems(
-  ctx: any,
-  albumId: string,
+  ctx: WriteCtx,
+  albumId: Id<"gallery_albums">,
   items: Array<{
-    mediaId: string;
+    mediaId: Id<"media">;
     caption?: string;
     altText?: string;
     linkUrl?: string;
@@ -202,17 +234,17 @@ export async function replaceAlbumItems(
 ) {
   const existing = await ctx.db
     .query("gallery_albumItems")
-    .withIndex("by_album", (q: any) => q.eq("albumId", albumId as any))
+    .withIndex("by_album", (q) => q.eq("albumId", albumId))
     .collect();
 
-  await Promise.all(existing.map((item: any) => deleteWithMediaReferences<"gallery_albumItems">(ctx, "gallery_albumItems", item._id)));
+  await Promise.all(existing.map((item) => deleteWithMediaReferences<"gallery_albumItems">(ctx, "gallery_albumItems", item._id)));
 
   const now = Date.now();
   for (const [index, item] of items.entries()) {
     await requireImageMedia(ctx, item.mediaId);
     await insertWithMediaReferences<"gallery_albumItems">(ctx, "gallery_albumItems", {
-      albumId: albumId as any,
-      mediaId: item.mediaId as any,
+      albumId,
+      mediaId: item.mediaId,
       sortOrder: index,
       caption: item.caption?.trim() || undefined,
       altText: item.altText?.trim() || undefined,
@@ -222,7 +254,7 @@ export async function replaceAlbumItems(
     });
   }
 
-  await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", albumId as any, {
+  await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", albumId, {
     itemCount: items.length,
     updatedAt: now,
   });

@@ -23,12 +23,12 @@ import {
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_templates)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_templates)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -47,7 +47,7 @@ export const list = query({
 
 export const getById = query({
   args: getTemplateByIdArgs,
-  returns: v.union(v.null(), tableDocs.kb_templates),
+  returns: v.union(v.null(), kbDocs.kb_templates),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);

@@ -23,9 +23,6 @@
  *   `await requirePluginEnabled(ctx, "commerceSubscriptions")`
  * Admin handlers additionally require the `manage_options` capability.
  * Wave 7 will swap in `commerceSubscriptions.templates.manage`.
- *
- * `@ts-nocheck` matches the existing subscriptions backend file pattern;
- * Wave 7 removes it across all subscriptions files in one pass.
  */
 
 import { ConvexError, v } from "convex/values";
@@ -51,7 +48,7 @@ export const archiveTemplate = mutation({
   args: {
     templateId: v.id("commerce_subscription_templates"),
   },
-  returns: v.union(v.object({ success: v.boolean(), alreadyArchived: v.boolean() }), v.object({ success: v.boolean(), alreadyArchived: v.optional(v.null()) })),
+  returns: v.object({ success: v.boolean(), alreadyArchived: v.optional(v.boolean()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);

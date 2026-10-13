@@ -6,6 +6,8 @@ import { patchWithMediaReferences } from "../../media/attachmentGuard";
 import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
@@ -56,7 +58,7 @@ export const updateLessonContent = mutation({
     }
 
     const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
+    const patch: Partial<WithoutSystemFields<Doc<"lms_nodes">>> = { updatedAt: now };
     const nextBodyDoc =
       args.bodyText !== undefined ? textToDoc(normalizeLessonText(args.bodyText)) : undefined;
     const videoUrlProvided = Object.prototype.hasOwnProperty.call(args, "videoUrl");
@@ -105,9 +107,10 @@ export const updateLessonContent = mutation({
     }
     if (args.dripDate !== undefined) patch.lessonDripDate = args.dripDate;
 
+    const currentValues: Record<string, unknown> = node;
     const changedFields = Object.entries(patch)
       .filter(([field]) => field !== "updatedAt")
-      .filter(([field, value]) => !docsEqual((node as any)[field], value))
+      .filter(([field, value]) => !docsEqual(currentValues[field], value))
       .map(([field]) => field);
 
     if (changedFields.length === 0) {
@@ -122,7 +125,7 @@ export const updateLessonContent = mutation({
       createdAt: now,
     });
 
-    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, patch as never);
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, patch);
     await emitEvent(ctx, LMS_EVENTS.LESSON_UPDATED, SYSTEM.LMS, {
       nodeId: args.nodeId,
       courseId: node.courseId,
@@ -172,7 +175,7 @@ export const restoreLessonVersion = mutation({
   },
 });
 
-function lessonSnapshot(node: any) {
+function lessonSnapshot(node: Doc<"lms_nodes">) {
   const snapshot = {
     title: node.title,
     bodyDoc: node.bodyDoc,

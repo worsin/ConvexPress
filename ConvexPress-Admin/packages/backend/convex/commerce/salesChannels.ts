@@ -1,16 +1,16 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-import { tableDocs } from "../schema/tableDocs.generated";
-async function clearDefault(ctx: any, currentId?: any) {
+import { commerceDocs } from "../schema/commerce.docs.generated";
+async function clearDefault(ctx: Pick<MutationCtx, "db">, currentId?: Id<"commerce_sales_channels">) {
   const current = await ctx.db
     .query("commerce_sales_channels")
-    .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+    .withIndex("by_default", (q) => q.eq("isDefault", true))
     .collect();
   for (const channel of current) {
     if (!currentId || channel._id.toString() !== currentId.toString()) {
@@ -21,7 +21,7 @@ async function clearDefault(ctx: any, currentId?: any) {
 
 export const list = query({
   args: { includeDisabled: v.optional(v.boolean()) },
-  returns: v.array(tableDocs.commerce_sales_channels),
+  returns: v.array(commerceDocs.commerce_sales_channels),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const rows = await ctx.db.query("commerce_sales_channels").collect();
@@ -87,7 +87,7 @@ export const assignProduct = mutation({
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("commerce_product_sales_channels")
-      .withIndex("by_product_channel", (q: any) =>
+      .withIndex("by_product_channel", (q) =>
         q.eq("productId", args.productId).eq("channelId", args.channelId),
       )
       .unique();

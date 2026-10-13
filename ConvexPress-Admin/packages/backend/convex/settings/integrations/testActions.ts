@@ -13,6 +13,7 @@ import { action } from "../../_generated/server";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { getServiceKeyFromAction } from "../../helpers/serviceKeys";
+import { jsonAt } from "../../helpers/jsonValue";
 
 import { v } from "convex/values";
 type TestResult = { success: boolean; detail?: string };
@@ -47,10 +48,11 @@ export const testStripe = action({
         const body = await res.text();
         return { success: false, detail: body.slice(0, 200) };
       }
-      const data = (await res.json()) as any;
+      const data: unknown = await res.json();
+      const currency = jsonAt(data, "default_currency");
       return {
         success: true,
-        detail: `Connected — account ${data.id}, ${data.country}, ${data.default_currency?.toUpperCase() ?? ""}`,
+        detail: `Connected — account ${String(jsonAt(data, "id"))}, ${String(jsonAt(data, "country"))}, ${typeof currency === "string" ? currency.toUpperCase() : ""}`,
       };
     } catch (err) {
       return { success: false, detail: await maskError(err) };
@@ -102,10 +104,10 @@ export const testPayPal = action({
         const body = await res.text();
         return { success: false, detail: body.slice(0, 200) };
       }
-      const data = (await res.json()) as any;
+      const data: unknown = await res.json();
       return {
         success: true,
-        detail: `Connected — ${mode} mode, token expires in ${data.expires_in}s`,
+        detail: `Connected — ${mode} mode, token expires in ${String(jsonAt(data, "expires_in"))}s`,
       };
     } catch (err) {
       return { success: false, detail: await maskError(err) };
@@ -162,8 +164,9 @@ export const testGa4 = action({
     if (!json) return { success: false, detail: "No service account configured." };
     if (!propertyId) return { success: false, detail: "No property id configured." };
     try {
-      const parsed = JSON.parse(json);
-      if (!parsed.client_email || !parsed.private_key) {
+      const parsed: unknown = JSON.parse(json);
+      const clientEmail = jsonAt(parsed, "client_email");
+      if (!clientEmail || !jsonAt(parsed, "private_key")) {
         return {
           success: false,
           detail: "Service account JSON missing client_email or private_key.",
@@ -171,7 +174,7 @@ export const testGa4 = action({
       }
       return {
         success: true,
-        detail: `JSON valid — service account ${parsed.client_email}, property ${propertyId}`,
+        detail: `JSON valid — service account ${String(clientEmail)}, property ${propertyId}`,
       };
     } catch (err) {
       return {
@@ -204,10 +207,10 @@ export const testUspsAddress = action({
         const body = await res.text();
         return { success: false, detail: body.slice(0, 200) };
       }
-      const data = (await res.json()) as any;
+      const data: unknown = await res.json();
       return {
         success: true,
-        detail: `Connected — normalized "${data?.address?.streetAddress ?? ""} ${data?.address?.ZIPCode ?? ""}"`,
+        detail: `Connected — normalized "${String(jsonAt(data, "address", "streetAddress") ?? "")} ${String(jsonAt(data, "address", "ZIPCode") ?? "")}"`,
       };
     } catch (err) {
       return { success: false, detail: await maskError(err) };
@@ -232,16 +235,19 @@ export const testGooglePlaces = action({
       const res = await fetch(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=1600+pennsylvania&key=${key}`,
       );
-      const data = (await res.json()) as any;
-      if (data.status === "OK" || data.status === "ZERO_RESULTS") {
+      const data: unknown = await res.json();
+      const status = jsonAt(data, "status");
+      if (status === "OK" || status === "ZERO_RESULTS") {
+        const predictions = jsonAt(data, "predictions");
         return {
           success: true,
-          detail: `Key valid — ${data.predictions?.length ?? 0} predictions.`,
+          detail: `Key valid — ${Array.isArray(predictions) ? predictions.length : 0} predictions.`,
         };
       }
+      const errorMessage = jsonAt(data, "error_message");
       return {
         success: false,
-        detail: `${data.status}${data.error_message ? ` — ${data.error_message}` : ""}`,
+        detail: `${String(status)}${errorMessage ? ` — ${String(errorMessage)}` : ""}`,
       };
     } catch (err) {
       return { success: false, detail: await maskError(err) };

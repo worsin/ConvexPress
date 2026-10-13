@@ -6,7 +6,7 @@ const rulesRead = makeFunctionReference<"query", RuleArgs, RuleResult[]>("member
 const measuredRulesRead = makeFunctionReference<"query", RuleArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredRules");
 const measuredBlockRulesRead = makeFunctionReference<"query", BlockRuleBatchArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredBlockRules");
 const measuredContentRulesRead = makeFunctionReference<"query", ContentRuleBatchArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredContentRules");
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { isMembershipPluginEnabled } from "../commerce/helpers";
 import { getCurrentUser, resolveUserRole } from "../helpers/permissions";
@@ -349,9 +349,11 @@ async function getUserById(
 	ctx: MembershipCtx,
 	userId: Id<"users"> | string,
 	budget?: RequestReadLedger,
-): Promise<any | null> {
+): Promise<Doc<"users"> | null> {
+	const normalizedUserId = ctx.db.normalizeId("users", userId);
+	if (!normalizedUserId) return null;
 	budget?.beforeRead();
-	const user = await ctx.db.get("users", userId as Id<"users">);
+	const user = await ctx.db.get("users", normalizedUserId);
 	budget?.record(user);
 	if (!user || user.status !== "active") return null;
 	return user;
@@ -360,7 +362,7 @@ async function getUserById(
 async function getGrantedCapabilitiesForRules(
 	ctx: MembershipCtx,
 	rules: MembershipRuleLike[],
-	user: any,
+	user: Parameters<typeof resolveUserRole>[1],
 	budget?: RequestReadLedger,
 ): Promise<string[]> {
 	const requiredCapabilities = uniqueStrings(
@@ -372,12 +374,8 @@ async function getGrantedCapabilitiesForRules(
 	const requiredSet = new Set(requiredCapabilities);
 	const grantedCapabilities: string[] = [];
 
-	const role = await resolveUserRole(ctx as any, user, budget);
-	const roleCapabilities: string[] = Array.isArray(
-		(role as any)?.capabilities,
-	)
-		? (role as any).capabilities
-		: [];
+	const role = await resolveUserRole(ctx, user, budget);
+	const roleCapabilities: string[] = role?.capabilities ?? [];
 	for (const capability of roleCapabilities) {
 		if (requiredSet.has(capability)) {
 			grantedCapabilities.push(capability);
@@ -464,7 +462,7 @@ async function evaluateRulesForViewer(ctx: MembershipCtx, args: AccessArgs, rule
 
 	const user = args.userId
 		? await getUserById(ctx, args.userId, budget)
-		: await getCurrentUser(ctx as any, budget);
+		: await getCurrentUser(ctx, budget);
 	if (!user || user.status !== "active") {
 		return evaluateRestrictionRules(rules, {
 			isAuthenticated: false,

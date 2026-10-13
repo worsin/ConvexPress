@@ -41,16 +41,16 @@ import { isPluginEnabled } from "../helpers/plugins";
 export const getConfig = query({
   args: getConfigArgs,
   returns: v.union(v.null(), v.object({
+    enabled: v.boolean(),
+    widgetTitle: v.string(),
+    widgetSubtitle: v.string(),
+    widgetColor: v.string(),
     showKbSearch: v.boolean(),
+    showTicketHistory: v.boolean(),
+    aiEnabled: v.boolean(),
+    escalationButtonLabel: v.string(),
     position: v.string(),
     greeting: v.string(),
-    enabled: v.literal(true),
-    widgetTitle: v.literal("Support"),
-    widgetSubtitle: v.literal("How can we help you today?"),
-    widgetColor: v.literal("#3b82f6"),
-    showTicketHistory: v.literal(true),
-    aiEnabled: v.literal(false),
-    escalationButtonLabel: v.literal("Contact Support"),
   })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
@@ -66,14 +66,34 @@ export const getConfig = query({
       .withIndex("by_section", (q) => q.eq("section", "support.widget"))
       .unique();
 
-    const stored = doc ? (doc.values as Record<string, unknown>) : {};
+    const storedValues: unknown = doc?.values;
+    const stored: Record<string, unknown> =
+      storedValues && typeof storedValues === "object" && !Array.isArray(storedValues)
+        ? { ...storedValues }
+        : {};
+    // Stored values are untyped (settings.values); keep each known field only
+    // when it has the documented type, otherwise use the default.
+    const text = (key: string, fallback: string): string => {
+      const value = stored[key];
+      return typeof value === "string" ? value : fallback;
+    };
+    const flag = (key: string, fallback: boolean): boolean => {
+      const value = stored[key];
+      return typeof value === "boolean" ? value : fallback;
+    };
 
     return {
-      ...SUPPORT_WIDGET_DEFAULTS,
-      ...WIDGET_DISPLAY_DEFAULTS,
-      ...stored,
+      enabled: flag("enabled", SUPPORT_WIDGET_DEFAULTS.enabled),
+      widgetTitle: text("widgetTitle", SUPPORT_WIDGET_DEFAULTS.widgetTitle),
+      widgetSubtitle: text("widgetSubtitle", SUPPORT_WIDGET_DEFAULTS.widgetSubtitle),
+      widgetColor: text("widgetColor", SUPPORT_WIDGET_DEFAULTS.widgetColor),
       showKbSearch:
-        knowledgeBaseEnabled && (stored.showKbSearch ?? SUPPORT_WIDGET_DEFAULTS.showKbSearch) !== false,
+        knowledgeBaseEnabled && stored.showKbSearch !== false,
+      showTicketHistory: flag("showTicketHistory", SUPPORT_WIDGET_DEFAULTS.showTicketHistory),
+      aiEnabled: flag("aiEnabled", SUPPORT_WIDGET_DEFAULTS.aiEnabled),
+      escalationButtonLabel: text("escalationButtonLabel", SUPPORT_WIDGET_DEFAULTS.escalationButtonLabel),
+      position: text("position", WIDGET_DISPLAY_DEFAULTS.position),
+      greeting: text("greeting", WIDGET_DISPLAY_DEFAULTS.greeting),
     };
   },
 });

@@ -10,7 +10,8 @@ import { requireCommerceDigitalEnabled } from "../commerce/helpers";
 import { isPluginEnabled } from "../helpers/plugins";
 
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
+import { commerceDigitalDocs } from "../schema/commerceDigital.docs.generated";
 type OrderDownload = Doc<"commerce_download_tokens"> & { file: Doc<"commerce_digital_files"> | null };
 type CustomerDownload = OrderDownload & { product: Doc<"commerce_products"> | null; order: Doc<"commerce_orders"> | null; isExpired: boolean; isLimitReached: boolean };
 type OrderLicense = Doc<"commerce_license_keys"> & { product: Doc<"commerce_products"> | null; variant: Doc<"commerce_product_variants"> | null; activeActivations: number };
@@ -31,7 +32,7 @@ export const getFilesByProduct: RegisteredQuery<"public", { productId: Id<"comme
     variantId: v.optional(v.id("commerce_product_variants")),
     includeAllVersions: v.optional(v.boolean()),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_digital_files)),
+  returns: v.union(v.null(), v.array(commerceDigitalDocs.commerce_digital_files)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
@@ -61,7 +62,7 @@ export const getFilesByProduct: RegisteredQuery<"public", { productId: Id<"comme
  */
 export const getFile: RegisteredQuery<"public", { fileId: Id<"commerce_digital_files"> }, Doc<"commerce_digital_files"> | null> = query({
   args: { fileId: v.id("commerce_digital_files") },
-  returns: v.union(v.null(), tableDocs.commerce_digital_files),
+  returns: v.union(v.null(), commerceDigitalDocs.commerce_digital_files),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
@@ -122,7 +123,7 @@ export const validateDownloadToken: RegisteredQuery<"public", { token: string },
 export const getDownloadTokensByOrder: RegisteredQuery<"public", { orderId: Id<"commerce_orders"> }, OrderDownload[] | null> = query({
   args: { orderId: v.id("commerce_orders") },
   returns: v.union(v.null(), v.array(v.object({
-    file: v.union(v.null(), tableDocs.commerce_digital_files),
+    file: v.union(v.null(), commerceDigitalDocs.commerce_digital_files),
     _id: v.id("commerce_download_tokens"),
     _creationTime: v.number(),
     userId: v.optional(v.id("users")),
@@ -167,9 +168,9 @@ export const getDownloadTokensByOrder: RegisteredQuery<"public", { orderId: Id<"
 export const getMyDownloads: RegisteredQuery<"public", Record<string, never>, CustomerDownload[] | null> = query({
   args: {},
   returns: v.union(v.null(), v.array(v.object({
-    file: v.union(v.null(), tableDocs.commerce_digital_files),
-    product: v.union(v.null(), tableDocs.commerce_products),
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    file: v.union(v.null(), commerceDigitalDocs.commerce_digital_files),
+    product: v.union(v.null(), commerceDocs.commerce_products),
+    order: v.union(v.null(), commerceDocs.commerce_orders),
     isExpired: v.boolean(),
     isLimitReached: v.boolean(),
     _id: v.id("commerce_download_tokens"),
@@ -229,7 +230,7 @@ export const getMyDownloads: RegisteredQuery<"public", Record<string, never>, Cu
  */
 export const getDownloadHistory: RegisteredQuery<"public", { tokenId: Id<"commerce_download_tokens"> }, Doc<"commerce_download_log">[] | null> = query({
   args: { tokenId: v.id("commerce_download_tokens") },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_download_log)),
+  returns: v.union(v.null(), v.array(commerceDigitalDocs.commerce_download_log)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
@@ -253,8 +254,8 @@ export const getDownloadHistory: RegisteredQuery<"public", { tokenId: Id<"commer
 export const getLicenseKeysByOrder: RegisteredQuery<"public", { orderId: Id<"commerce_orders"> }, OrderLicense[] | null> = query({
   args: { orderId: v.id("commerce_orders") },
   returns: v.union(v.null(), v.array(v.object({
-    product: v.union(v.null(), tableDocs.commerce_products),
-    variant: v.union(v.null(), tableDocs.commerce_product_variants),
+    product: v.union(v.null(), commerceDocs.commerce_products),
+    variant: v.union(v.null(), commerceDocs.commerce_product_variants),
     activeActivations: v.number(),
     _id: v.id("commerce_license_keys"),
     _creationTime: v.number(),
@@ -315,7 +316,7 @@ export const getLicenseKeysByOrder: RegisteredQuery<"public", { orderId: Id<"com
 export const getMyLicenseKeys: RegisteredQuery<"public", Record<string, never>, CustomerLicense[] | null> = query({
   args: {},
   returns: v.union(v.null(), v.array(v.object({
-    product: v.union(v.null(), tableDocs.commerce_products),
+    product: v.union(v.null(), commerceDocs.commerce_products),
     activeActivations: v.number(),
     isExpired: v.boolean(),
     _id: v.id("commerce_license_keys"),
@@ -417,7 +418,7 @@ export const listLicenseKeysByProduct: RegisteredQuery<"public", { productId: Id
     ),
     limit: v.optional(v.number()),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_license_keys)),
+  returns: v.union(v.null(), v.array(commerceDigitalDocs.commerce_license_keys)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
@@ -536,7 +537,7 @@ export const validateLicense: RegisteredQuery<"public", { licenseKey: string; de
  */
 export const getLicenseActivations: RegisteredQuery<"public", { keyId: Id<"commerce_license_keys"> }, Doc<"commerce_license_activations">[] | null> = query({
   args: { keyId: v.id("commerce_license_keys") },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_license_activations)),
+  returns: v.union(v.null(), v.array(commerceDigitalDocs.commerce_license_activations)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);

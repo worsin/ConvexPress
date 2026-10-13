@@ -18,7 +18,7 @@ import { v } from "convex/values";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { deleteWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { customFieldsDocs } from "../schema/customFields.docs.generated";
 // ─── Cleanup Functions ──────────────────────────────────────────────────────
 
 /**
@@ -134,7 +134,7 @@ export const getGroupsForEntityType = internalQuery({
   args: {
     entityType: v.string(),
   },
-  returns: v.union(v.null(), v.array(tableDocs.fieldGroups)),
+  returns: v.union(v.null(), v.array(customFieldsDocs.fieldGroups)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // Fetch all active groups
@@ -172,7 +172,7 @@ export const getFieldDefinitionByKey = internalQuery({
   args: {
     fieldKey: v.string(),
   },
-  returns: v.union(v.null(), tableDocs.fieldDefinitions),
+  returns: v.union(v.null(), customFieldsDocs.fieldDefinitions),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const field = await ctx.db
@@ -194,7 +194,7 @@ export const getFieldDefinitionsForGroup = internalQuery({
   args: {
     groupId: v.id("fieldGroups"),
   },
-  returns: v.union(v.null(), v.array(tableDocs.fieldDefinitions)),
+  returns: v.union(v.null(), v.array(customFieldsDocs.fieldDefinitions)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const fields = await ctx.db

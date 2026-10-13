@@ -46,6 +46,7 @@ import {
 } from "./helpers";
 import { checkMediaCapability, getUserRoleLevel } from "./mediaAuth";
 import { prepareMediaDeletion, applyMediaDeletionPreflight, preflightReplacedSizeBlob } from "./deletion";
+import type { MediaReference } from "./references";
 
 import { v } from "convex/values";
 // ─── Default allowed MIME types ──────────────────────────────────────────────
@@ -762,11 +763,28 @@ export const generateUploadUrl = mutation({
  */
 export const bulkDelete = mutation({
   args: bulkDeleteArgs,
+  returns: v.object({
+    trashed: v.number(),
+    errors: v.array(v.object({
+      mediaId: v.string(),
+      error: v.string(),
+      references: v.optional(v.array(v.object({
+        table: v.string(),
+        documentId: v.string(),
+        field: v.string(),
+        path: v.string(),
+        mediaId: v.id("media"),
+        opaque: v.boolean(),
+        label: v.optional(v.string()),
+        arrayIndex: v.optional(v.number()),
+      }))),
+    })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
     if (!args.mediaIds.length || args.mediaIds.length > 100) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Delete between 1 and 100 items at once" });
     if (await getUserRoleLevel(ctx, user) < 80) throw new ConvexError({ code: "FORBIDDEN", message: "Bulk delete requires Editor or Administrator role" });
-    const errors: Array<{ mediaId: string; error: string; references?: unknown }> = [];
+    const errors: Array<{ mediaId: string; error: string; references?: MediaReference[] }> = [];
     const documents = [];
     let trashed = 0;
     for (const mediaId of new Set(args.mediaIds)) {
@@ -858,11 +876,28 @@ export const bulkRestore = mutation({
 
 export const bulkPermanentlyDelete = mutation({
   args: bulkDeleteArgs,
+  returns: v.object({
+    deleted: v.number(),
+    errors: v.array(v.object({
+      mediaId: v.string(),
+      error: v.string(),
+      references: v.optional(v.array(v.object({
+        table: v.string(),
+        documentId: v.string(),
+        field: v.string(),
+        path: v.string(),
+        mediaId: v.id("media"),
+        opaque: v.boolean(),
+        label: v.optional(v.string()),
+        arrayIndex: v.optional(v.number()),
+      }))),
+    })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
     if (!args.mediaIds.length || args.mediaIds.length > 100) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Delete between 1 and 100 items at once" });
     if (await getUserRoleLevel(ctx, user) < 80) throw new ConvexError({ code: "FORBIDDEN", message: "Bulk delete requires Editor or Administrator role" });
-    const errors: Array<{ mediaId: string; error: string; references?: unknown }> = [];
+    const errors: Array<{ mediaId: string; error: string; references?: MediaReference[] }> = [];
     const documents = [];
     let deleted = 0;
     for (const mediaId of new Set(args.mediaIds)) {

@@ -12,6 +12,8 @@ import { deleteWithMediaReferences, patchWithMediaReferences , deleteDynamicWith
 import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import { requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
@@ -33,20 +35,6 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
-const COURSE_URL_FIELDS = new Set([
-  "promoVideoUrl",
-  "externalButtonUrl",
-  "completionRedirectUrl",
-]);
-
-const NON_NEGATIVE_NUMBER_FIELDS = new Set(["price", "recurringPrice", "trialPrice"]);
-const NON_NEGATIVE_INT_FIELDS = new Set([
-  "trialDays",
-  "pointsAwarded",
-  "pointsRequired",
-  "accessDurationDays",
-  "seatLimit",
-]);
 
 export const create = mutation({
   args: createCourseArgs,
@@ -96,22 +84,39 @@ export const update = mutation({
     const { courseId, ...rest } = args;
     const { course } = await requireCourseAuthorOrEditor(ctx, courseId, "lms.course.edit");
 
-    const patch: Record<string, unknown> = { updatedAt: Date.now() };
-    for (const [key, value] of Object.entries(rest)) {
-      if (value === undefined) continue;
-      if (key === "title" || key === "slug") continue;
-      if (COURSE_URL_FIELDS.has(key)) {
-        patch[key] = normalizeCourseUrl(value);
-      } else if (NON_NEGATIVE_NUMBER_FIELDS.has(key)) {
-        patch[key] = normalizeNonNegativeNumber(value);
-      } else if (NON_NEGATIVE_INT_FIELDS.has(key)) {
-        patch[key] = normalizeNonNegativeInt(value);
-      } else if (key === "billingInterval") {
-        patch[key] = normalizePositiveInt(value);
-      } else {
-        patch[key] = value;
-      }
+    const patch: Partial<WithoutSystemFields<Doc<"lms_courses">>> = { updatedAt: Date.now() };
+    // Stored as given.
+    if (rest.descriptionDoc !== undefined) patch.descriptionDoc = rest.descriptionDoc;
+    if (rest.excerpt !== undefined) patch.excerpt = rest.excerpt;
+    if (rest.featuredImageId !== undefined) patch.featuredImageId = rest.featuredImageId;
+    if (rest.accessMode !== undefined) patch.accessMode = rest.accessMode;
+    if (rest.billingUnit !== undefined) patch.billingUnit = rest.billingUnit;
+    if (rest.progressionMode !== undefined) patch.progressionMode = rest.progressionMode;
+    if (rest.prereqMode !== undefined) patch.prereqMode = rest.prereqMode;
+    if (rest.startDate !== undefined) patch.startDate = rest.startDate;
+    if (rest.endDate !== undefined) patch.endDate = rest.endDate;
+    if (rest.contentVisibility !== undefined) patch.contentVisibility = rest.contentVisibility;
+    if (rest.certificateId !== undefined) patch.certificateId = rest.certificateId;
+    if (rest.materialsDoc !== undefined) patch.materialsDoc = rest.materialsDoc;
+    // Site-relative or http(s) URLs only.
+    if (rest.promoVideoUrl !== undefined) patch.promoVideoUrl = normalizeCourseUrl(rest.promoVideoUrl);
+    if (rest.externalButtonUrl !== undefined) patch.externalButtonUrl = normalizeCourseUrl(rest.externalButtonUrl);
+    if (rest.completionRedirectUrl !== undefined) {
+      patch.completionRedirectUrl = normalizeCourseUrl(rest.completionRedirectUrl);
     }
+    // Non-negative amounts.
+    if (rest.price !== undefined) patch.price = normalizeNonNegativeNumber(rest.price);
+    if (rest.recurringPrice !== undefined) patch.recurringPrice = normalizeNonNegativeNumber(rest.recurringPrice);
+    if (rest.trialPrice !== undefined) patch.trialPrice = normalizeNonNegativeNumber(rest.trialPrice);
+    // Non-negative whole numbers.
+    if (rest.trialDays !== undefined) patch.trialDays = normalizeNonNegativeInt(rest.trialDays);
+    if (rest.pointsAwarded !== undefined) patch.pointsAwarded = normalizeNonNegativeInt(rest.pointsAwarded);
+    if (rest.pointsRequired !== undefined) patch.pointsRequired = normalizeNonNegativeInt(rest.pointsRequired);
+    if (rest.accessDurationDays !== undefined) {
+      patch.accessDurationDays = normalizeNonNegativeInt(rest.accessDurationDays);
+    }
+    if (rest.seatLimit !== undefined) patch.seatLimit = normalizeNonNegativeInt(rest.seatLimit);
+    if (rest.billingInterval !== undefined) patch.billingInterval = normalizePositiveInt(rest.billingInterval);
     if (typeof rest.title === "string") {
       const title = rest.title.trim();
       if (!title) {
@@ -144,7 +149,7 @@ export const update = mutation({
       patch.tagIds = normalizeCourseLabels(rest.tagIds);
     }
 
-    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", courseId, patch as never);
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", courseId, patch);
     await upsertCourseSearchIndex(ctx, courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_UPDATED, SYSTEM.LMS, { courseId });
     return courseId;
@@ -249,14 +254,14 @@ export const remove = mutation({
     ] as const) {
       const rows = await ctx.db
         .query(table)
-        .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
+        .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
         .collect();
       for (const row of rows) await deleteDynamicWithMediaReferences(ctx, row._id);
     }
 
     const accessRules = await ctx.db
       .query("membership_restriction_rules")
-      .withIndex("by_resource", (q: any) =>
+      .withIndex("by_resource", (q) =>
         q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
       )
       .collect();
@@ -301,7 +306,7 @@ export const duplicate = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { user } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.create");
-    const db = ctx.db as any;
+    const db = ctx.db;
     const src = await db.get(args.courseId);
     if (!src) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
 
@@ -347,10 +352,10 @@ export const duplicate = mutation({
     // Clone the curriculum tree (topics first, then children remapped).
     const nodes = await db
       .query("lms_nodes")
-      .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
+      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
       .collect();
     const idMap = new Map<string, import("../../_generated/dataModel").Id<"lms_nodes">>();
-    for (const t of nodes.filter((n: any) => n.kind === "topic")) {
+    for (const t of nodes.filter((n) => n.kind === "topic")) {
       const nt: import("../../_generated/dataModel").Id<"lms_nodes"> = await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
         courseId: newId,
         kind: "topic",
@@ -365,7 +370,7 @@ export const duplicate = mutation({
       });
       idMap.set(String(t._id), nt);
     }
-    for (const n of nodes.filter((x: any) => x.kind !== "topic")) {
+    for (const n of nodes.filter((x) => x.kind !== "topic")) {
       await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
         courseId: newId,
         parentId: n.parentId ? idMap.get(String(n.parentId)) : undefined,
@@ -397,7 +402,7 @@ export const duplicate = mutation({
 
     const prereqs = await db
       .query("lms_course_prerequisites")
-      .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
+      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
       .collect();
     for (const prereq of prereqs) {
       await db.insert("lms_course_prerequisites", {
@@ -409,7 +414,7 @@ export const duplicate = mutation({
 
     const accessRules = await db
       .query("membership_restriction_rules")
-      .withIndex("by_resource", (q: any) =>
+      .withIndex("by_resource", (q) =>
         q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
       )
       .collect();
@@ -442,8 +447,8 @@ export const updatePrerequisites = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { course } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
-    const unique = Array.from(new Set(args.prereqCourseIds.map(String)));
-    if (unique.includes(String(args.courseId))) {
+    const unique = Array.from(new Set(args.prereqCourseIds));
+    if (unique.includes(args.courseId)) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "A course cannot be its own prerequisite.",
@@ -451,7 +456,7 @@ export const updatePrerequisites = mutation({
     }
 
     for (const id of unique) {
-      const prereq = await ctx.db.get(id as any);
+      const prereq = await ctx.db.get(id);
       if (!prereq) {
         throw new ConvexError({ code: "NOT_FOUND", message: "Prerequisite course not found" });
       }
@@ -467,7 +472,7 @@ export const updatePrerequisites = mutation({
     for (const id of unique) {
       await ctx.db.insert("lms_course_prerequisites", {
         courseId: args.courseId,
-        prereqCourseId: id as any,
+        prereqCourseId: id,
         createdAt: now,
       });
     }
@@ -498,7 +503,7 @@ export const updateAccessRule = mutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("membership_restriction_rules")
-      .withIndex("by_resource", (q: any) =>
+      .withIndex("by_resource", (q) =>
         q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
       )
       .first();

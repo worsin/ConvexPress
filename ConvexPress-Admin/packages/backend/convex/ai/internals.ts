@@ -18,7 +18,7 @@
  *     Anthropic; an unconfigured install routes through OpenRouter.
  */
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { getServiceKeyFromAction } from "../helpers/serviceKeys";
@@ -64,9 +64,7 @@ function modelKeyForTask(task: AiTask): string {
   return "defaultModel";
 }
 
-async function resolveAiSettings(ctx: {
-  runQuery: (query: any, args?: any) => Promise<any>;
-}, task: AiTask = "default") {
+async function resolveAiSettings(ctx: Pick<ActionCtx, "runQuery">, task: AiTask = "default") {
   const settings = (await ctx.runQuery(
     internal.settings.internals.getInternal,
     { section: "ai" },
@@ -123,6 +121,11 @@ export const researchTopic = internalAction({
     query: v.string(),
     maxResults: v.optional(v.number()),
   },
+  returns: v.object({
+    answer: v.string(),
+    aggregatedContent: v.string(),
+    sources: v.array(v.object({ title: v.string(), url: v.string(), content: v.string(), score: v.number() })),
+  }),
   handler: async (ctx, args) => {
     const { tavilyApiKey } = await resolveAiSettings(ctx);
 
@@ -143,7 +146,7 @@ export const researchTopic = internalAction({
       includeAnswer: true,
     });
 
-    const sources = (result.results || []).map((r: any) => ({
+    const sources = (result.results || []).map((r) => ({
       title: r.title || "Untitled",
       url: r.url,
       content: r.content || "",
@@ -151,7 +154,7 @@ export const researchTopic = internalAction({
     }));
 
     const aggregatedContent = sources
-      .map((s: any) => `### ${s.title}\nSource: ${s.url}\n\n${s.content}`)
+      .map((s) => `### ${s.title}\nSource: ${s.url}\n\n${s.content}`)
       .join("\n\n---\n\n");
 
     return {

@@ -16,10 +16,11 @@
  *   - imageModel: "gpt-image-1" (default), "dall-e-3"
  */
 
-import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { action, type ActionCtx } from "../_generated/server";
+import { api, internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { getServiceKeyFromAction } from "../helpers/serviceKeys";
+import { settingsRecord, textSetting } from "../helpers/settingsReader";
 
 type ImageAspectRatio = "square" | "landscape" | "portrait" | "wide";
 
@@ -42,19 +43,17 @@ interface ResolvedImageConfig {
   provider: "openai";
 }
 
-async function resolveImageConfig(ctx: {
-  runQuery: (query: any, args?: any) => Promise<any>;
-}): Promise<ResolvedImageConfig> {
-  const settings = (await ctx.runQuery(internal.settings.internals.getInternal, {
-    section: "ai",
-  })) as Record<string, unknown> | null;
+async function resolveImageConfig(ctx: Pick<ActionCtx, "runQuery">): Promise<ResolvedImageConfig> {
+  const settings = settingsRecord(
+    await ctx.runQuery(internal.settings.internals.getInternal, { section: "ai" }),
+  );
 
   const apiKey =
     (await getServiceKeyFromAction(ctx, "ai", "imageApiKey", "OPENAI_IMAGE_API_KEY")) ??
     (await getServiceKeyFromAction(ctx, "ai", "apiKey", "OPENAI_API_KEY")) ??
     "";
 
-  const model = (settings?.imageModel as string) || "gpt-image-1";
+  const model = textSetting(settings.imageModel, "") || "gpt-image-1";
 
   return { apiKey, model, provider: "openai" };
 }
@@ -77,7 +76,7 @@ async function generateOpenAiImage(opts: {
       size: opts.size,
       n: 1,
       response_format: "b64_json",
-    } as any);
+    });
     const first = response.data?.[0] as
       | { b64_json?: string; url?: string }
       | undefined;
@@ -177,7 +176,7 @@ export const generateImage = action({
     const mediaId: string = await ctx.runMutation(
       // The media.mutations.create is gated by "media.upload" capability.
       // The caller must have that — this action surface inherits the caller's auth.
-      (await import("../_generated/api")).api.media.mutations.create as any,
+      api.media.mutations.create,
       {
         storageId,
         fileName,
@@ -189,7 +188,7 @@ export const generateImage = action({
         description: `AI-generated image. Prompt: "${trimmedPrompt}". Model: ${config.model}.`,
         width: dims.width,
         height: dims.height,
-      } as any,
+      },
     );
 
     // ── 4. Resolve URL for the caller ────────────────────────────────────

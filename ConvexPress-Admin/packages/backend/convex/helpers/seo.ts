@@ -24,6 +24,8 @@
  *   import { resolvePostSeo, applyTemplate, buildJsonLd } from "../helpers/seo";
  */
 
+import { choiceSetting, flagSetting, readSettingsGroup, textSetting, type SettingsSpec } from "./settingsReader";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 /**
@@ -765,28 +767,112 @@ export function buildJsonLd(
 
 // ─── Utility: Parse seoSettings row value ───────────────────────────────────
 
+// Stored values are JSON written by the SEO mutations; read each field back at
+// its documented type so callers (and return validators) get exactly SeoSettings.
+const SEO_SETTINGS_SPECS: { [K in keyof SeoSettings]: SettingsSpec<SeoSettings[K]> } = {
+  titles: {
+    separator: textSetting,
+    siteTitle: textSetting,
+    tagline: textSetting,
+    homepageTitle: textSetting,
+    homepageDescription: textSetting,
+    postTitleTemplate: textSetting,
+    pageTitleTemplate: textSetting,
+    categoryTitleTemplate: textSetting,
+    tagTitleTemplate: textSetting,
+    authorTitleTemplate: textSetting,
+    searchTitleTemplate: textSetting,
+    notFoundTitleTemplate: textSetting,
+    dateArchiveTitleTemplate: textSetting,
+    postNoindex: flagSetting,
+    pageNoindex: flagSetting,
+    categoryNoindex: flagSetting,
+    tagNoindex: flagSetting,
+    authorArchiveNoindex: flagSetting,
+    dateArchiveNoindex: flagSetting,
+  },
+  social: {
+    organizationName: textSetting,
+    organizationLogo: textSetting,
+    facebookUrl: textSetting,
+    twitterUsername: textSetting,
+    instagramUrl: textSetting,
+    linkedinUrl: textSetting,
+    youtubeUrl: textSetting,
+    pinterestUrl: textSetting,
+    defaultOgImage: textSetting,
+    twitterCardType: choiceSetting(["summary", "summary_large_image"]),
+    facebookAppId: textSetting,
+  },
+  robots: {
+    customRules: textSetting,
+    siteNoindex: flagSetting,
+    blockAiBots: flagSetting,
+  },
+  schema: {
+    representType: choiceSetting(["organization", "person"]),
+    organizationName: textSetting,
+    organizationLogoUrl: textSetting,
+    personName: textSetting,
+    personImageUrl: textSetting,
+    defaultArticleType: choiceSetting(["Article", "BlogPosting", "NewsArticle", "TechArticle"]),
+    defaultPageType: choiceSetting([
+      "WebPage",
+      "AboutPage",
+      "ContactPage",
+      "FAQPage",
+      "CollectionPage",
+      "ItemPage",
+      "ProfilePage",
+      "SearchResultsPage",
+      "CheckoutPage",
+    ]),
+    sitelinksSearchBox: flagSetting,
+  },
+  breadcrumbs: {
+    enabled: flagSetting,
+    separator: textSetting,
+    homeAnchorText: textSetting,
+    showBlogPage: flagSetting,
+    boldLastItem: flagSetting,
+  },
+  verification: {
+    googleSiteVerification: textSetting,
+    bingSiteVerification: textSetting,
+    pinterestVerification: textSetting,
+    yandexVerification: textSetting,
+  },
+  advanced: {
+    stripCategoryBase: flagSetting,
+    redirectAttachmentUrls: flagSetting,
+    cleanPermalinkFragments: flagSetting,
+    nofollowExternalLinks: flagSetting,
+    openExternalLinksNewTab: flagSetting,
+  },
+};
+
 /**
- * Safely parse a JSON-encoded seoSettings value and merge with defaults.
+ * Safely parse a JSON-encoded seoSettings value for `key`, field by field over
+ * that key's defaults. Unknown fields are dropped and mistyped fields fall back
+ * to their defaults.
  *
  * @param value - JSON string from the seoSettings table
- * @param defaults - Default values to merge with
- * @returns Parsed and merged settings object
+ * @param key - Which settings group the value belongs to
+ * @returns The settings group at its exact type
  */
-export function parseSeoSettingsValue<T extends object>(
+export function parseSeoSettingsValue<K extends keyof SeoSettings>(
   value: string | undefined | null,
-  defaults: T,
-): T {
-  if (!value) return { ...defaults };
-
-  try {
-    const parsed = JSON.parse(value);
-    if (!parsed || typeof parsed !== "object") {
-      return { ...defaults };
+  key: K,
+): SeoSettings[K] {
+  let parsed: unknown = null;
+  if (value) {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      parsed = null;
     }
-    return { ...defaults, ...(parsed as Partial<T>) };
-  } catch {
-    return { ...defaults };
   }
+  return readSettingsGroup(SEO_SETTINGS_SPECS[key], DEFAULT_SEO_SETTINGS[key], parsed);
 }
 
 /**
@@ -801,13 +887,13 @@ export function parseSeoSettings(
   const rowMap = new Map(rows.map((r) => [r.key, r.value]));
 
   return {
-    titles: parseSeoSettingsValue(rowMap.get("titles"), DEFAULT_TITLE_SETTINGS),
-    social: parseSeoSettingsValue(rowMap.get("social"), DEFAULT_SOCIAL_SETTINGS),
-    robots: parseSeoSettingsValue(rowMap.get("robots"), DEFAULT_ROBOTS_SETTINGS),
-    schema: parseSeoSettingsValue(rowMap.get("schema"), DEFAULT_SCHEMA_SETTINGS),
-    breadcrumbs: parseSeoSettingsValue(rowMap.get("breadcrumbs"), DEFAULT_BREADCRUMB_SETTINGS),
-    verification: parseSeoSettingsValue(rowMap.get("verification"), DEFAULT_VERIFICATION_SETTINGS),
-    advanced: parseSeoSettingsValue(rowMap.get("advanced"), DEFAULT_ADVANCED_SETTINGS),
+    titles: parseSeoSettingsValue(rowMap.get("titles"), "titles"),
+    social: parseSeoSettingsValue(rowMap.get("social"), "social"),
+    robots: parseSeoSettingsValue(rowMap.get("robots"), "robots"),
+    schema: parseSeoSettingsValue(rowMap.get("schema"), "schema"),
+    breadcrumbs: parseSeoSettingsValue(rowMap.get("breadcrumbs"), "breadcrumbs"),
+    verification: parseSeoSettingsValue(rowMap.get("verification"), "verification"),
+    advanced: parseSeoSettingsValue(rowMap.get("advanced"), "advanced"),
   };
 }
 

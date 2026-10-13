@@ -19,11 +19,11 @@ export interface PublicRecipeList {
   recipes: PublicRecipe[]; page: number; perPage: number; total: number; totalPages: number; category: PublicRecipeCategory | null;
 }
 
-export const publicRecipeCategoryValidator: Validator<PublicRecipeCategory> = v.object({
+export const publicRecipeCategoryValidator: Validator<PublicRecipeCategory, "required", string> = v.object({
   _id: v.id("recipe_categories"), name: v.string(), slug: v.string(),
   description: v.optional(v.string()), color: v.optional(v.string()),
 });
-export const publicRecipeValidator: Validator<PublicRecipe> = v.object({
+export const publicRecipeValidator: Validator<PublicRecipe, "required", string> = v.object({
   _id: v.id("recipes"), title: v.string(), slug: v.string(),
   excerpt: v.optional(v.string()), description: v.optional(v.string()),
   featuredImageId: v.optional(v.id("media")),
@@ -33,7 +33,7 @@ export const publicRecipeValidator: Validator<PublicRecipe> = v.object({
   ingredients: v.array(v.string()), instructions: v.array(v.string()), notes: v.optional(v.string()),
   nutrition: v.optional(recipeNutritionValidator),
 });
-export const publicRecipeListValidator: Validator<PublicRecipeList> = v.object({
+export const publicRecipeListValidator: Validator<PublicRecipeList, "required", string> = v.object({
   recipes: v.array(publicRecipeValidator), page: v.number(), perPage: v.number(),
   total: v.number(), totalPages: v.number(), category: v.union(publicRecipeCategoryValidator, v.null()),
 });

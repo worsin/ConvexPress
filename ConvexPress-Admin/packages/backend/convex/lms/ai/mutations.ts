@@ -7,10 +7,11 @@ import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
-import { normalizeOutline } from "./helpers";
+import { briefField, normalizeOutline } from "./helpers";
 import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
 import { textToDoc } from "../lessons/helpers";
 
@@ -30,7 +31,7 @@ export const approveOutline = mutation({
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     const { user } = await requireCourseAuthorOrEditor(ctx, generation.courseId, "lms.ai.generate");
 
-    const outline = normalizeOutline((generation.briefJson as any)?.outline);
+    const outline = normalizeOutline(briefField(generation.briefJson, "outline"));
     const now = Date.now();
     const existingTopics = await ctx.db
       .query("lms_nodes")
@@ -107,7 +108,7 @@ export const approveOutline = mutation({
     });
     await ctx.scheduler.runAfter(
       0,
-      (internal as any).lms.ai.internalActions.generateLessonBodies,
+      internal.lms.ai.internalActions.generateLessonBodies,
       { generationId: args.generationId },
     );
     return { topicCount, lessonCount };
@@ -130,8 +131,8 @@ export const applyLessonGeneration = mutation({
     if (generation.reviewStatus === "reviewed") {
       throw new ConvexError({ code: "ALREADY_APPLIED", message: "AI draft already applied" });
     }
-    const nodeId = args.nodeId ?? (generation.targetId as any);
-    if (String(nodeId) !== generation.targetId) {
+    const nodeId = args.nodeId ?? ctx.db.normalizeId("lms_nodes", generation.targetId);
+    if (!nodeId || String(nodeId) !== generation.targetId) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "Generation does not belong to this lesson.",
@@ -148,7 +149,7 @@ export const applyLessonGeneration = mutation({
         serverUpdatedAt: node.updatedAt,
       });
     }
-    const generatedBody = String((generation.briefJson as any)?.generatedBody ?? "").trim();
+    const generatedBody = String(briefField(generation.briefJson, "generatedBody") ?? "").trim();
     if (!generatedBody) {
       throw new ConvexError({
         code: "EMPTY_GENERATION",
@@ -184,7 +185,7 @@ export const applyLessonGeneration = mutation({
   },
 });
 
-function lessonSnapshot(node: any) {
+function lessonSnapshot(node: Doc<"lms_nodes">) {
   const snapshot = {
     title: node.title,
     bodyDoc: node.bodyDoc,

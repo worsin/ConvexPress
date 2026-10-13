@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use node";
 
 /**
@@ -15,19 +14,52 @@
 
 import { ConvexError, v } from "convex/values";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import { getPayPalBaseUrl } from "./paypalMode";
 
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The stored result of an earlier run of an idempotent workflow, if it has the expected shape. */
+function replayedResult<T>(resultJson: string | undefined, read: (value: Record<string, unknown>) => T | null): T | null {
+  if (resultJson === undefined) return null;
+  const value: unknown = JSON.parse(resultJson);
+  return isRecord(value) ? read(value) : null;
+}
+
+type StripeIntentResult = { clientSecret: string | null; paymentIntentId: string; status: string };
+type StripeRefundResult = { providerRefundId: string; status: string | null };
+type ProviderRefundResult = { provider: string; providerRefundId: string; status: string };
+type SkippedRun = { skipped: true; reason: string };
+
+function readStripeIntentResult(value: Record<string, unknown>): StripeIntentResult | null {
+  const { clientSecret, paymentIntentId, status } = value;
+  if (typeof paymentIntentId !== "string" || typeof status !== "string") return null;
+  return { clientSecret: typeof clientSecret === "string" ? clientSecret : null, paymentIntentId, status };
+}
+function readStripeRefundResult(value: Record<string, unknown>): StripeRefundResult | null {
+  const { providerRefundId, status } = value;
+  if (typeof providerRefundId !== "string") return null;
+  return { providerRefundId, status: typeof status === "string" ? status : null };
+}
+function readProviderRefundResult(value: Record<string, unknown>): ProviderRefundResult | null {
+  const { provider, providerRefundId, status } = value;
+  if (typeof provider !== "string" || typeof providerRefundId !== "string" || typeof status !== "string") return null;
+  return { provider, providerRefundId, status };
+}
+
 // ─── Stripe Key Resolution ──────────────────────────────────────────────────
 
-async function getStripeSecretKey(ctx: any): Promise<string> {
+async function getStripeSecretKey(ctx: ActionCtx): Promise<string> {
   // Fetch commerce.payments settings
-  const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
-  );
+  const settings = await ctx.runQuery(internal.commerce.settingsInternals.getPaymentSettings, {});
 
   const key = await resolveServiceKeyAsync(
     settings,
@@ -72,7 +104,12 @@ export const createStripeIntent = internalAction({
     saveMethod: v.optional(v.boolean()),
     savedMethodId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  returns: v.union(v.null(), v.object({
+    clientSecret: v.union(v.null(), v.string()),
+    paymentIntentId: v.string(),
+    status: v.string(),
+  }), v.object({ skipped: v.literal(true), reason: v.string() })),
+  handler: async (ctx, args): Promise<StripeIntentResult | SkippedRun | null> => {
     const workflow = await ctx.runMutation(internal.commerce.workflows.beginInternal, {
       workflowKey: "commerce.payment_intent.create",
       idempotencyKey: String(args.transactionId),
@@ -87,17 +124,18 @@ export const createStripeIntent = internalAction({
       lockedUntil: Date.now() + 5 * 60 * 1000,
     });
     if (workflow.existing && workflow.status === "completed") {
-      return workflow.result;
+      return replayedResult(workflow.resultJson, readStripeIntentResult);
     }
     if (workflow.existing && workflow.status === "running") {
-      return { skipped: true, reason: "payment_intent_create_already_running" };
+      const skipped: SkippedRun = { skipped: true, reason: "payment_intent_create_already_running" };
+      return skipped;
     }
 
     let stripeKey: string;
     try {
       stripeKey = await getStripeSecretKey(ctx);
-    } catch (error: any) {
-      console.error("[Payments] Stripe key not configured:", error.message);
+    } catch (error) {
+      console.error("[Payments] Stripe key not configured:", errorMessage(error, ""));
       await ctx.runMutation(
         internal.commerce.payments.failPaymentCreation,
         {
@@ -109,7 +147,7 @@ export const createStripeIntent = internalAction({
         runId: workflow.runId,
         error: "Stripe is not configured.",
       });
-      return;
+      return null;
     }
 
     try {
@@ -190,7 +228,7 @@ export const createStripeIntent = internalAction({
         );
       }
 
-      const result = {
+      const result: StripeIntentResult = {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         status: paymentIntent.status,
@@ -200,20 +238,21 @@ export const createStripeIntent = internalAction({
         result,
       });
       return result;
-    } catch (error: any) {
+    } catch (error) {
       console.error("[Payments] Stripe PaymentIntent creation failed:", error);
 
       await ctx.runMutation(
         internal.commerce.payments.failPaymentCreation,
         {
           transactionId: args.transactionId,
-          error: error.message || "Failed to create payment intent",
+          error: errorMessage(error, "Failed to create payment intent"),
         },
       );
       await ctx.runMutation(internal.commerce.workflows.failInternal, {
         runId: workflow.runId,
-        error: error.message || "Failed to create payment intent",
+        error: errorMessage(error, "Failed to create payment intent"),
       });
+      return null;
     }
   },
 });
@@ -230,7 +269,8 @@ export const processStripeRefund = internalAction({
     providerTransactionId: v.string(),
     amount: v.number(),
   },
-  handler: async (ctx, args) => {
+  returns: v.union(v.null(), v.object({ skipped: v.literal(true), reason: v.string() }), v.object({ providerRefundId: v.string(), status: v.union(v.null(), v.string()) })),
+  handler: async (ctx, args): Promise<StripeRefundResult | SkippedRun | null> => {
     const workflow = await ctx.runMutation(internal.commerce.workflows.beginInternal, {
       workflowKey: "commerce.refund.create",
       idempotencyKey: String(args.refundId),
@@ -244,17 +284,18 @@ export const processStripeRefund = internalAction({
       lockedUntil: Date.now() + 5 * 60 * 1000,
     });
     if (workflow.existing && workflow.status === "completed") {
-      return workflow.result;
+      return replayedResult(workflow.resultJson, readStripeRefundResult);
     }
     if (workflow.existing && workflow.status === "running") {
-      return { skipped: true, reason: "refund_create_already_running" };
+      const skipped: SkippedRun = { skipped: true, reason: "refund_create_already_running" };
+      return skipped;
     }
 
     let stripeKey: string;
     try {
       stripeKey = await getStripeSecretKey(ctx);
-    } catch (error: any) {
-      console.error("[Payments] Stripe key not configured:", error.message);
+    } catch (error) {
+      console.error("[Payments] Stripe key not configured:", errorMessage(error, ""));
       await ctx.runMutation(internal.commerce.payments.completeRefund, {
         refundId: args.refundId,
         transactionId: args.transactionId,
@@ -267,7 +308,7 @@ export const processStripeRefund = internalAction({
         runId: workflow.runId,
         error: "Stripe is not configured.",
       });
-      return;
+      return null;
     }
 
     try {
@@ -292,13 +333,13 @@ export const processStripeRefund = internalAction({
             ? `Refund status: ${refund.status}`
             : undefined,
       });
-      const result = { providerRefundId: refund.id, status: refund.status };
+      const result: StripeRefundResult = { providerRefundId: refund.id, status: refund.status };
       await ctx.runMutation(internal.commerce.workflows.completeInternal, {
         runId: workflow.runId,
         result,
       });
       return result;
-    } catch (error: any) {
+    } catch (error) {
       console.error("[Payments] Stripe refund failed:", error);
       await ctx.runMutation(internal.commerce.payments.completeRefund, {
         refundId: args.refundId,
@@ -306,27 +347,25 @@ export const processStripeRefund = internalAction({
         providerRefundId: "",
         amount: args.amount,
         success: false,
-        error: error.message || "Failed to process refund",
+        error: errorMessage(error, "Failed to process refund"),
       });
       await ctx.runMutation(internal.commerce.workflows.failInternal, {
         runId: workflow.runId,
-        error: error.message || "Failed to process refund",
+        error: errorMessage(error, "Failed to process refund"),
       });
+      return null;
     }
   },
 });
 
 // ─── PayPal Key Resolution ────────────────────────────────────────────────
 
-async function getPayPalCredentials(ctx: any): Promise<{
+async function getPayPalCredentials(ctx: ActionCtx): Promise<{
   clientId: string;
   clientSecret: string;
   mode: string;
 }> {
-  const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
-  );
+  const settings = await ctx.runQuery(internal.commerce.settingsInternals.getPaymentSettings, {});
 
   const clientId = await resolveServiceKeyAsync(
     settings,
@@ -402,8 +441,8 @@ export const createPayPalOrderAction = internalAction({
     let credentials: { clientId: string; clientSecret: string; mode: string };
     try {
       credentials = await getPayPalCredentials(ctx);
-    } catch (error: any) {
-      console.error("[Payments] PayPal not configured:", error.message);
+    } catch (error) {
+      console.error("[Payments] PayPal not configured:", errorMessage(error, ""));
       await ctx.runMutation(
         internal.commerce.payments.failPaymentCreation,
         {
@@ -426,12 +465,8 @@ export const createPayPalOrderAction = internalAction({
       const amountInDollars = (args.amount / 100).toFixed(2);
 
       // Read site URL for return/cancel URLs
-      const siteSettings = await ctx.runQuery(
-        internal.settings.httpInternals.getBySectionInternal,
-        { section: "general" },
-      );
       const siteUrl =
-        (siteSettings as Record<string, unknown> | null)?.siteUrl ||
+        (await ctx.runQuery(internal.commerce.settingsInternals.getSiteUrl, {})) ||
         process.env.SITE_URL ||
         "";
 
@@ -488,13 +523,13 @@ export const createPayPalOrderAction = internalAction({
       } else {
         throw new Error(order.message || "Failed to create PayPal order");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("[Payments] PayPal order creation failed:", error);
       await ctx.runMutation(
         internal.commerce.payments.failPaymentCreation,
         {
           transactionId: args.transactionId,
-          error: error.message || "Failed to create PayPal order",
+          error: errorMessage(error, "Failed to create PayPal order"),
         },
       );
     }
@@ -516,8 +551,8 @@ export const capturePayPalOrderAction = internalAction({
     let credentials: { clientId: string; clientSecret: string; mode: string };
     try {
       credentials = await getPayPalCredentials(ctx);
-    } catch (error: any) {
-      console.error("[Payments] PayPal not configured:", error.message);
+    } catch (error) {
+      console.error("[Payments] PayPal not configured:", errorMessage(error, ""));
       await ctx.runMutation(
         internal.commerce.payments.confirmPaymentFailure,
         {
@@ -574,14 +609,14 @@ export const capturePayPalOrderAction = internalAction({
         );
         return { status: capture.status };
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("[Payments] PayPal capture failed:", error);
       await ctx.runMutation(
         internal.commerce.payments.confirmPaymentFailure,
         {
           providerTransactionId: args.paypalOrderId,
           provider: "paypal",
-          error: error.message || "Failed to capture PayPal order",
+          error: errorMessage(error, "Failed to capture PayPal order"),
         },
       );
     }
@@ -602,7 +637,8 @@ export const processProviderRefundAction = internalAction({
     amount: v.number(),
     currencyCode: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  returns: v.union(v.null(), v.object({ skipped: v.literal(true), reason: v.string() }), v.object({ provider: v.string(), providerRefundId: v.string(), status: v.string() })),
+  handler: async (ctx, args): Promise<ProviderRefundResult | SkippedRun | null> => {
     const workflow = await ctx.runMutation(internal.commerce.workflows.beginInternal, {
       workflowKey: "commerce.refund.create",
       idempotencyKey: String(args.refundId),
@@ -618,10 +654,11 @@ export const processProviderRefundAction = internalAction({
       lockedUntil: Date.now() + 5 * 60 * 1000,
     });
     if (workflow.existing && workflow.status === "completed") {
-      return workflow.result;
+      return replayedResult(workflow.resultJson, readProviderRefundResult);
     }
     if (workflow.existing && workflow.status === "running") {
-      return { skipped: true, reason: "refund_create_already_running" };
+      const skipped: SkippedRun = { skipped: true, reason: "refund_create_already_running" };
+      return skipped;
     }
 
     try {
@@ -716,7 +753,7 @@ export const processProviderRefundAction = internalAction({
         success: ["succeeded", "completed"].includes(providerStatus),
         providerStatus,
       });
-      const result = {
+      const result: ProviderRefundResult = {
         provider: args.provider,
         providerRefundId,
         status: providerStatus,
@@ -726,7 +763,7 @@ export const processProviderRefundAction = internalAction({
         result,
       });
       return result;
-    } catch (error: any) {
+    } catch (error) {
       console.error(
         `[Payments] ${args.provider} refund processing failed:`,
         error,
@@ -737,12 +774,13 @@ export const processProviderRefundAction = internalAction({
         providerRefundId: "",
         amount: args.amount,
         success: false,
-        error: error.message || "Failed to process refund",
+        error: errorMessage(error, "Failed to process refund"),
       });
       await ctx.runMutation(internal.commerce.workflows.failInternal, {
         runId: workflow.runId,
-        error: error.message || "Failed to process refund",
+        error: errorMessage(error, "Failed to process refund"),
       });
+      return null;
     }
   },
 });
@@ -764,12 +802,12 @@ export const detachStripeMethodAction = internalAction({
       const stripe = new Stripe(stripeKey);
 
       await stripe.paymentMethods.detach(args.providerMethodId);
-    } catch (error: any) {
+    } catch (error) {
       // Don't throw — we already deleted the local record.
       // Log for audit purposes.
       console.error(
         "[Payments] Failed to detach Stripe payment method:",
-        error.message,
+        errorMessage(error, ""),
       );
     }
   },

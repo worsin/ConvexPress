@@ -62,7 +62,7 @@ import {
 } from "./crypto_helpers";
 import { lookupUserByIdentifier, currentUserCan, getCurrentUser } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { apiDocs } from "../schema/api.docs.generated";
 // ─── authenticateRequest ────────────────────────────────────────────────────
 
 /**
@@ -493,7 +493,7 @@ export const deliverWebhook = internalAction({
  */
 export const getWebhookInternal = internalQuery({
   args: { webhookId: v.id("webhooks") },
-  returns: v.union(v.null(), tableDocs.webhooks),
+  returns: v.union(v.null(), apiDocs.webhooks),
   handler: async (ctx, args) => {
     return await ctx.db.get("webhooks", args.webhookId);
   },

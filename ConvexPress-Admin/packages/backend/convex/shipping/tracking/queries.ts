@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 /**
  * Tier 4.1 — Tracking health dashboard stats.
  * Aggregates the most recent 500 tracking events to surface webhook/poll
@@ -113,15 +113,15 @@ export const getTrackingHealth = query({
 
 export const listForShipment = query({
   args: { shipmentId: v.id("commerce_shipments") },
-  returns: v.array(tableDocs.commerce_shipment_tracking_events),
+  returns: v.array(shippingDocs.commerce_shipment_tracking_events),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.tracking.view");
     const events = await ctx.db
       .query("commerce_shipment_tracking_events")
-      .withIndex("by_shipment_time", (q: any) => q.eq("shipmentId", args.shipmentId))
+      .withIndex("by_shipment_time", (q) => q.eq("shipmentId", args.shipmentId))
       .collect();
     // Sort by occurredAt descending (newest first).
-    return events.sort((a: any, b: any) => b.occurredAt - a.occurredAt);
+    return events.sort((a, b) => b.occurredAt - a.occurredAt);
   },
 });
 
@@ -132,29 +132,55 @@ export const listForShipment = query({
  */
 export const publicTracking = query({
   args: { trackingToken: v.string() },
+  returns: v.union(v.null(), v.object({
+    orderNumber: v.string(),
+    status: v.union(v.literal("pending"), v.literal("failed"), v.literal("processing"), v.literal("completed"), v.literal("cancelled"), v.literal("paid"), v.literal("refunded"), v.literal("fulfilled")),
+    fulfillmentStatus: v.string(),
+    shipments: v.array(v.object({
+      shipmentId: v.id("commerce_shipments"),
+      trackingNumber: v.optional(v.string()),
+      carrier: v.optional(v.string()),
+      events: v.array(v.object({
+        occurredAt: v.number(),
+        normalizedStatus: v.union(v.literal("pending"), v.literal("delivered"), v.literal("returned"), v.literal("picked_up"), v.literal("in_transit"), v.literal("out_for_delivery"), v.literal("exception")),
+        carrierStatus: v.optional(v.string()),
+        description: v.optional(v.string()),
+        location: v.optional(v.string()),
+      })),
+    })),
+  })),
   handler: async (ctx, args) => {
     const order = await ctx.db
       .query("commerce_orders")
-      .withIndex("by_trackingToken", (q: any) => q.eq("trackingToken", args.trackingToken))
+      .withIndex("by_trackingToken", (q) => q.eq("trackingToken", args.trackingToken))
       .unique();
     if (!order) return null;
 
     const shipments = await ctx.db
       .query("commerce_shipments")
-      .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
       .collect();
 
-    const timeline: any[] = [];
+    const timeline = [];
     for (const shipment of shipments) {
       const events = await ctx.db
         .query("commerce_shipment_tracking_events")
-        .withIndex("by_shipment_time", (q: any) => q.eq("shipmentId", shipment._id))
+        .withIndex("by_shipment_time", (q) => q.eq("shipmentId", shipment._id))
         .collect();
       timeline.push({
         shipmentId: shipment._id,
         trackingNumber: shipment.trackingNumber,
         carrier: shipment.carrier,
-        events: events.sort((a: any, b: any) => b.occurredAt - a.occurredAt),
+        // Public page: the scan history only, never the carrier's raw payload.
+        events: events
+          .sort((a, b) => b.occurredAt - a.occurredAt)
+          .map((event) => ({
+            occurredAt: event.occurredAt,
+            normalizedStatus: event.normalizedStatus,
+            carrierStatus: event.carrierStatus,
+            description: event.description,
+            location: event.location,
+          })),
       });
     }
 

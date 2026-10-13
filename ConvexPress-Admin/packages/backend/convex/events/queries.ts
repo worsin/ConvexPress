@@ -30,7 +30,7 @@ import {
 } from "./validators";
 import { matchesEventCode } from "./constants";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { eventsDocs } from "../schema/events.docs.generated";
 // ─── List Events ───────────────────────────────────────────────────────────
 
 /**
@@ -57,7 +57,7 @@ import { tableDocs } from "../schema/tableDocs.generated";
 export const list = query({
   args: listEventsArgs,
   returns: v.object({
-    events: v.array(tableDocs.events),
+    events: v.array(eventsDocs.events),
     total: v.number(),
     page: v.number(),
     perPage: v.number(),
@@ -349,7 +349,7 @@ export const countByCode = query({
  */
 export const listListeners = query({
   args: listListenersArgs,
-  returns: v.array(tableDocs.eventListeners),
+  returns: v.array(eventsDocs.eventListeners),
   handler: async (ctx, args) => {
     try {
       await requireCan(ctx, "audit.view");

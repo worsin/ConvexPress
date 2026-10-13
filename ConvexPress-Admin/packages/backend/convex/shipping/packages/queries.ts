@@ -4,19 +4,19 @@ import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 import { packageSourceValidator } from "./validators";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 export const list = query({
   args: {
     source: v.optional(packageSourceValidator),
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
     includeArchived: v.optional(v.boolean()),
   },
-  returns: v.array(tableDocs.commerce_shipping_packages),
+  returns: v.array(shippingDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     const all = await ctx.db.query("commerce_shipping_packages").collect();
     return all
-      .filter((pkg: any) => {
+      .filter((pkg) => {
         if (!args.includeArchived && pkg.isArchived) return false;
         if (args.source && pkg.packageSource !== args.source) return false;
         if (
@@ -27,7 +27,7 @@ export const list = query({
         }
         return true;
       })
-      .sort((a: any, b: any) => {
+      .sort((a, b) => {
         const aOrder = a.sortOrder ?? 0;
         const bOrder = b.sortOrder ?? 0;
         if (aOrder !== bOrder) return aOrder - bOrder;
@@ -38,7 +38,7 @@ export const list = query({
 
 export const get = query({
   args: { packageId: v.id("commerce_shipping_packages") },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     return ctx.db.get(args.packageId);
@@ -47,12 +47,12 @@ export const get = query({
 
 export const getDefault = query({
   args: { shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")) },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     const scoped = await ctx.db
       .query("commerce_shipping_packages")
-      .withIndex("by_default_scope", (q: any) =>
+      .withIndex("by_default_scope", (q) =>
         q.eq("shipFromLocationId", args.shipFromLocationId).eq("isDefault", true),
       )
       .unique();
@@ -60,7 +60,7 @@ export const getDefault = query({
     // Fallback to global default.
     return ctx.db
       .query("commerce_shipping_packages")
-      .withIndex("by_default_scope", (q: any) =>
+      .withIndex("by_default_scope", (q) =>
         q.eq("shipFromLocationId", undefined).eq("isDefault", true),
       )
       .unique();

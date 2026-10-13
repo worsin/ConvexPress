@@ -16,7 +16,7 @@ export const resolveForCartLine = internalQuery({
   handler: async (ctx, args) => {
     const product = await ctx.db.get(args.productId);
     const variant = args.variantId ? await ctx.db.get(args.variantId) : null;
-    return resolveShippingClassId(product as any, variant as any);
+    return resolveShippingClassId(product, variant);
   },
 });
 
@@ -40,7 +40,7 @@ export const resolveBatch = internalQuery({
       const key = `${line.productId}:${line.variantId ?? ""}`;
       const product = await ctx.db.get(line.productId);
       const variant = line.variantId ? await ctx.db.get(line.variantId) : null;
-      result[key] = resolveShippingClassId(product as any, variant as any);
+      result[key] = resolveShippingClassId(product, variant);
     }
     return result;
   },

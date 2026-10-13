@@ -41,7 +41,7 @@ import {
 import { isPluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { customFieldsDocs } from "../schema/customFields.docs.generated";
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 /**
@@ -141,7 +141,7 @@ export const listGroups = query({
  */
 export const getGroup = query({
   args: getGroupArgs,
-  returns: v.union(v.null(), tableDocs.fieldGroups),
+  returns: v.union(v.null(), customFieldsDocs.fieldGroups),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
@@ -172,7 +172,7 @@ export const getGroup = query({
  */
 export const getFieldsByGroup = query({
   args: getFieldsByGroupArgs,
-  returns: v.union(v.null(), v.array(tableDocs.fieldDefinitions)),
+  returns: v.union(v.null(), v.array(customFieldsDocs.fieldDefinitions)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
@@ -200,7 +200,7 @@ export const getFieldsByGroup = query({
 export const getGroupsForContext = query({
   args: getGroupsForContextArgs,
   returns: v.union(v.null(), v.array(v.object({
-    fields: v.array(tableDocs.fieldDefinitions),
+    fields: v.array(customFieldsDocs.fieldDefinitions),
     _id: v.id("fieldGroups"),
     _creationTime: v.number(),
     description: v.optional(v.string()),
@@ -394,7 +394,7 @@ export const getAllValues = query({
  */
 export const getFieldWithValue: RegisteredQuery<"public", { entityType: string; entityId: string; fieldName: string }, { definition: Doc<"fieldDefinitions">; value: string | null } | null> = query({
   args: getFieldWithValueArgs,
-  returns: v.union(v.null(), v.object({ definition: tableDocs.fieldDefinitions, value: v.union(v.null(), v.string()) })),
+  returns: v.union(v.null(), v.object({ definition: customFieldsDocs.fieldDefinitions, value: v.union(v.null(), v.string()) })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
@@ -433,7 +433,7 @@ export const getFieldWithValue: RegisteredQuery<"public", { entityType: string; 
  */
 export const searchGroups = query({
   args: searchGroupsArgs,
-  returns: v.union(v.null(), v.array(tableDocs.fieldGroups)),
+  returns: v.union(v.null(), v.array(customFieldsDocs.fieldGroups)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);

@@ -1,8 +1,3 @@
-// @ts-nocheck
-// Note: @ts-nocheck is retained for the same reason as queries.ts — the
-// generic Convex `db.query(table)` typing instantiates too deeply across
-// our full schema (TS 2589). Once Convex tightens those generics we can
-// remove this pragma. Logic here is still reviewed.
 /**
  * Commerce Returns — Mutations
  *
@@ -938,7 +933,8 @@ export const processRefund = mutation({
         updatedAt: now,
       });
 
-      if (isOriginalPayment && canAutoRefundToOriginalPayment) {
+      const providerTransactionId = succeededTxn.providerTransactionId;
+      if (isOriginalPayment && canAutoRefundToOriginalPayment && providerTransactionId) {
         await ctx.scheduler.runAfter(
           0,
           internal.commerce.paymentActions.processProviderRefundAction,
@@ -946,7 +942,7 @@ export const processRefund = mutation({
             refundId,
             transactionId: succeededTxn._id,
             provider: succeededTxn.provider,
-            providerTransactionId: succeededTxn.providerTransactionId,
+            providerTransactionId,
             amount: effectiveRefundAmount,
             currencyCode: succeededTxn.amount.currencyCode,
           },
@@ -1169,9 +1165,10 @@ export const completeReturn = mutation({
           });
         }
         // Also restore bundle-level stock if tracked
-        const bundleId = orderItem.metadata.bundleId;
+        const rawBundleId: unknown = orderItem.metadata?.bundleId;
+        const bundleId = typeof rawBundleId === "string" ? ctx.db.normalizeId("commerce_bundles", rawBundleId) : null;
         if (bundleId) {
-          const bundle = await ctx.db.get(bundleId);
+          const bundle = await ctx.db.get("commerce_bundles", bundleId);
           if (bundle?.trackInventory && typeof bundle.stockCount === "number") {
             await patchDynamicWithMediaReferences(ctx, bundleId, {
               stockCount: bundle.stockCount + orderItem.quantity,

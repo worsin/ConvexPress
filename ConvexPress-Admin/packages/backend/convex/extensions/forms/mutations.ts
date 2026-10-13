@@ -2,7 +2,7 @@ import { sha256Hex } from "../../canonicalDocuments/foundation/shared/fingerprin
 import { generateConfirmationToken, CONFIRMATION_RECEIPT_TTL_MS } from "./tokens";
 import { contactSourceAllowed } from "../../canonicalDocuments/contactSource";
 import { initializeEmptyFormCount, insertCountedFormSubmission, patchCountedFormSubmission, readCompletedFormCount } from "../../helpers/formSubmissionCounts";
-import type { MutationCtx } from "../../_generated/server";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 /**
  * ConvexPress Forms — mutations (v2 Layer 3, write layer)
  * API path: api.extensions.forms.mutations.*
@@ -83,7 +83,7 @@ import {
   remapFieldReferences,
 } from "./builderCore";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { formsExtensionDocs } from "./schema.docs.generated";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 const formStatus = v.union(
@@ -115,7 +115,7 @@ function formCap(cap: string): Capability {
  * direct-insert path (no dependency on the closed notification-key registry).
  */
 async function seedDefaultNotifications(
-  ctx: { db: { insert: any } },
+  ctx: { db: MutationCtx["db"] },
   formId: Id<"forms">,
 ): Promise<void> {
   const rows: Array<{
@@ -278,13 +278,13 @@ async function assertFormAcceptsSubmission(
 
 /** Throw if a slug is already taken by another form. */
 async function assertSlugAvailable(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   slug: string,
   exceptId?: Id<"forms">,
 ): Promise<void> {
   const existing = await ctx.db
     .query("forms")
-    .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
     .first();
   if (existing && existing._id !== exceptId) {
     throw new ConvexError({
@@ -301,7 +301,7 @@ async function assertSlugAvailable(
  * The slug index makes each check a point lookup, and the loop is bounded (<100).
  */
 async function deriveCopySlug(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   baseSlug: string,
 ): Promise<string> {
   // Memoize per-candidate lookups so the sync predicate `nextCopySlug` expects
@@ -313,7 +313,7 @@ async function deriveCopySlug(
     if (cached !== undefined) return cached;
     const row = await ctx.db
       .query("forms")
-      .withIndex("by_slug", (q: any) => q.eq("slug", candidate))
+      .withIndex("by_slug", (q) => q.eq("slug", candidate))
       .first();
     const taken = row != null;
     takenCache.set(candidate, taken);
@@ -380,7 +380,7 @@ function assertCalcDefinitionsValid(calcDefs: CalcFieldDef[]): void {
  * `honeypot`, etc.) do not count as respondent answers.
  */
 async function assertPublishableForm(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   fieldGroupId: Id<"fieldGroups"> | undefined,
 ): Promise<void> {
   if (!fieldGroupId) {
@@ -392,7 +392,7 @@ async function assertPublishableForm(
 
   const fieldDefs = await ctx.db
     .query("fieldDefinitions")
-    .withIndex("by_group", (q: any) => q.eq("groupId", fieldGroupId))
+    .withIndex("by_group", (q) => q.eq("groupId", fieldGroupId))
     .collect();
 
   const hasValueField = fieldDefs.some(
@@ -405,7 +405,7 @@ async function assertPublishableForm(
     });
   }
 
-  const calcDefs = fieldDefs as unknown as CalcFieldDef[];
+  const calcDefs: CalcFieldDef[] = fieldDefs;
   assertCalcDefinitionsValid(calcDefs);
 }
 
@@ -493,7 +493,8 @@ async function prepareEntryValueEdits(
   if (editMap.size === 0) return { changed: false };
 
   const form = await ctx.db.get(submission.formId);
-  if (!form?.fieldGroupId) {
+  const formFieldGroupId = form?.fieldGroupId;
+  if (!formFieldGroupId) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "This form has no editable field group.",
@@ -502,14 +503,14 @@ async function prepareEntryValueEdits(
 
   const fieldDefs = await ctx.db
     .query("fieldDefinitions")
-    .withIndex("by_group", (q: any) => q.eq("groupId", form.fieldGroupId))
+    .withIndex("by_group", (q) => q.eq("groupId", formFieldGroupId))
     .collect();
   const fieldByKey = new Map<string, (typeof fieldDefs)[number]>();
   for (const field of fieldDefs) fieldByKey.set(field.key, field);
 
   const currentRows = await ctx.db
     .query("fieldValues")
-    .withIndex("by_entity", (q: any) =>
+    .withIndex("by_entity", (q) =>
       q
         .eq("entityType", "form_submission")
         .eq("entityId", submission._id as string),
@@ -582,7 +583,7 @@ async function prepareEntryValueEdits(
   }
 
   const calcResult = recomputeAuthoritative(
-    fieldDefs as unknown as CalcFieldDef[],
+    fieldDefs,
     valueMap,
     repeaters,
   );
@@ -640,7 +641,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     settings: v.optional(v.string()),
   },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.create"));
     await requirePluginEnabled(ctx, "forms");
@@ -729,7 +730,7 @@ export const update = mutation({
     settings: v.optional(v.string()),
     status: v.optional(formStatus),
   },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.update"));
     await requirePluginEnabled(ctx, "forms");
@@ -821,7 +822,7 @@ export const update = mutation({
  */
 export const publish = mutation({
   args: { id: v.id("forms") },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.update"));
     await requirePluginEnabled(ctx, "forms");
@@ -859,7 +860,7 @@ export const publish = mutation({
  */
 export const unpublish = mutation({
   args: { id: v.id("forms") },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.update"));
     await requirePluginEnabled(ctx, "forms");
@@ -925,7 +926,7 @@ export const remove = mutation({
  */
 export const duplicate = mutation({
   args: { id: v.id("forms") },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.duplicate"));
     await requirePluginEnabled(ctx, "forms");
@@ -961,7 +962,7 @@ export const duplicate = mutation({
 
         const fields = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group", (q: any) => q.eq("groupId", sourceGroupId))
+          .withIndex("by_group", (q) => q.eq("groupId", sourceGroupId))
           .collect();
 
         // PASS 0 — assign every copied field its NEW `key` up front and build the
@@ -973,7 +974,7 @@ export const duplicate = mutation({
         // top-level and sub-level inserts can rewrite their references.
         const keyMap = new Map<string, string>();
         const newKeyById = new Map<string, string>();
-        for (const field of fields as any[]) {
+        for (const field of fields) {
           const newKey = `field_${field.name}_${Math.random()
             .toString(36)
             .slice(2, 8)}`;
@@ -983,8 +984,8 @@ export const duplicate = mutation({
 
         // Two-pass copy so parentFieldId references resolve to the new IDs.
         const idMap = new Map<string, Id<"fieldDefinitions">>();
-        const topLevel = fields.filter((f: any) => !f.parentFieldId);
-        const subLevel = fields.filter((f: any) => f.parentFieldId);
+        const topLevel = fields.filter((f) => !f.parentFieldId);
+        const subLevel = fields.filter((f) => f.parentFieldId);
 
         for (const field of topLevel) {
           // Rewrite sibling-key references onto the new keys (the bug fix).
@@ -1114,7 +1115,7 @@ type SubmitArgs = {
 };
 
 async function submitForm(
-  ctx: any,
+  ctx: MutationCtx,
   args: SubmitArgs,
   options: { captchaVerified?: boolean } = {},
 ) {
@@ -1210,7 +1211,7 @@ async function submitForm(
     const fieldDefs = formGroupId
       ? await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group", (q: any) => q.eq("groupId", formGroupId))
+          .withIndex("by_group", (q) => q.eq("groupId", formGroupId))
           .collect()
       : [];
 
@@ -1230,7 +1231,7 @@ async function submitForm(
     // trusted to tell us which fields were visible. `fieldDefs` (Convex Docs)
     // satisfy the structural LogicFieldDef shape the engine reads.
     type FieldDef = (typeof fieldDefs)[number];
-    const logicDefs = fieldDefs as unknown as LogicFieldDef[];
+    const logicDefs: LogicFieldDef[] = fieldDefs;
     const visibility = recomputeVisibility(logicDefs, valueMap);
     const visibleDefs: FieldDef[] = fieldDefs.filter((def: FieldDef) =>
       visibility.visibleFieldKeys.has(def.key),
@@ -1240,7 +1241,9 @@ async function submitForm(
     // required) AND a structural zod gate; BOTH must pass. The engine returns
     // fieldKey -> message; we re-attach `label` from the def to preserve the
     // existing wire contract `errors: [{ fieldKey, label, error }]`.
-    const labelByKey = new Map(fieldDefs.map((d: FieldDef) => [d.key, d.label]));
+    const labelByKey = new Map<string, string>(
+      fieldDefs.map((d: FieldDef): [string, string] => [d.key, d.label]),
+    );
     const validationDefs = isComplete
       ? logicDefs
       : relaxRequiredForDrafts(logicDefs);
@@ -1287,7 +1290,7 @@ async function submitForm(
     // any computed value the client sent — a tampered `subtotal`/`lineTotal` is
     // discarded here. The pricing summary is stored once on the submission so the
     // Commerce Action + Confirmation read a single trusted object.
-    const calcDefs = visibleDefs as unknown as CalcFieldDef[];
+    const calcDefs: CalcFieldDef[] = visibleDefs;
     // Restrict the value map to VISIBLE fields so a hidden operand resolves to
     // `treatBlankAs` (PRD §8 "hidden operands are absent"). Hidden submitted
     // values never feed a formula.
@@ -1356,7 +1359,7 @@ async function submitForm(
     if (effectiveResumeToken) {
       existing = await ctx.db
         .query("form_submissions")
-        .withIndex("by_resumeToken", (q: any) =>
+        .withIndex("by_resumeToken", (q) =>
           q.eq("resumeToken", effectiveResumeToken),
         )
         .first();
@@ -1433,7 +1436,7 @@ async function submitForm(
       }
       const existingValue = await ctx.db
         .query("fieldValues")
-        .withIndex("by_entity_field", (q: any) =>
+        .withIndex("by_entity_field", (q) =>
           q
             .eq("entityType", "form_submission")
             .eq("entityId", entityId)
@@ -1510,6 +1513,12 @@ export const submitInternal = internalMutation({
 
 export const submitWithCaptcha = action({
   args: submitArgsValidator,
+  returns: v.object({
+    submissionId: v.id("form_submissions"),
+    isComplete: v.boolean(),
+    resumeToken: v.optional(v.string()),
+    confirmationToken: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "forms");
 
@@ -1519,9 +1528,8 @@ export const submitWithCaptcha = action({
         internal.extensions.forms.spam.getCaptchaPolicy,
         {},
       );
-      const captchaRequired =
-        policy.captchaEnabled && policy.captchaProvider !== "none";
-      if (captchaRequired) {
+      const captchaProvider = policy.captchaProvider;
+      if (policy.captchaEnabled && captchaProvider !== "none") {
         if (!args.captchaToken?.trim()) {
           throw new ConvexError({
             code: "REJECTED",
@@ -1531,7 +1539,7 @@ export const submitWithCaptcha = action({
         const verdict = await ctx.runAction(
           internal.extensions.forms.spam.runCaptchaVerification,
           {
-            provider: policy.captchaProvider,
+            provider: captchaProvider,
             token: args.captchaToken,
             recaptchaMinScore: policy.recaptchaMinScore,
             failClosed: policy.failClosed,
@@ -1570,7 +1578,7 @@ export const updateEntry = mutation({
       v.array(v.object({ fieldKey: v.string(), value: v.string() })),
     ),
   },
-  returns: v.union(v.null(), tableDocs.form_submissions),
+  returns: v.union(v.null(), formsExtensionDocs.form_submissions),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.edit_entry"));
     await requirePluginEnabled(ctx, "forms");
@@ -1676,7 +1684,7 @@ export const addNote = mutation({
     formId: v.optional(v.id("forms")),
     body: v.string(),
   },
-  returns: v.union(v.null(), tableDocs.form_submission_notes),
+  returns: v.union(v.null(), formsExtensionDocs.form_submission_notes),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.edit_entry"));
     await requirePluginEnabled(ctx, "forms");

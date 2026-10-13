@@ -11,7 +11,7 @@
 
 import { v } from "convex/values";
 
-import { action } from "../_generated/server";
+import { action, type ActionCtx } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { decryptSettingSecret } from "../helpers/settingsSecret";
 import { getIntegration } from "./registry";
@@ -25,16 +25,41 @@ type Outcome = {
 
 const TIMEOUT_MS = 12_000;
 
+// ─── Parsed JSON readers (provider responses are untrusted JSON) ───────────
+
+/** An own field of a parsed JSON object (undefined when absent or not an object). */
+function field(value: unknown, key: string): unknown {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? Object.getOwnPropertyDescriptor(value, key)?.value
+    : undefined;
+}
+
+function textField(value: unknown, key: string): string | undefined {
+  const fieldValue = field(value, key);
+  return typeof fieldValue === "string" ? fieldValue : undefined;
+}
+
+function listField(value: unknown, key: string): unknown[] {
+  const fieldValue = field(value, key);
+  return Array.isArray(fieldValue) ? fieldValue : [];
+}
+
+function idList(value: unknown, key: string): string[] {
+  return listField(value, key)
+    .map((entry) => textField(entry, "id"))
+    .filter((id): id is string => id !== undefined);
+}
+
 async function probe(
   url: string,
   init: RequestInit & { timeoutMs?: number } = {},
-): Promise<{ ok: boolean; status: number; json: any; text: string }> {
+): Promise<{ ok: boolean; status: number; json: unknown; text: string }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? TIMEOUT_MS);
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     const text = await response.text();
-    let json: any = null;
+    let json: unknown = null;
     try {
       json = text ? JSON.parse(text) : null;
     } catch {
@@ -47,16 +72,17 @@ async function probe(
 }
 
 /** Provider error text that is safe to show: short, no echoes of our request. */
-function shortError(status: number, json: any, text: string): string {
-  const firstError = Array.isArray(json?.errors) ? json.errors[0] : null;
+function shortError(status: number, json: unknown, text: string): string {
+  const firstError: unknown = listField(json, "errors")[0];
+  const error = field(json, "error");
   const message =
-    json?.error?.message ??
-    firstError?.message ??
-    firstError?.long_message ??
-    json?.error_description ??
-    json?.message ??
-    (typeof json?.error === "string" ? json.error : null) ??
-    json?.error?.type ??
+    textField(error, "message") ??
+    textField(firstError, "message") ??
+    textField(firstError, "long_message") ??
+    textField(json, "error_description") ??
+    textField(json, "message") ??
+    (typeof error === "string" ? error : undefined) ??
+    textField(error, "type") ??
     text;
   const trimmed = String(message ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
   return `HTTP ${status}${trimmed ? ` · ${trimmed}` : ""}`;
@@ -113,7 +139,10 @@ async function verifyResend(config: Config): Promise<Outcome> {
     headers: { Authorization: `Bearer ${key}` },
   });
   if (!res.ok) return failure(`Resend rejected the key: ${shortError(res.status, res.json, res.text)}`);
-  const domains: Array<{ name: string; status: string }> = res.json?.data ?? [];
+  const domains = listField(res.json, "data").map((domain) => ({
+    name: textField(domain, "name") ?? "",
+    status: textField(domain, "status") ?? "",
+  }));
   const from = str(config, "fromAddress");
   const fromDomain = from.includes("@") ? from.split("@")[1].toLowerCase() : "";
   const match = domains.find((domain) => domain.name.toLowerCase() === fromDomain);
@@ -158,7 +187,7 @@ async function verifyClerk(config: Config): Promise<Outcome> {
   const issuer = str(config, "clerkJwtIssuerDomain").replace(/\/$/, "");
   if (issuer) {
     const jwks = await probe(`${issuer}/.well-known/jwks.json`);
-    const keys = Array.isArray(jwks.json?.keys) ? jwks.json.keys.length : 0;
+    const keys = listField(jwks.json, "keys").length;
     details.push({
       label: "JWT issuer",
       ok: jwks.ok && keys > 0,
@@ -188,21 +217,22 @@ async function verifyMeilisearch(host: string, apiKey: string): Promise<{ ok: bo
     return {
       ok: false,
       details: [
-        { label: "Host", ok: true, note: `Healthy (${health.json?.status ?? "available"})` },
+        { label: "Host", ok: true, note: `Healthy (${String(field(health.json, "status") ?? "available")})` },
         { label: "API key", ok: false, note: shortError(version.status, version.json, version.text) },
       ],
       summary: "Meilisearch is reachable but rejected the API key.",
     };
   }
   const indexes = await probe(`${base}/indexes?limit=50`, { headers: { Authorization: `Bearer ${apiKey}` } });
-  const count = Array.isArray(indexes.json?.results) ? indexes.json.results.length : 0;
+  const count = listField(indexes.json, "results").length;
+  const pkgVersion = String(field(version.json, "pkgVersion") ?? "?");
   return {
     ok: true,
     details: [
-      { label: "Host", ok: true, note: `Healthy · v${version.json?.pkgVersion ?? "?"}` },
+      { label: "Host", ok: true, note: `Healthy · v${pkgVersion}` },
       { label: "API key", ok: true, note: indexes.ok ? `${count} index${count === 1 ? "" : "es"} visible` : "Key accepted" },
     ],
-    summary: `Meilisearch v${version.json?.pkgVersion ?? "?"} at ${base} accepts the key.`,
+    summary: `Meilisearch v${pkgVersion} at ${base} accepts the key.`,
   };
 }
 
@@ -221,13 +251,15 @@ async function verifyModelProvider(
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (!res.ok) return { ok: false, note: shortError(res.status, res.json, res.text), modelKnown: null };
-    const data = res.json?.data ?? {};
-    const usage = typeof data.usage === "number" ? `$${data.usage.toFixed(2)} used` : "usage unknown";
-    const limit = data.limit === null || data.limit === undefined ? "no limit" : `$${data.limit} limit`;
+    const data = field(res.json, "data");
+    const usageValue = field(data, "usage");
+    const limitValue = field(data, "limit");
+    const usage = typeof usageValue === "number" ? `$${usageValue.toFixed(2)} used` : "usage unknown";
+    const limit = limitValue === null || limitValue === undefined ? "no limit" : `$${String(limitValue)} limit`;
     let modelKnown: boolean | null = null;
     if (model) {
       const models = await probe("https://openrouter.ai/api/v1/models");
-      const ids: string[] = Array.isArray(models.json?.data) ? models.json.data.map((entry: any) => entry.id) : [];
+      const ids = idList(models.json, "data");
       modelKnown = ids.length ? ids.includes(model) : null;
     }
     // OpenRouter's `label` echoes a masked key fragment; never surface it.
@@ -238,7 +270,7 @@ async function verifyModelProvider(
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (!res.ok) return { ok: false, note: shortError(res.status, res.json, res.text), modelKnown: null };
-    const ids: string[] = Array.isArray(res.json?.data) ? res.json.data.map((entry: any) => entry.id) : [];
+    const ids = idList(res.json, "data");
     return { ok: true, note: `${ids.length} models available`, modelKnown: model ? ids.includes(model) : null };
   }
   if (provider === "anthropic") {
@@ -246,7 +278,7 @@ async function verifyModelProvider(
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     });
     if (!res.ok) return { ok: false, note: shortError(res.status, res.json, res.text), modelKnown: null };
-    const ids: string[] = Array.isArray(res.json?.data) ? res.json.data.map((entry: any) => entry.id) : [];
+    const ids = idList(res.json, "data");
     return { ok: true, note: `${ids.length} models available`, modelKnown: model ? ids.includes(model) : null };
   }
   return { ok: false, note: `Unknown provider ${provider}`, modelKnown: null };
@@ -293,7 +325,7 @@ async function verifyTavily(config: Config): Promise<Outcome> {
     body: JSON.stringify({ query: "ConvexPress", max_results: 1, search_depth: "basic" }),
   });
   if (!res.ok) return failure(`Tavily rejected the key: ${shortError(res.status, res.json, res.text)}`);
-  const count = Array.isArray(res.json?.results) ? res.json.results.length : 0;
+  const count = listField(res.json, "results").length;
   return success("Tavily search responds.", [{ label: "Search", ok: true, note: `${count} result returned for a probe query` }]);
 }
 
@@ -353,14 +385,15 @@ async function verifyStripe(config: Config): Promise<Outcome> {
   if (!key) return failure("No secret key configured.");
   const res = await probe("https://api.stripe.com/v1/account", { headers: { Authorization: `Bearer ${key}` } });
   if (!res.ok) return failure(`Stripe rejected the key: ${shortError(res.status, res.json, res.text)}`);
-  const account = res.json ?? {};
+  const account = res.json;
+  const accountId = textField(account, "id");
   const keyMode = key.startsWith("sk_live_") || key.startsWith("rk_live_") ? "production" : "sandbox";
   const mode = str(config, "stripeMode") || "sandbox";
   const publishable = str(config, "stripePublishableKey");
   const publishableMode = publishable.startsWith("pk_live_") ? "production" : publishable.startsWith("pk_test_") ? "sandbox" : null;
   const webhook = str(config, "stripeWebhookSecret");
   const details: Detail[] = [
-    { label: "Secret key", ok: true, note: `${account.id ?? "account"} · ${(account.country ?? "").toUpperCase()} · ${(account.default_currency ?? "").toUpperCase()}` },
+    { label: "Secret key", ok: true, note: `${accountId ?? "account"} · ${(textField(account, "country") ?? "").toUpperCase()} · ${(textField(account, "default_currency") ?? "").toUpperCase()}` },
     { label: "Mode", ok: keyMode === mode, note: keyMode === mode ? `${mode} key matches the ${mode} setting` : `Key is ${keyMode} but mode is set to ${mode}` },
     {
       label: "Publishable key",
@@ -368,12 +401,12 @@ async function verifyStripe(config: Config): Promise<Outcome> {
       note: !publishable ? "Missing · checkout cannot load" : publishableMode === keyMode ? `${publishableMode} key` : "Does not match the secret key's mode",
     },
     { label: "Webhook secret", ok: webhook.startsWith("whsec_"), note: webhook ? (webhook.startsWith("whsec_") ? "Present" : "Does not look like a whsec_ signing secret") : "Optional · renewals and async payments will not update" },
-    { label: "Charges", ok: account.charges_enabled === true, note: account.charges_enabled ? "Enabled" : "Not enabled on this Stripe account" },
+    { label: "Charges", ok: field(account, "charges_enabled") === true, note: field(account, "charges_enabled") ? "Enabled" : "Not enabled on this Stripe account" },
   ];
   const blocking = details.filter((detail) => !detail.ok && ["Mode", "Publishable key"].includes(detail.label));
   return blocking.length
     ? failure(`Stripe key works but ${blocking.map((detail) => detail.label.toLowerCase()).join(" and ")} need attention.`, details)
-    : success(`Connected to ${account.id ?? "Stripe"} in ${keyMode} mode.`, details);
+    : success(`Connected to ${accountId ?? "Stripe"} in ${keyMode} mode.`, details);
 }
 
 async function verifyPayPal(config: Config): Promise<Outcome> {
@@ -392,7 +425,7 @@ async function verifyPayPal(config: Config): Promise<Outcome> {
   });
   if (!res.ok) return failure(`PayPal (${mode}) rejected the credentials: ${shortError(res.status, res.json, res.text)}`);
   const details: Detail[] = [
-    { label: "OAuth", ok: true, note: `${mode} token issued · scopes: ${String(res.json?.scope ?? "").split(" ").length}` },
+    { label: "OAuth", ok: true, note: `${mode} token issued · scopes: ${String(field(res.json, "scope") ?? "").split(" ").length}` },
     { label: "Webhook ID", ok: Boolean(str(config, "paypalWebhookId")), note: str(config, "paypalWebhookId") ? "Present" : "Optional · webhook events cannot be verified" },
   ];
   return success(`PayPal ${mode} credentials accepted.`, details);
@@ -404,21 +437,23 @@ async function verifyGoogle(config: Config): Promise<Outcome> {
   const places = await probe(
     `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent("1600 Amphitheatre")}&key=${encodeURIComponent(placesKey)}`,
   );
-  const placesStatus = String(places.json?.status ?? `HTTP ${places.status}`);
+  const placesStatus = String(field(places.json, "status") ?? `HTTP ${places.status}`);
+  const placesError = field(places.json, "error_message");
   const placesOk = places.ok && ["OK", "ZERO_RESULTS"].includes(placesStatus);
   const details: Detail[] = [
-    { label: "Places autocomplete", ok: placesOk, note: placesOk ? placesStatus : `${placesStatus}${places.json?.error_message ? ` · ${String(places.json.error_message).slice(0, 120)}` : ""}` },
+    { label: "Places autocomplete", ok: placesOk, note: placesOk ? placesStatus : `${placesStatus}${placesError ? ` · ${String(placesError).slice(0, 120)}` : ""}` },
   ];
   const geocodeKey = str(config, "geocodeApiKey") || placesKey;
   const geocode = await probe(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent("1600 Amphitheatre Parkway, Mountain View, CA")}&key=${encodeURIComponent(geocodeKey)}`,
   );
-  const geocodeStatus = String(geocode.json?.status ?? `HTTP ${geocode.status}`);
+  const geocodeStatus = String(field(geocode.json, "status") ?? `HTTP ${geocode.status}`);
+  const geocodeError = field(geocode.json, "error_message");
   const geocodeOk = geocode.ok && ["OK", "ZERO_RESULTS"].includes(geocodeStatus);
   details.push({
     label: str(config, "geocodeApiKey") ? "Geocoding" : "Geocoding (Places key)",
     ok: geocodeOk,
-    note: geocodeOk ? geocodeStatus : `${geocodeStatus}${geocode.json?.error_message ? ` · ${String(geocode.json.error_message).slice(0, 120)}` : ""}`,
+    note: geocodeOk ? geocodeStatus : `${geocodeStatus}${geocodeError ? ` · ${String(geocodeError).slice(0, 120)}` : ""}`,
   });
   return placesOk ? success(`Google Places responds${geocodeOk ? " and geocoding works" : ""}.`, details) : failure("Google rejected the Places key.", details);
 }
@@ -444,7 +479,7 @@ async function verifyCaptcha(config: Config): Promise<Outcome> {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `secret=${encodeURIComponent(secret)}&response=convexpress-probe`,
     });
-    const codes: string[] = Array.isArray(res.json?.["error-codes"]) ? res.json["error-codes"] : [];
+    const codes = listField(res.json, "error-codes").filter((code): code is string => typeof code === "string");
     const secretOk = res.ok && !codes.some((code) => /secret/i.test(code));
     ok = ok && secretOk;
     details.push({ label: provider.label, ok: secretOk, note: secretOk ? "Secret accepted" : codes.join(", ") || shortError(res.status, res.json, res.text) });
@@ -458,7 +493,10 @@ async function verifyAirtable(config: Config): Promise<Outcome> {
   if (!token) return skipped("AIRTABLE_API_KEY is not set in the environment.");
   const res = await probe("https://api.airtable.com/v0/meta/bases", { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return failure(`Airtable rejected the token: ${shortError(res.status, res.json, res.text)}`);
-  const bases: Array<{ id: string; name: string }> = res.json?.bases ?? [];
+  const bases = listField(res.json, "bases").map((base) => ({
+    id: textField(base, "id") ?? "",
+    name: textField(base, "name") ?? "",
+  }));
   const details: Detail[] = [{ label: "Token", ok: true, note: `${bases.length} base${bases.length === 1 ? "" : "s"} accessible` }];
   const baseId = str(config, "AIRTABLE_BASE_ID");
   if (baseId) {
@@ -551,41 +589,49 @@ async function verifyByProvider(id: string, config: Config): Promise<Outcome> {
   }
 }
 
-async function verifyGa4(ctx: any, config: Config): Promise<Outcome> {
+async function verifyGa4(ctx: ActionCtx, config: Config): Promise<Outcome> {
   const propertyId = str(config, "ga4PropertyId");
   const serviceAccountJson = str(config, "ga4ServiceAccountJson");
   if (!propertyId || !serviceAccountJson) return failure("Property ID and service account JSON are required.");
-  const result: any = await ctx.runAction(api.ga4.actions.testConnection, { propertyId, serviceAccountJson });
-  if (result?.success) {
+  const result = await ctx.runAction(api.ga4.actions.testConnection, { propertyId, serviceAccountJson });
+  if (result.success) {
     return success(`GA4 report ran for ${propertyId}.`, [
       { label: "Service account", ok: true, note: String(result.clientEmail ?? "") },
       { label: "Property", ok: true, note: propertyId },
     ]);
   }
-  return failure(String(result?.error ?? "GA4 rejected the credentials."), [
+  return failure(String(result.error ?? "GA4 rejected the credentials."), [
     { label: "Property", ok: false, note: propertyId },
   ]);
 }
 
 async function verifyShipping(
-  ctx: any,
+  ctx: ActionCtx,
   provider: "shipstation" | "ups" | "usps" | "fedex" | "dhl",
 ): Promise<Outcome> {
-  const result: any =
-    provider === "shipstation"
-      ? await ctx.runAction(api.shipping.actions.verifyShipStationConnection, {})
-      : await ctx.runAction(api.shipping.actions.verifyDirectCarrierFoundation, { provider });
-  if (result?.success) {
-    const note =
-      typeof result.accountCount === "number"
-        ? `${result.accountCount} carrier account${result.accountCount === 1 ? "" : "s"}`
-        : result.verificationMode === "local_readiness"
-          ? "Credentials complete (local readiness check)"
+  if (provider === "shipstation") {
+    const result = await ctx.runAction(api.shipping.actions.verifyShipStationConnection, {});
+    if (result.success) {
+      const note =
+        typeof result.accountCount === "number"
+          ? `${result.accountCount} carrier account${result.accountCount === 1 ? "" : "s"}`
           : "Live API check passed";
+      return success(`${provider} verification succeeded.`, [{ label: "Carrier", ok: true, note }]);
+    }
+    return failure(String(result.error ?? `${provider} verification failed.`), [
+      { label: "Carrier", ok: false, note: undefined },
+    ]);
+  }
+  const result = await ctx.runAction(api.shipping.actions.verifyDirectCarrierFoundation, { provider });
+  if (result.success) {
+    const note =
+      result.verificationMode === "local_readiness"
+        ? "Credentials complete (local readiness check)"
+        : "Live API check passed";
     return success(String(result.message ?? `${provider} verification succeeded.`), [{ label: "Carrier", ok: true, note }]);
   }
-  const missing: string[] = Array.isArray(result?.missingFields) ? result.missingFields : [];
-  return failure(String(result?.error ?? result?.message ?? `${provider} verification failed.`), [
+  const missing = result.missingFields;
+  return failure(String(result.message ?? `${provider} verification failed.`), [
     { label: "Carrier", ok: false, note: missing.length ? `Missing: ${missing.join(", ")}` : undefined },
   ]);
 }

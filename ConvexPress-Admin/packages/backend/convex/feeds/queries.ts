@@ -43,6 +43,7 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
+import { numberSetting, settingsRecord, textSetting } from "../helpers/settingsReader";
 // ─── Helper: Fetch feed settings from Settings System ───────────────────────
 
 /**
@@ -60,32 +61,19 @@ async function readFeedSettings(ctx: QueryCtx) {
     .withIndex("by_section", (q) => q.eq("section", "reading"))
     .unique();
 
-  const generalValues = general?.values as Record<string, unknown> | undefined;
-  const readingValues = reading?.values as Record<string, unknown> | undefined;
+  const generalValues = settingsRecord(general?.values);
+  const readingValues = settingsRecord(reading?.values);
 
   return {
-    siteTitle:
-      (generalValues?.siteTitle as string) ?? FEED_SETTINGS_DEFAULTS.siteTitle,
-    siteDescription:
-      (generalValues?.tagline as string) ??
-      FEED_SETTINGS_DEFAULTS.siteDescription,
-    siteUrl:
-      (generalValues?.siteUrl as string) ?? FEED_SETTINGS_DEFAULTS.siteUrl,
-    language:
-      (generalValues?.siteLanguage as string) ??
-      FEED_SETTINGS_DEFAULTS.language,
+    siteTitle: textSetting(generalValues.siteTitle, FEED_SETTINGS_DEFAULTS.siteTitle),
+    siteDescription: textSetting(generalValues.tagline, FEED_SETTINGS_DEFAULTS.siteDescription),
+    siteUrl: textSetting(generalValues.siteUrl, FEED_SETTINGS_DEFAULTS.siteUrl),
+    language: textSetting(generalValues.siteLanguage, FEED_SETTINGS_DEFAULTS.language),
     feedItemCount: Math.min(
       MAX_FEED_ITEM_COUNT,
-      Math.max(
-        1,
-        (readingValues?.feedItemCount as number) ??
-          FEED_SETTINGS_DEFAULTS.feedItemCount,
-      ),
+      Math.max(1, numberSetting(readingValues.feedItemCount, FEED_SETTINGS_DEFAULTS.feedItemCount)),
     ),
-    feedContentDisplay: ((readingValues?.feedContentDisplay as string) ===
-    "summary"
-      ? "summary"
-      : "full") as "full" | "summary",
+    feedContentDisplay: readingValues.feedContentDisplay === "summary" ? ("summary" as const) : ("full" as const),
   };
 }
 

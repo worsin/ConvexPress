@@ -14,6 +14,7 @@ export const importGeneratedMedia = internalAction({
     height: v.optional(v.number()),
     dataUrl: v.string(),
   },
+  returns: v.object({ mediaId: v.id("media"), url: v.string(), title: v.string() }),
   handler: async (ctx, args) => {
     const match = args.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) {

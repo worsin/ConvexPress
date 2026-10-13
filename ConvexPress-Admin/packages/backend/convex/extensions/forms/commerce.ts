@@ -43,6 +43,8 @@ import { z } from "zod";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { api, internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import type { FunctionReturnType } from "convex/server";
 import {
   registerActionType,
   type ActionResult,
@@ -305,43 +307,46 @@ async function runSubscriptionAction(
   // the latest run for this submission+action via an internal query.
   const priorIntentId = await ctx.ctx
     .runQuery(internal.extensions.forms.commerce.getPriorIntentId, {
-      submissionId: ctx.submissionId as any,
+      submissionId: ctx.submissionId,
     })
     .catch(() => null);
 
-  let intentId: string | undefined = priorIntentId ?? undefined;
+  let intentId: Id<"commerce_subscription_checkout_intents"> | undefined =
+    priorIntentId ?? undefined;
   let amount = 0;
   let recurringAmount = 0;
   let currency = "USD";
 
   if (!intentId) {
     // ── Call 1: create the checkout intent (server recomputes price) ────────
-    let intent: {
-      intentId: string;
-      amount: number;
-      recurringAmount: number;
-      currency: string;
-      trialDays: number;
-      paymentProcessorData: { provider: string; ready: boolean; message: string };
-    };
+    const resolvedOfferId = await ctx.ctx.runQuery(
+      internal.extensions.forms.commerce.resolveOfferId,
+      { offerId },
+    );
+    if (!resolvedOfferId) {
+      return {
+        ok: false,
+        retryable: false,
+        error: "The configured subscription offer does not exist.",
+      };
+    }
+    let intent: FunctionReturnType<
+      typeof api.commerceSubscriptions.checkout.createCheckoutIntent
+    >;
     try {
-      intent = (await ctx.ctx.runMutation(
-        // Cast to any: the generated commerce API union types exceed TS's
-        // instantiation depth (TS2589). Mirrors SignupForm.tsx on the website.
-        (api as any).commerceSubscriptions.checkout.createCheckoutIntent,
+      intent = await ctx.ctx.runMutation(
+        api.commerceSubscriptions.checkout.createCheckoutIntent,
         {
-          offerId: offerId as any,
+          offerId: resolvedOfferId,
           customerEmail,
           couponCode,
           returnUrl,
           // Stamp form linkage when present (both args are optional on
-          // createCheckoutIntent). Guard against an empty id string.
-          formId: ctx.formId ? (ctx.formId as any) : undefined,
-          formSubmissionId: ctx.submissionId
-            ? (ctx.submissionId as any)
-            : undefined,
+          // createCheckoutIntent).
+          formId: ctx.formId,
+          formSubmissionId: ctx.submissionId,
         },
-      )) as typeof intent;
+      );
     } catch (err) {
       const code = errorCode(err);
       if (code && PERMANENT_CODES.has(code)) {
@@ -351,10 +356,10 @@ async function runSubscriptionAction(
       throw err;
     }
 
-    intentId = String(intent.intentId);
-    amount = intent.amount ?? 0;
-    recurringAmount = intent.recurringAmount ?? 0;
-    currency = intent.currency ?? "USD";
+    intentId = intent.intentId;
+    amount = intent.amount;
+    recurringAmount = intent.recurringAmount;
+    currency = intent.currency;
 
     // maxInitialAmount cap — server amount only, BEFORE any charge.
     if (
@@ -368,28 +373,30 @@ async function runSubscriptionAction(
       };
     }
 
-    // Funnel event — after intent creation.
-    await ctx.ctx.runMutation(
-      internal.extensions.forms.commerce.emitSubscriptionStarted,
-      {
-        formId: ctx.formId as any,
-        submissionId: ctx.submissionId as any,
-        checkoutIntentId: intent.intentId as any,
-        offerId,
-        customerEmail,
-      },
-    );
+    // Funnel event — after intent creation (needs the form the run belongs to).
+    if (ctx.formId) {
+      await ctx.ctx.runMutation(
+        internal.extensions.forms.commerce.emitSubscriptionStarted,
+        {
+          formId: ctx.formId,
+          submissionId: ctx.submissionId,
+          checkoutIntentId: intent.intentId,
+          offerId,
+          customerEmail,
+        },
+      );
+    }
   } else {
     // Reusing a prior intent — re-read its pricing for the cap/return shape.
     const snapshot = await ctx.ctx
       .runQuery(internal.extensions.forms.commerce.getIntentPricing, {
-        intentId: intentId as any,
+        intentId,
       })
       .catch(() => null);
     if (snapshot) {
-      amount = snapshot.amount ?? 0;
-      recurringAmount = snapshot.recurringAmount ?? 0;
-      currency = snapshot.currency ?? "USD";
+      amount = snapshot.amount;
+      recurringAmount = snapshot.recurringAmount;
+      currency = snapshot.currency;
     }
   }
 
@@ -404,18 +411,17 @@ async function runSubscriptionAction(
   const isZeroAmount = chargeShape.mode === "free";
   if (isZeroAmount) {
     try {
-      const activation = (await ctx.ctx.runMutation(
-        // Cast to any: see createCheckoutIntent above (TS2589).
-        (api as any).commerceSubscriptions.checkout.activateFromIntent,
+      const activation = await ctx.ctx.runMutation(
+        api.commerceSubscriptions.checkout.activateFromIntent,
         {
-          intentId: intentId as any,
+          intentId,
           paymentResult: {
             provider: "free",
             providerTransactionId: `free_${Date.now()}`,
             status: "succeeded",
           },
         },
-      )) as { ok: boolean; contractId?: string; status?: string };
+      );
       if (activation.ok) {
         return {
           ok: true,
@@ -442,30 +448,28 @@ async function runSubscriptionAction(
   let clientSecret: string | null | undefined;
   let mode: "payment" | "setup" | undefined;
   try {
-    const charge = (await ctx.ctx.runAction(
-      // Cast to any: see createCheckoutIntent above (TS2589).
-      (api as any).commerceSubscriptions.publicCharge.beginFirstCharge,
-      { checkoutIntentId: intentId as any },
-    )) as { clientSecret?: string | null; mode?: "payment" | "setup" };
-    clientSecret = charge?.clientSecret;
-    mode = charge?.mode;
+    const charge = await ctx.ctx.runAction(
+      api.commerceSubscriptions.publicCharge.beginFirstCharge,
+      { checkoutIntentId: intentId },
+    );
+    clientSecret = charge.clientSecret;
+    mode = charge.mode;
   } catch (err) {
     const msg = errorMessage(err);
     // Pricing changed under us to zero → fall back to free activation.
     if (msg.includes("no_charge_needed_free_initial_amount")) {
       try {
-        const activation = (await ctx.ctx.runMutation(
-          // Cast to any: see createCheckoutIntent above (TS2589).
-          (api as any).commerceSubscriptions.checkout.activateFromIntent,
+        const activation = await ctx.ctx.runMutation(
+          api.commerceSubscriptions.checkout.activateFromIntent,
           {
-            intentId: intentId as any,
+            intentId,
             paymentResult: {
               provider: "free",
               providerTransactionId: `free_${Date.now()}`,
               status: "succeeded",
             },
           },
-        )) as { ok: boolean; contractId?: string; status?: string };
+        );
         if (activation.ok) {
           return {
             ok: true,
@@ -494,10 +498,9 @@ async function runSubscriptionAction(
   }
 
   // Read the publishable key + live gate for the Website Elements surface.
-  const charging = (await ctx.ctx
-    // Cast to any: see createCheckoutIntent above (TS2589).
-    .runQuery((api as any).commerceSubscriptions.queries.getLiveChargingStatus, {})
-    .catch(() => null)) as { live: boolean; publishableKey: string | null } | null;
+  const charging = await ctx.ctx
+    .runQuery(api.commerceSubscriptions.queries.getLiveChargingStatus, {})
+    .catch(() => null);
 
   // Return the NON-terminal outcome so the runner records awaiting_payment
   // (no retry, no failed event). The Website mounts Stripe Elements from this
@@ -532,8 +535,11 @@ async function runSubscriptionAction(
  */
 export const getPriorIntentId = internalQuery({
   args: { submissionId: v.id("form_submissions") },
-  returns: v.union(v.null(), v.string()),
-  handler: async (ctx, { submissionId }): Promise<string | null> => {
+  returns: v.union(v.null(), v.id("commerce_subscription_checkout_intents")),
+  handler: async (
+    ctx,
+    { submissionId },
+  ): Promise<Id<"commerce_subscription_checkout_intents"> | null> => {
     const runs = await ctx.db
       .query("form_action_runs")
       .withIndex("by_submission", (q) => q.eq("submissionId", submissionId))
@@ -542,15 +548,30 @@ export const getPriorIntentId = internalQuery({
     for (const run of runs) {
       if (!run.result) continue;
       try {
-        const parsed = JSON.parse(run.result) as { intentId?: unknown };
-        if (typeof parsed.intentId === "string" && parsed.intentId) {
-          return parsed.intentId;
-        }
+        const parsed: unknown = JSON.parse(run.result);
+        const storedId =
+          typeof parsed === "object" && parsed !== null && "intentId" in parsed
+            ? parsed.intentId
+            : undefined;
+        const intentId =
+          typeof storedId === "string"
+            ? ctx.db.normalizeId("commerce_subscription_checkout_intents", storedId)
+            : null;
+        if (intentId) return intentId;
       } catch {
         // skip malformed
       }
     }
     return null;
+  },
+});
+
+/** Resolve a configured offer id string to a stored offer, or null. */
+export const resolveOfferId = internalQuery({
+  args: { offerId: v.string() },
+  returns: v.union(v.null(), v.id("commerce_subscription_offers")),
+  handler: async (ctx, { offerId }) => {
+    return ctx.db.normalizeId("commerce_subscription_offers", offerId);
   },
 });
 

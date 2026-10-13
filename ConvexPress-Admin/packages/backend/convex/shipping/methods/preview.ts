@@ -21,6 +21,8 @@ import { calculateLocalPickup } from "./localPickup";
 import { calculateLocalDelivery } from "./localDelivery";
 import { calculateTableRate } from "./tableRate";
 import type { RuleContext } from "../rulesEngine/types";
+import type { NormalizedShippingQuote } from "../rates/types";
+import { withoutRawQuote, type PipelineQuote } from "../rates/quoteOutput";
 
 export const previewMethod = query({
   args: {
@@ -48,7 +50,48 @@ export const previewMethod = query({
       appliedDiscountCode: v.optional(v.string()),
     }),
   },
-  handler: async (ctx, args) => {
+  returns: v.object({
+    quotes: v.array(v.object({
+      quoteKey: v.string(),
+      provider: v.union(v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl"), v.literal("manual")),
+      carrierCode: v.string(),
+      carrierName: v.string(),
+      serviceCode: v.string(),
+      serviceName: v.string(),
+      amount: v.number(),
+      currency: v.string(),
+      estimatedDaysMin: v.optional(v.number()),
+      estimatedDaysMax: v.optional(v.number()),
+      deliveryDateEstimated: v.optional(v.number()),
+      isCheapest: v.boolean(),
+      isFastest: v.boolean(),
+      isBestValue: v.boolean(),
+      accountId: v.optional(v.id("shipping_provider_accounts")),
+      origin: v.optional(v.object({
+        shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
+        name: v.optional(v.string()),
+        company: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        line2: v.optional(v.string()),
+        state: v.optional(v.string()),
+        line1: v.string(),
+        city: v.string(),
+        postalCode: v.string(),
+        countryCode: v.string(),
+      })),
+      packages: v.optional(v.array(v.object({
+        lengthIn: v.optional(v.number()),
+        widthIn: v.optional(v.number()),
+        heightIn: v.optional(v.number()),
+        weightOz: v.number(),
+      }))),
+      addressKey: v.optional(v.string()),
+      cartKey: v.optional(v.string()),
+      expiresAt: v.number(),
+    })),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args): Promise<{ quotes: PipelineQuote[]; error?: string }> => {
     await requireCan(ctx, "shipping.methods.read");
     const { methodType, config, sample } = args;
     const currencyCode = sample.currencyCode ?? "USD";
@@ -75,21 +118,18 @@ export const previewMethod = query({
     const addressKey = "preview";
     const cartKey = "preview";
 
-    try {
+    const run = (): NormalizedShippingQuote[] => {
       switch (methodType) {
         case "flat_rate":
-          return {
-            quotes: calculateFlatRate(config, {
+          return calculateFlatRate(config, {
               currencyCode,
               itemCount: sample.itemCount,
               classBreakdown,
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "weight_based":
-          return {
-            quotes: calculateWeightBased(config, {
+          return calculateWeightBased(config, {
               currencyCode,
               totalWeight: convertWeight(
                 sample.totalWeightOz,
@@ -99,42 +139,34 @@ export const previewMethod = query({
               classes: sample.shippingClasses ?? [],
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "dimensional":
-          return {
-            quotes: calculateDimensional(config, {
+          return calculateDimensional(config, {
               currencyCode,
               packages: [{ actualWeight: sample.totalWeightOz }],
               classes: sample.shippingClasses ?? [],
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "price_based":
-          return {
-            quotes: calculatePriceBased(config, {
+          return calculatePriceBased(config, {
               currencyCode,
               subtotalBeforeDiscount: sample.subtotalAmount,
               subtotalAfterDiscount: sample.subtotalAmount,
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "quantity_based":
-          return {
-            quotes: calculateQuantityBased(config, {
+          return calculateQuantityBased(config, {
               currencyCode,
               totalItems: sample.itemCount,
               totalLineItems: sample.itemCount,
               classBreakdown,
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "free":
-          return {
-            quotes: calculateFree(config, {
+          return calculateFree(config, {
               currencyCode,
               subtotalAmount: sample.subtotalAmount,
               appliedDiscountCode: sample.appliedDiscountCode,
@@ -143,30 +175,24 @@ export const previewMethod = query({
               addressKey,
               cartKey,
               ruleContext,
-            }),
-          };
+            });
         case "local_pickup":
-          return {
-            quotes: calculateLocalPickup(config, {
+          return calculateLocalPickup(config, {
               currencyCode,
               availablePickupLocationIds: config.allowedPickupLocationIds ?? [],
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "local_delivery":
-          return {
-            quotes: calculateLocalDelivery(config, {
+          return calculateLocalDelivery(config, {
               currencyCode,
               subtotalAmount: sample.subtotalAmount,
               destinationPostalCode: sample.destinationPostalCode,
               addressKey,
               cartKey,
-            }),
-          };
+            });
         case "table_rate":
-          return {
-            quotes: calculateTableRate(config, {
+          return calculateTableRate(config, {
               currencyCode,
               totalWeightOz: sample.totalWeightOz,
               itemCount: sample.itemCount,
@@ -174,15 +200,16 @@ export const previewMethod = query({
               addressKey,
               cartKey,
               ruleContext,
-            }),
-          };
+            });
       }
+    };
+    try {
+      return { quotes: run().map(withoutRawQuote) };
     } catch (err) {
       return {
         quotes: [],
         error: err instanceof Error ? err.message : String(err),
       };
     }
-    return { quotes: [] };
   },
 });

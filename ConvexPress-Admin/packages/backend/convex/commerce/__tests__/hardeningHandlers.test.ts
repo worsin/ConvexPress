@@ -16,7 +16,7 @@ describe("commerce hardening: production handlers", () => {
   test("B01 pre-provider failure marks the local transaction failed and allows a fresh attempt", async () => {
     const ctx = commerceHarness({ commerce_orders: [{ _id: "order", paymentStatus: "pending", totalAmount: 1000, currencyCode: "USD" }], commerce_payment_transactions: [{ _id: "txn", orderId: "order", provider: "stripe", status: "pending", amount: { amount: 1000, currencyCode: "USD" } }] });
     ctx.handlers["commerce/workflows:beginInternal"] = () => ({ runId: "workflow", existing: false });
-    ctx.handlers["settings/httpInternals:getBySectionInternal"] = () => { throw new Error("Synthetic missing configuration"); };
+    ctx.handlers["commerce/settingsInternals:getPaymentSettings"] = () => { throw new Error("Synthetic missing configuration"); };
     ctx.handlers["commerce/payments:confirmPaymentFailure"] = payments.confirmPaymentFailure;
     // The repaired action uses this explicit local-ID endpoint.
     ctx.handlers["commerce/payments:failPaymentCreation"] = (payments as any).failPaymentCreation;
@@ -95,7 +95,7 @@ describe("commerce boundary and provider regressions", () => {
     try {
       const ctx = commerceHarness();
       ctx.handlers["commerce/workflows:beginInternal"] = () => ({ runId: "workflow", existing: false });
-      ctx.handlers["settings/httpInternals:getBySectionInternal"] = () => ({ stripeSecretKey: "sk_test_synthetic" });
+      ctx.handlers["commerce/settingsInternals:getPaymentSettings"] = () => ({ stripeSecretKey: "sk_test_synthetic", stripeWebhookSecret: "", paypalClientId: "", paypalClientSecret: "", paypalMode: "", taxProviderMode: "" });
       await invoke(createStripeIntent, ctx, { transactionId: "txn", orderId: "order", amount: 1000, currency: "USD" });
       expect(ctx.calls.find((c: any) => c.name === "commerce/payments:confirmPaymentSuccess")?.args).toEqual({ providerTransactionId: "pi_synthetic", provider: "stripe" });
       expect(create.mock.calls[0][1]).toEqual({ idempotencyKey: "commerce_payment_txn" });
@@ -109,7 +109,7 @@ describe("commerce boundary and provider regressions", () => {
       for (const action of [processStripeRefund, processProviderRefundAction]) {
         const ctx = commerceHarness();
         ctx.handlers["commerce/workflows:beginInternal"] = () => ({ runId: "workflow", existing: false });
-        ctx.handlers["settings/httpInternals:getBySectionInternal"] = () => ({ stripeSecretKey: "sk_test_synthetic" });
+        ctx.handlers["commerce/settingsInternals:getPaymentSettings"] = () => ({ stripeSecretKey: "sk_test_synthetic", stripeWebhookSecret: "", paypalClientId: "", paypalClientSecret: "", paypalMode: "", taxProviderMode: "" });
         await invoke(action, ctx, { refundId: "refund", transactionId: "txn", provider: "stripe", providerTransactionId: "pi_synthetic", amount: 400 });
         expect(ctx.calls.find((c: any) => c.name === "commerce/payments:completeRefund")?.args).toMatchObject({ providerStatus: "pending", success: false });
       }

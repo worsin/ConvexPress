@@ -29,7 +29,7 @@ import {
 } from "./validators";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { usersDocs } from "../schema/users.docs.generated";
 // ─── Denormalized Count Updates ─────────────────────────────────────────────
 
 /**
@@ -203,7 +203,7 @@ export const getByEmail = internalQuery({
   args: {
     email: v.string(),
   },
-  returns: v.union(v.null(), tableDocs.users),
+  returns: v.union(v.null(), usersDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")

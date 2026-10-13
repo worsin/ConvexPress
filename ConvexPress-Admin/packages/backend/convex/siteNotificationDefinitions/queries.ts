@@ -9,7 +9,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { siteNotificationDefinitionsDocs } from "../schema/siteNotificationDefinitions.docs.generated";
 /**
  * List all site notification definitions with optional filtering.
  */
@@ -19,7 +19,7 @@ export const list = query({
     notificationType: v.optional(v.string()),
     search: v.optional(v.string()),
   },
-  returns: v.array(tableDocs.siteNotificationDefinitions),
+  returns: v.array(siteNotificationDefinitionsDocs.siteNotificationDefinitions),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -65,7 +65,7 @@ export const list = query({
  */
 export const get = query({
   args: { id: v.id("siteNotificationDefinitions") },
-  returns: v.union(v.null(), tableDocs.siteNotificationDefinitions),
+  returns: v.union(v.null(), siteNotificationDefinitionsDocs.siteNotificationDefinitions),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

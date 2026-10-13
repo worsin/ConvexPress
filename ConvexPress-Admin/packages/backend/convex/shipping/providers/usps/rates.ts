@@ -89,7 +89,7 @@ export async function fetchUspsRatesV2(
   const { accessToken, credentials } = await getUspsAccessTokenV2(ctx);
 
   // Weight: from packed boxes if provided, else sum item weights.
-  const shippableItems = (rateContext.items as any[]).filter(
+  const shippableItems = rateContext.items.filter(
     (item) => item.product && item.product.isVirtual !== true,
   );
   const totalWeightOz =
@@ -166,14 +166,15 @@ export async function fetchUspsRatesV2(
     });
   }
 
+  // A rate option either nests its rates or is itself a rate.
   const data = (await response.json()) as {
-    rateOptions?: Array<{ rates?: UspsRate[] }>;
+    rateOptions?: Array<UspsRate & { rates?: UspsRate[] }>;
     prices?: UspsRate[];
     rates?: UspsRate[];
   };
   const rawRates: UspsRate[] = Array.isArray(data?.rateOptions)
     ? data.rateOptions.flatMap((opt) =>
-        Array.isArray(opt?.rates) ? opt.rates : [opt as unknown as UspsRate],
+        Array.isArray(opt?.rates) ? opt.rates : [opt],
       )
     : Array.isArray(data?.prices)
       ? data.prices
@@ -184,7 +185,7 @@ export async function fetchUspsRatesV2(
   const ttlMs = Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000;
   const expiresAt = Date.now() + ttlMs;
   const addressKey = computeAddressFingerprint(args.shippingAddress);
-  const cartKey = (rateContext.items as any[])
+  const cartKey = rateContext.items
     .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
     .sort()
     .join(",");

@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 
 export const shippingQuoteOriginValidator = v.object({
   shipFromLocationId:v.optional(v.id("commerce_ship_from_locations")),
@@ -23,11 +24,11 @@ export const persistedShippingQuoteValidator = v.object({
 
 /** Snapshot only address inputs used by the carrier; never copy credentials or integration settings. */
 export function snapshotShippingOrigin(settings:{
-  shipFromLocationId?:string|null;shipFromName?:string;shipFromCompany?:string;shipFromLine1?:string;shipFromLine2?:string;
+  shipFromLocationId?:Id<"commerce_ship_from_locations">|null;shipFromName?:string;shipFromCompany?:string;shipFromLine1?:string;shipFromLine2?:string;
   shipFromCity?:string;shipFromState?:string;shipFromPostalCode?:string;shipFromCountryCode?:string;shipFromPhone?:string;
 }):ShippingQuoteOrigin {
   return {
-    shipFromLocationId:(settings.shipFromLocationId ?? undefined) as ShippingQuoteOrigin["shipFromLocationId"],
+    shipFromLocationId:settings.shipFromLocationId ?? undefined,
     name:settings.shipFromName,company:settings.shipFromCompany,phone:settings.shipFromPhone,line1:settings.shipFromLine1??"",line2:settings.shipFromLine2,
     city:settings.shipFromCity??"",state:settings.shipFromState,postalCode:settings.shipFromPostalCode??"",countryCode:settings.shipFromCountryCode??"",
   };

@@ -14,10 +14,10 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 export const list = query({
   args: {},
-  returns: v.array(tableDocs.commerce_tax_classes),
+  returns: v.array(commerceDocs.commerce_tax_classes),
   handler: async (ctx) => {
     return await ctx.db.query("commerce_tax_classes").collect();
   },
@@ -25,11 +25,11 @@ export const list = query({
 
 export const getByCode = query({
   args: { code: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_tax_classes),
+  returns: v.union(v.null(), commerceDocs.commerce_tax_classes),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("commerce_tax_classes")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
   },
 });
@@ -46,7 +46,7 @@ export const create = mutation({
     await requireCan(ctx, "commerce.tax.manage");
     const existing = await ctx.db
       .query("commerce_tax_classes")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
     if (existing) {
       throw new ConvexError({
@@ -60,7 +60,7 @@ export const create = mutation({
     if (args.isDefault) {
       const current = await ctx.db
         .query("commerce_tax_classes")
-        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+        .withIndex("by_default", (q) => q.eq("isDefault", true))
         .collect();
       for (const row of current) {
         await ctx.db.patch("commerce_tax_classes", row._id, { isDefault: false, updatedAt: now });
@@ -100,7 +100,7 @@ export const update = mutation({
     if (args.isDefault === true && !row.isDefault) {
       const current = await ctx.db
         .query("commerce_tax_classes")
-        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+        .withIndex("by_default", (q) => q.eq("isDefault", true))
         .collect();
       for (const r of current) {
         await ctx.db.patch("commerce_tax_classes", r._id, { isDefault: false, updatedAt: now });

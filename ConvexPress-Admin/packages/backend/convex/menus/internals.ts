@@ -18,7 +18,8 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { v } from "convex/values";
-import { DEFAULT_MENU_LOCATIONS, MAX_DEPTH } from "./validators";
+import { DEFAULT_MENU_LOCATIONS, MAX_DEPTH, MENU_TREE_LEVELS } from "./validators";
+import { capTreeDepth } from "../helpers/boundedTree";
 import { getDashboardPage } from "../extensions/dashboard/registry";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -119,7 +120,8 @@ export function buildMenuItemTree(items: Doc<"menuItems">[]): MenuItemTreeNode[]
   };
   sortByPosition(roots);
 
-  return roots;
+  // Cap so the result always matches the depth-bounded transport validator.
+  return capTreeDepth(roots, MENU_TREE_LEVELS);
 }
 
 // ─── Helper: Generate Slug ──────────────────────────────────────────────────

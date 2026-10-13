@@ -9,7 +9,7 @@ import { isPluginEnabled } from "../../helpers/plugins";
 import { getCurrentUser, requireCan } from "../../helpers/permissions";
 import { canUserAccessCourse, canUserAccessNode } from "../access";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { lmsDocs } from "../../schema/lms.docs.generated";
 export const getCourseProgress = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
   returns: v.union(v.object({
@@ -92,7 +92,7 @@ export const getCourseProgress = query({
 
 export const getNodeProgress = query({
   args: { nodeId: v.id("lms_nodes"), userId: v.optional(v.id("users")) },
-  returns: v.union(v.null(), tableDocs.lms_progress),
+  returns: v.union(v.null(), lmsDocs.lms_progress),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const me = await getCurrentUser(ctx);

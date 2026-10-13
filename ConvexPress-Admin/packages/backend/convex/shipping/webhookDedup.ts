@@ -14,7 +14,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { shippingProviderValidator } from "../schema/shipping";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { shippingDocs } from "../schema/shipping.docs.generated";
 const DEDUP_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const dedupProviderValidator = v.union(
@@ -37,7 +37,7 @@ export const checkAndRecord = internalMutation({
 
     const existing = await ctx.db
       .query("shipping_webhook_deliveries")
-      .withIndex("by_provider_signature", (q: any) =>
+      .withIndex("by_provider_signature", (q) =>
         q.eq("provider", args.provider).eq("signatureHash", args.signatureHash),
       )
       .unique();
@@ -65,7 +65,7 @@ export const purgeExpired: import("convex/server").RegisteredMutation<"internal"
     const BATCH = 500;
     const rows = await ctx.db
       .query("shipping_webhook_deliveries")
-      .withIndex("by_expires", (q: any) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
       .take(BATCH);
     for (const row of rows) await ctx.db.delete("shipping_webhook_deliveries", row._id);
     return { deleted: rows.length };
@@ -74,11 +74,11 @@ export const purgeExpired: import("convex/server").RegisteredMutation<"internal"
 
 export const listRecent: import("convex/server").RegisteredQuery<"internal", { provider: import("convex/values").Infer<typeof shippingProviderValidator> }, import("../_generated/dataModel").Doc<"shipping_webhook_deliveries">[]> = internalQuery({
   args: { provider: shippingProviderValidator },
-  returns: v.array(tableDocs.shipping_webhook_deliveries),
+  returns: v.array(shippingDocs.shipping_webhook_deliveries),
   handler: async (ctx, args) => {
     return ctx.db
       .query("shipping_webhook_deliveries")
-      .withIndex("by_provider_signature", (q: any) =>
+      .withIndex("by_provider_signature", (q) =>
         q.eq("provider", args.provider),
       )
       .order("desc")

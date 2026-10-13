@@ -5,12 +5,18 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { normalizeOutline, outlineStats } from "./helpers";
+import { briefField, normalizeOutline, outlineStats } from "./helpers";
 import { docToText } from "../lessons/helpers";
 import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
+import { lmsDocs } from "../../schema/lms.docs.generated";
 
 export const listCourseGenerations = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.array(lmsDocs.lms_ai_generations.extend({
+    topicCount: v.number(),
+    lessonCount: v.number(),
+    jobCounts: v.object({ queued: v.number(), running: v.number(), done: v.number(), failed: v.number() }),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.ai.generate");
@@ -28,7 +34,7 @@ export const listCourseGenerations = query({
       .map((row) => {
         let stats = { topicCount: 0, lessonCount: 0 };
         try {
-          stats = outlineStats(normalizeOutline((row.briefJson as any)?.outline));
+          stats = outlineStats(normalizeOutline(briefField(row.briefJson, "outline")));
         } catch {
           stats = { topicCount: 0, lessonCount: 0 };
         }
@@ -50,6 +56,10 @@ export const listCourseGenerations = query({
 
 export const listNodeGenerations = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.array(lmsDocs.lms_ai_generations.extend({
+    generatedBodyText: v.string(),
+    currentBodyText: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
@@ -63,7 +73,7 @@ export const listNodeGenerations = query({
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((row) => ({
         ...row,
-        generatedBodyText: String((row.briefJson as any)?.generatedBody ?? ""),
+        generatedBodyText: String(briefField(row.briefJson, "generatedBody") ?? ""),
         currentBodyText: docToText(node.bodyDoc),
       }));
   },

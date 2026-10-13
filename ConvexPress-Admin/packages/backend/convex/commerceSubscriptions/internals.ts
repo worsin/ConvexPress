@@ -1,5 +1,5 @@
 import type { RegisteredQuery } from "convex/server";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Commerce Subscriptions — Internal Functions
  *
@@ -17,27 +17,42 @@ import type { Doc } from "../_generated/dataModel";
 
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { decideBridgeCall } from "./bridgeDecisions";
 import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
+import { readMergedSettingsSection } from "../settings/read";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS (duplicated for internal module isolation)
 // ═══════════════════════════════════════════════════════════════════════════
 
 type BillingInterval = "day" | "week" | "month" | "year";
-type SubscriptionStatus =
-	| "draft"
-	| "trialing"
-	| "active"
-	| "past_due"
-	| "paused"
-	| "pending_cancel"
-	| "cancelled"
-	| "expired";
+type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
+type SubscriptionDoc = Doc<"commerce_subscriptions">;
+
+type HistoryEntry = {
+	subscriptionId: Id<"commerce_subscriptions">;
+	eventType: string;
+	message?: string;
+	actorUserId?: Id<"users">;
+	fromStatus?: SubscriptionStatus;
+	toStatus?: SubscriptionStatus;
+	reason?: string;
+	data?: Record<string, unknown>;
+	correlationId?: string;
+};
+
+type TransitionArgs = {
+	subscription: SubscriptionDoc;
+	toStatus: SubscriptionStatus;
+	reason?: string;
+	correlationId?: string;
+	actorUserId?: Id<"users">;
+	patch?: Record<string, unknown>;
+};
 
 const STATUS_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
 	draft: ["trialing", "active", "cancelled"],
@@ -101,16 +116,16 @@ function createCorrelationId(): string {
 }
 
 async function resolveEffectiveConfig(
-	ctx: any,
-	product: any,
-	templateId?: any,
+	ctx: { db: QueryCtx["db"] },
+	product: Doc<"commerce_products">,
+	templateId?: Id<"commerce_subscription_templates">,
 ) {
 	const override = await ctx.db
 		.query("commerce_product_subscription_overrides")
-		.withIndex("by_product", (q: any) => q.eq("productId", product._id))
+		.withIndex("by_product", (q) => q.eq("productId", product._id))
 		.first();
 
-	let template: any = null;
+	let template: Doc<"commerce_subscription_templates"> | null = null;
 	const configuredTemplateId = templateId ?? override?.templateId ?? undefined;
 	if (configuredTemplateId) {
 		template = await ctx.db.get(configuredTemplateId);
@@ -123,10 +138,10 @@ async function resolveEffectiveConfig(
 	};
 }
 
-async function allocateInvoiceNumber(ctx: any): Promise<string> {
+async function allocateInvoiceNumber(ctx: MutationCtx): Promise<string> {
 	const doc = await ctx.db
 		.query("settings")
-		.withIndex("by_section", (q: any) =>
+		.withIndex("by_section", (q) =>
 			q.eq("section", "commerce.subscriptions.counters"),
 		)
 		.unique();
@@ -152,7 +167,7 @@ async function allocateInvoiceNumber(ctx: any): Promise<string> {
 	return formatted;
 }
 
-async function writeHistory(ctx: any, args: any) {
+async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
 	await ctx.db.insert("commerce_subscription_history", {
 		subscriptionId: args.subscriptionId,
 		eventType: args.eventType,
@@ -177,7 +192,7 @@ async function writeHistory(ctx: any, args: any) {
  * `syncEntitlementsForStatus`. When this returns false, status transitions
  * proceed normally but do NOT propagate to membership grants.
  */
-async function isBridgeEnabled(ctx: any): Promise<boolean> {
+async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 	const commerceOn = await isPluginEnabled(ctx, "commerceSubscriptions");
 	if (!commerceOn) return false;
 	const membershipOn = await isPluginEnabled(ctx, "membership");
@@ -188,7 +203,7 @@ async function isBridgeEnabled(ctx: any): Promise<boolean> {
 	try {
 		const settingsRow = await ctx.db
 			.query("settings")
-			.withIndex("by_section", (q: any) =>
+			.withIndex("by_section", (q) =>
 				q.eq("section", "membership.general"),
 			)
 			.unique();
@@ -201,14 +216,14 @@ async function isBridgeEnabled(ctx: any): Promise<boolean> {
 }
 
 async function syncEntitlementsForStatus(
-	ctx: any,
-	subscription: any,
+	ctx: MutationCtx,
+	subscription: SubscriptionDoc,
 	now: number,
 	gracePeriodDays = 3,
 ) {
 	const entitlements = await ctx.db
 		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q: any) =>
+		.withIndex("by_subscription", (q) =>
 			q.eq("subscriptionId", subscription._id),
 		)
 		.collect();
@@ -307,7 +322,10 @@ async function syncEntitlementsForStatus(
 	}
 }
 
-async function transitionSubscription(ctx: any, args: any) {
+async function transitionSubscription(
+	ctx: MutationCtx,
+	args: TransitionArgs,
+): Promise<SubscriptionDoc> {
 	const now = Date.now();
 	if (args.subscription.status === args.toStatus) return args.subscription;
 
@@ -387,7 +405,7 @@ export const getDueSubscriptions = internalQuery({
 	args: {
 		limit: v.optional(v.number()),
 	},
-	returns: v.array(tableDocs.commerce_subscriptions),
+	returns: v.array(commerceSubscriptionsDocs.commerce_subscriptions),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		const now = Date.now();
@@ -395,16 +413,16 @@ export const getDueSubscriptions = internalQuery({
 
 		const active = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "active"))
+			.withIndex("by_status", (q) => q.eq("status", "active"))
 			.collect();
 		const trialing = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "trialing"))
+			.withIndex("by_status", (q) => q.eq("status", "trialing"))
 			.collect();
 
 		return [...active, ...trialing]
 			.filter(
-				(sub: any) => (sub.nextBillingAt ?? Number.MAX_SAFE_INTEGER) <= now,
+				(sub) => (sub.nextBillingAt ?? Number.MAX_SAFE_INTEGER) <= now,
 			)
 			.slice(0, limit);
 	},
@@ -417,7 +435,7 @@ export const getRetryableInvoices = internalQuery({
 	args: {
 		limit: v.optional(v.number()),
 	},
-	returns: v.union(v.null(), v.array(tableDocs.commerce_subscription_invoices)),
+	returns: v.union(v.null(), v.array(commerceSubscriptionsDocs.commerce_subscription_invoices)),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
 		const now = Date.now();
@@ -425,11 +443,11 @@ export const getRetryableInvoices = internalQuery({
 
 		const failedInvoices = await ctx.db
 			.query("commerce_subscription_invoices")
-			.withIndex("by_status", (q: any) => q.eq("status", "failed"))
+			.withIndex("by_status", (q) => q.eq("status", "failed"))
 			.collect();
 
 		return failedInvoices
-			.filter((inv: any) => inv.dueAt !== undefined && inv.dueAt <= now)
+			.filter((inv) => inv.dueAt !== undefined && inv.dueAt <= now)
 			.slice(0, limit);
 	},
 });
@@ -439,19 +457,11 @@ export const checkEntitlementForUser = internalQuery({
 		userId: v.id("users"),
 		entitlementCode: v.string(),
 	},
-	returns: v.union(v.object({
-   hasEntitlement: v.boolean(),
-   entitlement: v.null(),
-   inGracePeriod: v.optional(v.null()),
- }), v.object({
-   hasEntitlement: v.boolean(),
-   entitlement: tableDocs.commerce_subscription_entitlements,
-   inGracePeriod: v.optional(v.null()),
- }), v.object({
-   hasEntitlement: v.boolean(),
-   inGracePeriod: v.boolean(),
-   entitlement: tableDocs.commerce_subscription_entitlements,
- })),
+	returns: v.object({
+		hasEntitlement: v.boolean(),
+		entitlement: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_entitlements),
+		inGracePeriod: v.optional(v.boolean()),
+	}),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
 			return { hasEntitlement: false, entitlement: null };
@@ -459,13 +469,13 @@ export const checkEntitlementForUser = internalQuery({
 
 		const activeEntitlements = await ctx.db
 			.query("commerce_subscription_entitlements")
-			.withIndex("by_user_status", (q: any) =>
+			.withIndex("by_user_status", (q) =>
 				q.eq("userId", args.userId).eq("status", "active"),
 			)
 			.collect();
 
 		const active = activeEntitlements.find(
-			(e: any) => e.entitlementCode === args.entitlementCode,
+			(e) => e.entitlementCode === args.entitlementCode,
 		);
 		if (active) {
 			return { hasEntitlement: true, entitlement: active };
@@ -473,13 +483,13 @@ export const checkEntitlementForUser = internalQuery({
 
 		const graceEntitlements = await ctx.db
 			.query("commerce_subscription_entitlements")
-			.withIndex("by_user_status", (q: any) =>
+			.withIndex("by_user_status", (q) =>
 				q.eq("userId", args.userId).eq("status", "grace"),
 			)
 			.collect();
 
 		const grace = graceEntitlements.find(
-			(e: any) => e.entitlementCode === args.entitlementCode,
+			(e) => e.entitlementCode === args.entitlementCode,
 		);
 		if (!grace) {
 			return { hasEntitlement: false, entitlement: null };
@@ -506,6 +516,7 @@ export const createDueInvoices = internalMutation({
 	args: {
 		limit: v.optional(v.number()),
 	},
+	returns: v.object({ createdCount: v.number(), invoiceIds: v.array(v.id("commerce_subscription_invoices")) }),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await applyDueOfferChanges(ctx);
@@ -514,31 +525,31 @@ export const createDueInvoices = internalMutation({
 
 		const active = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "active"))
+			.withIndex("by_status", (q) => q.eq("status", "active"))
 			.collect();
 		const trialing = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "trialing"))
+			.withIndex("by_status", (q) => q.eq("status", "trialing"))
 			.collect();
 
 		const dueSubscriptions = [...active, ...trialing]
 			.filter(
-				(sub: any) => (sub.nextBillingAt ?? Number.MAX_SAFE_INTEGER) <= now,
+				(sub) => (sub.nextBillingAt ?? Number.MAX_SAFE_INTEGER) <= now,
 			)
 			.slice(0, limit);
 
-		const createdInvoiceIds: any[] = [];
+		const createdInvoiceIds: Id<"commerce_subscription_invoices">[] = [];
 
 		for (const subscription of dueSubscriptions) {
 			// Skip if there's already an open/draft invoice
 			const existingInvoices = await ctx.db
 				.query("commerce_subscription_invoices")
-				.withIndex("by_subscription", (q: any) =>
+				.withIndex("by_subscription", (q) =>
 					q.eq("subscriptionId", subscription._id),
 				)
 				.collect();
 			const hasOpen = existingInvoices.some(
-				(inv: any) => inv.status === "open" || inv.status === "draft",
+				(inv) => inv.status === "open" || inv.status === "draft",
 			);
 			if (hasOpen) continue;
 
@@ -571,12 +582,12 @@ export const createDueInvoices = internalMutation({
 			// Create invoice line items from subscription items
 			const items = await ctx.db
 				.query("commerce_subscription_items")
-				.withIndex("by_subscription", (q: any) =>
+				.withIndex("by_subscription", (q) =>
 					q.eq("subscriptionId", subscription._id),
 				)
 				.collect();
 
-			for (const item of items.filter((item: any) => item.status === "active" || item.status === "pending_cancel")) {
+			for (const item of items.filter((item) => item.status === "active" || item.status === "pending_cancel")) {
 				await ctx.db.insert("commerce_subscription_invoice_items", {
 					invoiceId,
 					subscriptionItemId: item._id,
@@ -597,7 +608,7 @@ export const createDueInvoices = internalMutation({
 				});
 			}
 
-			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+			await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
 				invoiceId,
 				eventType: "subscription_invoice_created",
 			});
@@ -623,9 +634,9 @@ export const createDueInvoices = internalMutation({
  * path performs inside `applyUpgradeProration`.
  */
 async function applyProrationItemSwap(
-	ctx: any,
-	invoice: any,
-	subscription: any,
+	ctx: MutationCtx,
+	invoice: Doc<"commerce_subscription_invoices">,
+	subscription: SubscriptionDoc,
 	paymentTransactionId: string | undefined,
 	correlationId: string,
 ): Promise<void> {
@@ -668,11 +679,11 @@ async function applyProrationItemSwap(
 	// Find the active item to cancel.
 	const items = await ctx.db
 		.query("commerce_subscription_items")
-		.withIndex("by_subscription", (q: any) =>
+		.withIndex("by_subscription", (q) =>
 			q.eq("subscriptionId", subscription._id),
 		)
 		.collect();
-	const activeItem = items.find((i: any) => i.status === "active");
+	const activeItem = items.find((i) => i.status === "active");
 	if (activeItem) {
 		await patchDynamicWithMediaReferences(ctx, activeItem._id, {
 			status: "cancelled",
@@ -816,7 +827,7 @@ export const handleInvoicePaymentResult = internalMutation({
 					args.paymentTransactionId,
 					correlationId,
 				);
-				await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+				await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
 					invoiceId: invoice._id,
 					eventType: "subscription_invoice_paid",
 					metadata: {
@@ -841,7 +852,7 @@ export const handleInvoicePaymentResult = internalMutation({
 					},
 					correlationId,
 				});
-				await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+				await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
 					invoiceId: invoice._id,
 					eventType: "subscription_invoice_payment_failed",
 					metadata: {
@@ -865,7 +876,7 @@ export const handleInvoicePaymentResult = internalMutation({
 			const billingIntervalCount = 1;
 
 			// Try to get interval from template
-			let template: any = null;
+			let template: Doc<"commerce_subscription_templates"> | null = null;
 			if (subscription.templateId) {
 				template = await ctx.db.get(subscription.templateId);
 			}
@@ -886,7 +897,7 @@ export const handleInvoicePaymentResult = internalMutation({
 				updatedAt: now,
 			});
 
-			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+			await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
 				invoiceId: invoice._id,
 				eventType: "subscription_invoice_paid",
 				metadata: {
@@ -955,7 +966,7 @@ export const handleInvoicePaymentResult = internalMutation({
 			// Count existing dunning attempts for this subscription
 			const existingAttempts = await ctx.db
 				.query("commerce_subscription_dunning_attempts")
-				.withIndex("by_subscription", (q: any) =>
+				.withIndex("by_subscription", (q) =>
 					q.eq("subscriptionId", subscription._id),
 				)
 				.collect();
@@ -972,7 +983,7 @@ export const handleInvoicePaymentResult = internalMutation({
 				dueAt: nextRetryAt,
 				updatedAt: now,
 			});
-			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+			await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
 				invoiceId: invoice._id,
 				eventType: "subscription_invoice_payment_failed",
 				metadata: {
@@ -1079,12 +1090,12 @@ export const expirePendingCancellations = internalMutation({
 
 		const pendingCancel = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "pending_cancel"))
+			.withIndex("by_status", (q) => q.eq("status", "pending_cancel"))
 			.collect();
 
 		const dueForCancellation = pendingCancel
 			.filter(
-				(sub: any) =>
+				(sub) =>
 					sub.currentPeriodEndAt !== undefined && sub.currentPeriodEndAt <= now,
 			)
 			.slice(0, limit);
@@ -1114,17 +1125,14 @@ export const processScheduledDunning = internalMutation({
 	args: {
 		dunningAttemptId: v.id("commerce_subscription_dunning_attempts"),
 	},
-	returns: v.union(v.object({
-   skipped: v.boolean(),
-   subscriptionId: v.optional(v.null()),
-   invoiceId: v.optional(v.null()),
-   attemptNumber: v.optional(v.null()),
- }), v.object({
-   subscriptionId: v.id("commerce_subscriptions"),
-   invoiceId: v.optional(v.id("commerce_subscription_invoices")),
-   attemptNumber: v.number(),
-   skipped: v.optional(v.null()),
- })),
+	returns: v.union(
+		v.object({ skipped: v.boolean() }),
+		v.object({
+			subscriptionId: v.id("commerce_subscriptions"),
+			invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+			attemptNumber: v.number(),
+		}),
+	),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		const now = Date.now();
@@ -1164,6 +1172,12 @@ export const getRetryableDunningAttempts = internalQuery({
 	args: {
 		limit: v.optional(v.number()),
 	},
+	returns: v.array(v.object({
+   attemptId: v.id("commerce_subscription_dunning_attempts"),
+   subscriptionId: v.id("commerce_subscriptions"),
+   invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+   attemptNumber: v.number(),
+ })),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		const now = Date.now();
@@ -1171,14 +1185,14 @@ export const getRetryableDunningAttempts = internalQuery({
 
 		const scheduled = await ctx.db
 			.query("commerce_subscription_dunning_attempts")
-			.withIndex("by_status", (q: any) => q.eq("status", "scheduled"))
+			.withIndex("by_status", (q) => q.eq("status", "scheduled"))
 			.collect();
 
 		const due = scheduled
-			.filter((a: any) => a.scheduledAt !== undefined && a.scheduledAt <= now)
+			.filter((a) => a.scheduledAt <= now)
 			.slice(0, limit);
 
-		return due.map((a: any) => ({
+		return due.map((a) => ({
 			attemptId: a._id,
 			subscriptionId: a.subscriptionId,
 			invoiceId: a.invoiceId,
@@ -1242,7 +1256,7 @@ export const recordDunningFailure = internalMutation({
 		maxAttempts: v.number(),
 		retryDays: v.array(v.number()),
 	},
-	returns: v.union(v.object({ cancelled: v.boolean(), nextRetryAt: v.optional(v.null()) }), v.object({ cancelled: v.boolean(), nextRetryAt: v.optional(v.number()) })),
+	returns: v.object({ cancelled: v.boolean(), nextRetryAt: v.optional(v.number()) }),
 	handler: async (ctx, args) => {
 		const now = Date.now();
 		const correlationId = createCorrelationId();
@@ -1330,6 +1344,26 @@ export const recordDunningFailure = internalMutation({
 	},
 });
 
+/**
+ * The `commerce.payments` values the subscription charging paths need, read
+ * with defaults merged. Actions cannot read the database directly.
+ */
+export const getPaymentChargingSettings = internalQuery({
+	args: {},
+	returns: v.object({
+		subscriptionChargingEnabled: v.boolean(),
+		stripeSecretKey: v.optional(v.string()),
+	}),
+	handler: async (ctx) => {
+		const values = await readMergedSettingsSection(ctx, "commerce.payments");
+		const stripeSecretKey = values.stripeSecretKey;
+		return {
+			subscriptionChargingEnabled: values.subscriptionChargingEnabled === true,
+			stripeSecretKey: typeof stripeSecretKey === "string" ? stripeSecretKey : undefined,
+		};
+	},
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RENEWAL SUPPORT — INVOICE FETCH FOR ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1412,11 +1446,11 @@ export const getCheckoutIntentByPaymentIntent: RegisteredQuery<"internal", { pay
 	args: {
 		paymentIntentId: v.string(),
 	},
-	returns: v.union(v.null(), tableDocs.commerce_subscription_checkout_intents),
+	returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_checkout_intents),
 	handler: async (ctx, args) => {
 		const intent = await ctx.db
 			.query("commerce_subscription_checkout_intents")
-			.filter((q: any) =>
+			.filter((q) =>
 				q.eq(q.field("paymentTransactionId"), args.paymentIntentId),
 			)
 			.first();
@@ -1593,13 +1627,13 @@ export const recordSavedPaymentMethod = internalMutation({
  * Per contract: updates the active subscription_item to point to the new
  * offer, clears `scheduledOfferChange`, and appends to `offerHistory`.
  */
-async function applyDueOfferChanges(ctx: any) {
+async function applyDueOfferChanges(ctx: MutationCtx): Promise<{ applied: number }> {
 		const now = Date.now();
 
 		// Collect contracts that have a scheduled offer change due.
 		const active = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "active"))
+			.withIndex("by_status", (q) => q.eq("status", "active"))
 			.collect();
 
 		let applied = 0;
@@ -1622,13 +1656,13 @@ async function applyDueOfferChanges(ctx: any) {
 			// Update the active subscription item to the new offer.
 			const items = await ctx.db
 				.query("commerce_subscription_items")
-				.withIndex("by_subscription", (q: any) =>
+				.withIndex("by_subscription", (q) =>
 					q.eq("subscriptionId", subscription._id),
 				)
 				.collect();
 			const activeItem =
-				items.find((it: any) => it.status === "active") ??
-				items.find((it: any) => it.status === "pending_cancel") ??
+				items.find((it) => it.status === "active") ??
+				items.find((it) => it.status === "pending_cancel") ??
 				items[0];
 
 			if (activeItem) {
@@ -1709,7 +1743,7 @@ async function applyDueOfferChanges(ctx: any) {
 
 export const applyDueScheduledOfferChanges = internalMutation({
   args: {},
-  returns: v.any(),
+  returns: v.object({ applied: v.number() }),
   handler: applyDueOfferChanges,
 });
 
@@ -1737,8 +1771,8 @@ export const getMyInvoiceForPdf = internalQuery({
 		invoiceId: v.id("commerce_subscription_invoices"),
 	},
 	returns: v.union(v.null(), v.object({
-   invoice: tableDocs.commerce_subscription_invoices,
-   items: v.array(tableDocs.commerce_subscription_invoice_items),
+   invoice: commerceSubscriptionsDocs.commerce_subscription_invoices,
+   items: v.array(commerceSubscriptionsDocs.commerce_subscription_invoice_items),
    subscription: v.object({
      _id: v.id("commerce_subscriptions"),
      status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
@@ -1753,9 +1787,9 @@ export const getMyInvoiceForPdf = internalQuery({
 		// Admin-side Convex Auth uses `identity.subject` as the user id ref;
 		// website-side Clerk auth produces a subject == clerkUserId. We try
 		// clerkUserId first (the website path) then fall back to email.
-		let user: any = await ctx.db
+		let user: Doc<"users"> | null = await ctx.db
 			.query("users")
-			.withIndex("by_clerkUserId", (q: any) =>
+			.withIndex("by_clerkUserId", (q) =>
 				q.eq("clerkUserId", identity.subject),
 			)
 			.unique();
@@ -1763,7 +1797,7 @@ export const getMyInvoiceForPdf = internalQuery({
 			const email = identity.email; // narrowed to string
 			user = await ctx.db
 				.query("users")
-				.withIndex("by_email", (q: any) => q.eq("email", email.toLowerCase()))
+				.withIndex("by_email", (q) => q.eq("email", email.toLowerCase()))
 				.first();
 		}
 		if (!user) return null;
@@ -1777,7 +1811,7 @@ export const getMyInvoiceForPdf = internalQuery({
 
 		const items = await ctx.db
 			.query("commerce_subscription_invoice_items")
-			.withIndex("by_invoice", (q: any) => q.eq("invoiceId", args.invoiceId))
+			.withIndex("by_invoice", (q) => q.eq("invoiceId", args.invoiceId))
 			.collect();
 
 		// Resolve the current offer title (via the active subscription_item) so
@@ -1785,13 +1819,13 @@ export const getMyInvoiceForPdf = internalQuery({
 		let offerTitle: string | undefined;
 		const subItems = await ctx.db
 			.query("commerce_subscription_items")
-			.withIndex("by_subscription", (q: any) =>
+			.withIndex("by_subscription", (q) =>
 				q.eq("subscriptionId", subscription._id),
 			)
 			.collect();
 		const activeItem =
-			subItems.find((it: any) => it.status === "active") ??
-			subItems.find((it: any) => it.status === "pending_cancel") ??
+			subItems.find((it) => it.status === "active") ??
+			subItems.find((it) => it.status === "pending_cancel") ??
 			subItems[0];
 		if (activeItem?.sourceOfferId) {
 			const offer = await ctx.db.get(activeItem.sourceOfferId);
@@ -1831,7 +1865,7 @@ export const emitTrialEndingEvents = internalMutation({
 
 		const trialing = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q: any) => q.eq("status", "trialing"))
+			.withIndex("by_status", (q) => q.eq("status", "trialing"))
 			.collect();
 
 		let emitted = 0;

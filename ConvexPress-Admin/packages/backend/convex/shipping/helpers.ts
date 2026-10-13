@@ -2,10 +2,6 @@ import { ConvexError } from "convex/values";
 
 import type { QueryCtx } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
-import {
-  SHIPPING_INTEGRATION_DEFAULTS,
-  SHIPPING_PROVIDER_DEFAULTS,
-} from "../settings/defaults";
 
 type ShippingCtx = Pick<QueryCtx, "auth" | "db" | "runQuery">;
 
@@ -57,26 +53,6 @@ export function assertShippingProvider(provider: string): asserts provider is Sh
       message: `Unsupported shipping provider: ${provider}`,
     });
   }
-}
-
-export async function getShippingSettingsSection(
-  ctx: ShippingCtx,
-  section: ShippingSettingsSection,
-) {
-  const doc = await ctx.db
-    .query("settings")
-    .withIndex("by_section", q => q.eq("section", section))
-    .unique();
-
-  const defaults =
-    section === "integrations.shipping"
-      ? SHIPPING_INTEGRATION_DEFAULTS
-      : SHIPPING_PROVIDER_DEFAULTS;
-
-  return {
-    ...defaults,
-    ...(doc?.values ?? {}),
-  };
 }
 
 export function rankShippingQuotes(

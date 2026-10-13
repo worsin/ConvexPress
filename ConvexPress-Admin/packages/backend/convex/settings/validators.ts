@@ -10,6 +10,7 @@
  */
 
 import { v } from "convex/values";
+import { footerCellValidator } from "./sectionValues";
 
 // ─── Section Validator ───────────────────────────────────────────────────────
 
@@ -340,7 +341,7 @@ export const footerRowCellValidator = v.object({
   id: v.string(),
   width: v.optional(v.number()),
   alignment: v.optional(v.union(v.literal("left"), v.literal("center"), v.literal("right"))),
-  cell: v.any(),
+  cell: footerCellValidator,
 });
 
 export const footerValuesValidator = v.object({

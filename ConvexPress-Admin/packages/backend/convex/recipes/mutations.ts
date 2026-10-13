@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 
-import { mutation } from "../_generated/server";
+import { mutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import {
   createCategoryArgs,
@@ -23,7 +24,7 @@ function slugify(value: string) {
     .slice(0, 120);
 }
 
-async function getUniqueRecipeSlug(ctx: any, seed: string, excludeId?: string) {
+async function getUniqueRecipeSlug(ctx: Pick<QueryCtx, "db">, seed: string, excludeId?: Id<"recipes">) {
   const base = slugify(seed) || "recipe";
   let slug = base;
   let counter = 2;
@@ -31,9 +32,9 @@ async function getUniqueRecipeSlug(ctx: any, seed: string, excludeId?: string) {
   while (true) {
     const existing = await ctx.db
       .query("recipes")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
-    if (!existing || existing._id.toString() === excludeId) {
+    if (!existing || existing._id === excludeId) {
       return slug;
     }
     slug = `${base}-${counter}`;
@@ -42,9 +43,9 @@ async function getUniqueRecipeSlug(ctx: any, seed: string, excludeId?: string) {
 }
 
 async function getUniqueCategorySlug(
-  ctx: any,
+  ctx: Pick<QueryCtx, "db">,
   seed: string,
-  excludeId?: string,
+  excludeId?: Id<"recipe_categories">,
 ) {
   const base = slugify(seed) || "category";
   let slug = base;
@@ -53,7 +54,7 @@ async function getUniqueCategorySlug(
   while (true) {
     const existing = await ctx.db
       .query("recipe_categories")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
     if (!existing || existing._id.toString() === excludeId) {
       return slug;
@@ -63,9 +64,9 @@ async function getUniqueCategorySlug(
   }
 }
 
-async function getRoleLevel(ctx: any, roleId: string | undefined) {
+async function getRoleLevel(ctx: Pick<QueryCtx, "db">, roleId: Id<"roles"> | undefined) {
   if (!roleId) return 0;
-  const role = await ctx.db.get("roles", roleId as any);
+  const role = await ctx.db.get("roles", roleId);
   return role?.level ?? 0;
 }
 
@@ -73,18 +74,16 @@ function sanitizeTextList(items: readonly string[] | undefined) {
   return (items ?? []).map((item) => item.trim()).filter(Boolean);
 }
 
-async function recomputeCategoryCounts(ctx: any, categoryIds: readonly string[]) {
+async function recomputeCategoryCounts(ctx: Pick<MutationCtx, "db">, categoryIds: readonly Id<"recipe_categories">[]) {
   if (categoryIds.length === 0) return;
   const recipes = await ctx.db.query("recipes").take(5000);
   for (const categoryId of categoryIds) {
     const count = recipes.filter(
-      (recipe: { status: string; categoryIds: Array<{ toString(): string }> }) =>
+      (recipe) =>
         recipe.status === "publish" &&
-        recipe.categoryIds.some(
-          (entry: { toString(): string }) => entry.toString() === categoryId,
-        ),
+        recipe.categoryIds.some((entry) => entry === categoryId),
     ).length;
-    await ctx.db.patch("recipe_categories", categoryId as any, {
+    await ctx.db.patch("recipe_categories", categoryId, {
       recipeCount: count,
       updatedAt: Date.now(),
     });
@@ -152,7 +151,7 @@ export const updateCategory = mutation({
       patch.slug = await getUniqueCategorySlug(
         ctx,
         trimmedName,
-        args.categoryId.toString(),
+        args.categoryId,
       );
     }
 
@@ -182,13 +181,12 @@ export const deleteCategory = mutation({
     for (const recipe of recipes) {
       if (
         recipe.categoryIds.some(
-          (categoryId: any) => categoryId.toString() === args.categoryId.toString(),
+          (categoryId) => categoryId === args.categoryId,
         )
       ) {
         await patchWithMediaReferences<"recipes">(ctx, "recipes", recipe._id, {
           categoryIds: recipe.categoryIds.filter(
-            (categoryId: any) =>
-              categoryId.toString() !== args.categoryId.toString(),
+            (categoryId) => categoryId !== args.categoryId,
           ),
           updatedAt: Date.now(),
         });
@@ -247,10 +245,7 @@ export const createRecipe = mutation({
       updatedAt: now,
     });
 
-    await recomputeCategoryCounts(
-      ctx,
-      (args.categoryIds ?? []).map((id: any) => id.toString()),
-    );
+    await recomputeCategoryCounts(ctx, args.categoryIds ?? []);
 
     return recipeId;
   },
@@ -270,7 +265,7 @@ export const updateRecipe = mutation({
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && recipe.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -297,7 +292,7 @@ export const updateRecipe = mutation({
       patch.slug = await getUniqueRecipeSlug(
         ctx,
         args.slug ?? args.title ?? recipe.slug,
-        args.recipeId.toString(),
+        args.recipeId,
       );
     }
 
@@ -350,9 +345,9 @@ export const updateRecipe = mutation({
 
     await patchWithMediaReferences<"recipes">(ctx, "recipes", args.recipeId, patch);
 
-    const categoryIds = new Set<string>([
-      ...recipe.categoryIds.map((id: any) => id.toString()),
-      ...(args.categoryIds ?? []).map((id: any) => id.toString()),
+    const categoryIds = new Set<Id<"recipe_categories">>([
+      ...recipe.categoryIds,
+      ...(args.categoryIds ?? []),
     ]);
     await recomputeCategoryCounts(ctx, [...categoryIds]);
 
@@ -369,7 +364,7 @@ export const trashRecipe = mutation({
     const recipe = await ctx.db.get("recipes", args.recipeId);
     if (!recipe) return null;
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && recipe.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -381,10 +376,7 @@ export const trashRecipe = mutation({
       status: "trash",
       updatedAt: Date.now(),
     });
-    await recomputeCategoryCounts(
-      ctx,
-      recipe.categoryIds.map((id: any) => id.toString()),
-    );
+    await recomputeCategoryCounts(ctx, recipe.categoryIds);
     return args.recipeId;
   },
 });

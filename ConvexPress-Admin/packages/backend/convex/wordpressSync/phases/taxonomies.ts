@@ -14,7 +14,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { fetchWPCategories, fetchWPTags, type WPCategory, type WPTag } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
-import type { SyncError, PhaseProgress, SiteCredentials } from "../validators";
+import type { ImportConfig, SyncError, PhaseProgress, SiteCredentials } from "../validators";
 import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
@@ -154,7 +154,7 @@ async function importCategories(
   credentials: SiteCredentials,
   progress: PhaseProgress,
   isDryRun: boolean,
-  importConfig: any
+  importConfig: ImportConfig
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
   let created = 0;
@@ -338,7 +338,7 @@ async function importTags(
   credentials: SiteCredentials,
   progress: PhaseProgress,
   isDryRun: boolean,
-  importConfig: any
+  importConfig: ImportConfig
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
   let created = 0;

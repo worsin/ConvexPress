@@ -24,7 +24,7 @@ import {
   getTermDepth,
 } from "../helpers/taxonomy";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { taxonomiesDocs } from "../schema/taxonomies.docs.generated";
 const MAX_NAME_LENGTH = 200;
 const MAX_SLUG_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 2000;
@@ -45,7 +45,7 @@ export const listInternal = internalQuery({
     orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   returns: v.object({
-    terms: v.array(tableDocs.terms),
+    terms: v.array(taxonomiesDocs.terms),
     total: v.number(),
     page: v.number(),
     perPage: v.number(),

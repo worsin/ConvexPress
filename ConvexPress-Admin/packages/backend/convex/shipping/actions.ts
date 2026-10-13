@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use node";
 
 import { ConvexError, v } from "convex/values";
@@ -6,8 +5,10 @@ import { resolveLabelOrigin, resolveShipStationLabelRate, upsLabelShipper, fedex
 import { publicShippingQuote, publicShippingQuoteValidator, type PublicShippingQuote } from "./quoteProvenance";
 import type { RegisteredAction } from "convex/server";
 
-import { action } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import { action, type ActionCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { at, list, num, parseJsonObject, readJson, str, type JsonObject } from "./helpers/json";
+import { getEffectiveShipFrom, getShippingProviderSettings } from "./helpers/settings";
 import type { NormalizedShippingQuote, PipelineStageTiming } from "./rates/types";
 import { api, internal } from "../_generated/api";
 import { decryptSecret } from "../api/crypto_helpers";
@@ -27,7 +28,7 @@ import { validateProviderCredentials, getProviderCapabilities } from "./provider
 
 const SHIPPING_ENCRYPTION_KEY = process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;
 
-async function requireShippingAdminAction(ctx: any) {
+async function requireShippingAdminAction(ctx: ActionCtx) {
   const identity = await ctx.auth.getUserIdentity();
 
   if (!identity?.subject) {
@@ -45,7 +46,7 @@ async function requireShippingAdminAction(ctx: any) {
   return result.userId;
 }
 
-async function getShipStationCredentials(ctx: any) {
+async function getShipStationCredentials(ctx: ActionCtx) {
   const payload = await getProviderSecretPayload(ctx, "shipstation");
 
   if (!payload.apiKey) {
@@ -61,7 +62,7 @@ async function getShipStationCredentials(ctx: any) {
   };
 }
 
-async function getProviderSecretPayload(ctx: any, provider: string) {
+async function getProviderSecretPayload(ctx: ActionCtx, provider: "shipstation" | "ups" | "usps" | "fedex" | "dhl") {
   const secretState = await ctx.runQuery(
     internal.shipping.internals.getProviderSecret,
     { provider },
@@ -86,7 +87,11 @@ async function getProviderSecretPayload(ctx: any, provider: string) {
     SHIPPING_ENCRYPTION_KEY,
   );
 
-  return JSON.parse(decrypted) as Record<string, string | undefined>;
+  const payload: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(parseJsonObject(decrypted))) {
+    if (typeof value === "string") payload[key] = value;
+  }
+  return payload;
 }
 
 function getUpsDefaultBaseUrl(mode?: string) {
@@ -113,12 +118,9 @@ function getDhlDefaultBaseUrl(mode?: string) {
     : "https://express.api.dhl.com/mydhlapi";
 }
 
-async function getUpsCredentials(ctx: any) {
+async function getUpsCredentials(ctx: ActionCtx) {
   const payload = await getProviderSecretPayload(ctx, "ups");
-  const providerSettings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping.ups" },
-  );
+  const providerSettings = await getShippingProviderSettings(ctx, "ups");
 
   if (!payload.clientId || !payload.clientSecret || !payload.accountNumber) {
     throw new ConvexError({
@@ -131,14 +133,14 @@ async function getUpsCredentials(ctx: any) {
     clientId: payload.clientId,
     clientSecret: payload.clientSecret,
     accountNumber: payload.accountNumber,
-    apiBaseUrl: (payload.apiBaseUrl || getUpsDefaultBaseUrl(providerSettings?.mode)).replace(
+    apiBaseUrl: (payload.apiBaseUrl || getUpsDefaultBaseUrl(providerSettings.mode)).replace(
       /\/+$/,
       "",
     ),
   };
 }
 
-async function getUpsAccessToken(ctx: any) {
+async function getUpsAccessToken(ctx: ActionCtx) {
   const credentials = await getUpsCredentials(ctx);
   const basicAuth = Buffer.from(
     `${credentials.clientId}:${credentials.clientSecret}`,
@@ -171,7 +173,7 @@ async function getUpsAccessToken(ctx: any) {
     });
   }
 
-  const tokenPayload = (await tokenResponse.json()) as any;
+  const tokenPayload = await readJson(tokenResponse);
   const accessToken =
     tokenPayload.access_token ??
     tokenPayload.accessToken ??
@@ -190,12 +192,9 @@ async function getUpsAccessToken(ctx: any) {
   };
 }
 
-async function getUspsCredentials(ctx: any) {
+async function getUspsCredentials(ctx: ActionCtx) {
   const payload = await getProviderSecretPayload(ctx, "usps");
-  const providerSettings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping.usps" },
-  );
+  const providerSettings = await getShippingProviderSettings(ctx, "usps");
 
   if (!payload.clientId || !payload.clientSecret || !payload.accountNumber) {
     throw new ConvexError({
@@ -209,14 +208,14 @@ async function getUspsCredentials(ctx: any) {
     clientId: payload.clientId,
     clientSecret: payload.clientSecret,
     accountNumber: payload.accountNumber,
-    apiBaseUrl: (payload.apiBaseUrl || getUspsDefaultBaseUrl(providerSettings?.mode)).replace(
+    apiBaseUrl: (payload.apiBaseUrl || getUspsDefaultBaseUrl(providerSettings.mode)).replace(
       /\/+$/,
       "",
     ),
   };
 }
 
-async function getUspsAccessToken(ctx: any) {
+async function getUspsAccessToken(ctx: ActionCtx) {
   const credentials = await getUspsCredentials(ctx);
   const tokenResponse = await fetch(`${credentials.apiBaseUrl}/oauth2/v3/token`, {
     method: "POST",
@@ -247,7 +246,7 @@ async function getUspsAccessToken(ctx: any) {
     });
   }
 
-  const tokenPayload = (await tokenResponse.json()) as any;
+  const tokenPayload = await readJson(tokenResponse);
   const accessToken =
     tokenPayload.access_token ??
     tokenPayload.accessToken ??
@@ -266,12 +265,9 @@ async function getUspsAccessToken(ctx: any) {
   };
 }
 
-async function getFedexCredentials(ctx: any) {
+async function getFedexCredentials(ctx: ActionCtx) {
   const payload = await getProviderSecretPayload(ctx, "fedex");
-  const providerSettings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping.fedex" },
-  );
+  const providerSettings = await getShippingProviderSettings(ctx, "fedex");
 
   if (!payload.clientId || !payload.clientSecret || !payload.accountNumber) {
     throw new ConvexError({
@@ -285,19 +281,16 @@ async function getFedexCredentials(ctx: any) {
     clientId: payload.clientId,
     clientSecret: payload.clientSecret,
     accountNumber: payload.accountNumber,
-    apiBaseUrl: (payload.apiBaseUrl || getFedexDefaultBaseUrl(providerSettings?.mode)).replace(
+    apiBaseUrl: (payload.apiBaseUrl || getFedexDefaultBaseUrl(providerSettings.mode)).replace(
       /\/+$/,
       "",
     ),
   };
 }
 
-async function getDhlCredentials(ctx: any) {
+async function getDhlCredentials(ctx: ActionCtx) {
   const payload = await getProviderSecretPayload(ctx, "dhl");
-  const providerSettings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping.dhl" },
-  );
+  const providerSettings = await getShippingProviderSettings(ctx, "dhl");
 
   if (!payload.username || !payload.password || !payload.accountNumber) {
     throw new ConvexError({
@@ -311,7 +304,7 @@ async function getDhlCredentials(ctx: any) {
     username: payload.username,
     password: payload.password,
     accountNumber: payload.accountNumber,
-    apiBaseUrl: (payload.apiBaseUrl || getDhlDefaultBaseUrl(providerSettings?.mode)).replace(
+    apiBaseUrl: (payload.apiBaseUrl || getDhlDefaultBaseUrl(providerSettings.mode)).replace(
       /\/+$/,
       "",
     ),
@@ -325,7 +318,7 @@ function getDhlBasicAuth(credentials: { username: string; password: string }) {
   ).toString("base64");
 }
 
-async function getFedexAccessToken(ctx: any) {
+async function getFedexAccessToken(ctx: ActionCtx) {
   const credentials = await getFedexCredentials(ctx);
   const body = new URLSearchParams({
     grant_type: "client_credentials",
@@ -357,7 +350,7 @@ async function getFedexAccessToken(ctx: any) {
     });
   }
 
-  const tokenPayload = (await tokenResponse.json()) as any;
+  const tokenPayload = await readJson(tokenResponse);
   const accessToken =
     tokenPayload.access_token ??
     tokenPayload.accessToken ??
@@ -516,14 +509,12 @@ function buildUpsTrackingUrl(trackingNumber?: string) {
   return `https://www.ups.com/track?tracknum=${encodeURIComponent(trackingNumber)}`;
 }
 
-function getUpsLabelDataUrl(labelResponse: any) {
+function getUpsLabelDataUrl(labelResponse: unknown) {
   const image =
-    labelResponse?.ShipmentResponse?.ShipmentResults?.PackageResults?.ShippingLabel
-      ?.GraphicImage ??
-    labelResponse?.ShipmentResponse?.ShipmentResults?.ShipmentIdentificationNumber
-      ?.GraphicImage ??
-    labelResponse?.PackageResults?.ShippingLabel?.GraphicImage ??
-    labelResponse?.labelImage;
+    at(labelResponse, "ShipmentResponse", "ShipmentResults", "PackageResults", "ShippingLabel", "GraphicImage") ??
+    at(labelResponse, "ShipmentResponse", "ShipmentResults", "ShipmentIdentificationNumber", "GraphicImage") ??
+    at(labelResponse, "PackageResults", "ShippingLabel", "GraphicImage") ??
+    at(labelResponse, "labelImage");
 
   if (!image || typeof image !== "string") {
     return undefined;
@@ -532,7 +523,7 @@ function getUpsLabelDataUrl(labelResponse: any) {
   return `data:application/octet-stream;base64,${image}`;
 }
 
-async function syncUspsTrackingInternal(ctx: any, args: { shipmentId: any }) {
+async function syncUspsTrackingInternal(ctx: ActionCtx, args: { shipmentId: Id<"commerce_shipments"> }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken, credentials } = await getUspsAccessToken(ctx);
   const shipmentContext = await ctx.runQuery(internal.shipping.internals.getShipmentForTracking, {
@@ -583,17 +574,17 @@ async function syncUspsTrackingInternal(ctx: any, args: { shipmentId: any }) {
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   const tracking =
-    data?.trackingEvents?.[0] ??
-    data?.trackingEvent ??
-    data?.summary ??
+    at(data, "trackingEvents", 0) ??
+    at(data, "trackingEvent") ??
+    at(data, "summary") ??
     data;
   const statusSource =
-    tracking?.eventType ??
-    tracking?.status ??
-    tracking?.statusCategory ??
-    data?.status ??
+    at(tracking, "eventType") ??
+    at(tracking, "status") ??
+    at(tracking, "statusCategory") ??
+    data.status ??
     "";
   const normalizedStatus =
     /deliver/i.test(String(statusSource))
@@ -628,7 +619,7 @@ async function syncUspsTrackingInternal(ctx: any, args: { shipmentId: any }) {
   };
 }
 
-async function syncFedexTrackingInternal(ctx: any, args: { shipmentId: any }) {
+async function syncFedexTrackingInternal(ctx: ActionCtx, args: { shipmentId: Id<"commerce_shipments"> }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken } = await getFedexAccessToken(ctx);
   const shipmentContext = await ctx.runQuery(
@@ -688,20 +679,20 @@ async function syncFedexTrackingInternal(ctx: any, args: { shipmentId: any }) {
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   const trackResult =
-    data?.output?.completeTrackResults?.[0]?.trackResults?.[0] ??
-    data?.completeTrackResults?.[0]?.trackResults?.[0] ??
+    at(data, "output", "completeTrackResults", 0, "trackResults", 0) ??
+    at(data, "completeTrackResults", 0, "trackResults", 0) ??
     {};
 
   const latestStatus =
-    trackResult?.latestStatusDetail?.statusByLocale ??
-    trackResult?.latestStatusDetail?.description ??
-    trackResult?.statusDetail?.description;
+    at(trackResult, "latestStatusDetail", "statusByLocale") ??
+    at(trackResult, "latestStatusDetail", "description") ??
+    at(trackResult, "statusDetail", "description");
 
   const fedexStatusCode =
-    trackResult?.latestStatusDetail?.code ??
-    trackResult?.statusDetail?.code ??
+    at(trackResult, "latestStatusDetail", "code") ??
+    at(trackResult, "statusDetail", "code") ??
     "";
 
   // FedEx status codes: DL=Delivered, IT=In Transit, OD=Out for Delivery, DP=Departed
@@ -745,7 +736,7 @@ async function syncFedexTrackingInternal(ctx: any, args: { shipmentId: any }) {
   };
 }
 
-async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; rateId?: string }) {
+async function createUpsLabelForOrderInternal(ctx: ActionCtx, args: { orderId: Id<"commerce_orders">; rateId?: string }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken, credentials } = await getUpsAccessToken(ctx);
   const labelContext = await ctx.runQuery(
@@ -774,17 +765,13 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
     });
   }
 
-  const shippingSettings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping" },
-  );
-  const originProof = resolveLabelOrigin(labelContext.order,labelContext.quote,shippingSettings ?? {});
+  const shippingSettings = await getEffectiveShipFrom(ctx);
+  const originProof = resolveLabelOrigin(labelContext.order,labelContext.quote,shippingSettings);
 
 
-  const totalWeightOz = labelContext.items.reduce((sum: number, item: any) => {
+  const totalWeightOz = labelContext.items.reduce((sum: number, item) => {
     const unitWeight =
-      item?.productShippingWeightOz ??
-      item?.shippingWeightOz ??
+      item.productShippingWeightOz ??
       shippingSettings.defaultPackageWeightOz ??
       16;
     return sum + Math.max(1, unitWeight) * item.quantity;
@@ -794,8 +781,8 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
   const serviceCode =
     labelContext.order.shippingServiceCode ??
     labelContext.quote?.serviceCode ??
-    labelContext.order.shippingQuoteRaw?.Service?.Code ??
-    labelContext.order.shippingQuoteRaw?.service?.code ??
+    str(at(labelContext.order.shippingQuoteRaw, "Service", "Code")) ??
+    str(at(labelContext.order.shippingQuoteRaw, "service", "code")) ??
     "03";
 
   const payload = {
@@ -899,21 +886,23 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   const shipmentResults =
-    data?.ShipmentResponse?.ShipmentResults ??
-    data?.ShipmentResults ??
+    at(data, "ShipmentResponse", "ShipmentResults") ??
+    at(data, "ShipmentResults") ??
     data;
-  const packageResults = Array.isArray(shipmentResults?.PackageResults)
-    ? shipmentResults.PackageResults[0]
-    : shipmentResults?.PackageResults;
+  const packageResultsValue = at(shipmentResults, "PackageResults");
+  const packageResults = Array.isArray(packageResultsValue)
+    ? packageResultsValue[0]
+    : packageResultsValue;
+  const shipmentIdentificationNumber = str(at(shipmentResults, "ShipmentIdentificationNumber"));
   const trackingNumber =
-    packageResults?.TrackingNumber ??
-    shipmentResults?.ShipmentIdentificationNumber ??
-    shipmentResults?.TrackingNumber;
+    str(at(packageResults, "TrackingNumber")) ??
+    shipmentIdentificationNumber ??
+    str(at(shipmentResults, "TrackingNumber"));
   const trackingUrl = buildUpsTrackingUrl(trackingNumber);
   const shipmentNumber =
-    shipmentResults?.ShipmentIdentificationNumber ??
+    shipmentIdentificationNumber ??
     trackingNumber ??
     `UPS-${Date.now().toString().slice(-8)}`;
   const labelUrl = getUpsLabelDataUrl(data);
@@ -940,13 +929,13 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
       serviceName: getUpsServiceName(String(serviceCode)),
       trackingNumber,
       trackingUrl,
-      trackingStatus: shipmentResults?.ShipmentResponseStatus?.Description,
-      externalShipmentId: shipmentResults?.ShipmentIdentificationNumber,
+      trackingStatus: str(at(shipmentResults, "ShipmentResponseStatus", "Description")),
+      externalShipmentId: shipmentIdentificationNumber,
       externalLabelId:
-        packageResults?.TrackingNumber ?? shipmentResults?.ShipmentIdentificationNumber,
+        str(at(packageResults, "TrackingNumber")) ?? shipmentIdentificationNumber,
       labelUrl,
       labelFormat: "GIF",
-      items: labelContext.items.map((item: any) => ({
+      items: labelContext.items.map((item) => ({
         orderItemId: item._id,
         quantity: item.quantity,
       })),
@@ -971,7 +960,7 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
   };
 }
 
-async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; rateId?: string }) {
+async function createFedexLabelForOrderInternal(ctx: ActionCtx, args: { orderId: Id<"commerce_orders">; rateId?: string }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken, credentials } = await getFedexAccessToken(ctx);
   const labelContext = await ctx.runQuery(
@@ -1000,17 +989,13 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
     });
   }
 
-  const shippingSettings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping" },
-  );
-  const originProof = resolveLabelOrigin(labelContext.order,labelContext.quote,shippingSettings ?? {});
+  const shippingSettings = await getEffectiveShipFrom(ctx);
+  const originProof = resolveLabelOrigin(labelContext.order,labelContext.quote,shippingSettings);
 
 
-  const totalWeightOz = labelContext.items.reduce((sum: number, item: any) => {
+  const totalWeightOz = labelContext.items.reduce((sum: number, item) => {
     const unitWeight =
-      item?.productShippingWeightOz ??
-      item?.shippingWeightOz ??
+      item.productShippingWeightOz ??
       shippingSettings.defaultPackageWeightOz ??
       16;
     return sum + Math.max(1, unitWeight) * item.quantity;
@@ -1020,7 +1005,7 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
   const serviceCode =
     labelContext.order.shippingServiceCode ??
     labelContext.quote?.serviceCode ??
-    labelContext.order.shippingQuoteRaw?.serviceType ??
+    str(at(labelContext.order.shippingQuoteRaw, "serviceType")) ??
     "FEDEX_GROUND";
 
   const recipientName =
@@ -1109,26 +1094,27 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   const shipmentOutput =
-    data?.output?.transactionShipments?.[0] ??
-    data?.transactionShipments?.[0] ??
+    at(data, "output", "transactionShipments", 0) ??
+    at(data, "transactionShipments", 0) ??
     data;
   const pieceResponse =
-    shipmentOutput?.pieceResponses?.[0] ??
-    shipmentOutput?.completedShipmentDetail?.completedPackageDetails?.[0] ??
+    at(shipmentOutput, "pieceResponses", 0) ??
+    at(shipmentOutput, "completedShipmentDetail", "completedPackageDetails", 0) ??
     {};
+  const masterTrackingNumber = str(at(shipmentOutput, "masterTrackingNumber"));
   const trackingNumber =
-    pieceResponse?.trackingNumber ??
-    shipmentOutput?.masterTrackingNumber ??
-    shipmentOutput?.trackingIdList?.[0]?.trackingNumber;
+    str(at(pieceResponse, "trackingNumber")) ??
+    masterTrackingNumber ??
+    str(at(shipmentOutput, "trackingIdList", 0, "trackingNumber"));
   const labelUrl =
-    pieceResponse?.packageDocuments?.[0]?.url ??
-    shipmentOutput?.completedShipmentDetail?.completedPackageDetails?.[0]?.label?.url ??
-    pieceResponse?.label?.url;
+    str(at(pieceResponse, "packageDocuments", 0, "url")) ??
+    str(at(shipmentOutput, "completedShipmentDetail", "completedPackageDetails", 0, "label", "url")) ??
+    str(at(pieceResponse, "label", "url"));
   const trackingUrl = buildFedexTrackingUrl(trackingNumber);
   const shipmentNumber =
-    shipmentOutput?.masterTrackingNumber ??
+    masterTrackingNumber ??
     trackingNumber ??
     `FEDEX-${Date.now().toString().slice(-8)}`;
 
@@ -1155,11 +1141,11 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
       trackingNumber,
       trackingUrl,
       trackingStatus: undefined,
-      externalShipmentId: shipmentOutput?.masterTrackingNumber,
-      externalLabelId: trackingNumber ?? shipmentOutput?.masterTrackingNumber,
+      externalShipmentId: masterTrackingNumber,
+      externalLabelId: trackingNumber ?? masterTrackingNumber,
       labelUrl,
       labelFormat: "PDF",
-      items: labelContext.items.map((item: any) => ({
+      items: labelContext.items.map((item) => ({
         orderItemId: item._id,
         quantity: item.quantity,
       })),
@@ -1184,7 +1170,7 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
   };
 }
 
-async function syncUpsTrackingInternal(ctx: any, args: { shipmentId: any }) {
+async function syncUpsTrackingInternal(ctx: ActionCtx, args: { shipmentId: Id<"commerce_shipments"> }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken, credentials } = await getUpsAccessToken(ctx);
   const shipmentContext = await ctx.runQuery(internal.shipping.internals.getShipmentForTracking, {
@@ -1235,21 +1221,21 @@ async function syncUpsTrackingInternal(ctx: any, args: { shipmentId: any }) {
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   const packageInfo =
-    data?.trackResponse?.shipment?.[0]?.package?.[0] ??
-    data?.trackResponse?.shipment?.package?.[0] ??
-    data?.trackResponse?.shipment?.package ??
-    data?.shipment?.[0]?.package?.[0];
+    at(data, "trackResponse", "shipment", 0, "package", 0) ??
+    at(data, "trackResponse", "shipment", "package", 0) ??
+    at(data, "trackResponse", "shipment", "package") ??
+    at(data, "shipment", 0, "package", 0);
   const latestActivity =
-    packageInfo?.activity?.[0] ??
-    packageInfo?.activity ??
-    data?.trackResponse?.shipment?.[0]?.activity?.[0];
+    at(packageInfo, "activity", 0) ??
+    at(packageInfo, "activity") ??
+    at(data, "trackResponse", "shipment", 0, "activity", 0);
   const statusSource =
-    packageInfo?.currentStatus?.description ??
-    packageInfo?.currentStatus?.code ??
-    latestActivity?.status?.description ??
-    latestActivity?.status?.type ??
+    at(packageInfo, "currentStatus", "description") ??
+    at(packageInfo, "currentStatus", "code") ??
+    at(latestActivity, "status", "description") ??
+    at(latestActivity, "status", "type") ??
     "";
   const normalizedStatus =
     /deliver/i.test(String(statusSource))
@@ -1284,7 +1270,7 @@ async function syncUpsTrackingInternal(ctx: any, args: { shipmentId: any }) {
   };
 }
 
-async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId: any; rateId?: string }) {
+async function createShipStationLabelForOrderInternal(ctx: ActionCtx, args: { orderId: Id<"commerce_orders">; rateId?: string }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const payload = await getShipStationCredentials(ctx);
   const labelContext = await ctx.runQuery(
@@ -1349,13 +1335,15 @@ async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId:
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   const labelUrl =
-    data.label_download?.pdf ??
-    data.label_download?.href ??
-    data.label_download?.png;
+    str(at(data, "label_download", "pdf")) ??
+    str(at(data, "label_download", "href")) ??
+    str(at(data, "label_download", "png"));
+  const labelId = str(data.label_id);
+  const labelTrackingNumber = str(data.tracking_number);
 
-  if (!data.label_id || !data.tracking_number || !labelUrl) {
+  if (!labelId || !labelTrackingNumber || !labelUrl) {
     throw new ConvexError({
       code: "SHIPSTATION_LABEL_ERROR",
       message: "ShipStation label purchase did not return a usable label and tracking number.",
@@ -1369,42 +1357,41 @@ async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId:
       originProof,
       actorUserId,
       shipmentNumber:
-        data.shipment_number ??
-        data.label_id ??
-        `SHP-${Date.now().toString().slice(-8)}`,
+        str(data.shipment_number) ??
+        labelId,
       provider: "shipstation",
       status: "label_created",
       carrier:
-        data.carrier_friendly_name ??
-        data.rate?.carrier_friendly_name ??
+        str(data.carrier_friendly_name) ??
+        str(at(data, "rate", "carrier_friendly_name")) ??
         labelContext.order.shippingCarrierName ??
         labelContext.quote?.carrierName,
       carrierCode:
-        data.carrier_code ??
-        data.rate?.carrier_code ??
+        str(data.carrier_code) ??
+        str(at(data, "rate", "carrier_code")) ??
         labelContext.order.shippingCarrierCode ??
         labelContext.quote?.carrierCode,
       serviceCode:
-        data.service_code ??
-        data.rate?.service_code ??
+        str(data.service_code) ??
+        str(at(data, "rate", "service_code")) ??
         labelContext.order.shippingServiceCode ??
         labelContext.quote?.serviceCode,
       serviceName:
-        data.service_type ??
-        data.rate?.service_type ??
+        str(data.service_type) ??
+        str(at(data, "rate", "service_type")) ??
         labelContext.order.shippingServiceName ??
         labelContext.quote?.serviceName,
-      trackingNumber: data.tracking_number,
+      trackingNumber: labelTrackingNumber,
       trackingUrl:
-        data.tracking_url ??
-        data.tracking_link ??
-        data.packages?.[0]?.tracking_url,
-      trackingStatus: data.tracking_status,
-      externalShipmentId: data.shipment_id,
-      externalLabelId: data.label_id,
+        str(data.tracking_url) ??
+        str(data.tracking_link) ??
+        str(at(data, "packages", 0, "tracking_url")),
+      trackingStatus: str(data.tracking_status),
+      externalShipmentId: str(data.shipment_id),
+      externalLabelId: labelId,
       labelUrl,
-      labelFormat: data.label_format ?? data.label_layout,
-      items: labelContext.items.map((item: any) => ({
+      labelFormat: str(data.label_format) ?? str(data.label_layout),
+      items: labelContext.items.map((item) => ({
         orderItemId: item._id,
         quantity: item.quantity,
       })),
@@ -1422,15 +1409,12 @@ async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId:
     success: true,
     provider: "shipstation",
     shipmentId,
-    trackingNumber: data.tracking_number,
-    labelUrl:
-      data.label_download?.pdf ??
-      data.label_download?.href ??
-      data.label_download?.png,
+    trackingNumber: labelTrackingNumber,
+    labelUrl,
   };
 }
 
-async function syncShipStationTrackingInternal(ctx: any, args: { shipmentId: any }) {
+async function syncShipStationTrackingInternal(ctx: ActionCtx, args: { shipmentId: Id<"commerce_shipments"> }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const payload = await getShipStationCredentials(ctx);
   const shipmentContext = await ctx.runQuery(internal.shipping.internals.getShipmentForTracking, {
@@ -1486,7 +1470,7 @@ async function syncShipStationTrackingInternal(ctx: any, args: { shipmentId: any
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
   // ShipEngine returns status_code as 2-letter abbreviations (DE, IT, AC, etc.)
   // and status_description as human-readable strings.
   const rawCode = String(data.status_code ?? data.tracking_status ?? data.status ?? "").toUpperCase();
@@ -1506,14 +1490,14 @@ async function syncShipStationTrackingInternal(ctx: any, args: { shipmentId: any
     status: normalizedStatus,
     trackingStatus: String(data.status_description ?? data.status_code ?? ""),
     trackingNumber:
-      data.tracking_number ?? shipmentContext.shipment.trackingNumber,
+      str(data.tracking_number) ?? shipmentContext.shipment.trackingNumber,
     trackingUrl:
-      data.tracking_url ??
-      data.tracking_link ??
+      str(data.tracking_url) ??
+      str(data.tracking_link) ??
       shipmentContext.shipment.trackingUrl,
     labelUrl:
-      data.label_download?.pdf ??
-      data.label_download?.href ??
+      str(at(data, "label_download", "pdf")) ??
+      str(at(data, "label_download", "href")) ??
       shipmentContext.shipment.labelUrl,
     rawMetadata: data,
   });
@@ -1534,6 +1518,19 @@ async function syncShipStationTrackingInternal(ctx: any, args: { shipmentId: any
 
 export const verifyShipStationConnection = action({
   args: {},
+  returns: v.union(v.object({
+    success: v.boolean(),
+    status: v.number(),
+    error: v.string(),
+    accountCount: v.optional(v.null()),
+    readOnlyCheck: v.optional(v.null()),
+  }), v.object({
+    success: v.boolean(),
+    accountCount: v.number(),
+    readOnlyCheck: v.string(),
+    status: v.optional(v.null()),
+    error: v.optional(v.null()),
+  })),
   handler: async (ctx) => {
     await requireShippingAdminAction(ctx);
     const payload = await getShipStationCredentials(ctx);
@@ -1563,13 +1560,10 @@ export const verifyShipStationConnection = action({
       };
     }
 
-    const carriersResponse = (await response.json()) as any;
+    const carriersResponse: unknown = await response.json();
     // ShipEngine wraps carriers in { carriers: [...] }
-    const carriers = Array.isArray(carriersResponse?.carriers)
-      ? carriersResponse.carriers
-      : Array.isArray(carriersResponse)
-        ? carriersResponse
-        : [];
+    const wrappedCarriers = at(carriersResponse, "carriers");
+    const carriers = Array.isArray(wrappedCarriers) ? wrappedCarriers : list(carriersResponse);
 
     await ctx.runMutation(internal.shipping.internals.syncProviderAccountsAndServices, {
       provider: "shipstation",
@@ -1643,7 +1637,7 @@ export const fetchCheckoutRates: RegisteredAction<"public", CheckoutRateArgs, Ch
     fellBackToManual:v.boolean(),stages:v.array(v.object({stage:v.string(),startedAt:v.number(),durationMs:v.number(),success:v.boolean(),detail:v.optional(v.string())})),
     fallbackMessage:v.optional(v.string()),
   }),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<CheckoutRateResult> => {
     // Save and invalidate through the normal checkout mutation before rating.
     // Quote listing and selection must compare against this same address.
     await ctx.runMutation(api.commerce.checkout.updateSession, {
@@ -1653,7 +1647,7 @@ export const fetchCheckoutRates: RegisteredAction<"public", CheckoutRateArgs, Ch
     // All configured zone methods use the same pipeline. Disabling carrier
     // requests must not disable flat, weight-based, pickup or other store rates.
     const result = await ctx.runAction(
-      internal.shipping.rates.pipeline.calculateRates,
+      api.shipping.rates.pipeline.calculateRates,
       {
         sessionToken: args.sessionToken,
         shippingAddress: args.shippingAddress,
@@ -1682,6 +1676,13 @@ export const fetchCheckoutRates: RegisteredAction<"public", CheckoutRateArgs, Ch
 
 export const createShipStationLabelForOrder = action({
   args: createShipStationLabelForOrderArgs,
+  returns: v.object({
+    success: v.boolean(),
+    provider: v.string(),
+    shipmentId: v.id("commerce_shipments"),
+    trackingNumber: v.string(),
+    labelUrl: v.string(),
+  }),
   handler: async (ctx, args) => {
     return createShipStationLabelForOrderInternal(ctx, args);
   },
@@ -1689,6 +1690,13 @@ export const createShipStationLabelForOrder = action({
 
 export const createShippingLabelForOrder = action({
   args: createShippingLabelForOrderArgs,
+  returns: v.object({
+    success: v.boolean(),
+    provider: v.string(),
+    shipmentId: v.id("commerce_shipments"),
+    trackingNumber: v.string(),
+    labelUrl: v.string(),
+  }),
   handler: async (ctx, args) => {
     const labelContext = await ctx.runQuery(
       internal.shipping.internals.getLabelContextForOrder,
@@ -1724,6 +1732,12 @@ export const createShippingLabelForOrder = action({
 
 export const syncShipStationTracking = action({
   args: syncShipStationTrackingArgs,
+  returns: v.object({
+    success: v.boolean(),
+    provider: v.string(),
+    trackingStatus: v.string(),
+    status: v.union(v.literal("delivered"), v.literal("label_created"), v.literal("shipped"), v.literal("returned")),
+  }),
   handler: async (ctx, args) => {
     return syncShipStationTrackingInternal(ctx, args);
   },
@@ -1731,6 +1745,12 @@ export const syncShipStationTracking = action({
 
 export const syncShipmentTracking = action({
   args: syncShipmentTrackingArgs,
+  returns: v.object({
+    success: v.boolean(),
+    provider: v.string(),
+    trackingStatus: v.string(),
+    status: v.union(v.literal("delivered"), v.literal("label_created"), v.literal("shipped"), v.literal("returned")),
+  }),
   handler: async (ctx, args) => {
     const shipmentContext = await ctx.runQuery(internal.shipping.internals.getShipmentForTracking, {
       shipmentId: args.shipmentId,

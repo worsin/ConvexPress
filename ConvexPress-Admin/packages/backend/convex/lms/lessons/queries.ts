@@ -2,14 +2,45 @@
  * Lesson System - queries.
  */
 
-import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { v, type Infer } from "convex/values";
+import { query, type QueryCtx } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan } from "../../helpers/permissions";
 import { docToText } from "./helpers";
 import { canUserAccessNode, requireNodeCourseAuthorOrEditor } from "../access";
+import { lmsDocs } from "../../schema/lms.docs.generated";
 
-function lessonEditPayload(node: any) {
+// bodyDoc/materialsDoc are stored Tiptap JSON; they reuse the schema's own
+// field validators for those columns.
+const lessonContentFields = {
+  bodyDoc: lmsDocs.lms_nodes.fields.bodyDoc,
+  materialsDoc: lmsDocs.lms_nodes.fields.materialsDoc,
+  bodyText: v.string(),
+  materialsText: v.string(),
+};
+
+const lessonEditPayloadValidator = v.object({
+  node: lmsDocs.lms_nodes,
+  ...lessonContentFields,
+});
+
+/** Lesson node without its body, materials, and AI media/transcript fields. */
+const runtimeNodeValidator = lmsDocs.lms_nodes.omit(
+  "bodyDoc",
+  "materialsDoc",
+  "transcriptText",
+  "audioMediaId",
+  "captionsMediaId",
+  "aiVideoMediaId",
+);
+
+const lessonRuntimePayloadValidator = v.object({
+  node: runtimeNodeValidator,
+  ...lessonContentFields,
+});
+
+function lessonEditPayload(node: Doc<"lms_nodes">): Infer<typeof lessonEditPayloadValidator> {
   return {
     node,
     bodyDoc: node.bodyDoc ?? null,
@@ -19,7 +50,7 @@ function lessonEditPayload(node: any) {
   };
 }
 
-function lessonRuntimePayload(node: any) {
+function lessonRuntimePayload(node: Doc<"lms_nodes">): Infer<typeof lessonRuntimePayloadValidator> {
   return {
     node: runtimeNode(node),
     bodyDoc: node.bodyDoc ?? null,
@@ -29,7 +60,7 @@ function lessonRuntimePayload(node: any) {
   };
 }
 
-function runtimeNode(node: any) {
+function runtimeNode(node: Doc<"lms_nodes">): Infer<typeof runtimeNodeValidator> {
   const {
     bodyDoc: _bodyDoc,
     materialsDoc: _materialsDoc,
@@ -42,7 +73,7 @@ function runtimeNode(node: any) {
   return publicNode;
 }
 
-async function canPreviewLesson(ctx: any) {
+async function canPreviewLesson(ctx: QueryCtx) {
   return (
     (await currentUserCan(ctx, "lms.course.view")) ||
     (await currentUserCan(ctx, "lms.lesson.edit"))
@@ -51,6 +82,7 @@ async function canPreviewLesson(ctx: any) {
 
 export const getLessonForEdit = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), lessonEditPayloadValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
@@ -62,6 +94,7 @@ export const getLessonForEdit = query({
 
 export const getLessonForPlayer = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), lessonRuntimePayloadValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
@@ -76,6 +109,7 @@ export const getLessonForPlayer = query({
 
 export const getLessonPublicView = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), lessonRuntimePayloadValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
@@ -88,6 +122,7 @@ export const getLessonPublicView = query({
 
 export const getLesson = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), lessonRuntimePayloadValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
@@ -102,6 +137,10 @@ export const getLesson = query({
 
 export const listVersions = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.array(lmsDocs.lms_lessonVersions.extend({
+    bodyText: v.string(),
+    snapshotFields: v.array(v.string()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.lesson.edit");

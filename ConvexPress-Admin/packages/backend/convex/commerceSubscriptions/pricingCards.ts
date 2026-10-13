@@ -33,13 +33,12 @@
  *   `await requirePluginEnabled(ctx, "commerceSubscriptions")`
  * (Read query returns a default when the plugin is disabled so
  * consumers can still render a shell.)
- *
- * `@ts-nocheck` matches the existing subscriptions backend file pattern.
  */
 
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type QueryCtx } from "../_generated/server";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { getCurrentUser } from "../helpers/auth";
 import { requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
@@ -52,15 +51,25 @@ import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 const SINGLETON_KEY = "main";
 const DEFAULT_TEMPLATE_KEY = "default";
 
+/** Shape returned when the singleton row does not exist yet. */
+const defaultPricingCardConfigValidator = v.object({
+  _id: v.null(),
+  singletonKey: v.string(),
+  orderedOfferIds: v.array(v.id("commerce_subscription_offers")),
+  featuredOfferId: v.optional(v.id("commerce_subscription_offers")),
+  headline: v.optional(v.string()),
+  subheadline: v.optional(v.string()),
+  templateKey: v.string(),
+  updatedAt: v.number(),
+  updatedBy: v.null(),
+});
+
 /** Default config returned when the singleton row does not yet exist. */
-function defaultConfig() {
+function defaultConfig(): Infer<typeof defaultPricingCardConfigValidator> {
   return {
     _id: null,
     singletonKey: SINGLETON_KEY,
-    orderedOfferIds: [] as Array<any>,
-    featuredOfferId: undefined,
-    headline: undefined,
-    subheadline: undefined,
+    orderedOfferIds: [],
     templateKey: DEFAULT_TEMPLATE_KEY,
     updatedAt: 0,
     updatedBy: null,
@@ -69,10 +78,10 @@ function defaultConfig() {
 
 // ─── Internal helpers ───────────────────────────────────────────────────────
 
-async function getSingletonRow(ctx: any) {
+async function getSingletonRow(ctx: { db: QueryCtx["db"] }) {
   return ctx.db
     .query("commerce_subscription_pricing_card_config")
-    .withIndex("by_singleton", (q: any) => q.eq("singletonKey", SINGLETON_KEY))
+    .withIndex("by_singleton", (q) => q.eq("singletonKey", SINGLETON_KEY))
     .unique();
 }
 
@@ -89,6 +98,10 @@ async function getSingletonRow(ctx: any) {
  */
 export const getPricingCardConfig = query({
   args: {},
+  returns: v.union(
+    commerceSubscriptionsDocs.commerce_subscription_pricing_card_config,
+    defaultPricingCardConfigValidator,
+  ),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
       return defaultConfig();
@@ -164,7 +177,7 @@ export const updatePricingCardConfig = mutation({
     // featuredOfferId must be in the ordered list.
     if (args.featuredOfferId) {
       const isInList = args.orderedOfferIds.some(
-        (id: any) => String(id) === String(args.featuredOfferId),
+        (id) => id === args.featuredOfferId,
       );
       if (!isInList) {
         throw new ConvexError({

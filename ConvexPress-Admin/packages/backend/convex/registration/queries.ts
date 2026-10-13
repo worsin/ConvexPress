@@ -44,6 +44,31 @@ import { v } from "convex/values";
 type InvitationListItem = Doc<"invitations"> & {inviterName:string;inviterEmail?:string;acceptedUserName?:string;acceptedUserEmail?:string;isEffectivelyExpired:boolean};
 export const listInvitations = query({
   args: listInvitationsArgs,
+  returns: v.array(v.object({
+    _id: v.id("invitations"),
+    _creationTime: v.number(),
+    message: v.optional(v.string()),
+    previousToken: v.optional(v.string()),
+    previousTokenExpiresAt: v.optional(v.number()),
+    acceptedBy: v.optional(v.id("users")),
+    acceptedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.id("users")),
+    resentAt: v.optional(v.number()),
+    createdAt: v.number(),
+    status: v.union(v.literal("pending"), v.literal("revoked"), v.literal("accepted"), v.literal("expired")),
+    expiresAt: v.number(),
+    email: v.string(),
+    invitedBy: v.id("users"),
+    role: v.string(),
+    token: v.string(),
+    resentCount: v.number(),
+    inviterName: v.string(),
+    inviterEmail: v.optional(v.string()),
+    acceptedUserName: v.optional(v.string()),
+    acceptedUserEmail: v.optional(v.string()),
+    isEffectivelyExpired: v.boolean(),
+  })),
   handler: async (ctx: QueryCtx, args: {status?: Doc<"invitations">["status"]}): Promise<InvitationListItem[]> => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");

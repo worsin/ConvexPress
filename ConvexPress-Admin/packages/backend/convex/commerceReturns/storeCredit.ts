@@ -14,20 +14,23 @@ import {
   internalMutation,
   mutation,
   query,
+  type QueryCtx,
 } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
-async function latestEntry(ctx: any, userId: string) {
+import { commerceReturnsDocs } from "../schema/commerceReturns.docs.generated";
+async function latestEntry(ctx: Pick<QueryCtx, "db">, userId: Id<"users">) {
   return await ctx.db
     .query("commerce_store_credit_ledger")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .withIndex("by_user", (q) => q.eq("userId", userId))
     .order("desc")
     .first();
 }
 
 export const getBalance = query({
   args: { userId: v.id("users") },
+  returns: v.object({ balance: v.number() }),
   handler: async (ctx, args) => {
     const latest = await latestEntry(ctx, args.userId);
     return { balance: latest?.balanceAfter ?? 0 };
@@ -36,11 +39,11 @@ export const getBalance = query({
 
 export const listLedger = query({
   args: { userId: v.id("users"), limit: v.optional(v.number()) },
-  returns: v.array(tableDocs.commerce_store_credit_ledger),
+  returns: v.array(commerceReturnsDocs.commerce_store_credit_ledger),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("commerce_store_credit_ledger")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(args.limit ?? 100);
   },
@@ -59,6 +62,7 @@ export const issue = mutation({
     note: v.optional(v.string()),
     expiresAt: v.optional(v.number()),
   },
+  returns: v.object({ balance: v.number() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "commerce.returns.manage");
     if (args.amount <= 0) {
@@ -136,6 +140,7 @@ export const adjust = mutation({
     amount: v.number(),
     note: v.string(),
   },
+  returns: v.object({ balance: v.number() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "commerce.returns.manage");
     const latest = await latestEntry(ctx, args.userId);
@@ -173,13 +178,13 @@ export const expireExpired = internalMutation({
     const now = Date.now();
     const expired = await ctx.db
       .query("commerce_store_credit_ledger")
-      .withIndex("by_expires_at", (q: any) => q.lte("expiresAt", now))
+      .withIndex("by_expires_at", (q) => q.lte("expiresAt", now))
       .collect();
     // Group by userId; only those whose most-recent issue row has expired
     // and hasn't already been expired.
     const seenUsers = new Set<string>();
     let expiredCount = 0;
-    for (const row of expired as any[]) {
+    for (const row of expired) {
       if (row.entryType !== "issue") continue;
       const key = String(row.userId);
       if (seenUsers.has(key)) continue;

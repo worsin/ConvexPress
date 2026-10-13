@@ -13,23 +13,23 @@ import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { supportDocs } from "../schema/support.docs.generated";
 export const list = query({
   args: {
     activeOnly: v.optional(v.boolean()),
   },
-  returns: v.array(tableDocs.support_channels),
+  returns: v.array(supportDocs.support_channels),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     await requireCan(ctx, "manage_options");
     const rows = args.activeOnly
       ? await ctx.db
           .query("support_channels")
-          .withIndex("by_active", (q: any) => q.eq("isActive", true))
+          .withIndex("by_active", (q) => q.eq("isActive", true))
           .collect()
       : await ctx.db.query("support_channels").collect();
     return rows.sort(
-      (a: any, b: any) => (a.createdAt ?? 0) - (b.createdAt ?? 0),
+      (a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0),
     );
   },
 });
@@ -38,13 +38,13 @@ export const getByCode = query({
   args: {
     code: v.string(),
   },
-  returns: v.union(v.null(), tableDocs.support_channels),
+  returns: v.union(v.null(), supportDocs.support_channels),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     await requireCan(ctx, "manage_options");
     return await ctx.db
       .query("support_channels")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
   },
 });
@@ -71,7 +71,7 @@ export const create: RegisteredMutation<"public", {code:string;kind:"email"|"sla
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("support_channels")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
     if (existing) {
       throw new ConvexError({
@@ -134,6 +134,15 @@ export const healthReport = query({
   args: {
     silentThresholdMs: v.optional(v.number()),
   },
+  returns: v.array(v.object({
+    _id: v.id("support_channels"),
+    code: v.string(),
+    kind: v.union(v.literal("email"), v.literal("api"), v.literal("slack"), v.literal("discord"), v.literal("twilio_sms"), v.literal("form"), v.literal("chat")),
+    label: v.string(),
+    lastInboundAt: v.optional(v.number()),
+    healthy: v.boolean(),
+    silentHours: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     await requireCan(ctx, "manage_options");
@@ -141,9 +150,9 @@ export const healthReport = query({
     const now = Date.now();
     const rows = await ctx.db
       .query("support_channels")
-      .withIndex("by_active", (q: any) => q.eq("isActive", true))
+      .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
-    return rows.map((row: any) => ({
+    return rows.map((row) => ({
       _id: row._id,
       code: row.code,
       kind: row.kind,

@@ -1,3 +1,5 @@
+import { at } from "../../helpers/json";
+
 /**
  * UPS service code map + helpers. Mirrors the pattern used by FedEx/USPS/DHL
  * provider modules so rate-fetching code can look up service names by code
@@ -29,9 +31,8 @@ export function getUpsServiceName(code: string, fallback?: string): string {
  * Parse UPS `BusinessTransitDays` from a rated-shipment response into a
  * numeric day count. Returns undefined when the response omits transit data.
  */
-export function parseUpsTransitDays(rated: any): number | undefined {
-  const raw =
-    rated?.TimeInTransit?.ServiceSummary?.EstimatedArrival?.BusinessTransitDays;
+export function parseUpsTransitDays(rated: unknown): number | undefined {
+  const raw = at(rated, "TimeInTransit", "ServiceSummary", "EstimatedArrival", "BusinessTransitDays");
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }

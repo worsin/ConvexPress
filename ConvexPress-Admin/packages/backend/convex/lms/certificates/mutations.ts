@@ -8,7 +8,9 @@ import { deleteWithMediaReferences, patchWithMediaReferences } from "../../media
 import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { mutation, type MutationCtx } from "../../_generated/server";
+import type { Doc, Id } from "../../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import { requireAuth, requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
@@ -55,12 +57,12 @@ export const updateTemplate = mutation({
     if (!certificate) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Certificate template not found" });
     }
-    const patch: Record<string, unknown> = { updatedAt: Date.now() };
-    for (const [k, val] of Object.entries(rest)) {
-      if (val === undefined) continue;
-      patch[k] = k === "title" ? String(val).trim() || "Certificate" : val;
-    }
-    await patchWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", certificateId, patch as never);
+    const patch: Partial<WithoutSystemFields<Doc<"lms_certificates">>> = { updatedAt: Date.now() };
+    if (rest.title !== undefined) patch.title = rest.title.trim() || "Certificate";
+    if (rest.orientation !== undefined) patch.orientation = rest.orientation;
+    if (rest.templateDoc !== undefined) patch.templateDoc = rest.templateDoc;
+    if (rest.isActive !== undefined) patch.isActive = rest.isActive;
+    await patchWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", certificateId, patch);
     return certificateId;
   },
 });
@@ -265,10 +267,10 @@ function textToDoc(text: string) {
   };
 }
 
-async function scheduleCertificatePdfRender(ctx: any, issueId: string) {
+async function scheduleCertificatePdfRender(ctx: MutationCtx, issueId: Id<"lms_certificate_issues">) {
   await ctx.scheduler.runAfter(
     0,
-    (internal as any).lms.certificates.actions.renderCertificatePdf,
+    internal.lms.certificates.actions.renderCertificatePdf,
     { issueId },
   );
 }

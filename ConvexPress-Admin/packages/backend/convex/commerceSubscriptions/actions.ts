@@ -16,6 +16,7 @@ import { v } from "convex/values";
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { requirePluginEnabled } from "../helpers/plugins";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -34,13 +35,23 @@ export const processRenewals = internalAction({
   args: {
     limit: v.optional(v.number()),
   },
+  returns: v.object({
+    processed: v.number(),
+    succeeded: v.number(),
+    failed: v.number(),
+    invoiceIds: v.array(v.id("commerce_subscription_invoices")),
+    skipped: v.boolean(),
+    reason: v.string(),
+    message: v.string(),
+  }),
   handler: async (ctx, _args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
+    const invoiceIds: Id<"commerce_subscription_invoices">[] = [];
     return {
       processed: 0,
       succeeded: 0,
       failed: 0,
-      invoiceIds: [],
+      invoiceIds,
       skipped: true,
       reason: "subscription_charging_not_configured",
       message:
@@ -103,14 +114,13 @@ export const processExpiredSubscriptions = internalAction({
   args: {
     limit: v.optional(v.number()),
   },
+  returns: v.object({ cancelledCount: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
-    const result: any = await ctx.runMutation(
+    return await ctx.runMutation(
       internal.commerceSubscriptions.internals.expirePendingCancellations,
       { limit: args.limit ?? 100 },
     );
-
-    return result;
   },
 });
 

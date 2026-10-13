@@ -5,6 +5,44 @@ import {
   galleryLayoutValidator,
   galleryVisibilityValidator,
 } from "../schema/gallery";
+import { galleryDocs } from "../schema/gallery.docs.generated";
+
+// ─── Return shapes (helpers.ts enrich* projections) ──────────────────────────
+
+export const galleryMediaSummaryValidator = v.object({
+  _id: v.id("media"),
+  title: v.string(),
+  url: v.string(),
+  altText: v.optional(v.string()),
+  caption: v.optional(v.string()),
+  width: v.optional(v.number()),
+  height: v.optional(v.number()),
+  mimeType: v.string(),
+});
+
+export const galleryCategorySummaryValidator = v.object({
+  _id: v.id("gallery_categories"),
+  name: v.string(),
+  slug: v.string(),
+  description: v.optional(v.string()),
+  albumCount: v.number(),
+});
+
+export const galleryAlbumItemSummaryValidator = v.object({
+  _id: v.id("gallery_albumItems"),
+  mediaId: v.id("media"),
+  sortOrder: v.number(),
+  caption: v.optional(v.string()),
+  altText: v.optional(v.string()),
+  linkUrl: v.optional(v.string()),
+  media: galleryMediaSummaryValidator,
+});
+
+export const enrichedGalleryAlbumValidator = galleryDocs.gallery_albums.extend({
+  categories: v.array(galleryCategorySummaryValidator),
+  items: v.array(galleryAlbumItemSummaryValidator),
+  coverMedia: v.union(v.null(), galleryMediaSummaryValidator),
+});
 
 const albumItemInputValidator = v.object({
   mediaId: v.id("media"),

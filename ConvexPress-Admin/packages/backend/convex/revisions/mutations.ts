@@ -24,7 +24,7 @@ import { requireCan , getUserIdentifier } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { REVISION_EVENTS, SYSTEM } from "../events/constants";
 import { POST_EVENTS, PAGE_EVENTS } from "../events/constants";
-import { AUTHORING_FIELDS, authoringSnapshot, restoredAuthoring } from "../helpers/authoringSnapshot";
+import { AUTHORING_FIELDS, authoringSnapshot, restoredAuthoring, type HistoricalAuthoringSource } from "../helpers/authoringSnapshot";
 import { getNextRevisionNumber, getRevisionSettings, requireRevisionAccess } from "../helpers/revisions";
 import {
   restoreRevisionArgs,
@@ -100,7 +100,9 @@ export const restore = mutation({
 
     // Determine which fields will change
     const restored = restoredAuthoring(revision);
-    const changedFields = AUTHORING_FIELDS.filter((field) => JSON.stringify(restored[field]) !== JSON.stringify(post[field]));
+    // Pre-retirement posts may still carry the legacy content columns.
+    const source: HistoricalAuthoringSource = post;
+    const changedFields = AUTHORING_FIELDS.filter((field) => JSON.stringify(restored[field]) !== JSON.stringify(source[field]));
 
     await insertWithMediaReferences<"revisions">(ctx, "revisions", {
       ...authoringSnapshot(post),
@@ -108,13 +110,13 @@ export const restore = mutation({
       parentId: revision.parentId,
       parentType: revision.parentType,
       title: post.title,
-      content: post.content ?? "",
+      content: source.content ?? "",
       excerpt: post.excerpt,
       revisionNumber: currentRevisionNumber,
       type: "manual",
       authorId: authorId,
       changedFields,
-      contentLength: (post.content ?? "").length,
+      contentLength: (source.content ?? "").length,
       createdAt: Date.now(),
     });
 

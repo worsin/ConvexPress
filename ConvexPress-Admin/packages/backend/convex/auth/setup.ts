@@ -183,6 +183,7 @@ export const createFirstAdmin = action({
     displayName: v.optional(v.string()),
     setupToken: v.optional(v.string()),
   },
+  returns: v.object({ userId: v.id("users"), message: v.string() }),
   handler: async (ctx, args) => {
     const credentials = validateFirstAdminCredentials(args);
     const existingAdmins = await ctx.runQuery(internal.auth.internals.checkExistingAdmins);

@@ -127,7 +127,7 @@ export const importBatch = internalAction({
         );
         const existingPostId = existingMapping?.convexId;
         const localDocument = existingMapping ? await ctx.runQuery(
-          internal.wordpressSync.internals.getEntityById, {table:"posts",id:existingMapping.convexId}
+          internal.wordpressSync.internals.getPostById, { id: existingMapping.convexId }
         ) : null;
 
         if (existingMapping) {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Wishlists — Queries
  *
@@ -29,6 +28,7 @@ import { readWishlistItems } from "./publicItems";
 import { wishlistDetailValidator, sharedWishlistValidator, type WishlistDetail, type SharedWishlist } from "./validators";
 
 import { query } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceWishlistsEnabled, getActiveWishlistUser as getCurrentUser } from "./helpers";
 import { isPluginEnabled } from "../helpers/plugins";
@@ -101,7 +101,16 @@ export const isInWishlist: RegisteredQuery<"public", WishlistLookupArgs, Promise
  */
 export const getAnalytics = query({
   args: {},
-  handler: async (ctx: any) => {
+  returns: v.union(v.null(), v.object({
+    totalWishlists: v.number(),
+    totalItems: v.number(),
+    publicWishlists: v.number(),
+    uniqueUsers: v.number(),
+    avgItemsPerWishlist: v.number(),
+    recentItems: v.number(),
+    monthlyItems: v.number(),
+  })),
+  handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
     await requireCan(ctx, "commerce.wishlists.manage");
@@ -119,10 +128,10 @@ export const getAnalytics = query({
     // Calculate stats
     const totalWishlists = wishlists.length;
     const totalItems = items.length;
-    const publicWishlists = wishlists.filter((w: any) => w.isPublic).length;
+    const publicWishlists = wishlists.filter((w) => w.isPublic).length;
 
     // Get unique users with wishlists
-    const uniqueUsers = new Set(wishlists.map((w: any) => w.userId)).size;
+    const uniqueUsers = new Set(wishlists.map((w) => w.userId)).size;
 
     // Calculate average items per wishlist
     const avgItemsPerWishlist =
@@ -133,13 +142,13 @@ export const getAnalytics = query({
     // Items added in last 7 days
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const recentItems = items.filter(
-      (i: any) => i.addedAt > sevenDaysAgo,
+      (i) => i.addedAt > sevenDaysAgo,
     ).length;
 
     // Items added in last 30 days
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const monthlyItems = items.filter(
-      (i: any) => i.addedAt > thirtyDaysAgo,
+      (i) => i.addedAt > thirtyDaysAgo,
     ).length;
 
     return {
@@ -161,7 +170,15 @@ export const getPopularItems = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), v.array(v.object({
+    productId: v.id("commerce_products"),
+    name: v.string(),
+    slug: v.string(),
+    imageUrl: v.optional(v.string()),
+    wishlistCount: v.number(),
+    status: v.union(v.literal("draft"), v.literal("trash"), v.literal("publish"), v.literal("private")),
+  }))),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
     await requireCan(ctx, "commerce.wishlists.manage");
@@ -172,7 +189,7 @@ export const getPopularItems = query({
     const items = await ctx.db.query("commerce_wishlist_items").collect();
 
     // Group by productId and count
-    const productCounts = new Map<string, number>();
+    const productCounts = new Map<Id<"commerce_products">, number>();
     for (const item of items) {
       const key = item.productId;
       productCounts.set(key, (productCounts.get(key) || 0) + 1);
@@ -186,7 +203,7 @@ export const getPopularItems = query({
     // Fetch product details
     const popularItems = await Promise.all(
       sortedProducts.map(async ([productId, count]) => {
-        const product = await ctx.db.get(productId as any);
+        const product = await ctx.db.get(productId);
         if (!product) return null;
 
         // Get product image
@@ -207,7 +224,7 @@ export const getPopularItems = query({
       }),
     );
 
-    return popularItems.filter(Boolean);
+    return popularItems.filter((item) => item !== null);
   },
 });
 

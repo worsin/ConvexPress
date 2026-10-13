@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
 
+import type { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { isMembershipPluginEnabled } from "../commerce/helpers";
 
@@ -30,10 +31,10 @@ export async function requireMembershipEnabled(
  * Shape of a displayable plan benefit for pricing surfaces.
  */
 export interface DisplayableBenefit {
-  _id: string;
+  _id: Id<"membership_plan_benefits">;
   label: string;
   description?: string;
-  sourcePlanId: string;
+  sourcePlanId: Id<"membership_plans">;
 }
 
 /**
@@ -47,17 +48,17 @@ export interface DisplayableBenefit {
  * without any cross-query overhead.
  */
 export async function getDisplayableBenefitsForPlanHelper(
-  ctx: { db: any },
-  planId: string,
+  ctx: { db: QueryCtx["db"] },
+  planId: Id<"membership_plans">,
 ): Promise<DisplayableBenefit[]> {
   const benefits = await ctx.db
     .query("membership_plan_benefits")
-    .withIndex("by_plan", (q: any) => q.eq("planId", planId))
+    .withIndex("by_plan", (q) => q.eq("planId", planId))
     .collect();
 
-  return (benefits as any[])
-    .filter((b: any) => b.displayAsFeature !== false)
-    .map((b: any) => ({
+  return benefits
+    .filter((b) => b.displayAsFeature !== false)
+    .map((b) => ({
       _id: b._id,
       label: b.label,
       ...(b.description !== undefined ? { description: b.description } : {}),
@@ -80,7 +81,7 @@ export async function getDisplayableBenefitsForPlanHelper(
  *   - All benefits have `displayAsFeature === false`
  */
 export async function getDisplayableBenefitsForCodesHelper(
-  ctx: { db: any },
+  ctx: { db: QueryCtx["db"] },
   codes: string[],
 ): Promise<DisplayableBenefit[]> {
   if (codes.length === 0) return [];
@@ -91,8 +92,8 @@ export async function getDisplayableBenefitsForCodesHelper(
   const seen = new Map<string, DisplayableBenefit>(); // label → first occurrence
 
   for (const code of codes) {
-    const matchingPlans = (allPlans as any[]).filter(
-      (p: any) =>
+    const matchingPlans = allPlans.filter(
+      (p) =>
         p.linkedSubscriptionCode === code && p.status === "active",
     );
 

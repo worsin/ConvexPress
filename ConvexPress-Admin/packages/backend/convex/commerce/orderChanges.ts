@@ -1,7 +1,8 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 import { requireCan } from "../helpers/permissions";
 
 const changeType = v.union(
@@ -13,19 +14,25 @@ const changeType = v.union(
   v.literal("refund"),
 );
 
+const orderChangeWithActions = {
+  ...commerceDocs.commerce_order_changes.fields,
+  actions: v.array(commerceDocs.commerce_order_change_actions),
+};
+
 export const listForOrder = query({
   args: { orderId: v.id("commerce_orders") },
+  returns: v.array(v.object(orderChangeWithActions)),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const changes = await ctx.db
       .query("commerce_order_changes")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
-    const enriched = [];
+    const enriched: Array<Doc<"commerce_order_changes"> & { actions: Doc<"commerce_order_change_actions">[] }> = [];
     for (const change of changes) {
       const actions = await ctx.db
         .query("commerce_order_change_actions")
-        .withIndex("by_order_change", (q: any) => q.eq("orderChangeId", change._id))
+        .withIndex("by_order_change", (q) => q.eq("orderChangeId", change._id))
         .collect();
       enriched.push({ ...change, actions: actions.sort((a, b) => (a.ordering ?? 0) - (b.ordering ?? 0)) });
     }
@@ -46,23 +53,29 @@ export const list = query({
     ),
     limit: v.optional(v.number()),
   },
+  returns: v.array(v.object({
+    ...orderChangeWithActions,
+    orderNumber: v.optional(v.string()),
+    orderEmail: v.optional(v.string()),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
-    const changes = args.status
+    const status = args.status;
+    const changes = status
       ? await ctx.db
           .query("commerce_order_changes")
-          .withIndex("by_status", (q: any) => q.eq("status", args.status))
+          .withIndex("by_status", (q) => q.eq("status", status))
           .order("desc")
           .take(limit)
       : await ctx.db.query("commerce_order_changes").order("desc").take(limit);
 
     return await Promise.all(
-      changes.map(async (change: any) => {
+      changes.map(async (change) => {
         const order = await ctx.db.get(change.orderId);
         const actions = await ctx.db
           .query("commerce_order_change_actions")
-          .withIndex("by_order_change", (q: any) => q.eq("orderChangeId", change._id))
+          .withIndex("by_order_change", (q) => q.eq("orderChangeId", change._id))
           .collect();
         return {
           ...change,
@@ -90,7 +103,7 @@ export const create = mutation({
     if (!order) throw new ConvexError({ code: "NOT_FOUND", message: "Order not found." });
     const existing = await ctx.db
       .query("commerce_order_changes")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
     const now = Date.now();
     return await ctx.db.insert("commerce_order_changes", {
@@ -157,7 +170,7 @@ export const transition = mutation({
     const change = await ctx.db.get(args.orderChangeId);
     if (!change) throw new ConvexError({ code: "NOT_FOUND", message: "Order change not found." });
     const now = Date.now();
-    const patch: any = { status: args.status, updatedAt: now };
+    const patch: Partial<Doc<"commerce_order_changes">> = { status: args.status, updatedAt: now };
     if (args.status === "confirmed") {
       patch.confirmedBy = actor._id;
       patch.confirmedAt = now;
@@ -171,7 +184,7 @@ export const transition = mutation({
       patch.appliedAt = now;
       const actions = await ctx.db
         .query("commerce_order_change_actions")
-        .withIndex("by_order_change", (q: any) => q.eq("orderChangeId", args.orderChangeId))
+        .withIndex("by_order_change", (q) => q.eq("orderChangeId", args.orderChangeId))
         .collect();
       for (const action of actions) {
         await ctx.db.patch("commerce_order_change_actions", action._id, { applied: true, updatedAt: now });

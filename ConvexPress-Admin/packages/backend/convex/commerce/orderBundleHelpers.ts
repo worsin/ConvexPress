@@ -1,11 +1,22 @@
 import { ConvexError } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel";
 
 import {
   expandBundleLineInventory,
   isBundleLineMetadata,
 } from "../commerceBundles/runtime";
 
-export function buildOrderItemTitle(item: any) {
+type LineWithCatalog = {
+  metadata?: unknown;
+  product?: Doc<"commerce_products"> | null;
+  variant?: Doc<"commerce_product_variants"> | null;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function buildOrderItemTitle(item: LineWithCatalog) {
   if (item.variant?.title) {
     return `${item.product?.title ?? "Product"} - ${item.variant.title}`;
   }
@@ -13,15 +24,18 @@ export function buildOrderItemTitle(item: any) {
   return item.product?.title ?? "Product";
 }
 
-export function buildOrderItemMetadata(item: any) {
+export function buildOrderItemMetadata(item: LineWithCatalog) {
+  // Line metadata is stored untyped; keep whatever the cart line carried.
+  const metadata = isRecord(item.metadata) ? item.metadata : {};
   return {
-    ...(item.metadata ?? {}),
+    ...metadata,
     productTitle: item.product?.title ?? "Product",
     variantTitle: item.variant?.title,
-    optionSummary: item.variant?.optionSummary ?? item.metadata?.optionSummary,
-    variantSku: item.variant?.sku ?? item.metadata?.variantSku,
-    // Physical properties for shipping calculations (variant overrides product)
-    weight: item.variant?.weight ?? item.product?.weight,
+    optionSummary: item.variant?.optionSummary ?? metadata.optionSummary,
+    variantSku: item.variant?.sku ?? metadata.variantSku,
+    // Physical properties for shipping calculations (variant overrides product).
+    // Variant weight is free text; products record weight as shippingWeightOz.
+    weight: item.variant?.weight,
     shippingLengthIn: item.variant?.shippingLengthIn ?? item.product?.shippingLengthIn,
     shippingWidthIn: item.variant?.shippingWidthIn ?? item.product?.shippingWidthIn,
     shippingHeightIn: item.variant?.shippingHeightIn ?? item.product?.shippingHeightIn,
@@ -31,7 +45,20 @@ export function buildOrderItemMetadata(item: any) {
   };
 }
 
-export function getOrderItemInventoryAllocations(item: any) {
+export type InventoryAllocation = {
+  productId: Id<"commerce_products">;
+  variantId?: Id<"commerce_product_variants">;
+  quantity: number;
+  label: string | undefined;
+};
+
+export function getOrderItemInventoryAllocations(item: {
+  metadata?: unknown;
+  quantity: number;
+  productId: Id<"commerce_products">;
+  variantId?: Id<"commerce_product_variants">;
+  productTitle?: string;
+}): InventoryAllocation[] {
   if (isBundleLineMetadata(item.metadata)) {
     return expandBundleLineInventory(item.metadata, item.quantity);
   }

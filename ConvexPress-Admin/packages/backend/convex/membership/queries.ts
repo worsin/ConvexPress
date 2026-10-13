@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Membership — Queries
  *
@@ -22,7 +21,10 @@
 
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { mutation, query, type QueryCtx } from "../_generated/server";
+import { membershipDocs } from "../schema/membership.docs.generated";
+import { usersDocs } from "../schema/users.docs.generated";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { isPluginEnabled } from "../helpers/plugins";
 import {
@@ -36,7 +38,79 @@ import {
 	getDisplayableBenefitsForPlanHelper,
 	requireMembershipEnabled,
 } from "./helpers";
-import { membershipResourceTypeValidator } from "./validators";
+import {
+	displayableBenefitValidator,
+	membershipResourceTypeValidator,
+} from "./validators";
+
+const planSummaryValidator = v.object({
+	_id: v.id("membership_plans"),
+	title: v.string(),
+	slug: v.string(),
+});
+
+const memberUserSummaryValidator = v.object({
+	_id: v.id("users"),
+	email: v.string(),
+	firstName: v.optional(v.string()),
+	lastName: v.optional(v.string()),
+	displayName: v.optional(v.string()),
+	avatarUrl: v.optional(v.string()),
+});
+
+const memberGrantValidator = membershipDocs.membership_grants.extend({
+	plan: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("membership_plans"),
+			title: v.string(),
+			slug: v.string(),
+			priority: v.number(),
+		}),
+	),
+});
+
+const publicBenefitValidator = v.object({
+	_id: v.id("membership_plan_benefits"),
+	code: v.string(),
+	label: v.string(),
+	description: v.optional(v.string()),
+	displayAsFeature: v.optional(v.boolean()),
+});
+
+const myGrantValidator = membershipDocs.membership_grants.extend({
+	plan: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("membership_plans"),
+			title: v.string(),
+			slug: v.string(),
+			description: v.optional(v.string()),
+			priority: v.number(),
+		}),
+	),
+	benefits: v.array(publicBenefitValidator),
+});
+
+const ruleWithPlansValidator = membershipDocs.membership_restriction_rules.extend({
+	plans: v.array(planSummaryValidator),
+});
+
+async function loadPlanSummaries(
+	ctx: { db: QueryCtx["db"] },
+	planIds: Id<"membership_plans">[],
+) {
+	const plans = await Promise.all(
+		planIds.map(async (pid) => {
+			const plan = await ctx.db.get(pid);
+			return plan ? { _id: plan._id, title: plan.title, slug: plan.slug } : null;
+		}),
+	);
+	return plans.filter(
+		(plan): plan is { _id: Id<"membership_plans">; title: string; slug: string } =>
+			plan !== null,
+	);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN QUERIES
@@ -50,17 +124,27 @@ export const listPlans = query({
 	args: {
 		status: v.optional(membershipPlanStatusValidator),
 	},
-	handler: async (ctx: any, args: any) => {
+	returns: v.union(
+		v.null(),
+		v.array(
+			membershipDocs.membership_plans.extend({
+				benefitCount: v.number(),
+				activeGrantCount: v.number(),
+			}),
+		),
+	),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 		await requireCan(ctx, "manage_options");
 
-		let plans: any[];
+		let plans: Doc<"membership_plans">[];
 
-		if (args.status) {
+		const status = args.status;
+		if (status) {
 			plans = await ctx.db
 				.query("membership_plans")
-				.withIndex("by_status", (q: any) => q.eq("status", args.status))
+				.withIndex("by_status", (q) => q.eq("status", status))
 				.collect();
 		} else {
 			plans = await ctx.db.query("membership_plans").collect();
@@ -68,19 +152,19 @@ export const listPlans = query({
 
 		// Enrich with benefit count and active grant count
 		const enriched = await Promise.all(
-			plans.map(async (plan: any) => {
+			plans.map(async (plan) => {
 				const benefits = await ctx.db
 					.query("membership_plan_benefits")
-					.withIndex("by_plan", (q: any) => q.eq("planId", plan._id))
+					.withIndex("by_plan", (q) => q.eq("planId", plan._id))
 					.collect();
 
 				const grants = await ctx.db
 					.query("membership_grants")
-					.withIndex("by_plan", (q: any) => q.eq("planId", plan._id))
+					.withIndex("by_plan", (q) => q.eq("planId", plan._id))
 					.collect();
 
 				const activeGrants = grants.filter(
-					(g: any) => g.status === "active" || g.status === "grace",
+					(g) => g.status === "active" || g.status === "grace",
 				);
 
 				return {
@@ -91,7 +175,7 @@ export const listPlans = query({
 			}),
 		);
 
-		return enriched.sort((a: any, b: any) => a.priority - b.priority);
+		return enriched.sort((a, b) => a.priority - b.priority);
 	},
 });
 
@@ -120,20 +204,20 @@ export const listPublicPlans = query({
 			displayAsFeature: publicBenefitFields.displayAsFeature,
 		})),
 	}))),
-	handler: async (ctx: any) => {
+	handler: async (ctx) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 
 		const plans = await ctx.db
 			.query("membership_plans")
-			.withIndex("by_status", (q: any) => q.eq("status", "active"))
+			.withIndex("by_status", (q) => q.eq("status", "active"))
 			.collect();
 
 		const enriched = await Promise.all(
-			plans.map(async (plan: any) => {
+			plans.map(async (plan) => {
 				const benefits = await ctx.db
 					.query("membership_plan_benefits")
-					.withIndex("by_plan", (q: any) => q.eq("planId", plan._id))
+					.withIndex("by_plan", (q) => q.eq("planId", plan._id))
 					.collect();
 
 				return {
@@ -144,7 +228,7 @@ export const listPublicPlans = query({
 					grantMode: plan.grantMode,
 					linkedSubscriptionCode: plan.linkedSubscriptionCode,
 					priority: plan.priority,
-					benefits: benefits.map((b: any) => ({
+					benefits: benefits.map((b) => ({
 						_id: b._id,
 						code: b.code,
 						label: b.label,
@@ -155,7 +239,7 @@ export const listPublicPlans = query({
 			}),
 		);
 
-		return enriched.sort((a: any, b: any) => a.priority - b.priority);
+		return enriched.sort((a, b) => a.priority - b.priority);
 	},
 });
 
@@ -166,7 +250,17 @@ export const getPlan = query({
 	args: {
 		planId: v.id("membership_plans"),
 	},
-	handler: async (ctx: any, args: any) => {
+	returns: v.union(
+		v.null(),
+		membershipDocs.membership_plans.extend({
+			benefits: v.array(membershipDocs.membership_plan_benefits),
+			linkedRole: v.union(
+				v.null(),
+				v.object({ _id: v.id("roles"), name: v.string(), slug: v.string() }),
+			),
+		}),
+	),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 
@@ -175,11 +269,11 @@ export const getPlan = query({
 
 		const benefits = await ctx.db
 			.query("membership_plan_benefits")
-			.withIndex("by_plan", (q: any) => q.eq("planId", plan._id))
+			.withIndex("by_plan", (q) => q.eq("planId", plan._id))
 			.collect();
 
 		// Resolve linked role if present
-		let linkedRole = null;
+		let linkedRole: { _id: Doc<"roles">["_id"]; name: string; slug: string } | null = null;
 		if (plan.linkedRoleId) {
 			const role = await ctx.db.get(plan.linkedRoleId);
 			if (role) {
@@ -213,23 +307,30 @@ export const listGrants = query({
 		userId: v.optional(v.id("users")),
 		limit: v.optional(v.number()),
 	},
-	handler: async (ctx: any, args: any) => {
+	returns: v.array(
+		membershipDocs.membership_grants.extend({
+			user: v.union(v.null(), memberUserSummaryValidator),
+			plan: v.union(v.null(), planSummaryValidator),
+		}),
+	),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return [];
 		await requireMembershipEnabled(ctx);
 		await requireCan(ctx, "manage_options");
 
 		const limit = args.limit ?? 100;
-		let grants: any[] = [];
+		let grants: Doc<"membership_grants">[] = [];
 
-		if (args.userId) {
+		const { userId, planId } = args;
+		if (userId) {
 			grants = await ctx.db
 				.query("membership_grants")
-				.withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+				.withIndex("by_user", (q) => q.eq("userId", userId))
 				.collect();
-		} else if (args.planId) {
+		} else if (planId) {
 			grants = await ctx.db
 				.query("membership_grants")
-				.withIndex("by_plan", (q: any) => q.eq("planId", args.planId))
+				.withIndex("by_plan", (q) => q.eq("planId", planId))
 				.collect();
 		} else {
 			grants = await ctx.db.query("membership_grants").collect();
@@ -237,17 +338,17 @@ export const listGrants = query({
 
 		// Apply status filter
 		if (args.status) {
-			grants = grants.filter((g: any) => g.status === args.status);
+			grants = grants.filter((g) => g.status === args.status);
 		}
 
 		// Sort by creation date descending and limit
 		grants = grants
-			.sort((a: any, b: any) => b.createdAt - a.createdAt)
+			.sort((a, b) => b.createdAt - a.createdAt)
 			.slice(0, limit);
 
 		// Enrich with user and plan data
 		return Promise.all(
-			grants.map(async (grant: any) => {
+			grants.map(async (grant) => {
 				const user = await ctx.db.get(grant.userId);
 				const plan = await ctx.db.get(grant.planId);
 
@@ -282,7 +383,14 @@ export const listGrants = query({
  */
 export const getMyMembership = query({
 	args: {},
-	handler: async (ctx: any) => {
+	returns: v.union(
+		v.null(),
+		v.object({
+			primaryGrant: myGrantValidator,
+			allGrants: v.array(myGrantValidator),
+		}),
+	),
+	handler: async (ctx) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 
@@ -292,14 +400,14 @@ export const getMyMembership = query({
 		// Get active + grace grants
 		const activeGrants = await ctx.db
 			.query("membership_grants")
-			.withIndex("by_user_status", (q: any) =>
+			.withIndex("by_user_status", (q) =>
 				q.eq("userId", user._id).eq("status", "active"),
 			)
 			.collect();
 
 		const graceGrants = await ctx.db
 			.query("membership_grants")
-			.withIndex("by_user_status", (q: any) =>
+			.withIndex("by_user_status", (q) =>
 				q.eq("userId", user._id).eq("status", "grace"),
 			)
 			.collect();
@@ -310,7 +418,7 @@ export const getMyMembership = query({
 
 		// Filter out expired grace-period grants
 		const now = Date.now();
-		const validGrants = allGrants.filter((g: any) => {
+		const validGrants = allGrants.filter((g) => {
 			if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now) {
 				return false;
 			}
@@ -324,13 +432,13 @@ export const getMyMembership = query({
 
 		// Enrich with plan details and benefits
 		const enriched = await Promise.all(
-			validGrants.map(async (grant: any) => {
+			validGrants.map(async (grant) => {
 				const plan = await ctx.db.get(grant.planId);
-				let benefits: any[] = [];
+				let benefits: Doc<"membership_plan_benefits">[] = [];
 				if (plan) {
 					benefits = await ctx.db
 						.query("membership_plan_benefits")
-						.withIndex("by_plan", (q: any) => q.eq("planId", plan._id))
+						.withIndex("by_plan", (q) => q.eq("planId", plan._id))
 						.collect();
 				}
 
@@ -345,7 +453,7 @@ export const getMyMembership = query({
 								priority: plan.priority,
 							}
 						: null,
-					benefits: benefits.map((b: any) => ({
+					benefits: benefits.map((b) => ({
 						_id: b._id,
 						code: b.code,
 						label: b.label,
@@ -358,11 +466,13 @@ export const getMyMembership = query({
 
 		// Return the highest-priority plan's grant first
 		enriched.sort(
-			(a: any, b: any) => (a.plan?.priority ?? 999) - (b.plan?.priority ?? 999),
+			(a, b) => (a.plan?.priority ?? 999) - (b.plan?.priority ?? 999),
 		);
 
+		const [primaryGrant] = enriched;
+		if (!primaryGrant) return null;
 		return {
-			primaryGrant: enriched[0],
+			primaryGrant,
 			allGrants: enriched,
 		};
 	},
@@ -380,7 +490,22 @@ export const getMember = query({
 	args: {
 		userId: v.id("users"),
 	},
-	handler: async (ctx: any, args: any) => {
+	returns: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("users"),
+			email: v.string(),
+			firstName: v.optional(v.string()),
+			lastName: v.optional(v.string()),
+			displayName: v.optional(v.string()),
+			avatarUrl: v.optional(v.string()),
+			status: usersDocs.users.fields.status,
+			grants: v.array(memberGrantValidator),
+			activeGrants: v.array(memberGrantValidator),
+			totalGrants: v.number(),
+		}),
+	),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 		await requireCan(ctx, "manage_options");
@@ -390,12 +515,12 @@ export const getMember = query({
 
 		const grants = await ctx.db
 			.query("membership_grants")
-			.withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+			.withIndex("by_user", (q) => q.eq("userId", args.userId))
 			.collect();
 
 		// Enrich grants with plan details
 		const enrichedGrants = await Promise.all(
-			grants.map(async (grant: any) => {
+			grants.map(async (grant) => {
 				const plan = await ctx.db.get(grant.planId);
 				return {
 					...grant,
@@ -412,7 +537,7 @@ export const getMember = query({
 		);
 
 		const activeGrants = enrichedGrants.filter(
-			(g: any) => g.status === "active" || g.status === "grace",
+			(g) => g.status === "active" || g.status === "grace",
 		);
 
 		return {
@@ -424,7 +549,7 @@ export const getMember = query({
 			avatarUrl: user.avatarUrl ?? user.profilePictureUrl,
 			status: user.status,
 			grants: enrichedGrants.sort(
-				(a: any, b: any) => b.createdAt - a.createdAt,
+				(a, b) => b.createdAt - a.createdAt,
 			),
 			activeGrants,
 			totalGrants: grants.length,
@@ -444,41 +569,31 @@ export const listRestrictions = query({
 	args: {
 		resourceType: v.optional(membershipResourceTypeValidator),
 	},
-	handler: async (ctx: any, args: any) => {
+	returns: v.union(v.null(), v.array(ruleWithPlansValidator)),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 		await requireCan(ctx, "manage_options");
 
-		let rules: any[];
+		let rules: Doc<"membership_restriction_rules">[];
 
 		if (args.resourceType) {
 			// Filter by resource type — scan by_resource index prefix
 			rules = await ctx.db.query("membership_restriction_rules").collect();
-			rules = rules.filter((r: any) => r.resourceType === args.resourceType);
+			rules = rules.filter((r) => r.resourceType === args.resourceType);
 		} else {
 			rules = await ctx.db.query("membership_restriction_rules").collect();
 		}
 
 		// Enrich with plan titles
 		const enriched = await Promise.all(
-			rules.map(async (rule: any) => {
-				const plans = await Promise.all(
-					(rule.planIds ?? []).map(async (pid: any) => {
-						const plan = await ctx.db.get(pid);
-						return plan
-							? { _id: plan._id, title: plan.title, slug: plan.slug }
-							: null;
-					}),
-				);
-
-				return {
-					...rule,
-					plans: plans.filter(Boolean),
-				};
-			}),
+			rules.map(async (rule) => ({
+				...rule,
+				plans: await loadPlanSummaries(ctx, rule.planIds),
+			})),
 		);
 
-		return enriched.sort((a: any, b: any) => b.createdAt - a.createdAt);
+		return enriched.sort((a, b) => b.createdAt - a.createdAt);
 	},
 });
 
@@ -494,14 +609,15 @@ export const listRestrictionsByResource = query({
 		resourceType: membershipResourceTypeValidator,
 		resourceIdOrKey: v.string(),
 	},
-	handler: async (ctx: any, args: any) => {
+	returns: v.union(v.null(), v.array(ruleWithPlansValidator)),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 		await requireCan(ctx, "manage_options");
 
 		const rules = await ctx.db
 			.query("membership_restriction_rules")
-			.withIndex("by_resource", (q: any) =>
+			.withIndex("by_resource", (q) =>
 				q
 					.eq("resourceType", args.resourceType)
 					.eq("resourceIdOrKey", args.resourceIdOrKey),
@@ -510,24 +626,13 @@ export const listRestrictionsByResource = query({
 
 		// Enrich with plan summaries
 		const enriched = await Promise.all(
-			rules.map(async (rule: any) => {
-				const plans = await Promise.all(
-					(rule.planIds ?? []).map(async (pid: any) => {
-						const plan = await ctx.db.get(pid);
-						return plan
-							? { _id: plan._id, title: plan.title, slug: plan.slug }
-							: null;
-					}),
-				);
-
-				return {
-					...rule,
-					plans: plans.filter(Boolean),
-				};
-			}),
+			rules.map(async (rule) => ({
+				...rule,
+				plans: await loadPlanSummaries(ctx, rule.planIds),
+			})),
 		);
 
-		return enriched.sort((a: any, b: any) => a.createdAt - b.createdAt);
+		return enriched.sort((a, b) => a.createdAt - b.createdAt);
 	},
 });
 
@@ -559,7 +664,7 @@ export const checkAccess = query({
    customMessage: v.union(v.null(), v.string()),
    matchingPlanIds: v.array(v.string()),
  }),
-	handler: async (ctx: any, args: any) => {
+	handler: async (ctx, args) => {
 		return await evaluateMembershipAccess(ctx, args);
 	},
 });
@@ -591,7 +696,7 @@ export const checkAccessAndLog = mutation({
    customMessage: v.union(v.null(), v.string()),
    matchingPlanIds: v.array(v.string()),
  }),
-	handler: async (ctx: any, args: any) => {
+	handler: async (ctx, args) => {
 		const result = await evaluateMembershipAccess(ctx, args);
 		if (result.reason === "plugin_disabled") {
 			return result;
@@ -607,7 +712,10 @@ export const checkAccessAndLog = mutation({
 				resourceIdOrKey: args.resourceIdOrKey,
 				allowed: result.allowed,
 				reason: result.reason,
-				matchingPlanIds: result.matchingPlanIds,
+				matchingPlanIds: result.matchingPlanIds.flatMap((planId) => {
+					const normalized = ctx.db.normalizeId("membership_plans", planId);
+					return normalized ? [normalized] : [];
+				}),
 			},
 		);
 
@@ -638,13 +746,8 @@ export const getDisplayableBenefitsForPlan = query({
 	args: {
 		planId: v.id("membership_plans"),
 	},
-	returns: v.array(v.object({
-   _id: v.string(),
-   label: v.string(),
-   description: v.optional(v.string()),
-   sourcePlanId: v.string(),
- })),
-	handler: async (ctx: any, args: any) => {
+	returns: v.array(displayableBenefitValidator),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return [];
 		return getDisplayableBenefitsForPlanHelper(ctx, args.planId);
 	},
@@ -667,13 +770,8 @@ export const getDisplayableBenefitsForEntitlementCodes = query({
 	args: {
 		codes: v.array(v.string()),
 	},
-	returns: v.array(v.object({
-   _id: v.string(),
-   label: v.string(),
-   description: v.optional(v.string()),
-   sourcePlanId: v.string(),
- })),
-	handler: async (ctx: any, args: any) => {
+	returns: v.array(displayableBenefitValidator),
+	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return [];
 		return getDisplayableBenefitsForCodesHelper(ctx, args.codes);
 	},
@@ -684,7 +782,24 @@ export const getDisplayableBenefitsForEntitlementCodes = query({
  */
 export const getStats = query({
 	args: {},
-	handler: async (ctx: any) => {
+	returns: v.union(v.null(), v.object({
+   totalPlans: v.number(),
+   activePlans: v.number(),
+   totalGrants: v.number(),
+   activeGrants: v.number(),
+   graceGrants: v.number(),
+   revokedGrants: v.number(),
+   expiredGrants: v.number(),
+   expiringSoon: v.number(),
+   totalRestrictionRules: v.number(),
+   planBreakdown: v.array(v.object({
+     planId: v.id("membership_plans"),
+     title: v.string(),
+     slug: v.string(),
+     activeMembers: v.number(),
+   })),
+ })),
+	handler: async (ctx) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);
 		await requireCan(ctx, "manage_options");
@@ -694,18 +809,18 @@ export const getStats = query({
 
 		// Plans
 		const plans = await ctx.db.query("membership_plans").collect();
-		const activePlans = plans.filter((p: any) => p.status === "active");
+		const activePlans = plans.filter((p) => p.status === "active");
 
 		// Grants
 		const grants = await ctx.db.query("membership_grants").collect();
-		const activeGrants = grants.filter((g: any) => g.status === "active");
-		const graceGrants = grants.filter((g: any) => g.status === "grace");
-		const revokedGrants = grants.filter((g: any) => g.status === "revoked");
-		const expiredGrants = grants.filter((g: any) => g.status === "expired");
+		const activeGrants = grants.filter((g) => g.status === "active");
+		const graceGrants = grants.filter((g) => g.status === "grace");
+		const revokedGrants = grants.filter((g) => g.status === "revoked");
+		const expiredGrants = grants.filter((g) => g.status === "expired");
 
 		// Expiring soon: active grants with endsAt within 30 days
 		const expiringSoon = activeGrants.filter(
-			(g: any) => g.endsAt && g.endsAt > now && g.endsAt <= thirtyDaysFromNow,
+			(g) => g.endsAt && g.endsAt > now && g.endsAt <= thirtyDaysFromNow,
 		);
 
 		// Restriction rules
@@ -713,9 +828,9 @@ export const getStats = query({
 
 		// Plans breakdown
 		const planBreakdown = await Promise.all(
-			activePlans.map(async (plan: any) => {
+			activePlans.map(async (plan) => {
 				const planGrants = grants.filter(
-					(g: any) =>
+					(g) =>
 						g.planId === plan._id &&
 						(g.status === "active" || g.status === "grace"),
 				);

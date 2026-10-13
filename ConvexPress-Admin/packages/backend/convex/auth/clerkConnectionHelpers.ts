@@ -10,6 +10,8 @@
  * Pure TypeScript, no Convex imports: shared by actions, queries and tests.
  */
 
+import type { ClerkIntegrationSettings } from "../settings/defaults";
+
 // ─── Publishable key ↔ Frontend API ─────────────────────────────────────────
 
 export type ClerkEnvironmentType = "development" | "production";
@@ -458,6 +460,173 @@ export function normalizeClerkEnvironment(payload: unknown): AuthCapabilities {
       privacyPolicyUrl: str(display.privacy_policy_url),
       supportEmail: str(display.support_email),
     },
+  };
+}
+
+// ─── Stored connection values (settings.values is untyped storage) ─────────
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function storedAttribute(raw: unknown, fallback: AttributeCapability): AttributeCapability {
+  if (!isRecord(raw)) return fallback;
+  return {
+    enabled: bool(raw.enabled, fallback.enabled),
+    required: bool(raw.required, fallback.required),
+    verifications: Array.isArray(raw.verifications) ? strategies(raw.verifications) : fallback.verifications,
+    usedForFirstFactor: bool(raw.usedForFirstFactor, fallback.usedForFirstFactor),
+    usedForSecondFactor: bool(raw.usedForSecondFactor, fallback.usedForSecondFactor),
+  };
+}
+
+/**
+ * Read a stored `AuthCapabilities` document (written by
+ * `normalizeClerkEnvironment`). Anything that is not a version-1 document is
+ * null; fields with the wrong type fall back to the defaults.
+ */
+export function readStoredAuthCapabilities(value: unknown): AuthCapabilities | null {
+  if (!isRecord(value) || value.version !== 1) return null;
+  const defaults = defaultAuthCapabilities();
+  const attributes = isRecord(value.attributes) ? value.attributes : {};
+  const signUp = isRecord(value.signUp) ? value.signUp : {};
+  const signIn = isRecord(value.signIn) ? value.signIn : {};
+  const password = isRecord(value.password) ? value.password : {};
+  const passkeys = isRecord(value.passkeys) ? value.passkeys : {};
+  const links = isRecord(value.links) ? value.links : {};
+  return {
+    version: 1,
+    applicationName: nullableString(value.applicationName),
+    environmentType:
+      value.environmentType === "production" || value.environmentType === "development"
+        ? value.environmentType
+        : null,
+    attributes: {
+      emailAddress: storedAttribute(attributes.emailAddress, defaults.attributes.emailAddress),
+      phoneNumber: storedAttribute(attributes.phoneNumber, defaults.attributes.phoneNumber),
+      username: storedAttribute(attributes.username, defaults.attributes.username),
+      firstName: storedAttribute(attributes.firstName, defaults.attributes.firstName),
+      lastName: storedAttribute(attributes.lastName, defaults.attributes.lastName),
+      password: storedAttribute(attributes.password, defaults.attributes.password),
+    },
+    social: stringList(value.social),
+    signUp: {
+      mode:
+        signUp.mode === "public" || signUp.mode === "restricted" || signUp.mode === "waitlist"
+          ? signUp.mode
+          : defaults.signUp.mode,
+      captchaEnabled: bool(signUp.captchaEnabled, defaults.signUp.captchaEnabled),
+      captchaWidgetType:
+        signUp.captchaWidgetType === "smart" || signUp.captchaWidgetType === "invisible"
+          ? signUp.captchaWidgetType
+          : null,
+      legalConsentEnabled: bool(signUp.legalConsentEnabled, defaults.signUp.legalConsentEnabled),
+      progressive: bool(signUp.progressive, defaults.signUp.progressive),
+    },
+    signIn: {
+      preferredStrategy: signIn.preferredStrategy === "otp" ? "otp" : "password",
+      secondFactorRequired: bool(signIn.secondFactorRequired, defaults.signIn.secondFactorRequired),
+      firstFactors: Array.isArray(signIn.firstFactors) ? stringList(signIn.firstFactors) : defaults.signIn.firstFactors,
+      secondFactors: stringList(signIn.secondFactors),
+    },
+    password: {
+      enabled: bool(password.enabled, defaults.password.enabled),
+      required: bool(password.required, defaults.password.required),
+      minLength: num(password.minLength, defaults.password.minLength),
+      maxLength: num(password.maxLength, defaults.password.maxLength),
+      requireSpecialChar: bool(password.requireSpecialChar, defaults.password.requireSpecialChar),
+      requireNumbers: bool(password.requireNumbers, defaults.password.requireNumbers),
+      requireUppercase: bool(password.requireUppercase, defaults.password.requireUppercase),
+      requireLowercase: bool(password.requireLowercase, defaults.password.requireLowercase),
+      allowedSpecialCharacters:
+        typeof password.allowedSpecialCharacters === "string"
+          ? password.allowedSpecialCharacters
+          : defaults.password.allowedSpecialCharacters,
+      showZxcvbn: bool(password.showZxcvbn, defaults.password.showZxcvbn),
+      minZxcvbnStrength: num(password.minZxcvbnStrength, defaults.password.minZxcvbnStrength),
+    },
+    passkeys: { enabled: bool(passkeys.enabled, defaults.passkeys.enabled) },
+    links: {
+      termsUrl: nullableString(links.termsUrl),
+      privacyPolicyUrl: nullableString(links.privacyPolicyUrl),
+      supportEmail: nullableString(links.supportEmail),
+    },
+  };
+}
+
+/** Results of the last live verification (`auth/clerkConnection.verify` and the token probe). */
+export interface ClerkVerification {
+  checkedAt?: number;
+  secretKeyValid?: boolean;
+  secretKeyError?: string;
+  jwtTemplatePresent?: boolean;
+  jwtTemplateAudienceOk?: boolean;
+  jwksKeyCount?: number | null;
+  tokenProbeAt?: number;
+  tokenProbeOk?: boolean;
+}
+
+export function readStoredVerification(value: unknown): ClerkVerification | null {
+  if (!isRecord(value)) return null;
+  const out: ClerkVerification = {};
+  if (typeof value.checkedAt === "number") out.checkedAt = value.checkedAt;
+  if (typeof value.secretKeyValid === "boolean") out.secretKeyValid = value.secretKeyValid;
+  if (typeof value.secretKeyError === "string") out.secretKeyError = value.secretKeyError;
+  if (typeof value.jwtTemplatePresent === "boolean") out.jwtTemplatePresent = value.jwtTemplatePresent;
+  if (typeof value.jwtTemplateAudienceOk === "boolean") out.jwtTemplateAudienceOk = value.jwtTemplateAudienceOk;
+  if (typeof value.jwksKeyCount === "number" || value.jwksKeyCount === null) out.jwksKeyCount = value.jwksKeyCount;
+  if (typeof value.tokenProbeAt === "number") out.tokenProbeAt = value.tokenProbeAt;
+  if (typeof value.tokenProbeOk === "boolean") out.tokenProbeOk = value.tokenProbeOk;
+  return out;
+}
+
+/** Stored `integrations.clerk` values with every field at its documented type. */
+export function readClerkIntegrationSettings(
+  raw: unknown,
+  defaults: ClerkIntegrationSettings,
+): ClerkIntegrationSettings {
+  const stored = isRecord(raw) ? raw : {};
+  const text = (key: keyof ClerkIntegrationSettings, fallback: string): string => {
+    const value = stored[key];
+    return typeof value === "string" ? value : fallback;
+  };
+  const environmentType = stored.clerkEnvironmentType;
+  const connectionMode = stored.clerkConnectionMode;
+  return {
+    clerkSecretKey: text("clerkSecretKey", defaults.clerkSecretKey),
+    clerkWebhookSecret: text("clerkWebhookSecret", defaults.clerkWebhookSecret),
+    clerkJwtIssuerDomain: text("clerkJwtIssuerDomain", defaults.clerkJwtIssuerDomain),
+    clerkPublishableKey: text("clerkPublishableKey", defaults.clerkPublishableKey),
+    clerkFrontendApi: text("clerkFrontendApi", defaults.clerkFrontendApi),
+    clerkEnvironmentType:
+      environmentType === "" || environmentType === "development" || environmentType === "production"
+        ? environmentType
+        : defaults.clerkEnvironmentType,
+    clerkInstanceId: text("clerkInstanceId", defaults.clerkInstanceId),
+    clerkConnectionMode:
+      connectionMode === "" || connectionMode === "manual" || connectionMode === "secret_key" || connectionMode === "keyless"
+        ? connectionMode
+        : defaults.clerkConnectionMode,
+    clerkClaimUrl: text("clerkClaimUrl", defaults.clerkClaimUrl),
+    clerkDashboardUrl: text("clerkDashboardUrl", defaults.clerkDashboardUrl),
+    clerkClaimedAt: nullableNumber(stored.clerkClaimedAt),
+    clerkConnectedAt: nullableNumber(stored.clerkConnectedAt),
+    clerkJwtTemplateId: text("clerkJwtTemplateId", defaults.clerkJwtTemplateId),
+    clerkSvixConfigured: bool(stored.clerkSvixConfigured, defaults.clerkSvixConfigured),
+    clerkSiteOrigins: Array.isArray(stored.clerkSiteOrigins) ? stringList(stored.clerkSiteOrigins) : defaults.clerkSiteOrigins,
+    clerkCapabilities: readStoredAuthCapabilities(stored.clerkCapabilities),
+    clerkCapabilitiesSyncedAt: nullableNumber(stored.clerkCapabilitiesSyncedAt),
+    clerkLastVerification: readStoredVerification(stored.clerkLastVerification),
+    clerkLastVerifiedAt: nullableNumber(stored.clerkLastVerifiedAt),
+    clerkWebhookLastReceivedAt: nullableNumber(stored.clerkWebhookLastReceivedAt),
   };
 }
 

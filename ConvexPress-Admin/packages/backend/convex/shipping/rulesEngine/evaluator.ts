@@ -12,12 +12,17 @@ import type {
 
 function getFieldValue(context: RuleContext, path: string): unknown {
   const parts = path.split(".");
-  let current: any = context;
+  let current: unknown = context;
   for (const part of parts) {
     if (current === null || current === undefined) return undefined;
-    current = current[part];
+    // Object() boxes primitives so property reads behave like `current[part]`.
+    current = Reflect.get(Object(current), part);
   }
   return current;
+}
+
+function includesValue(list: readonly unknown[], value: unknown): boolean {
+  return list.includes(value);
 }
 
 function isLeaf(rule: RuleAST): rule is LeafRule {
@@ -42,15 +47,15 @@ function evaluateLeaf(rule: LeafRule, context: RuleContext): boolean {
     case "lte":
       return typeof value === "number" && typeof target === "number" && value <= target;
     case "in":
-      return Array.isArray(target) && target.includes(value as any);
+      return Array.isArray(target) && includesValue(target, value);
     case "not_in":
-      return Array.isArray(target) && !target.includes(value as any);
+      return Array.isArray(target) && !includesValue(target, value);
     case "contains":
-      if (Array.isArray(value)) return value.includes(target as any);
+      if (Array.isArray(value)) return includesValue(value, target);
       if (typeof value === "string" && typeof target === "string") return value.includes(target);
       return false;
     case "not_contains":
-      if (Array.isArray(value)) return !value.includes(target as any);
+      if (Array.isArray(value)) return !includesValue(value, target);
       if (typeof value === "string" && typeof target === "string") return !value.includes(target);
       return true;
     case "starts_with":
@@ -121,9 +126,7 @@ export function evaluateRuleWithTrace(
     return {
       passed,
       node: rule,
-      details: `${(rule as any).field} ${(rule as any).op} ${JSON.stringify(
-        (rule as any).value,
-      )} → ${passed}`,
+      details: `${rule.field} ${rule.op} ${JSON.stringify(rule.value)} → ${passed}`,
     };
   }
   const combinator = rule as CombinatorRule;

@@ -21,6 +21,7 @@ import {
   MAX_CONTENT_LENGTH,
   MIN_CONTENT_LENGTH,
 } from "../comments/validators";
+import { MAX_THREAD_DEPTH } from "../comments/treeContract";
 import { currentUserCan, getUserIdentifier } from "./permissions";
 import { emitEvent } from "./events";
 import { COMMENT_EVENTS, SYSTEM } from "../events/constants";
@@ -235,7 +236,7 @@ export async function resolveCommentDepth(
     return { resolvedParentId: undefined, depth: 0 };
   }
 
-  const maxDepth = Math.max(1, Math.min(10, settings.threadCommentsDepth));
+  const maxDepth = Math.max(1, Math.min(MAX_THREAD_DEPTH, settings.threadCommentsDepth));
   const newDepth = parent.depth + 1;
 
   if (newDepth <= maxDepth) {

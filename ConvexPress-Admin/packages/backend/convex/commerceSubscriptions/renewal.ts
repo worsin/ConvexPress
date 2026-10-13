@@ -24,7 +24,7 @@
 
 import { v } from "convex/values";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requirePluginEnabled } from "../helpers/plugins";
 
@@ -66,15 +66,12 @@ function processorStub(invoice: {
  * in settings. Callers fall through to the disabled-provider fallback when
  * this is false.
  */
-async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
+async function isLiveChargingEnabled(ctx: Pick<ActionCtx, "runQuery">): Promise<boolean> {
   const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
+    internal.commerceSubscriptions.internals.getPaymentChargingSettings,
+    {},
   );
-  const flag =
-    settings?.values?.subscriptionChargingEnabled ??
-    settings?.subscriptionChargingEnabled;
-  return flag === true;
+  return settings.subscriptionChargingEnabled;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -109,11 +106,10 @@ export const runRenewalSweep = internalAction({
     );
 
     // Step 1: Generate renewal invoices for all due subscriptions.
-    const generated: { createdCount: number; invoiceIds: string[] } =
-      await ctx.runMutation(
-        internal.commerceSubscriptions.internals.createDueInvoices,
-        { limit: args.limit ?? 50 },
-      );
+    const generated = await ctx.runMutation(
+      internal.commerceSubscriptions.internals.createDueInvoices,
+      { limit: args.limit ?? 50 },
+    );
 
     if (generated.createdCount === 0) {
       return {
@@ -147,7 +143,7 @@ export const runRenewalSweep = internalAction({
           const stripeResult = await ctx.runAction(
             internal.commerceSubscriptions.stripeCharge
               .chargeSubscriptionInvoice,
-            { invoiceId: invoiceId as Parameters<typeof String>[0] },
+            { invoiceId },
           );
           chargeResult = {
             success: stripeResult.success,
@@ -157,15 +153,9 @@ export const runRenewalSweep = internalAction({
         } else {
           // Disabled-provider path — fetch the invoice and fail paid
           // invoices closed while allowing zero-dollar renewals.
-          const invoice: {
-            _id: string;
-            totalAmount: number;
-            savedPaymentMethodId?: string;
-            subscriptionId: string;
-            manualBilling?: boolean;
-          } | null = await ctx.runQuery(
+          const invoice = await ctx.runQuery(
             internal.commerceSubscriptions.internals.getInvoiceForRenewal,
-            { invoiceId: invoiceId as Parameters<typeof String>[0] },
+            { invoiceId },
           );
 
           if (!invoice) continue;
@@ -176,7 +166,7 @@ export const runRenewalSweep = internalAction({
           await ctx.runMutation(
             internal.commerceSubscriptions.internals.handleInvoicePaymentResult,
             {
-              invoiceId: invoiceId as Parameters<typeof String>[0],
+              invoiceId,
               succeeded: chargeResult.success,
               paymentTransactionId: chargeResult.transactionId,
               failureReason: chargeResult.failureReason,

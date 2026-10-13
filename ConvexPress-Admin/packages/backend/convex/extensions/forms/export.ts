@@ -19,6 +19,7 @@
 
 import { action, internalMutation, internalQuery } from "../../_generated/server";
 import { v } from "convex/values";
+import type { FunctionReturnType } from "convex/server";
 import { internal, api } from "../../_generated/api";
 import { requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
@@ -208,7 +209,7 @@ export const resolveColumns = internalQuery({
 
     const defs = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group", (q: any) => q.eq("groupId", groupId))
+      .withIndex("by_group", (q) => q.eq("groupId", groupId))
       .collect();
 
     return selectColumns(defs as FieldDefLike[], fields);
@@ -265,6 +266,13 @@ export const exportEntries = action({
     fields: v.optional(v.array(v.string())),
     format: v.optional(v.literal("csv")),
   },
+  returns: v.object({
+    format: v.literal("csv"),
+    count: v.number(),
+    filename: v.string(),
+    csv: v.string(),
+    warnings: v.array(v.string()),
+  }),
   handler: async (ctx, { formId, statuses, fields }) => {
     // Actions lack a read ctx, so the capability gate runs in an internalQuery.
     await ctx.runQuery(internal.extensions.forms.export.assertExportAuth, {});
@@ -294,7 +302,8 @@ export const exportEntries = action({
     let isDone = false;
 
     while (!isDone) {
-      const page: any = await ctx.runQuery(
+      const page: FunctionReturnType<typeof api.extensions.forms.queries.listSubmissions> =
+        await ctx.runQuery(
         api.extensions.forms.queries.listSubmissions,
         {
           formId,
@@ -303,15 +312,15 @@ export const exportEntries = action({
         },
       );
 
-      for (const row of page.page as any[]) {
+      for (const row of page.page) {
         if (!wantStatuses.has(row.status)) continue;
 
-        const detail: any = await ctx.runQuery(
+        const detail = await ctx.runQuery(
           api.extensions.forms.queries.getSubmission,
           { id: row._id },
         );
         const byName = new Map<string, string>();
-        for (const valueRow of (detail?.values ?? []) as any[]) {
+        for (const valueRow of detail?.values ?? []) {
           if (valueRow.fieldName) byName.set(valueRow.fieldName, valueRow.value);
         }
 

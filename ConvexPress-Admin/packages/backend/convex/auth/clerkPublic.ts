@@ -1,7 +1,3 @@
-// @ts-nocheck — Convex generated API union types exceed TypeScript's instantiation
-// depth (TS2589) for every ctx.runQuery/runMutation/db call in this module, the
-// same limitation documented in auth/clerkManagement.ts. The pure logic lives in
-// clerkConnectionHelpers.ts and stays fully typed and unit-tested.
 /**
  * Clerk — public website contract.
  *
@@ -20,6 +16,7 @@ import {
   decodePublishableKey,
   defaultAuthCapabilities,
   normalizeFrontendApi,
+  readClerkIntegrationSettings,
   type AuthCapabilities,
 } from "./clerkConnectionHelpers";
 
@@ -143,10 +140,7 @@ export const getWebsiteAuthConfig = query({
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "integrations.clerk"))
       .unique();
-    const values: Record<string, unknown> = {
-      ...CLERK_INTEGRATION_DEFAULTS,
-      ...((doc?.values as Record<string, unknown> | undefined) ?? {}),
-    };
+    const values = readClerkIntegrationSettings(doc?.values, CLERK_INTEGRATION_DEFAULTS);
     const publishableKey = await plainOrEnv(values.clerkPublishableKey, process.env.CLERK_PUBLISHABLE_KEY);
     const decoded = publishableKey ? decodePublishableKey(publishableKey) : null;
     const frontendApi =
@@ -154,19 +148,18 @@ export const getWebsiteAuthConfig = query({
       decoded?.frontendApi ||
       null;
     const envIssuer = normalizeFrontendApi(process.env.CLERK_JWT_ISSUER_DOMAIN ?? "");
-    const stored = values.clerkCapabilities as AuthCapabilities | null;
-    const capabilities = stored && stored.version === 1 ? stored : defaultAuthCapabilities();
+    const capabilities = values.clerkCapabilities ?? defaultAuthCapabilities();
 
     return {
       provider: publishableKey ? "clerk" : "none",
       publishableKey: publishableKey || null,
       frontendApi,
       environmentType:
-        (values.clerkEnvironmentType as "development" | "production" | "") || decoded?.environmentType || null,
+        values.clerkEnvironmentType || decoded?.environmentType || null,
       deploymentTrustsIssuer: Boolean(frontendApi && envIssuer && envIssuer === frontendApi),
       capabilities,
-      capabilitiesSyncedAt: (values.clerkCapabilitiesSyncedAt as number | null) ?? null,
-      connectionMode: (values.clerkConnectionMode as "" | "manual" | "secret_key" | "keyless") ?? "",
+      capabilitiesSyncedAt: values.clerkCapabilitiesSyncedAt,
+      connectionMode: values.clerkConnectionMode,
     };
   },
 });

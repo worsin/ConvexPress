@@ -28,7 +28,7 @@ export const ownerWidgetArgs = {
 	refreshKey: v.string(),
 	paginationOpts: paginationOptsValidator,
 };
-export const ownerWidgetValidator: Validator<OwnerWidgetSnapshot | null> = v.union(
+export const ownerWidgetValidator: Validator<OwnerWidgetSnapshot | null, "required", string> = v.union(
 	v.null(),
 	v.object({
 		page: v.array(

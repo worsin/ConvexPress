@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 
-import { mutation } from "../../_generated/server";
+import { mutation, type MutationCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
@@ -15,10 +16,10 @@ import {
 import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
 
-async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
+async function ensureUniqueCode(ctx: Pick<MutationCtx, "db">, code: string, ignoreId?: Id<"commerce_ship_from_locations">) {
   const existing = await ctx.db
     .query("commerce_ship_from_locations")
-    .withIndex("by_code", (q: any) => q.eq("code", code))
+    .withIndex("by_code", (q) => q.eq("code", code))
     .unique();
   if (existing && existing._id !== ignoreId) {
     throw new ConvexError({
@@ -28,10 +29,10 @@ async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
   }
 }
 
-async function clearOtherDefaults(ctx: any, ignoreId?: any) {
+async function clearOtherDefaults(ctx: Pick<MutationCtx, "db">, ignoreId?: Id<"commerce_ship_from_locations">) {
   const defaults = await ctx.db
     .query("commerce_ship_from_locations")
-    .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+    .withIndex("by_default", (q) => q.eq("isDefault", true))
     .collect();
   for (const row of defaults) {
     if (ignoreId && row._id === ignoreId) continue;
@@ -202,12 +203,12 @@ export const assignProductLocation = mutation({
     // Prevent duplicates of the exact same mapping key.
     const existing = await ctx.db
       .query("commerce_product_location_fulfillment")
-      .withIndex("by_product_location", (q: any) =>
+      .withIndex("by_product_location", (q) =>
         q.eq("productId", args.productId).eq("locationId", args.locationId),
       )
       .collect();
     const match = existing.find(
-      (row: any) => (row.variantId ?? null) === (args.variantId ?? null),
+      (row) => (row.variantId ?? null) === (args.variantId ?? null),
     );
 
     const now = Date.now();

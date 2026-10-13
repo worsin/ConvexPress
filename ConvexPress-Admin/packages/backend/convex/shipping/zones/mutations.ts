@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 
-import { mutation } from "../../_generated/server";
+import { mutation, type MutationCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
@@ -14,19 +15,20 @@ import {
   updateZoneArgs,
 } from "./validators";
 import { deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
+import { METHOD_TYPES, listMethodRowsForZone } from "../methods/tables";
 
 
 import { v } from "convex/values";
 const FALLBACK_SORT_ORDER = Number.MAX_SAFE_INTEGER;
 const DEFAULT_SORT_STEP = 10;
 
-async function ensureUniqueSlug(ctx: any, desired: string, ignoreId?: any): Promise<string> {
+export async function ensureUniqueSlug(ctx: Pick<MutationCtx, "db">, desired: string, ignoreId?: Id<"commerce_shipping_zones">): Promise<string> {
   let candidate = desired || "zone";
   let suffix = 1;
   while (true) {
     const existing = await ctx.db
       .query("commerce_shipping_zones")
-      .withIndex("by_slug", (q: any) => q.eq("slug", candidate))
+      .withIndex("by_slug", (q) => q.eq("slug", candidate))
       .unique();
     if (!existing || (ignoreId && existing._id === ignoreId)) return candidate;
     suffix += 1;
@@ -88,7 +90,7 @@ function validateZonePayload(input: {
   }
 }
 
-async function getNextSortOrder(ctx: any): Promise<number> {
+async function getNextSortOrder(ctx: Pick<MutationCtx, "db">): Promise<number> {
   const last = await ctx.db
     .query("commerce_shipping_zones")
     .withIndex("by_sort")
@@ -103,7 +105,7 @@ async function getNextSortOrder(ctx: any): Promise<number> {
       .query("commerce_shipping_zones")
       .withIndex("by_sort")
       .collect();
-    const nonFallback = zones.filter((z: any) => z.sortOrder < FALLBACK_SORT_ORDER);
+    const nonFallback = zones.filter((z) => z.sortOrder < FALLBACK_SORT_ORDER);
     if (nonFallback.length === 0) return DEFAULT_SORT_STEP;
     return nonFallback[nonFallback.length - 1]!.sortOrder + DEFAULT_SORT_STEP;
   }
@@ -128,7 +130,7 @@ export const createZone = mutation({
     if (isFallback) {
       const existing = await ctx.db
         .query("commerce_shipping_zones")
-        .withIndex("by_fallback", (q: any) => q.eq("isFallback", true))
+        .withIndex("by_fallback", (q) => q.eq("isFallback", true))
         .unique();
       if (existing) {
         throw new ConvexError({
@@ -230,7 +232,7 @@ export const deleteZone = mutation({
     // If this is the fallback and other zones exist, unset fallback first.
     if (zone.isFallback) {
       const otherZones = await ctx.db.query("commerce_shipping_zones").collect();
-      const others = otherZones.filter((z: any) => z._id !== args.zoneId);
+      const others = otherZones.filter((z) => z._id !== args.zoneId);
       if (others.length > 0) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
@@ -243,23 +245,9 @@ export const deleteZone = mutation({
     // attached to this zone. Leaving orphaned method configs creates
     // ghosts the rate pipeline would still pick up via
     // listEnabledMethodsForZone.
-    const methodTables = [
-      "commerce_shipping_method_flat_rate",
-      "commerce_shipping_method_weight_based",
-      "commerce_shipping_method_dimensional",
-      "commerce_shipping_method_price_based",
-      "commerce_shipping_method_quantity_based",
-      "commerce_shipping_method_free",
-      "commerce_shipping_method_local_pickup",
-      "commerce_shipping_method_local_delivery",
-      "commerce_shipping_method_table_rate",
-    ] as const;
     let cascadedMethodCount = 0;
-    for (const table of methodTables) {
-      const rows = await ctx.db
-        .query(table as any)
-        .withIndex("by_zone", (q: any) => q.eq("zoneId", args.zoneId))
-        .collect();
+    for (const methodType of METHOD_TYPES) {
+      const rows = await listMethodRowsForZone(ctx, methodType, args.zoneId);
       for (const row of rows) {
         await deleteDynamicWithMediaReferences(ctx, row._id);
         cascadedMethodCount++;
@@ -267,7 +255,7 @@ export const deleteZone = mutation({
     }
     const zmRows = await ctx.db
       .query("commerce_shipping_zone_methods")
-      .withIndex("by_zone", (q: any) => q.eq("zoneId", args.zoneId))
+      .withIndex("by_zone", (q) => q.eq("zoneId", args.zoneId))
       .collect();
     for (const zm of zmRows) {
       await ctx.db.delete("commerce_shipping_zone_methods", zm._id);
@@ -323,7 +311,7 @@ export const setFallbackZone = mutation({
     const user = await requireCan(ctx, "shipping.zones.manage");
     const existing = await ctx.db
       .query("commerce_shipping_zones")
-      .withIndex("by_fallback", (q: any) => q.eq("isFallback", true))
+      .withIndex("by_fallback", (q) => q.eq("isFallback", true))
       .unique();
 
     const previousFallbackId = existing?._id ?? null;

@@ -16,9 +16,11 @@
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 
-import { internalAction } from "../../_generated/server";
+import { internalAction, type ActionCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { getDecryptedProviderPayload } from "../providers/_shared/credentials";
+import { at, readJson, str, timeOf } from "../helpers/json";
 import {
   normalizeShipStationStatus,
   normalizeFedexStatus,
@@ -38,6 +40,7 @@ export const syncTracking = internalAction({
     shipmentLabelId: v.optional(v.id("commerce_shipment_labels")),
     maxAgeMs: v.optional(v.number()),
   },
+  returns: v.object({ synced: v.number(), failed: v.number(), total: v.number() }),
   handler: async (ctx, args) => {
     const labelsToSync = args.shipmentLabelId
       ? [
@@ -55,13 +58,20 @@ export const syncTracking = internalAction({
     let failed = 0;
 
     for (const label of labelsToSync) {
-      if (!label.trackingNumber || !label.provider) continue;
+      const { trackingNumber, provider } = label;
+      if (!trackingNumber || !provider) continue;
 
       const syncStart = Date.now();
       let result: { success: boolean; status?: string } = { success: false };
       let errorMessage: string | undefined;
       try {
-        result = await fetchTrackingForLabel(ctx, label);
+        result = await fetchTrackingForLabel(ctx, {
+          _id: label._id,
+          shipmentId: label.shipmentId,
+          trackingNumber,
+          provider,
+          carrierCode: label.carrierCode,
+        });
         if (result.success) synced += 1;
         else failed += 1;
       } catch (err) {
@@ -89,11 +99,17 @@ export const syncTracking = internalAction({
   },
 });
 
+type TrackedLabel = {
+  _id: Id<"commerce_shipment_labels">;
+  shipmentId: Id<"commerce_shipments">;
+  trackingNumber: string;
+};
+
 async function fetchTrackingForLabel(
-  ctx: any,
+  ctx: ActionCtx,
   label: {
-    _id: any;
-    shipmentId: any;
+    _id: Id<"commerce_shipment_labels">;
+    shipmentId: Id<"commerce_shipments">;
     trackingNumber: string;
     provider: string;
     carrierCode?: string;
@@ -118,8 +134,8 @@ async function fetchTrackingForLabel(
 }
 
 async function syncShipStation(
-  ctx: any,
-  label: { _id: any; shipmentId: any; trackingNumber: string; carrierCode?: string },
+  ctx: ActionCtx,
+  label: TrackedLabel & { carrierCode?: string },
 ) {
   let apiKey: string | undefined;
   let apiBaseUrl = "https://api.shipengine.com";
@@ -139,20 +155,20 @@ async function syncShipStation(
   });
   if (!response.ok) return { success: false };
 
-  const data = (await response.json()) as any;
-  const code = String(data.status_code ?? "").toUpperCase();
+  const data = await readJson(response);
+  const code = String(at(data, "status_code") ?? "").toUpperCase();
   if (!code) return { success: false };
 
+  const deliveredAt = at(data, "actual_delivery_date");
+  const statusDescription = str(at(data, "status_description"));
   await ctx.runMutation(internal.shipping.tracking.mutations.recordTrackingEvent, {
     shipmentId: label.shipmentId,
     labelId: label._id,
-    eventId: `shipstation:${code}:${data.actual_delivery_date ?? Date.now()}`,
-    occurredAt: data.actual_delivery_date
-      ? new Date(data.actual_delivery_date).getTime()
-      : Date.now(),
+    eventId: `shipstation:${code}:${str(deliveredAt) ?? Date.now()}`,
+    occurredAt: timeOf(deliveredAt) ?? Date.now(),
     normalizedStatus: normalizeShipStationStatus(code),
-    carrierStatus: data.status_description ?? code,
-    description: data.status_description,
+    carrierStatus: statusDescription ?? code,
+    description: statusDescription,
     rawMetadata: data,
     receivedVia: "poll",
   });
@@ -160,8 +176,8 @@ async function syncShipStation(
 }
 
 async function syncFedex(
-  ctx: any,
-  label: { _id: any; shipmentId: any; trackingNumber: string },
+  ctx: ActionCtx,
+  label: TrackedLabel,
 ) {
   // Reuse FedEx OAuth helper.
   const { getFedexAccessTokenV2 } = await import("../providers/fedex/auth");
@@ -190,23 +206,20 @@ async function syncFedex(
   });
   if (!response.ok) return { success: false };
 
-  const data = (await response.json()) as any;
-  const trackResult = data?.output?.completeTrackResults?.[0]?.trackResults?.[0];
+  const data = await readJson(response);
+  const trackResult = at(data, "output", "completeTrackResults", 0, "trackResults", 0);
   if (!trackResult) return { success: false };
 
-  const code = String(trackResult.latestStatusDetail?.code ?? "");
+  const code = String(at(trackResult, "latestStatusDetail", "code") ?? "");
   // Stable event id: prefer FedEx scanEvent/dateAndTime when present so a
   // re-poll of the same delivery state doesn't create duplicate rows.
-  const latestScan = trackResult.scanEvents?.[0];
-  const occurredAt = latestScan?.date
-    ? new Date(latestScan.date).getTime()
-    : trackResult.latestStatusDetail?.ancillaryDetails?.[0]?.reasonDescription
-      ? Date.now()
-      : Date.now();
+  const latestScan = at(trackResult, "scanEvents", 0);
+  const occurredAt = timeOf(at(latestScan, "date")) ?? Date.now();
+  const statusDescription = str(at(trackResult, "latestStatusDetail", "description"));
   const scanSignature =
-    latestScan?.eventType ??
-    latestScan?.eventDescription ??
-    trackResult.latestStatusDetail?.description ??
+    str(at(latestScan, "eventType")) ??
+    str(at(latestScan, "eventDescription")) ??
+    statusDescription ??
     code;
   await ctx.runMutation(internal.shipping.tracking.mutations.recordTrackingEvent, {
     shipmentId: label.shipmentId,
@@ -214,8 +227,8 @@ async function syncFedex(
     eventId: `fedex:${label.trackingNumber}:${scanSignature}:${occurredAt}`,
     occurredAt,
     normalizedStatus: normalizeFedexStatus(code),
-    carrierStatus: trackResult.latestStatusDetail?.statusByLocale ?? code,
-    description: trackResult.latestStatusDetail?.description,
+    carrierStatus: str(at(trackResult, "latestStatusDetail", "statusByLocale")) ?? code,
+    description: statusDescription,
     rawMetadata: trackResult,
     receivedVia: "poll",
   });
@@ -223,8 +236,8 @@ async function syncFedex(
 }
 
 async function syncUps(
-  ctx: any,
-  label: { _id: any; shipmentId: any; trackingNumber: string },
+  ctx: ActionCtx,
+  label: TrackedLabel,
 ) {
   const { getUpsAccessTokenV2 } = await import("../providers/ups/auth");
   let accessToken: string;
@@ -246,27 +259,27 @@ async function syncUps(
   );
   if (!response.ok) return { success: false };
 
-  const data = (await response.json()) as any;
-  const pkg = data?.trackResponse?.shipment?.[0]?.package?.[0];
-  const latestActivity = pkg?.activity?.[0];
+  const data = await readJson(response);
+  const pkg = at(data, "trackResponse", "shipment", 0, "package", 0);
+  const latestActivity = at(pkg, "activity", 0);
   const description =
-    pkg?.currentStatus?.description ??
-    latestActivity?.status?.description ??
+    str(at(pkg, "currentStatus", "description")) ??
+    str(at(latestActivity, "status", "description")) ??
     "";
   // Stable id from activity date + location + status so re-polls dedupe.
   const activityDate =
-    latestActivity?.date ??
-    latestActivity?.gmtDate ??
-    pkg?.deliveryDate?.[0]?.date;
-  const activityTime = latestActivity?.time ?? latestActivity?.gmtTime ?? "";
+    str(at(latestActivity, "date")) ??
+    str(at(latestActivity, "gmtDate")) ??
+    str(at(pkg, "deliveryDate", 0, "date"));
+  const activityTime = str(at(latestActivity, "time")) ?? str(at(latestActivity, "gmtTime")) ?? "";
   const occurredAt = activityDate
     ? new Date(
-        `${String(activityDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3")}${activityTime ? "T" + activityTime.replace(/(\d{2})(\d{2})(\d{2})/, "$1:$2:$3") : ""}`,
+        `${activityDate.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3")}${activityTime ? "T" + activityTime.replace(/(\d{2})(\d{2})(\d{2})/, "$1:$2:$3") : ""}`,
       ).getTime() || Date.now()
     : Date.now();
   const location =
-    latestActivity?.location?.address?.city ??
-    latestActivity?.location?.address?.postalCode ??
+    str(at(latestActivity, "location", "address", "city")) ??
+    str(at(latestActivity, "location", "address", "postalCode")) ??
     "";
 
   await ctx.runMutation(internal.shipping.tracking.mutations.recordTrackingEvent, {
@@ -285,8 +298,8 @@ async function syncUps(
 }
 
 async function syncUsps(
-  ctx: any,
-  label: { _id: any; shipmentId: any; trackingNumber: string },
+  ctx: ActionCtx,
+  label: TrackedLabel,
 ) {
   const { getUspsAccessTokenV2 } = await import("../providers/usps/auth");
   let accessToken: string;
@@ -308,18 +321,19 @@ async function syncUsps(
   );
   if (!response.ok) return { success: false };
 
-  const data = (await response.json()) as any;
-  const event = data?.trackingEvents?.[0] ?? data?.trackingEvent ?? data?.summary;
-  const eventType = String(event?.eventType ?? data?.status ?? "");
+  const data = await readJson(response);
+  const event = at(data, "trackingEvents", 0) ?? at(data, "trackingEvent") ?? at(data, "summary");
+  const eventType = String(at(event, "eventType") ?? at(data, "status") ?? "");
+  const eventTimestamp = at(event, "eventTimestamp");
 
   await ctx.runMutation(internal.shipping.tracking.mutations.recordTrackingEvent, {
     shipmentId: label.shipmentId,
     labelId: label._id,
-    eventId: `usps:${eventType}:${event?.eventTimestamp ?? Date.now()}`,
-    occurredAt: event?.eventTimestamp ? new Date(event.eventTimestamp).getTime() : Date.now(),
+    eventId: `usps:${eventType}:${str(eventTimestamp) ?? Date.now()}`,
+    occurredAt: timeOf(eventTimestamp) ?? Date.now(),
     normalizedStatus: normalizeUspsStatus(eventType),
     carrierStatus: eventType,
-    description: event?.eventDescription ?? eventType,
+    description: str(at(event, "eventDescription")) ?? eventType,
     rawMetadata: data,
     receivedVia: "poll",
   });

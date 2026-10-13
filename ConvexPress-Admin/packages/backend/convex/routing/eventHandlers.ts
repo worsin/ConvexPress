@@ -26,7 +26,7 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { generatePostUrl } from "../helpers/routing";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { eventsDocs } from "../schema/events.docs.generated";
 // ─── Slug Changed Handler ────────────────────────────────────────────────────
 
 /**
@@ -219,7 +219,7 @@ export const onPermalinksChanged = internalAction({
  */
 export const getEvent = internalQuery({
   args: { eventId: v.id("events") },
-  returns: v.union(v.null(), tableDocs.events),
+  returns: v.union(v.null(), eventsDocs.events),
   handler: async (ctx, args) => {
     return await ctx.db.get("events", args.eventId);
   },

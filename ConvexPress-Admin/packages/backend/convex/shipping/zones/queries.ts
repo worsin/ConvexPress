@@ -6,10 +6,10 @@ import { requireCommerceEnabled } from "../../commerce/helpers";
 import { zoneMatchesAddress } from "../helpers/zoneMatching";
 import { matchZoneForAddressArgs } from "./validators";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 export const listZones = query({
   args: {},
-  returns: v.array(tableDocs.commerce_shipping_zones),
+  returns: v.array(shippingDocs.commerce_shipping_zones),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.zones.read");
     const zones = await ctx.db
@@ -17,7 +17,7 @@ export const listZones = query({
       .withIndex("by_sort")
       .collect();
     // Stable sort: sortOrder asc, then creation time asc.
-    return zones.sort((a: any, b: any) => {
+    return zones.sort((a, b) => {
       if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
       return a._creationTime - b._creationTime;
     });
@@ -26,7 +26,7 @@ export const listZones = query({
 
 export const getZone = query({
   args: { zoneId: v.id("commerce_shipping_zones") },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_zones),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_zones),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.zones.read");
     return ctx.db.get(args.zoneId);
@@ -35,12 +35,12 @@ export const getZone = query({
 
 export const getZoneBySlug = query({
   args: { slug: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_zones),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_zones),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.zones.read");
     return ctx.db
       .query("commerce_shipping_zones")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
   },
 });
@@ -53,21 +53,21 @@ export const getZoneBySlug = query({
  */
 export const matchZoneForAddress = query({
   args: matchZoneForAddressArgs,
-  returns: v.union(v.null(), v.object({ zone: tableDocs.commerce_shipping_zones, matchedFallback: v.boolean() })),
+  returns: v.union(v.null(), v.object({ zone: shippingDocs.commerce_shipping_zones, matchedFallback: v.boolean() })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const zones = await ctx.db
       .query("commerce_shipping_zones")
-      .withIndex("by_enabled_sort", (q: any) => q.eq("enabled", true))
+      .withIndex("by_enabled_sort", (q) => q.eq("enabled", true))
       .collect();
 
-    const sorted = zones.sort((a: any, b: any) => {
+    const sorted = zones.sort((a, b) => {
       if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
       return a._creationTime - b._creationTime;
     });
 
-    const fallback = sorted.find((z: any) => z.isFallback === true) ?? null;
-    const regularZones = sorted.filter((z: any) => !z.isFallback);
+    const fallback = sorted.find((z) => z.isFallback === true) ?? null;
+    const regularZones = sorted.filter((z) => !z.isFallback);
 
     for (const zone of regularZones) {
       if (zoneMatchesAddress(zone, args)) {

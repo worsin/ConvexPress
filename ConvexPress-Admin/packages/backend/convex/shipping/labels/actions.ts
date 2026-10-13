@@ -16,18 +16,26 @@
 
 import { v, ConvexError } from "convex/values";
 
-import { action } from "../../_generated/server";
+import { action, internalAction } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { internal, api } from "../../_generated/api";
+import { at, readJson, str } from "../helpers/json";
 import { getDecryptedProviderPayload } from "../providers/_shared/credentials";
 import { getUpsAccessTokenV2 } from "../providers/ups/auth";
 import { getFedexAccessTokenV2 } from "../providers/fedex/auth";
 import { resolveProvider } from "../providers/contract";
+import { assertShippingProvider } from "../helpers";
 
-export const voidLabelWithCarrier = action({
+/**
+ * Carrier-side void for a label the `voidLabel` mutation already authorized.
+ * Internal: it performs no permission check of its own (it runs from the
+ * scheduler, without a user identity).
+ */
+export const voidLabelWithCarrier = internalAction({
   args: { labelId: v.id("commerce_shipment_labels") },
   returns: v.object({ voided: v.boolean(), refundPending: v.boolean() }),
   handler: async (ctx, args) => {
-    const label: any = await ctx.runQuery(
+    const label = await ctx.runQuery(
       internal.shipping.labels.internals.getLabelById,
       { labelId: args.labelId },
     );
@@ -78,6 +86,12 @@ export const voidLabelWithCarrier = action({
         });
       }
 
+      if (!label.externalLabelId) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "This label has no ShipStation label id to void.",
+        });
+      }
       const response = await fetch(
         `${apiBaseUrl}/v1/labels/${encodeURIComponent(label.externalLabelId)}/void`,
         {
@@ -92,16 +106,28 @@ export const voidLabelWithCarrier = action({
           message: body.slice(0, 500) || `Void failed (${response.status})`,
         });
       }
-      const data = (await response.json()) as any;
+      const data = await readJson(response);
       voidResult = {
         voided: data.approved === true || data.status === "voided",
         refundPending: data.approved === true,
       };
     } else if (label.provider === "ups") {
       const { accessToken, credentials } = await getUpsAccessTokenV2(ctx);
+      // UPS voids by shipment identification number, recorded on the shipment row.
+      const shipmentContext = await ctx.runQuery(
+        internal.shipping.internals.getShipmentForTracking,
+        { shipmentId: label.shipmentId },
+      );
+      const upsShipmentId = shipmentContext?.shipment.externalShipmentId ?? label.externalLabelId;
+      if (!upsShipmentId) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "This label has no UPS shipment id to void.",
+        });
+      }
       const response = await fetch(
         `${credentials.apiBaseUrl}/api/shipments/v2409/void/cancel/${encodeURIComponent(
-          label.externalShipmentId ?? label.externalLabelId,
+          upsShipmentId,
         )}`,
         {
           method: "DELETE",
@@ -145,10 +171,11 @@ export const voidLabelWithCarrier = action({
           message: body.slice(0, 500) || `FedEx void failed (${response.status})`,
         });
       }
-      const data = (await response.json()) as any;
+      const data = await readJson(response);
+      const cancelled = at(data, "output", "cancelledShipment") === true;
       voidResult = {
-        voided: data?.output?.cancelledShipment === true,
-        refundPending: data?.output?.cancelledShipment === true,
+        voided: cancelled,
+        refundPending: cancelled,
       };
     } else {
       throw new ConvexError({
@@ -194,18 +221,30 @@ export const batchPurchaseLabels = action({
       ),
     ),
   },
+  returns: v.object({
+    total: v.number(),
+    succeeded: v.number(),
+    failed: v.number(),
+    results: v.array(v.object({
+      orderId: v.id("commerce_orders"),
+      success: v.boolean(),
+      labelIds: v.optional(v.array(v.id("commerce_shipment_labels"))),
+      errorCode: v.optional(v.string()),
+      errorMessage: v.optional(v.string()),
+    })),
+  }),
   handler: async (ctx, args) => {
     const results: Array<{
-      orderId: string;
+      orderId: Id<"commerce_orders">;
       success: boolean;
-      labelIds?: any[];
+      labelIds?: Id<"commerce_shipment_labels">[];
       errorCode?: string;
       errorMessage?: string;
     }> = [];
     for (const orderId of args.orderIds) {
       try {
-        const r: any = await ctx.runAction(
-          (api as any).shipping.labels.actions.purchaseLabel,
+        const r = await ctx.runAction(
+          api.shipping.labels.actions.purchaseLabel,
           {
             orderId,
             provider: args.provider,
@@ -214,16 +253,17 @@ export const batchPurchaseLabels = action({
         );
         results.push({
           orderId,
-          success: Boolean(r?.success),
-          labelIds: r?.labelIds,
+          success: r.success,
+          labelIds: r.labelIds,
         });
-      } catch (err: any) {
+      } catch (err) {
+        const data: unknown = err instanceof ConvexError ? err.data : undefined;
         results.push({
           orderId,
           success: false,
-          errorCode: err?.data?.code,
+          errorCode: str(at(data, "code")),
           errorMessage:
-            err?.data?.message ??
+            str(at(data, "message")) ??
             (err instanceof Error ? err.message : String(err)),
         });
       }
@@ -256,12 +296,29 @@ export const purchaseLabel = action({
     idempotencyKey: v.optional(v.string()),
     rateId: v.optional(v.string()),
   },
+  returns: v.union(v.object({
+    success: v.boolean(),
+    idempotent: v.boolean(),
+    labelUrl: v.optional(v.string()),
+    trackingNumber: v.optional(v.string()),
+    externalLabelId: v.optional(v.string()),
+    labelIds: v.array(v.id("commerce_shipment_labels")),
+    packageCount: v.number(),
+  }), v.object({
+    success: v.boolean(),
+    labelUrl: v.string(),
+    trackingNumber: v.string(),
+    externalLabelId: v.string(),
+    labelIds: v.array(v.id("commerce_shipment_labels")),
+    packageCount: v.number(),
+    idempotent: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     // 1. Idempotency pre-check — if a prior call with the same key already
     // recorded a label for this order, short-circuit.
     if (args.idempotencyKey) {
-      const existing: any = await ctx.runQuery(
-        (internal.shipping.labels.internals as any).findByIdempotencyKey,
+      const existing = await ctx.runQuery(
+        internal.shipping.labels.internals.findByIdempotencyKey,
         {
           orderId: args.orderId,
           idempotencyKey: args.idempotencyKey,
@@ -280,17 +337,16 @@ export const purchaseLabel = action({
       }
     }
     // 2. Load order context.
-    const order: any = await ctx.runQuery(
-      internal.shipping.internals.getOrderForLabelInternal
-        ? (internal.shipping.internals as any).getOrderForLabelInternal
-        : (internal.shipping.labels.internals as any).getOrderById,
+    const order = await ctx.runQuery(
+      internal.shipping.labels.internals.getOrderById,
       { orderId: args.orderId },
     );
     if (!order) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Order not found." });
     }
-    const provider =
+    const provider: string =
       args.provider ?? order.shippingProvider ?? "shipstation";
+    assertShippingProvider(provider);
 
     // 2. PRD 7.3 — rate reconfirmation (money safety).
     // If the order has a stored quote fingerprint, verify it against the
@@ -308,7 +364,7 @@ export const purchaseLabel = action({
     }
     if (storedAddressKey && storedCartKey) {
       const current = await ctx.runQuery(
-        (internal as any).shipping.labels.internals.getCurrentQuoteFingerprint,
+        internal.shipping.labels.internals.getCurrentQuoteFingerprint,
         { orderId: args.orderId },
       );
       if (
@@ -329,7 +385,7 @@ export const purchaseLabel = action({
       labelUrl: string;
       trackingNumber: string;
       externalLabelId: string;
-      shipmentId: any;
+      shipmentId: Id<"commerce_shipments"> | undefined;
       labelCost: number;
       labelCurrency: string;
       carrierCode: string;
@@ -340,7 +396,7 @@ export const purchaseLabel = action({
     // dispatcher directly. The provider's `purchaseLabel` is responsible
     // for its carrier call; today ShipStation/UPS/FedEx bridge into the
     // legacy implementation, but callers see a stable contract.
-    const providerEntry = resolveProvider(provider as any);
+    const providerEntry = resolveProvider(provider);
     if (!providerEntry.capabilities.labels) {
       throw new ConvexError({
         code: "NOT_SUPPORTED",
@@ -351,8 +407,8 @@ export const purchaseLabel = action({
       orderId: args.orderId,
       rateId:
         args.rateId ??
-        order.shippingQuoteRaw?.rate_id ??
-        order.shippingQuoteRaw?.rateId,
+        str(at(order.shippingQuoteRaw, "rate_id")) ??
+        str(at(order.shippingQuoteRaw, "rateId")),
     });
     if (!r.success) {
       throw new ConvexError({
@@ -373,7 +429,7 @@ export const purchaseLabel = action({
 
     // 4a. Best-effort: fetch the carrier-returned label PDF and store it in
     // Convex _storage so reprints work offline even if the carrier URL expires.
-    async function tryStoreLabelPdf(url: string | undefined): Promise<any | null> {
+    async function tryStoreLabelPdf(url: string | undefined): Promise<Id<"_storage"> | null> {
       if (!url) return null;
       try {
         const pdf = await fetch(url);
@@ -389,27 +445,17 @@ export const purchaseLabel = action({
     // carrier responses that include a `packages[]` array produce one label
     // row per package, each with its own tracking number, external label id,
     // and monotonically increasing packageIndex.
-    const recordedLabelIds: any[] = [];
+    const recordedLabelIds: Id<"commerce_shipment_labels">[] = [];
     if (labelResult.shipmentId) {
-      const packageList: any[] = Array.isArray(r.packages) ? r.packages : [];
+      const packageList = r.packages ?? [];
 
       if (packageList.length > 1) {
         for (let i = 0; i < packageList.length; i++) {
           const p = packageList[i];
-          const pkgTracking =
-            p.tracking_number ?? p.trackingNumber ?? labelResult.trackingNumber;
-          const pkgExternalId =
-            p.label_id ?? p.externalLabelId ?? `${labelResult.externalLabelId}:${i}`;
-          const pkgUrl =
-            p.label_download?.pdf ??
-            p.label_download?.href ??
-            p.labelUrl ??
-            labelResult.labelUrl;
-          const pkgCost = Number(
-            p.shipment_cost?.amount ??
-              p.labelCost ??
-              labelResult.labelCost / packageList.length,
-          );
+          const pkgTracking = p.trackingNumber ?? labelResult.trackingNumber;
+          const pkgExternalId = p.externalLabelId ?? `${labelResult.externalLabelId}:${i}`;
+          const pkgUrl = p.labelUrl ?? labelResult.labelUrl;
+          const pkgCost = Number(p.labelCost ?? labelResult.labelCost / packageList.length);
           const storageId = await tryStoreLabelPdf(pkgUrl);
           const id = await ctx.runMutation(
             internal.shipping.labels.mutations.recordPurchasedLabel,

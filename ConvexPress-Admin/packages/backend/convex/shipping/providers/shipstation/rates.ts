@@ -96,9 +96,7 @@ export async function fetchShipStationRatesV2(
     });
   }
 
-  // Convex codegen returns a narrow doc type for getBySectionInternal —
-  // the actual result is the merged ShippingIntegrationSettings shape with
-  // ship-from address fields. Cast through any to access them.
+  // Typed integration settings merged with the default ship-from location.
   const shippingSettings = await getEffectiveShipFrom(ctx);
 
   if (
@@ -129,7 +127,7 @@ export async function fetchShipStationRatesV2(
   }
 
   // Compute weight from packed boxes if provided; otherwise sum item weights.
-  const shippableItems = (rateContext.items as any[]).filter(
+  const shippableItems = rateContext.items.filter(
     (item) => item.product && item.product.isVirtual !== true,
   );
 
@@ -187,10 +185,7 @@ export async function fetchShipStationRatesV2(
         phone: args.shippingAddress.phone,
       },
       ship_from: {
-        name:
-          shippingSettings.shipFromName ||
-          (shippingSettings as any).storeName ||
-          "Store",
+        name: shippingSettings.shipFromName || "Store",
         company_name: shippingSettings.shipFromCompany,
         address_line1: shippingSettings.shipFromLine1,
         address_line2: shippingSettings.shipFromLine2,
@@ -240,7 +235,7 @@ export async function fetchShipStationRatesV2(
   const ttlMs = Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000;
   const expiresAt = Date.now() + ttlMs;
   const addressKey = computeAddressFingerprint(args.shippingAddress);
-  const cartKey = (rateContext.items as any[])
+  const cartKey = rateContext.items
     .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
     .sort()
     .join(",");

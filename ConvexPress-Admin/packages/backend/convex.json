@@ -1,5 +1,11 @@
 {
   "node": {
-    "externalPackages": ["sharp", "stripe"]
+    "externalPackages": [
+      "sharp",
+      "stripe"
+    ]
+  },
+  "codegen": {
+    "staticApi": true
   }
 }

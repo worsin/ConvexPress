@@ -1,4 +1,5 @@
-import { internalMutation, mutation } from "../_generated/server";
+import { internalMutation, mutation, type MutationCtx } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
 import { DEFAULT_TEMPLATES } from "../emails/templateDefaults";
 import { EMAIL_TEMPLATES } from "../helpers/email";
 import { requirePluginEnabled } from "../helpers/plugins";
@@ -6,7 +7,8 @@ import { requireCan } from "../helpers/permissions";
 import { requireCommerceReturnsEnabled } from "./helpers";
 import { normalizeStoredReturnItems } from "./itemState";
 
-const RETURN_TEMPLATE_SLUGS = new Set([
+import { v } from "convex/values";
+const RETURN_TEMPLATE_SLUGS = new Set<string>([
   EMAIL_TEMPLATES.RETURN_REQUESTED_ADMIN,
   EMAIL_TEMPLATES.RETURN_APPROVED,
   EMAIL_TEMPLATES.RETURN_REJECTED,
@@ -21,7 +23,7 @@ function isPresent<T>(value: T | null | undefined): value is T {
 
 export function getReturnTemplateDefaults() {
   return DEFAULT_TEMPLATES.filter((template) =>
-    RETURN_TEMPLATE_SLUGS.has(template.slug as any),
+    RETURN_TEMPLATE_SLUGS.has(template.slug),
   );
 }
 
@@ -153,9 +155,9 @@ export function buildLegacyReturnHistoryEntries(returnRequest: {
   ].filter(isPresent);
 }
 
-export function buildLegacyReturnHistoryInserts(returnRequest: {
-  _id: string;
-  processedBy?: string;
+export function buildLegacyReturnHistoryInserts<ReturnId extends string, ActorId extends string>(returnRequest: {
+  _id: ReturnId;
+  processedBy?: ActorId;
   status: string;
   createdAt: number;
   updatedAt: number;
@@ -184,9 +186,12 @@ export function buildLegacyReturnHistoryInserts(returnRequest: {
   }));
 }
 
-export function buildLegacyReturnItemInserts(
+export function buildLegacyReturnItemInserts<
+  ReturnId extends string,
+  OrderItem extends { _id: string; productId: string; variantId?: string },
+>(
   returnRequest: {
-    _id: string;
+    _id: ReturnId;
     status?: string;
     createdAt: number;
     updatedAt: number;
@@ -196,15 +201,20 @@ export function buildLegacyReturnItemInserts(
       reason?: string;
     }>;
   },
-  orderItemsById: Record<
-    string,
-    {
-      _id: string;
-      productId: string;
-      variantId?: string;
-    }
-  >,
-) {
+  orderItemsById: Record<string, OrderItem>,
+): Array<{
+  returnRequestId: ReturnId;
+  orderItemId: OrderItem["_id"];
+  productId: OrderItem["productId"];
+  variantId: OrderItem["variantId"];
+  quantityRequested: number;
+  quantityApproved: number;
+  quantityReceived: number;
+  quantityRestocked: number;
+  reasonText: string | undefined;
+  createdAt: number;
+  updatedAt: number;
+}> {
   const normalizedItems = normalizeStoredReturnItems(returnRequest);
 
   return normalizedItems.flatMap((item) => {
@@ -231,7 +241,7 @@ export function buildLegacyReturnItemInserts(
   });
 }
 
-export async function runBackfillLegacyReturns(ctx: any, now = Date.now()) {
+export async function runBackfillLegacyReturns(ctx: Pick<MutationCtx, "db">, now = Date.now()) {
   let createdTemplates = 0;
   let createdReturnItems = 0;
   let createdHistoryEntries = 0;
@@ -240,7 +250,7 @@ export async function runBackfillLegacyReturns(ctx: any, now = Date.now()) {
   for (const templateDef of getReturnTemplateDefaults()) {
     const existing = await ctx.db
       .query("emailTemplates")
-      .withIndex("by_slug", (q: any) => q.eq("slug", templateDef.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", templateDef.slug))
       .unique();
 
     if (existing) {
@@ -261,33 +271,20 @@ export async function runBackfillLegacyReturns(ctx: any, now = Date.now()) {
   for (const returnRequest of returns) {
     const existingItems = await ctx.db
       .query("commerce_return_items")
-      .withIndex("by_return_request", (q: any) =>
+      .withIndex("by_return_request", (q) =>
         q.eq("returnRequestId", returnRequest._id),
       )
       .collect();
 
     if (existingItems.length === 0) {
-      const normalizedItems = normalizeStoredReturnItems(returnRequest);
-      const orderItemsById = Object.fromEntries(
-        (
-          await Promise.all(
-            normalizedItems.map(async (item) => {
-              const orderItem = item.orderItemId
-                ? await ctx.db.get(item.orderItemId)
-                : null;
-              return orderItem ? [item.orderItemId, orderItem] : null;
-            }),
-          )
-        ).filter(Boolean),
-      );
-
-      for (const itemInsert of buildLegacyReturnItemInserts(
-        {
-          ...returnRequest,
-          _id: returnRequest._id.toString(),
-        },
-        orderItemsById,
+      const orderItemsById: Record<string, Doc<"commerce_order_items">> = {};
+      for (const [orderItemId, orderItem] of await Promise.all(
+        returnRequest.items.map(async (item) => [item.orderItemId, await ctx.db.get(item.orderItemId)] as const),
       )) {
+        if (orderItem) orderItemsById[orderItemId] = orderItem;
+      }
+
+      for (const itemInsert of buildLegacyReturnItemInserts(returnRequest, orderItemsById)) {
         await ctx.db.insert("commerce_return_items", itemInsert);
         createdReturnItems++;
       }
@@ -295,18 +292,14 @@ export async function runBackfillLegacyReturns(ctx: any, now = Date.now()) {
 
     const existingHistory = await ctx.db
       .query("commerce_return_history")
-      .withIndex("by_return_request", (q: any) =>
+      .withIndex("by_return_request", (q) =>
         q.eq("returnRequestId", returnRequest._id),
       )
       .collect();
 
     if (existingHistory.length > 0) continue;
 
-    for (const historyInsert of buildLegacyReturnHistoryInserts({
-      ...returnRequest,
-      _id: returnRequest._id.toString(),
-      processedBy: returnRequest.processedBy?.toString(),
-    })) {
+    for (const historyInsert of buildLegacyReturnHistoryInserts(returnRequest)) {
       await ctx.db.insert("commerce_return_history", historyInsert);
       createdHistoryEntries++;
     }
@@ -320,17 +313,19 @@ export async function runBackfillLegacyReturns(ctx: any, now = Date.now()) {
   };
 }
 
-const backfillLegacyReturnsConfig: any = {
+export const backfillLegacyReturns = internalMutation({
   args: {},
-  handler: async (ctx: any) => {
+  returns: v.object({
+    totalReturns: v.number(),
+    createdTemplates: v.number(),
+    createdReturnItems: v.number(),
+    createdHistoryEntries: v.number(),
+  }),
+  handler: async (ctx) => {
     await requirePluginEnabled(ctx, "commerceReturns");
     return runBackfillLegacyReturns(ctx);
   },
-};
-
-export const backfillLegacyReturns: any = internalMutation(
-  backfillLegacyReturnsConfig,
-);
+});
 
 /**
  * Admin-exposed entrypoint so the backfill can be run from the admin UI
@@ -338,9 +333,15 @@ export const backfillLegacyReturns: any = internalMutation(
  * internal mutation. Idempotent: re-running only inserts rows that are
  * still missing.
  */
-export const runBackfill: any = mutation({
+export const runBackfill = mutation({
   args: {},
-  handler: async (ctx: any) => {
+  returns: v.object({
+    totalReturns: v.number(),
+    createdTemplates: v.number(),
+    createdReturnItems: v.number(),
+    createdHistoryEntries: v.number(),
+  }),
+  handler: async (ctx) => {
     await requirePluginEnabled(ctx, "commerceReturns");
     await requireCan(ctx, "commerce.returns.manage");
     await requireCommerceReturnsEnabled(ctx);

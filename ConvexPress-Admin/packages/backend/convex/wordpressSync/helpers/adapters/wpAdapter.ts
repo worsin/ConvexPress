@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * WordPress REST API Adapter
  *

@@ -1,4 +1,4 @@
-import { action, internalMutation } from "../../_generated/server";
+import { action, internalMutation, type MutationCtx } from "../../_generated/server";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences , patchDynamicWithMediaReferences} from "../../media/attachmentGuard";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
@@ -7,6 +7,14 @@ import type { Id } from "../../_generated/dataModel";
 const FIXTURE_SLUG = "paid-tester-form";
 const FIXTURE_MULTI_STEP_SLUG = "paid-tester-multi-step";
 const FIXTURE_ADMIN_EMAIL = "forms-smoke-admin@example.test";
+
+const paidTesterFixturesValidator = v.object({
+  formId: v.id("forms"),
+  multiStepFormId: v.id("forms"),
+  slug: v.string(),
+  multiStepSlug: v.string(),
+  firstStepLabel: v.string(),
+});
 
 type FieldSpec = {
   key: string;
@@ -78,11 +86,11 @@ function fieldKey(slug: string, key: string) {
   return `forms_smoke_${slug}_${key}`;
 }
 
-async function upsertPluginSettings(ctx: any, userId: Id<"users">) {
+async function upsertPluginSettings(ctx: MutationCtx, userId: Id<"users">) {
   const now = Date.now();
   const existing = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
+    .withIndex("by_section", (q) => q.eq("section", "plugins"))
     .unique();
   const nextValues = {
     ...existing?.values,
@@ -107,12 +115,17 @@ async function upsertPluginSettings(ctx: any, userId: Id<"users">) {
   });
 }
 
-async function upsertFieldGroup(ctx: any, slug: string, title: string, userId: Id<"users">) {
+async function upsertFieldGroup(
+  ctx: MutationCtx,
+  slug: string,
+  title: string,
+  userId: Id<"users">,
+): Promise<Id<"fieldGroups">> {
   const now = Date.now();
   const key = fieldGroupKey(slug);
   const existing = await ctx.db
     .query("fieldGroups")
-    .withIndex("by_key", (q: any) => q.eq("key", key))
+    .withIndex("by_key", (q) => q.eq("key", key))
     .unique();
 
   const patch = {
@@ -131,7 +144,7 @@ async function upsertFieldGroup(ctx: any, slug: string, title: string, userId: I
 
   if (existing) {
     await patchDynamicWithMediaReferences(ctx, existing._id, patch);
-    return existing._id as Id<"fieldGroups">;
+    return existing._id;
   }
 
   return await ctx.db.insert("fieldGroups", {
@@ -142,15 +155,15 @@ async function upsertFieldGroup(ctx: any, slug: string, title: string, userId: I
 }
 
 async function upsertField(
-  ctx: any,
+  ctx: MutationCtx,
   groupId: Id<"fieldGroups">,
   slug: string,
   spec: FieldSpec,
-) {
+): Promise<Id<"fieldDefinitions">> {
   const now = Date.now();
   const existing = await ctx.db
     .query("fieldDefinitions")
-    .withIndex("by_group_name", (q: any) =>
+    .withIndex("by_group_name", (q) =>
       q.eq("groupId", groupId).eq("name", spec.key),
     )
     .unique();
@@ -176,7 +189,7 @@ async function upsertField(
 
   if (existing) {
     await patchWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", existing._id, patch);
-    return existing._id as Id<"fieldDefinitions">;
+    return existing._id;
   }
 
   return await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
@@ -186,13 +199,13 @@ async function upsertField(
 }
 
 async function pruneExtraFields(
-  ctx: any,
+  ctx: MutationCtx,
   groupId: Id<"fieldGroups">,
   keepIds: Set<Id<"fieldDefinitions">>,
 ) {
   const existing = await ctx.db
     .query("fieldDefinitions")
-    .withIndex("by_group", (q: any) => q.eq("groupId", groupId))
+    .withIndex("by_group", (q) => q.eq("groupId", groupId))
     .collect();
 
   for (const field of existing) {
@@ -203,11 +216,11 @@ async function pruneExtraFields(
 }
 
 async function upsertForm(
-  ctx: any,
+  ctx: MutationCtx,
   slug: string,
   title: string,
   userId: Id<"users">,
-) {
+): Promise<Id<"forms">> {
   const now = Date.now();
   const groupId = await upsertFieldGroup(ctx, slug, title, userId);
   const keepIds = new Set<Id<"fieldDefinitions">>();
@@ -218,7 +231,7 @@ async function upsertForm(
 
   const existing = await ctx.db
     .query("forms")
-    .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
     .first();
 
   const patch = {
@@ -235,7 +248,7 @@ async function upsertForm(
 
   if (existing) {
     await patchDynamicWithMediaReferences(ctx, existing._id, patch);
-    return existing._id as Id<"forms">;
+    return existing._id;
   }
 
   return await ctx.db.insert("forms", {
@@ -250,6 +263,7 @@ export const seedPaidTesterFixtures = action({
     adminEmail: v.optional(v.string()),
     devToken: v.optional(v.string()),
   },
+  returns: paidTesterFixturesValidator,
   handler: async (ctx, args) => {
     if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
       throw new Error(
@@ -279,10 +293,11 @@ export const upsertPaidTesterFixtures = internalMutation({
   args: {
     adminEmail: v.string(),
   },
+  returns: paidTesterFixturesValidator,
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: any) => q.eq("email", args.adminEmail))
+      .withIndex("by_email", (q) => q.eq("email", args.adminEmail))
       .first();
     if (!user) {
       throw new Error(

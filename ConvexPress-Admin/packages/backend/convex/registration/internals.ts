@@ -52,7 +52,7 @@ import {
 } from "./validators";
 import { insertWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { registrationDocs } from "../schema/registration.docs.generated";
 // ─── Handle External Auth User Created ───────────────────────────────────────
 
 /**
@@ -335,7 +335,7 @@ export const getPendingByEmail = internalQuery({
   args: {
     email: v.string(),
   },
-  returns: v.union(v.null(), tableDocs.invitations),
+  returns: v.union(v.null(), registrationDocs.invitations),
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase().trim();
 

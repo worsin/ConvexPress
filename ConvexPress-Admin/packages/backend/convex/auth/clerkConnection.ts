@@ -1,7 +1,3 @@
-// @ts-nocheck — Convex generated API union types exceed TypeScript's instantiation
-// depth (TS2589) for every ctx.runQuery/runMutation/db call in this module, the
-// same limitation documented in auth/clerkManagement.ts. The pure logic lives in
-// clerkConnectionHelpers.ts and stays fully typed and unit-tested.
 /**
  * Clerk Connection — the per-site pipeline that turns one credential into a
  * fully working customer sign-in.
@@ -28,7 +24,8 @@ import { internal } from "../_generated/api";
 import { action, mutation, query, type ActionCtx } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { decryptSettingSecret } from "../helpers/settingsSecret";
-import { CLERK_INTEGRATION_DEFAULTS } from "../settings/defaults";
+import { jsonAt } from "../helpers/jsonValue";
+import { CLERK_INTEGRATION_DEFAULTS, type ClerkIntegrationSettings } from "../settings/defaults";
 import {
   computeReadiness,
   decodePublishableKey,
@@ -41,11 +38,13 @@ import {
   normalizeClerkEnvironment,
   normalizeFrontendApi,
   oauthRedirectUrls,
+  readClerkIntegrationSettings,
   pickPrimaryDomain,
   uniqueOrigins,
   webhookEndpointUrl,
   type AuthCapabilities,
   type ClerkDomainRecord,
+  type ClerkVerification,
   type ClerkEnvironmentType,
   type Readiness,
 } from "./clerkConnectionHelpers";
@@ -75,7 +74,8 @@ const CONVEX_TEMPLATE_CLAIMS: Record<string, string> = {
 interface ClerkResponse {
   ok: boolean;
   status: number;
-  json: any;
+  /** The parsed JSON body, or null when the body is empty or not JSON. */
+  json: unknown;
   text: string;
 }
 
@@ -85,7 +85,7 @@ async function http(url: string, init: RequestInit = {}): Promise<ClerkResponse>
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     const text = await response.text();
-    let json: any = null;
+    let json: unknown = null;
     try {
       json = text ? JSON.parse(text) : null;
     } catch {
@@ -113,15 +113,34 @@ function clerkFetch(secretKey: string, path: string, init: ClerkInit = {}) {
 }
 
 function clerkErrorText(response: ClerkResponse): string {
-  const first = Array.isArray(response.json?.errors) ? response.json.errors[0] : null;
-  const message = first?.long_message ?? first?.message ?? first?.code ?? response.text;
+  const first = jsonAt(response.json, "errors", 0);
+  const message = jsonAt(first, "long_message") ?? jsonAt(first, "message") ?? jsonAt(first, "code") ?? response.text;
   return `${String(message ?? "").replace(/\s+/g, " ").trim().slice(0, 200)} (HTTP ${response.status})`;
 }
 
-function listData(json: any): any[] {
+function listData(json: unknown): unknown[] {
   if (Array.isArray(json)) return json;
-  if (Array.isArray(json?.data)) return json.data;
+  const data = jsonAt(json, "data");
+  if (Array.isArray(data)) return data;
   return [];
+}
+
+function optionalText(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+/** A Clerk domain row, keeping the fields ConvexPress reads at their documented types. */
+function readDomainRecord(row: unknown): ClerkDomainRecord {
+  const portal = jsonAt(row, "accounts_portal_url");
+  const satellite = jsonAt(row, "is_satellite");
+  return {
+    id: optionalText(jsonAt(row, "id")),
+    name: optionalText(jsonAt(row, "name")),
+    is_satellite: typeof satellite === "boolean" ? satellite : undefined,
+    frontend_api_url: optionalText(jsonAt(row, "frontend_api_url")),
+    development_origin: optionalText(jsonAt(row, "development_origin")),
+    accounts_portal_url: portal === null ? null : optionalText(portal),
+  };
 }
 
 async function requireManageOptions(ctx: ActionCtx) {
@@ -132,7 +151,7 @@ async function snapshot(ctx: ActionCtx): Promise<ClerkConnectionSnapshot> {
   return ctx.runQuery(internal.auth.clerkConnectionInternals.readConnection, {});
 }
 
-async function save(ctx: ActionCtx, values: Record<string, unknown>) {
+async function save(ctx: ActionCtx, values: Partial<ClerkIntegrationSettings>) {
   await ctx.runMutation(internal.auth.clerkConnectionInternals.saveConnection, { values });
 }
 
@@ -162,14 +181,15 @@ async function fetchInstance(secretKey: string): Promise<InstanceInfo> {
       message: `Clerk rejected the secret key: ${clerkErrorText(response)}`,
     });
   }
+  const allowedOrigins = jsonAt(response.json, "allowed_origins");
   return {
-    id: String(response.json?.id ?? ""),
+    id: String(jsonAt(response.json, "id") ?? ""),
     environmentType:
-      response.json?.environment_type === "production"
+      jsonAt(response.json, "environment_type") === "production"
         ? "production"
         : environmentTypeFromSecretKey(secretKey) ?? "development",
-    allowedOrigins: Array.isArray(response.json?.allowed_origins)
-      ? response.json.allowed_origins.filter((item: unknown) => typeof item === "string")
+    allowedOrigins: Array.isArray(allowedOrigins)
+      ? allowedOrigins.filter((item): item is string => typeof item === "string")
       : null,
   };
 }
@@ -177,7 +197,7 @@ async function fetchInstance(secretKey: string): Promise<InstanceInfo> {
 async function fetchDomains(secretKey: string): Promise<ClerkDomainRecord[]> {
   const response = await clerkFetch(secretKey, "/domains");
   if (!response.ok) return [];
-  return listData(response.json) as ClerkDomainRecord[];
+  return listData(response.json).map(readDomainRecord);
 }
 
 interface TemplateResult {
@@ -189,14 +209,17 @@ interface TemplateResult {
 async function ensureConvexTemplate(secretKey: string): Promise<TemplateResult> {
   const list = await clerkFetch(secretKey, "/jwt_templates");
   if (!list.ok) throw new Error(`Could not list JWT templates: ${clerkErrorText(list)}`);
-  const existing = listData(list.json).find((template: any) => template?.name === JWT_TEMPLATE_NAME);
+  const existing = listData(list.json).find((template) => jsonAt(template, "name") === JWT_TEMPLATE_NAME);
   if (existing) {
-    const claims = (existing.claims ?? {}) as Record<string, unknown>;
+    const storedClaims = jsonAt(existing, "claims");
+    const claims: Record<string, unknown> =
+      typeof storedClaims === "object" && storedClaims !== null && !Array.isArray(storedClaims) ? { ...storedClaims } : {};
+    const existingId = String(jsonAt(existing, "id"));
     const missing = Object.entries(CONVEX_TEMPLATE_CLAIMS).filter(([key]) => !(key in claims));
     if (claims.aud === "convex" && missing.length === 0) {
-      return { id: String(existing.id), created: false, updated: false };
+      return { id: existingId, created: false, updated: false };
     }
-    const patch = await clerkFetch(secretKey, `/jwt_templates/${existing.id}`, {
+    const patch = await clerkFetch(secretKey, `/jwt_templates/${existingId}`, {
       method: "PATCH",
       body: {
         name: JWT_TEMPLATE_NAME,
@@ -204,14 +227,14 @@ async function ensureConvexTemplate(secretKey: string): Promise<TemplateResult> 
       },
     });
     if (!patch.ok) throw new Error(`Could not update the convex JWT template: ${clerkErrorText(patch)}`);
-    return { id: String(existing.id), created: false, updated: true };
+    return { id: existingId, created: false, updated: true };
   }
   const created = await clerkFetch(secretKey, "/jwt_templates", {
     method: "POST",
     body: { name: JWT_TEMPLATE_NAME, claims: CONVEX_TEMPLATE_CLAIMS, lifetime: 60, allowed_clock_skew: 5 },
   });
   if (!created.ok) throw new Error(`Could not create the convex JWT template: ${clerkErrorText(created)}`);
-  return { id: String(created.json?.id ?? ""), created: true, updated: false };
+  return { id: String(jsonAt(created.json, "id") ?? ""), created: true, updated: false };
 }
 
 async function registerOrigins(
@@ -232,7 +255,7 @@ async function registerOrigins(
   const wanted = oauthRedirectUrls(origins);
   const existing = await clerkFetch(secretKey, "/redirect_urls");
   const known = new Set(
-    existing.ok ? listData(existing.json).map((row: any) => String(row?.url ?? "")) : [],
+    existing.ok ? listData(existing.json).map((row) => String(jsonAt(row, "url") ?? "")) : [],
   );
   for (const url of wanted) {
     if (known.has(url)) continue;
@@ -415,6 +438,18 @@ export const connectWithSecretKey = action({
 
 export const startKeyless = action({
   args: { extraOrigins: v.optional(v.array(v.string())) },
+  returns: v.object({
+    publishableKey: v.string(),
+    frontendApi: v.string(),
+    environmentType: v.union(v.literal("production"), v.literal("development")),
+    instanceId: v.string(),
+    jwtTemplate: v.object({ id: v.string(), created: v.boolean(), updated: v.boolean() }),
+    siteOrigins: v.array(v.string()),
+    svixConfigured: v.boolean(),
+    capabilitiesSynced: v.boolean(),
+    warnings: v.array(v.string()),
+    claimUrl: v.string(),
+  }),
   handler: async (ctx, args): Promise<ConfigureResult & { claimUrl: string }> => {
     await requireManageOptions(ctx);
     const created = await http(`${CLERK_API}/accountless_applications?source=convexpress`, {
@@ -422,19 +457,20 @@ export const startKeyless = action({
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: "{}",
     });
-    if (!created.ok || !created.json?.secret_key) {
+    const secretKey = jsonAt(created.json, "secret_key");
+    if (!created.ok || !secretKey) {
       throw new ConvexError({
         code: "CLERK_KEYLESS_UNAVAILABLE",
         message: `Clerk could not create a keyless application right now: ${clerkErrorText(created)}`,
       });
     }
-    const claimUrl = String(created.json.claim_url ?? "");
+    const claimUrl = String(jsonAt(created.json, "claim_url") ?? "");
     const result = await configure(ctx, {
-      secretKey: String(created.json.secret_key),
+      secretKey: String(secretKey),
       mode: "keyless",
-      publishableKeyHint: String(created.json.publishable_key ?? ""),
+      publishableKeyHint: String(jsonAt(created.json, "publishable_key") ?? ""),
       claimUrl,
-      dashboardUrl: String(created.json.api_keys_url ?? ""),
+      dashboardUrl: String(jsonAt(created.json, "api_keys_url") ?? ""),
       extraOrigins: args.extraOrigins,
     });
     return { ...result, claimUrl };
@@ -561,7 +597,7 @@ export const verify = action({
     await requireManageOptions(ctx);
     const snap = await snapshot(ctx);
     const now = Date.now();
-    const verification: Record<string, unknown> = { checkedAt: now };
+    const verification: ClerkVerification = { checkedAt: now };
 
     if (snap.secretKey) {
       const instance = await clerkFetch(snap.secretKey, "/instance");
@@ -569,15 +605,15 @@ export const verify = action({
       if (!instance.ok) verification.secretKeyError = clerkErrorText(instance);
       if (instance.ok) {
         const templates = await clerkFetch(snap.secretKey, "/jwt_templates");
-        const convex = listData(templates.json).find((t: any) => t?.name === JWT_TEMPLATE_NAME);
+        const convex = listData(templates.json).find((t) => jsonAt(t, "name") === JWT_TEMPLATE_NAME);
         verification.jwtTemplatePresent = Boolean(convex);
-        verification.jwtTemplateAudienceOk = Boolean(convex && convex.claims?.aud === "convex");
+        verification.jwtTemplateAudienceOk = Boolean(convex && jsonAt(convex, "claims", "aud") === "convex");
         // Keyless apps report a claimed_at once the owner signs in.
         if (snap.values.clerkConnectionMode === "keyless" && !snap.values.clerkClaimedAt) {
           const frontendApi = normalizeFrontendApi(String(snap.values.clerkFrontendApi || ""));
           if (frontendApi) {
             const env = await http(`${frontendApi}/v1/environment?_clerk_js_version=5`);
-            const claimedAt = env.json?.auth_config?.claimed_at;
+            const claimedAt = jsonAt(env.json, "auth_config", "claimed_at");
             if (typeof claimedAt === "number" && claimedAt > 0) {
               await save(ctx, { clerkClaimedAt: claimedAt });
               snap.values.clerkClaimedAt = claimedAt;
@@ -593,7 +629,8 @@ export const verify = action({
     const issuer = normalizeFrontendApi(String(snap.values.clerkJwtIssuerDomain || snap.values.clerkFrontendApi || ""));
     if (issuer) {
       const jwks = await http(`${issuer}/.well-known/jwks.json`);
-      verification.jwksKeyCount = Array.isArray(jwks.json?.keys) ? jwks.json.keys.length : 0;
+      const keys = jsonAt(jwks.json, "keys");
+      verification.jwksKeyCount = Array.isArray(keys) ? keys.length : 0;
     }
 
     await save(ctx, { clerkLastVerification: verification, clerkLastVerifiedAt: now });
@@ -615,13 +652,14 @@ export const webhookPortalUrl = action({
       if (ok) await save(ctx, { clerkSvixConfigured: true });
     }
     const response = await clerkFetch(snap.secretKey, "/webhooks/svix_url", { method: "POST" });
-    if (!response.ok || !response.json?.svix_url) {
+    const svixUrl = jsonAt(response.json, "svix_url");
+    if (!response.ok || !svixUrl) {
       throw new ConvexError({
         code: "CLERK_WEBHOOK_PORTAL_UNAVAILABLE",
         message: `Clerk did not return a webhook portal link: ${clerkErrorText(response)}`,
       });
     }
-    return { url: String(response.json.svix_url) };
+    return { url: String(svixUrl) };
   },
 });
 
@@ -653,10 +691,11 @@ export const runTokenProbe = action({
     const email = "convexpress.probe+clerk_test@example.com";
     let userId: string | undefined;
     const found = await clerkFetch(snap.secretKey, `/users?email_address=${encodeURIComponent(email)}&limit=1`);
-    userId = listData(found.json)[0]?.id;
+    const foundId = jsonAt(listData(found.json)[0], "id");
+    userId = foundId ? String(foundId) : undefined;
     if (!userId) {
       // Satisfy whatever identifiers this instance requires (username, phone).
-      const caps = (snap.values.clerkCapabilities as AuthCapabilities | null) ?? null;
+      const caps = snap.values.clerkCapabilities;
       const body: Record<string, unknown> = {
         email_address: [email],
         first_name: "ConvexPress",
@@ -669,21 +708,22 @@ export const runTokenProbe = action({
       if (caps?.attributes.phoneNumber.required) body.phone_number = ["+15005550006"];
       const created = await clerkFetch(snap.secretKey, "/users", { method: "POST", body });
       if (!created.ok) return { ok: false, detail: `Could not create the probe user: ${clerkErrorText(created)}` };
-      userId = String(created.json?.id ?? "");
+      userId = String(jsonAt(created.json, "id") ?? "");
     }
     const session = await clerkFetch(snap.secretKey, "/sessions", { method: "POST", body: { user_id: userId } });
     if (!session.ok) return { ok: false, detail: `Could not open a probe session: ${clerkErrorText(session)}` };
-    const sessionId = String(session.json?.id ?? "");
+    const sessionId = String(jsonAt(session.json, "id") ?? "");
     try {
       const token = await clerkFetch(snap.secretKey, `/sessions/${sessionId}/tokens/${JWT_TEMPLATE_NAME}`, {
         method: "POST",
         body: {},
       });
-      if (!token.ok || !token.json?.jwt) {
+      const jwt = jsonAt(token.json, "jwt");
+      if (!token.ok || !jwt) {
         return { ok: false, detail: `Clerk did not mint a convex token: ${clerkErrorText(token)}` };
       }
       const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
-      const { payload } = await jwtVerify(String(token.json.jwt), jwks, { issuer, audience: "convex" });
+      const { payload } = await jwtVerify(String(jwt), jwks, { issuer, audience: "convex" });
       const deploymentIssuer = normalizeFrontendApi(snap.deployment.issuer ?? "");
       if (deploymentIssuer !== issuer) {
         return {
@@ -696,7 +736,7 @@ export const runTokenProbe = action({
       const hasEmail = typeof payload.email === "string";
       await save(ctx, {
         clerkLastVerification: {
-          ...((snap.values.clerkLastVerification as Record<string, unknown> | null) ?? {}),
+          ...(snap.values.clerkLastVerification ?? {}),
           tokenProbeAt: Date.now(),
           tokenProbeOk: true,
         },
@@ -719,7 +759,7 @@ export const runTokenProbe = action({
 
 function readinessFrom(snap: ClerkConnectionSnapshot): Readiness {
   const values = snap.values;
-  const verification = (values.clerkLastVerification as Record<string, unknown> | null) ?? {};
+  const verification: ClerkVerification = values.clerkLastVerification ?? {};
   const issuer = normalizeFrontendApi(String(values.clerkJwtIssuerDomain || values.clerkFrontendApi || "")) || null;
   return computeReadiness({
     secretKeyValid:
@@ -759,16 +799,149 @@ async function plainOrEnv(value: unknown, env: string | undefined): Promise<stri
 
 export const getStatus = query({
   args: {},
+  returns: v.object({
+    connected: v.boolean(),
+    mode: v.union(v.literal(""), v.literal("manual"), v.literal("secret_key"), v.literal("keyless")),
+    hasSecretKey: v.boolean(),
+    secretKeySource: v.union(v.literal("none"), v.literal("settings"), v.literal("env")),
+    publishableKey: v.union(v.null(), v.string()),
+    publishableKeySource: v.union(v.literal("none"), v.literal("settings"), v.literal("env")),
+    frontendApi: v.union(v.null(), v.string()),
+    issuer: v.union(v.null(), v.string()),
+    environmentType: v.string(),
+    instanceId: v.string(),
+    claimUrl: v.string(),
+    dashboardUrl: v.string(),
+    claimedAt: v.union(v.null(), v.number()),
+    connectedAt: v.union(v.null(), v.number()),
+    jwtTemplateId: v.string(),
+    svixConfigured: v.boolean(),
+    siteOrigins: v.array(v.string()),
+    capabilities: v.union(v.null(), v.object({
+      version: v.literal(1),
+      applicationName: v.union(v.null(), v.string()),
+      environmentType: v.union(v.null(), v.literal("production"), v.literal("development")),
+      attributes: v.object({
+        emailAddress: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        phoneNumber: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        username: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        firstName: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        lastName: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        password: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+      }),
+      social: v.array(v.string()),
+      signUp: v.object({
+        mode: v.union(v.literal("public"), v.literal("restricted"), v.literal("waitlist")),
+        captchaEnabled: v.boolean(),
+        captchaWidgetType: v.union(v.null(), v.literal("smart"), v.literal("invisible")),
+        legalConsentEnabled: v.boolean(),
+        progressive: v.boolean(),
+      }),
+      signIn: v.object({
+        preferredStrategy: v.union(v.literal("password"), v.literal("otp")),
+        secondFactorRequired: v.boolean(),
+        firstFactors: v.array(v.string()),
+        secondFactors: v.array(v.string()),
+      }),
+      password: v.object({
+        enabled: v.boolean(),
+        required: v.boolean(),
+        minLength: v.number(),
+        maxLength: v.number(),
+        requireSpecialChar: v.boolean(),
+        requireNumbers: v.boolean(),
+        requireUppercase: v.boolean(),
+        requireLowercase: v.boolean(),
+        allowedSpecialCharacters: v.string(),
+        showZxcvbn: v.boolean(),
+        minZxcvbnStrength: v.number(),
+      }),
+      passkeys: v.object({ enabled: v.boolean() }),
+      links: v.object({
+        termsUrl: v.union(v.null(), v.string()),
+        privacyPolicyUrl: v.union(v.null(), v.string()),
+        supportEmail: v.union(v.null(), v.string()),
+      }),
+    })),
+    capabilitiesSyncedAt: v.union(v.null(), v.number()),
+    lastVerifiedAt: v.union(v.null(), v.number()),
+    lastVerification: v.union(v.null(), v.object({
+      checkedAt: v.optional(v.number()),
+      secretKeyValid: v.optional(v.boolean()),
+      secretKeyError: v.optional(v.string()),
+      jwtTemplatePresent: v.optional(v.boolean()),
+      jwtTemplateAudienceOk: v.optional(v.boolean()),
+      jwksKeyCount: v.optional(v.union(v.null(), v.number())),
+      tokenProbeAt: v.optional(v.number()),
+      tokenProbeOk: v.optional(v.boolean()),
+    })),
+    webhook: v.object({
+      url: v.union(v.null(), v.string()),
+      secretStored: v.boolean(),
+      lastReceivedAt: v.union(v.null(), v.number()),
+    }),
+    deployment: v.object({
+      origin: v.union(v.null(), v.string()),
+      httpActionsOrigin: v.union(v.null(), v.string()),
+      issuer: v.union(v.null(), v.string()),
+      hasSecretKeyEnv: v.boolean(),
+      issuerMatches: v.boolean(),
+      requiredEnv: v.array(v.union(v.object({ name: v.string(), value: v.string() }), v.object({ name: v.string(), secret: v.boolean() }))),
+    }),
+    readiness: v.object({
+      items: v.array(v.object({
+        id: v.union(v.literal("capabilities"), v.literal("issuer"), v.literal("claim"), v.literal("webhook"), v.literal("secret_key"), v.literal("publishable_key"), v.literal("jwt_template"), v.literal("deployment_env")),
+        label: v.string(),
+        state: v.union(v.literal("pending"), v.literal("ok"), v.literal("warn"), v.literal("fail")),
+        note: v.string(),
+      })),
+      loginReady: v.boolean(),
+      complete: v.boolean(),
+    }),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     const doc = await ctx.db
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "integrations.clerk"))
       .unique();
-    const values: Record<string, unknown> = {
-      ...CLERK_INTEGRATION_DEFAULTS,
-      ...((doc?.values as Record<string, unknown> | undefined) ?? {}),
-    };
+    const values = readClerkIntegrationSettings(doc?.values, CLERK_INTEGRATION_DEFAULTS);
     const identity = await ctx.db
       .query("convexpress_siteIdentity")
       .withIndex("by_identity_key", (q) => q.eq("identityKey", "site-identity"))
@@ -812,7 +985,7 @@ export const getStatus = query({
     const decoded = publishableKey ? decodePublishableKey(publishableKey) : null;
     return {
       connected: Boolean(secretKey),
-      mode: String(values.clerkConnectionMode ?? "") as "" | "manual" | "secret_key" | "keyless",
+      mode: values.clerkConnectionMode,
       hasSecretKey: Boolean(secretKey),
       secretKeySource: values.clerkSecretKey ? ("settings" as const) : secretKey ? ("env" as const) : ("none" as const),
       publishableKey: publishableKey || null,
@@ -824,23 +997,23 @@ export const getStatus = query({
       frontendApi: normalizeFrontendApi(String(values.clerkFrontendApi || "")) || decoded?.frontendApi || null,
       issuer,
       environmentType:
-        (values.clerkEnvironmentType as "" | "development" | "production") || decoded?.environmentType || "",
-      instanceId: String(values.clerkInstanceId ?? ""),
-      claimUrl: String(values.clerkClaimUrl ?? ""),
-      dashboardUrl: String(values.clerkDashboardUrl ?? ""),
-      claimedAt: (values.clerkClaimedAt as number | null) ?? null,
-      connectedAt: (values.clerkConnectedAt as number | null) ?? null,
-      jwtTemplateId: String(values.clerkJwtTemplateId ?? ""),
-      svixConfigured: Boolean(values.clerkSvixConfigured),
-      siteOrigins: Array.isArray(values.clerkSiteOrigins) ? (values.clerkSiteOrigins as string[]) : [],
-      capabilities: (values.clerkCapabilities as AuthCapabilities | null) ?? null,
-      capabilitiesSyncedAt: (values.clerkCapabilitiesSyncedAt as number | null) ?? null,
-      lastVerifiedAt: (values.clerkLastVerifiedAt as number | null) ?? null,
-      lastVerification: (values.clerkLastVerification as Record<string, unknown> | null) ?? null,
+        values.clerkEnvironmentType || decoded?.environmentType || "",
+      instanceId: values.clerkInstanceId,
+      claimUrl: values.clerkClaimUrl,
+      dashboardUrl: values.clerkDashboardUrl,
+      claimedAt: values.clerkClaimedAt,
+      connectedAt: values.clerkConnectedAt,
+      jwtTemplateId: values.clerkJwtTemplateId,
+      svixConfigured: values.clerkSvixConfigured,
+      siteOrigins: values.clerkSiteOrigins,
+      capabilities: values.clerkCapabilities,
+      capabilitiesSyncedAt: values.clerkCapabilitiesSyncedAt,
+      lastVerifiedAt: values.clerkLastVerifiedAt,
+      lastVerification: values.clerkLastVerification,
       webhook: {
         url: webhookEndpointUrl(httpActionsOrigin),
         secretStored: Boolean(webhookSecret),
-        lastReceivedAt: (values.clerkWebhookLastReceivedAt as number | null) ?? null,
+        lastReceivedAt: values.clerkWebhookLastReceivedAt,
       },
       deployment: {
         origin: deploymentOrigin,
@@ -878,10 +1051,7 @@ export const deploymentEnvChanges = query({
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "integrations.clerk"))
       .unique();
-    const values: Record<string, unknown> = {
-      ...CLERK_INTEGRATION_DEFAULTS,
-      ...((doc?.values as Record<string, unknown> | undefined) ?? {}),
-    };
+    const values = readClerkIntegrationSettings(doc?.values, CLERK_INTEGRATION_DEFAULTS);
     const issuer = normalizeFrontendApi(String(values.clerkJwtIssuerDomain || values.clerkFrontendApi || ""));
     if (!issuer) return [];
     const secretKey = await plainOrEnv(values.clerkSecretKey, process.env.CLERK_SECRET_KEY);

@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 
-import { mutation } from "../../_generated/server";
+import { mutation, type MutationCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
@@ -20,16 +21,16 @@ import { v } from "convex/values";
 const CLASS_SLUG_REGEX = /^[a-z0-9-]+$/;
 
 async function ensureUniqueClassSlug(
-  ctx: any,
+  ctx: Pick<MutationCtx, "db">,
   desired: string,
-  ignoreId?: any,
+  ignoreId?: Id<"commerce_shipping_classes">,
 ): Promise<string> {
   let candidate = desired || "class";
   let suffix = 1;
   while (true) {
     const existing = await ctx.db
       .query("commerce_shipping_classes")
-      .withIndex("by_slug", (q: any) => q.eq("slug", candidate))
+      .withIndex("by_slug", (q) => q.eq("slug", candidate))
       .unique();
     if (!existing || (ignoreId && existing._id === ignoreId)) return candidate;
     suffix += 1;
@@ -37,7 +38,7 @@ async function ensureUniqueClassSlug(
   }
 }
 
-async function ensureUniqueClassName(ctx: any, name: string, ignoreId?: any) {
+async function ensureUniqueClassName(ctx: Pick<MutationCtx, "db">, name: string, ignoreId?: Id<"commerce_shipping_classes">) {
   const all = await ctx.db.query("commerce_shipping_classes").collect();
   const target = name.trim().toLowerCase();
   for (const row of all) {
@@ -51,9 +52,9 @@ async function ensureUniqueClassName(ctx: any, name: string, ignoreId?: any) {
   }
 }
 
-async function getNextClassSortOrder(ctx: any): Promise<number> {
+async function getNextClassSortOrder(ctx: Pick<MutationCtx, "db">): Promise<number> {
   const all = await ctx.db.query("commerce_shipping_classes").collect();
-  const max = all.reduce((acc: number, row: any) => Math.max(acc, row.sortOrder ?? 0), 0);
+  const max = all.reduce((acc: number, row) => Math.max(acc, row.sortOrder ?? 0), 0);
   return max + 10;
 }
 
@@ -154,12 +155,12 @@ export const remove = mutation({
 
     const products = await ctx.db
       .query("commerce_products")
-      .withIndex("by_shipping_class", (q: any) => q.eq("shippingClassId", args.classId))
+      .withIndex("by_shipping_class", (q) => q.eq("shippingClassId", args.classId))
       .collect();
 
     const variants = await ctx.db
       .query("commerce_product_variants")
-      .withIndex("by_shipping_class", (q: any) => q.eq("shippingClassId", args.classId))
+      .withIndex("by_shipping_class", (q) => q.eq("shippingClassId", args.classId))
       .collect();
 
     // reassignTo: undefined means "fail if references exist". null means "clear to no-class". Id means "reassign".

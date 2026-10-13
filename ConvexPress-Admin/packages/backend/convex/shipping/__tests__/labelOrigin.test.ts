@@ -36,6 +36,7 @@ test("creating a label does not erase an unresolved inventory review",async()=>{
 });
 
 import {getEffectiveShipFrom} from "../helpers/settings";
+import {SHIPPING_INTEGRATION_DEFAULTS} from "../../settings/defaults";
 import {convexTest} from "convex-test";
 import schema from "../../schema";
 import {internal} from "../../_generated/api";
@@ -52,7 +53,7 @@ test("label rate selection preserves the saved rate and refuses a different purc
 
 test("warehouse origin uses its address contacts without inheriting a different suite",async()=>{
  const ctx=commerceHarness();
- ctx.handlers["settings/httpInternals:getBySectionInternal"]=()=>({...globalSettings,shipFromLine2:"Suite from another address"});
+ ctx.handlers["shipping/settingsInternals:getShippingIntegrationSettings"]=()=>({...SHIPPING_INTEGRATION_DEFAULTS,...globalSettings,shipFromLine2:"Suite from another address"});
  ctx.handlers["shipping/shipFromLocations/internals:getDefault"]=()=>({_id:"warehouse",name:"Warehouse",address:{line1:origin.line1,city:origin.city,state:origin.state,postalCode:origin.postalCode,countryCode:origin.countryCode,contactName:"Warehouse contact",companyName:"Warehouse company",phone:origin.phone}});
  const actual=await getEffectiveShipFrom(ctx);
  expect(actual).toMatchObject({shipFromLine1:origin.line1,shipFromLine2:"",shipFromName:"Warehouse contact",shipFromCompany:"Warehouse company",shipFromPhone:origin.phone,shipFromLocationId:"warehouse"});

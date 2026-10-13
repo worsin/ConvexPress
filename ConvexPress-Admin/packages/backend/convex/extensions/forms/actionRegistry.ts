@@ -16,6 +16,9 @@
  * prior definition, so HMR / repeated side-effect imports are safe.
  */
 
+import type { Id } from "../../_generated/dataModel";
+import type { ActionCtx } from "../../_generated/server";
+
 /** The outcome an action's `run` returns. */
 export interface ActionResult {
   /** Terminal success when true. */
@@ -50,8 +53,9 @@ export interface ActionResult {
 export interface ActionRunContext {
   /** Convex action ctx — runQuery / runMutation / runAction / scheduler / etc. */
   ctx: ActionConvexCtx;
-  formId: string;
-  submissionId: string;
+  /** Denormalized form id; absent on runs recorded before it was stored. */
+  formId?: Id<"forms">;
+  submissionId: Id<"form_submissions">;
   /** Committed answers, `fieldKey -> string value`. Server-trusted. */
   values: Record<string, string>;
   /** 1-based attempt number for this run. */
@@ -59,14 +63,10 @@ export interface ActionRunContext {
 }
 
 /**
- * The slice of a Convex `ActionCtx` the action types use. Kept structural (not
- * the generated `ActionCtx`) so this pure module never imports `_generated`.
+ * The slice of a Convex `ActionCtx` the action types use. Imported as a type
+ * only, so this pure module still loads no `_generated` code at runtime.
  */
-export interface ActionConvexCtx {
-  runQuery: (reference: any, args?: any) => Promise<any>;
-  runMutation: (reference: any, args?: any) => Promise<any>;
-  runAction: (reference: any, args?: any) => Promise<any>;
-}
+export type ActionConvexCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "runAction">;
 
 /** Result of validating a raw (parsed) config object. */
 export type ValidateConfigResult =
@@ -101,10 +101,10 @@ const REGISTRY = new Map<string, ActionTypeDefinition>();
  * Register (or overwrite) an action type. Overwrite-by-`type` keeps repeated
  * side-effect imports / HMR safe.
  */
-export function registerActionType<TConfig = Record<string, unknown>>(
-  def: ActionTypeDefinition<TConfig>,
-): void {
-  REGISTRY.set(def.type, def as unknown as ActionTypeDefinition);
+export function registerActionType<
+  TConfig extends Record<string, unknown> = Record<string, unknown>,
+>(def: ActionTypeDefinition<TConfig>): void {
+  REGISTRY.set(def.type, def);
 }
 
 /** Resolve a registered action type by key, or `undefined` if unknown. */

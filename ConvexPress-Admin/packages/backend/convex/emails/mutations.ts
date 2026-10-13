@@ -345,6 +345,24 @@ export const cancelEmail = mutation({
  */
 export const repairSystem = mutation({
   args: repairSystemArgs,
+  returns: v.object({
+    success: v.boolean(),
+    templates: v.object({ created: v.number(), updated: v.number() }),
+    listeners: v.object({
+      total: v.number(),
+      created: v.number(),
+      reactivated: v.number(),
+      skipped: v.number(),
+      deactivated: v.number(),
+    }),
+    shipping: v.object({ created: v.number(), existing: v.number() }),
+    returns: v.union(v.null(), v.object({
+      totalReturns: v.number(),
+      createdTemplates: v.number(),
+      createdReturnItems: v.number(),
+      createdHistoryEntries: v.number(),
+    })),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, "settings.update_email");
 
@@ -353,7 +371,12 @@ export const repairSystem = mutation({
     const listeners = await registerListenerDefinitions(ctx, now, { preserveExisting: true });
     const shipping = await runBootstrapShippingTemplates(ctx, now);
 
-    let returns = null;
+    let returns: {
+      totalReturns: number;
+      createdTemplates: number;
+      createdReturnItems: number;
+      createdHistoryEntries: number;
+    } | null = null;
     if (await isPluginEnabled(ctx, "commerceReturns")) {
       try {
         returns = await runBackfillLegacyReturns(ctx);

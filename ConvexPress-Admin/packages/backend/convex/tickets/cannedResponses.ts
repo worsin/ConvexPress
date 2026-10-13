@@ -35,7 +35,7 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { ticketsDocs } from "../schema/tickets.docs.generated";
 // ─── list ───────────────────────────────────────────────────────────────────
 
 /**
@@ -43,7 +43,7 @@ import { tableDocs } from "../schema/tableDocs.generated";
  */
 export const list = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.ticket_cannedResponses)),
+  returns: v.union(v.null(), v.array(ticketsDocs.ticket_cannedResponses)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
@@ -62,7 +62,7 @@ export const list = query({
  */
 export const listByCategory = query({
   args: { category: v.string() },
-  returns: v.union(v.null(), v.array(tableDocs.ticket_cannedResponses)),
+  returns: v.union(v.null(), v.array(ticketsDocs.ticket_cannedResponses)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
@@ -86,7 +86,7 @@ export const listByCategory = query({
  */
 export const getByShortcut = query({
   args: { shortcut: v.string() },
-  returns: v.union(v.null(), tableDocs.ticket_cannedResponses),
+  returns: v.union(v.null(), ticketsDocs.ticket_cannedResponses),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
@@ -107,7 +107,7 @@ export const getByShortcut = query({
  */
 export const search = query({
   args: searchCannedResponsesArgs,
-  returns: v.union(v.null(), v.array(tableDocs.ticket_cannedResponses)),
+  returns: v.union(v.null(), v.array(ticketsDocs.ticket_cannedResponses)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");

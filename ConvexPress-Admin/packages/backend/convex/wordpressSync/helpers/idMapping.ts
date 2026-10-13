@@ -11,12 +11,13 @@
  *   - Detect collisions and create structured findings
  */
 
-import { internalMutation, internalQuery } from "../../_generated/server";
+import { internalMutation, internalQuery, type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
+import type { FindingCode } from "../validators";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { wordpressSyncDocs } from "../../schema/wordpressSync.docs.generated";
 // ─── Object Type Validator ─────────────────────────────────────────────────
 
 const objectTypeValidator = v.union(
@@ -179,7 +180,7 @@ export const getAllForSite = internalQuery({
     siteId: v.id("wordpressSites"),
     objectType: v.optional(objectTypeValidator),
   },
-  returns: v.array(tableDocs.wpIdMappings),
+  returns: v.array(wordpressSyncDocs.wpIdMappings),
   handler: async (ctx, { siteId, objectType }) => {
     if (objectType) {
       return await ctx.db
@@ -457,7 +458,7 @@ export const getFullMappingByWpId = internalQuery({
     objectType: objectTypeValidator,
     wpId: v.number(),
   },
-  returns: v.union(v.null(), tableDocs.wpIdMappings),
+  returns: v.union(v.null(), wordpressSyncDocs.wpIdMappings),
   handler: async (ctx, { siteId, objectType, wpId }) => {
     return await ctx.db
       .query("wpIdMappings")
@@ -502,15 +503,13 @@ export const updateSourceHash = internalMutation({
  * This is a helper for use in internalAction handlers.
  */
 export async function createFinding(
-  ctx: {
-    runMutation: (ref: any, args: any) => Promise<any>;
-  },
+  ctx: Pick<ActionCtx, "runMutation">,
   args: {
-    siteId: any;
-    jobId: any;
+    siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     severity: "error" | "warning" | "info";
     phase: string;
-    code: string;
+    code: FindingCode;
     message: string;
     sourceType?: string;
     sourceId?: string;

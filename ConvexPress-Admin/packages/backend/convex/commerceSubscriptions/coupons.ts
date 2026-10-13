@@ -29,20 +29,19 @@
  *
  * Wave 7 swaps capability names for fine-grained
  *   `commerceSubscriptions.coupons.manage`.
- *
- * `@ts-nocheck` matches the existing subscriptions backend file pattern.
  */
 
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { mutation, query, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 // ─── Shared validators ──────────────────────────────────────────────────────
 
 const discountTypeValidator = v.union(v.literal("percent"), v.literal("fixed"));
@@ -64,12 +63,12 @@ const couponStatusValidator = v.union(
  * Used to enforce the code/discountType immutability invariant.
  */
 async function couponHasRedemptions(
-  ctx: any,
-  couponId: any,
+  ctx: { db: QueryCtx["db"] },
+  couponId: Id<"commerce_subscription_coupons">,
 ): Promise<boolean> {
   const first = await ctx.db
     .query("commerce_subscription_coupon_redemptions")
-    .withIndex("by_coupon", (q: any) => q.eq("couponId", couponId))
+    .withIndex("by_coupon", (q) => q.eq("couponId", couponId))
     .first();
   return first !== null;
 }
@@ -155,7 +154,7 @@ export const createCoupon = mutation({
     // Enforce code uniqueness.
     const existingByCode = await ctx.db
       .query("commerce_subscription_coupons")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
     if (existingByCode) {
       throw new ConvexError({
@@ -290,10 +289,11 @@ export const updateCoupon = mutation({
     }
 
     // Enforce unique code if being changed.
-    if (args.code !== undefined && args.code !== existing.code) {
+    const newCode = args.code;
+    if (newCode !== undefined && newCode !== existing.code) {
       const dupe = await ctx.db
         .query("commerce_subscription_coupons")
-        .withIndex("by_code", (q: any) => q.eq("code", args.code))
+        .withIndex("by_code", (q) => q.eq("code", newCode))
         .unique();
       if (dupe && dupe._id !== existing._id) {
         throw new ConvexError({
@@ -319,7 +319,7 @@ export const updateCoupon = mutation({
     ];
     for (const f of fields) {
       if (args[f] !== undefined) {
-        (patch as any)[f] = args[f];
+        patch[f] = args[f];
       }
     }
 
@@ -337,7 +337,7 @@ export const archiveCoupon = mutation({
   args: {
     couponId: v.id("commerce_subscription_coupons"),
   },
-  returns: v.union(v.object({ success: v.boolean(), alreadyArchived: v.boolean() }), v.object({ success: v.boolean(), alreadyArchived: v.optional(v.null()) })),
+  returns: v.object({ success: v.boolean(), alreadyArchived: v.optional(v.boolean()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -422,7 +422,7 @@ export const redeemCouponForContract = mutation({
     // `offerIds: [premium]` is enforced even on add-to-existing flows).
     const items = await ctx.db
       .query("commerce_subscription_items")
-      .withIndex("by_subscription", (q: any) =>
+      .withIndex("by_subscription", (q) =>
         q.eq("subscriptionId", args.contractId),
       )
       .collect();
@@ -430,7 +430,7 @@ export const redeemCouponForContract = mutation({
     // Pick the first active or currently-billing item to determine the
     // primary offer. If none found (contract is empty), throw.
     const activeItem = items.find(
-      (it: any) => it.status === "active" || it.status === "pending_cancel",
+      (it) => it.status === "active" || it.status === "pending_cancel",
     );
     if (!activeItem) {
       throw new ConvexError({
@@ -494,16 +494,18 @@ export const listCoupons = query({
     status: v.optional(couponStatusValidator),
     search: v.optional(v.string()),
   },
+  returns: v.union(v.null(), v.array(commerceSubscriptionsDocs.commerce_subscription_coupons)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let coupons: any[];
-    if (args.status) {
+    let coupons: Doc<"commerce_subscription_coupons">[];
+    const status = args.status;
+    if (status) {
       coupons = await ctx.db
         .query("commerce_subscription_coupons")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     } else {
       coupons = await ctx.db.query("commerce_subscription_coupons").collect();
@@ -512,11 +514,11 @@ export const listCoupons = query({
     if (args.search && args.search.trim().length > 0) {
       const needle = args.search.trim().toLowerCase();
       coupons = coupons.filter((c) =>
-        (c.code ?? "").toLowerCase().includes(needle),
+        c.code.toLowerCase().includes(needle),
       );
     }
 
-    return coupons.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    return coupons.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -527,7 +529,7 @@ export const getCoupon = query({
   args: {
     couponId: v.id("commerce_subscription_coupons"),
   },
-  returns: v.union(v.null(), tableDocs.commerce_subscription_coupons),
+  returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_coupons),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -546,14 +548,14 @@ export const getCoupon = query({
  */
 export const getCouponByCode = query({
   args: { code: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_subscription_coupons),
+  returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_coupons),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
     return ctx.db
       .query("commerce_subscription_coupons")
-      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
   },
 });

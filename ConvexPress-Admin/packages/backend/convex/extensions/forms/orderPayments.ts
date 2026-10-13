@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation, internalQuery } from "../../_generated/server";
+import { readMergedSettingsSection } from "../../settings/read";
+import { parsePricingLineItems } from "./pricingSnapshot";
 
 interface StoredPricing {
   oneTime: number;
@@ -52,6 +54,28 @@ function findCustomerEmail(
 
 export const getOrderPaymentSource = internalQuery({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.union(v.null(), v.object({
+    formId: v.id("forms"),
+    formTitle: v.string(),
+    submissionId: v.id("form_submissions"),
+    amount: v.number(),
+    currency: v.string(),
+    lineItems: v.array(v.object({
+      source: v.union(v.literal("product"), v.literal("choice"), v.literal("calculation")),
+      fieldKey: v.string(),
+      fieldLabel: v.string(),
+      label: v.string(),
+      amount: v.number(),
+      priceKind: v.union(v.literal("recurring"), v.literal("oneTime")),
+      choiceValue: v.optional(v.string()),
+      quantity: v.optional(v.number()),
+      interval: v.optional(v.union(v.literal("year"), v.literal("month"))),
+      recurringLabel: v.optional(v.string()),
+      firstPeriodAmount: v.optional(v.number()),
+    })),
+    existingPaymentIntentId: v.union(v.null(), v.string()),
+    customerEmail: v.union(v.null(), v.string()),
+  })),
   handler: async (ctx, { submissionId }) => {
     const submission = await ctx.db.get(submissionId);
     if (!submission || submission.status !== "complete") return null;
@@ -79,18 +103,19 @@ export const getOrderPaymentSource = internalQuery({
     const values: Record<string, string> = {};
     const rows = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity", (q: any) =>
+      .withIndex("by_entity", (q) =>
         q
           .eq("entityType", "form_submission")
-          .eq("entityId", submission._id as string),
+          .eq("entityId", submission._id),
       )
       .collect();
     for (const row of rows) values[row.fieldKey] = row.value;
 
-    const fields = form.fieldGroupId
+    const fieldGroupId = form.fieldGroupId;
+    const fields = fieldGroupId
       ? await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group", (q: any) => q.eq("groupId", form.fieldGroupId))
+          .withIndex("by_group", (q) => q.eq("groupId", fieldGroupId))
           .collect()
       : [];
 
@@ -100,12 +125,33 @@ export const getOrderPaymentSource = internalQuery({
       submissionId: submission._id,
       amount,
       currency: normalizeCurrency(pricing?.currency),
-      lineItems: Array.isArray(pricing?.lineItems) ? pricing.lineItems : [],
+      lineItems: parsePricingLineItems(pricing?.lineItems),
       existingPaymentIntentId:
         typeof meta.orderPayment?.paymentIntentId === "string"
           ? meta.orderPayment.paymentIntentId
           : null,
       customerEmail: findCustomerEmail(fields, values) ?? null,
+    };
+  },
+});
+
+/**
+ * The `commerce.payments` keys the form order-payment action needs, read with
+ * defaults merged. Actions cannot read the database directly.
+ */
+export const getOrderPaymentStripeSettings = internalQuery({
+  args: {},
+  returns: v.object({
+    publishableKey: v.string(),
+    stripeSecretKey: v.optional(v.string()),
+  }),
+  handler: async (ctx) => {
+    const values = await readMergedSettingsSection(ctx, "commerce.payments");
+    const publishableKey = values.stripePublishableKey;
+    const stripeSecretKey = values.stripeSecretKey;
+    return {
+      publishableKey: typeof publishableKey === "string" ? publishableKey.trim() : "",
+      stripeSecretKey: typeof stripeSecretKey === "string" ? stripeSecretKey : undefined,
     };
   },
 });
@@ -140,7 +186,7 @@ export const attachOrderPaymentIntent = internalMutation({
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });
-    await ctx.runMutation((internal as any).purchases.internals.syncFormOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncFormOrder, {
       submissionId: args.submissionId,
       paymentIntentId: args.paymentIntentId,
       provider: "stripe",
@@ -172,7 +218,7 @@ export const markOrderPaymentSucceeded = internalMutation({
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });
-    await ctx.runMutation((internal as any).purchases.internals.syncFormOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncFormOrder, {
       submissionId: args.submissionId,
       paymentIntentId: args.paymentIntentId,
       provider: "stripe",
@@ -205,7 +251,7 @@ export const markOrderPaymentFailed = internalMutation({
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });
-    await ctx.runMutation((internal as any).purchases.internals.syncFormOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncFormOrder, {
       submissionId: args.submissionId,
       paymentIntentId: args.paymentIntentId,
       provider: "stripe",

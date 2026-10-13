@@ -14,9 +14,23 @@
 
 import { v } from "convex/values";
 
-import { internalAction } from "../_generated/server";
+import type Stripe from "stripe";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** A Stripe error's `code` (or `type`), for the fallback reason. */
+export function stripeErrorReason(err: unknown): string {
+  if (isRecord(err)) {
+    if (typeof err.code === "string") return err.code;
+    if (typeof err.type === "string") return err.type;
+  }
+  return "stripe_error";
+}
 
 export type StripeTaxLine = {
   amount: number;
@@ -53,7 +67,7 @@ export function buildStripeTaxPayload(
   address: StripeTaxAddress,
   lines: StripeTaxLine[],
   currency = "usd",
-): Record<string, unknown> {
+): Stripe.Tax.CalculationCreateParams {
   return {
     currency,
     customer_details: {
@@ -76,20 +90,27 @@ export function buildStripeTaxPayload(
 }
 
 /** Parse Stripe Tax calculation response → our StripeTaxResult. Pure. */
-export function parseStripeTaxResponse(calc: any): StripeTaxResult {
-  const taxAmount = Number(calc?.tax_amount_exclusive ?? 0);
-  const taxableAmount = Number(calc?.amount_total ?? 0) - taxAmount;
-  const breakdownLines: any[] = calc?.line_items?.data ?? calc?.line_items ?? [];
-  const breakdown = breakdownLines.map((line: any) => {
-    const amount = Number(line?.amount ?? 0);
-    const tax = Number(line?.amount_tax ?? 0);
+export function parseStripeTaxResponse(calc: unknown): StripeTaxResult {
+  const response = isRecord(calc) ? calc : {};
+  const taxAmount = Number(response.tax_amount_exclusive ?? 0);
+  const taxableAmount = Number(response.amount_total ?? 0) - taxAmount;
+  const lineItems = response.line_items;
+  const breakdownLines: unknown[] = isRecord(lineItems) && Array.isArray(lineItems.data)
+    ? lineItems.data
+    : Array.isArray(lineItems) ? lineItems : [];
+  const breakdown = breakdownLines.map((entry) => {
+    const line = isRecord(entry) ? entry : {};
+    const amount = Number(line.amount ?? 0);
+    const tax = Number(line.amount_tax ?? 0);
     const rate = amount > 0 ? tax / amount : 0;
+    const firstBreakdown = Array.isArray(line.tax_breakdown) ? line.tax_breakdown[0] : undefined;
+    const jurisdiction = isRecord(firstBreakdown) && isRecord(firstBreakdown.jurisdiction) ? firstBreakdown.jurisdiction.display_name : undefined;
     return {
-      taxClass: line?.tax_code ?? "standard",
+      taxClass: typeof line.tax_code === "string" ? line.tax_code : "standard",
       taxableAmount: amount,
       taxAmount: tax,
       taxRate: rate,
-      jurisdiction: line?.tax_breakdown?.[0]?.jurisdiction?.display_name,
+      jurisdiction: typeof jurisdiction === "string" ? jurisdiction : undefined,
     };
   });
   return {
@@ -100,25 +121,14 @@ export function parseStripeTaxResponse(calc: any): StripeTaxResult {
   };
 }
 
-async function getStripeSecretKey(ctx: any): Promise<string | undefined> {
-  const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
-  );
-  const values = (settings?.values ?? settings) as
-    | Record<string, unknown>
-    | null
-    | undefined;
-  return await resolveServiceKeyAsync(values, "stripeSecretKey", "STRIPE_SECRET_KEY");
+async function getStripeSecretKey(ctx: ActionCtx): Promise<string | undefined> {
+  const settings = await ctx.runQuery(internal.commerce.settingsInternals.getPaymentSettings, {});
+  return await resolveServiceKeyAsync(settings, "stripeSecretKey", "STRIPE_SECRET_KEY");
 }
 
-async function isStripeTaxMode(ctx: any): Promise<boolean> {
-  const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
-  );
-  const values = (settings?.values ?? settings) as any;
-  return values?.taxProviderMode === "stripe";
+async function isStripeTaxMode(ctx: ActionCtx): Promise<boolean> {
+  const settings = await ctx.runQuery(internal.commerce.settingsInternals.getPaymentSettings, {});
+  return settings.taxProviderMode === "stripe";
 }
 
 export const calculateViaStripe = internalAction({
@@ -187,12 +197,12 @@ export const calculateViaStripe = internalAction({
         args.lines,
         args.currency,
       );
-      const calc = await (stripe as any).tax.calculations.create(payload);
+      const calc = await stripe.tax.calculations.create(payload);
       return parseStripeTaxResponse(calc);
-    } catch (err: any) {
+    } catch (err) {
       console.error(
         "[taxStripe] Stripe Tax call failed, falling back to rules:",
-        err?.message ?? err,
+        err instanceof Error ? err.message : err,
       );
       return {
         taxAmount: 0,
@@ -200,7 +210,7 @@ export const calculateViaStripe = internalAction({
         breakdown: [],
         provider: "rules",
         fallback: true,
-        reason: err?.code ?? err?.type ?? "stripe_error",
+        reason: stripeErrorReason(err),
       };
     }
   },

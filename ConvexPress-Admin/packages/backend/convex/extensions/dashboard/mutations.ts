@@ -86,7 +86,7 @@ export const saveDefaultLayout = mutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("dashboard_layouts")
-      .withIndex("by_scope", (q: any) => q.eq("scope", args.scope))
+      .withIndex("by_scope", (q) => q.eq("scope", args.scope))
       .unique();
     const title = (args.title ?? existing?.title ?? (args.scope === "default" ? "Everyone" : args.scope)).slice(0, 80);
     const membersCanEdit = args.membersCanEdit ?? existing?.membersCanEdit ?? true;
@@ -121,7 +121,7 @@ export const deleteDefaultLayout = mutation({
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("dashboard_layouts")
-      .withIndex("by_scope", (q: any) => q.eq("scope", args.scope))
+      .withIndex("by_scope", (q) => q.eq("scope", args.scope))
       .unique();
     if (existing) await ctx.db.delete("dashboard_layouts", existing._id);
     return true;
@@ -141,7 +141,7 @@ export const saveMyLayout = mutation({
     }
     const settingsDoc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: any) => q.eq("section", "dashboard"))
+      .withIndex("by_section", (q) => q.eq("section", "dashboard"))
       .unique();
     const settings = { ...getDefaults("dashboard"), ...((settingsDoc?.values as Record<string, unknown>) ?? {}) };
     if (settings.membersCanEditHome !== true) {
@@ -150,7 +150,7 @@ export const saveMyLayout = mutation({
     const items = normalizeLayoutItems(args.items as DashboardLayoutItem[]);
     const existing = await ctx.db
       .query("dashboard_user_layouts")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
     const now = Date.now();
     if (existing) {
@@ -174,7 +174,7 @@ export const resetMyLayout = mutation({
     if (!user) throw new ConvexError({ code: "UNAUTHORIZED", message: "Sign in first" });
     const existing = await ctx.db
       .query("dashboard_user_layouts")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
     if (existing) await ctx.db.delete("dashboard_user_layouts", existing._id);
     return true;

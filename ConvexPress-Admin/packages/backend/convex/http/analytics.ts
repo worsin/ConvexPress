@@ -142,7 +142,7 @@ export const analyticsTrackHandler = httpAction(async (ctx, request) => {
   }
 
   // Validate top-level structure
-  if (typeof body !== "object" || body === null || !Array.isArray((body as any).events)) {
+  if (typeof body !== "object" || body === null || !("events" in body) || !Array.isArray(body.events)) {
     return errorResponse(
       'Request body must have an "events" array',
       "INVALID_STRUCTURE",

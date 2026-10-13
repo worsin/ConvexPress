@@ -4,7 +4,8 @@ import { certificateCodeSchema, certificateVerificationSchema } from "../../cano
  */
 
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { query, type QueryCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { getCurrentUser, requireCan } from "../../helpers/permissions";
 import {
@@ -12,10 +13,10 @@ import {
   renderCertificateText,
 } from "./rendering";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { lmsDocs } from "../../schema/lms.docs.generated";
 export const listTemplates = query({
   args: {},
-  returns: v.array(tableDocs.lms_certificates),
+  returns: v.array(lmsDocs.lms_certificates),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     await requireCan(ctx, "lms.certificate.manage");
@@ -25,7 +26,7 @@ export const listTemplates = query({
 
 export const getTemplate = query({
   args: { certificateId: v.id("lms_certificates") },
-  returns: v.union(v.null(), tableDocs.lms_certificates),
+  returns: v.union(v.null(), lmsDocs.lms_certificates),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     await requireCan(ctx, "lms.certificate.manage");
@@ -35,6 +36,22 @@ export const getTemplate = query({
 
 export const getMyIssue = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.union(v.null(), v.object({
+    pdfUrl: v.optional(v.string()),
+    _id: v.id("lms_certificate_issues"),
+    _creationTime: v.number(),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.id("users")),
+    pdfMediaId: v.optional(v.id("media")),
+    revocationReason: v.optional(v.string()),
+    revocationKind: v.optional(v.union(v.literal("progress"), v.literal("administrator"))),
+    userId: v.id("users"),
+    status: v.union(v.literal("issued"), v.literal("revoked")),
+    courseId: v.id("lms_courses"),
+    certificateId: v.id("lms_certificates"),
+    serial: v.string(),
+    issuedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const me = await getCurrentUser(ctx);
@@ -55,13 +72,32 @@ export const getMyIssue = query({
 
 export const listIssues = query({
   args: { courseId: v.optional(v.id("lms_courses")) },
+  returns: v.array(v.object({
+    learnerName: v.string(),
+    courseTitle: v.string(),
+    pdfUrl: v.optional(v.string()),
+    _id: v.id("lms_certificate_issues"),
+    _creationTime: v.number(),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.id("users")),
+    pdfMediaId: v.optional(v.id("media")),
+    revocationReason: v.optional(v.string()),
+    revocationKind: v.optional(v.union(v.literal("progress"), v.literal("administrator"))),
+    userId: v.id("users"),
+    status: v.union(v.literal("issued"), v.literal("revoked")),
+    courseId: v.id("lms_courses"),
+    certificateId: v.id("lms_certificates"),
+    serial: v.string(),
+    issuedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     await requireCan(ctx, "lms.certificate.manage");
-    const issues = args.courseId
+    const courseId = args.courseId;
+    const issues = courseId
       ? await ctx.db
           .query("lms_certificate_issues")
-          .withIndex("by_course", (q) => q.eq("courseId", args.courseId!))
+          .withIndex("by_course", (q) => q.eq("courseId", courseId))
           .collect()
       : await ctx.db.query("lms_certificate_issues").order("desc").take(200);
     const rows = [];
@@ -83,6 +119,27 @@ export const listIssues = query({
 /** Public verification by serial. */
 export const verifyBySerial = query({
   args: { serial: v.string() },
+  returns: v.union(v.object({
+    valid: v.boolean(),
+    learnerName: v.optional(v.null()),
+    courseTitle: v.optional(v.null()),
+    issuedAt: v.optional(v.null()),
+    serial: v.optional(v.null()),
+    pdfUrl: v.optional(v.null()),
+    certificateTitle: v.optional(v.null()),
+    orientation: v.optional(v.null()),
+    certificateText: v.optional(v.null()),
+  }), v.object({
+    valid: v.boolean(),
+    learnerName: v.string(),
+    courseTitle: v.string(),
+    issuedAt: v.number(),
+    serial: v.string(),
+    pdfUrl: v.optional(v.string()),
+    certificateTitle: v.string(),
+    orientation: v.union(v.literal("landscape"), v.literal("portrait")),
+    certificateText: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return { valid: false };
     const serial = args.serial.trim().toUpperCase();
@@ -124,9 +181,9 @@ export const verifyBySerial = query({
   },
 });
 
-async function findCompletion(ctx: any, userId: string, courseId: string) {
+async function findCompletion(ctx: QueryCtx, userId: Id<"users">, courseId: Id<"lms_courses">) {
   return ctx.db.query("lms_course_completions")
-    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId)).first();
+    .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId)).first();
 }
 
 function publicHolderName(user: { displayName?: string; email?: string } | null) {
@@ -165,11 +222,14 @@ export const verifyPublicCode = query({
   },
 });
 
-async function resolveIssuePdfUrl(ctx: any, issue: { pdfMediaId?: string }) {
+async function resolveIssuePdfUrl(
+  ctx: QueryCtx,
+  issue: { pdfMediaId?: Id<"media"> },
+): Promise<string | null> {
   if (!issue.pdfMediaId) return null;
-  const pdfMedia = await ctx.db.get(issue.pdfMediaId);
+  const pdfMedia = await ctx.db.get("media", issue.pdfMediaId);
   if (!pdfMedia || pdfMedia.status !== "active" || pdfMedia.mimeType !== "application/pdf") return null;
-  if (pdfMedia.storageId && ctx.storage?.getUrl) {
+  if (pdfMedia.storageId) {
     return await ctx.storage.getUrl(pdfMedia.storageId);
   }
   return pdfMedia.url ?? null;

@@ -45,6 +45,13 @@ export const MAX_LINK_REL_LENGTH = 200;
 /** Maximum nesting depth for menu items. */
 export const MAX_DEPTH = 5;
 
+/**
+ * Levels the admin builder tree (`getMenuItemTree`) returns. Writes allow
+ * MAX_DEPTH + 1 levels; imported menus may nest deeper, so the builder keeps
+ * a wider bound and drops only items nested below it.
+ */
+export const MENU_TREE_LEVELS = 16;
+
 /** Default menu locations registered by the theme. */
 export const DEFAULT_MENU_LOCATIONS = [
   {

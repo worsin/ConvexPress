@@ -27,7 +27,9 @@ import { v } from "convex/values";
 import { google } from "googleapis";
 import {
   ga4DateRangeArgs,
+  ga4EngagementDataValidator,
   ga4PathArgs,
+  ga4TrafficDataValidator,
   testConnectionArgs,
 } from "./validators";
 import {
@@ -74,7 +76,7 @@ export const testConnection = action({
     // service-account material.
     await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal, {});
     // Validate service account JSON structure
-    let credentials: Record<string, unknown>;
+    let credentials: unknown;
     try {
       credentials = JSON.parse(args.serviceAccountJson);
     } catch {
@@ -83,11 +85,17 @@ export const testConnection = action({
         error: "Invalid JSON. Please provide a valid service account key file.",
       };
     }
+    const credentialField = (key: string): unknown =>
+      typeof credentials === "object" && credentials !== null && !Array.isArray(credentials)
+        ? Object.getOwnPropertyDescriptor(credentials, key)?.value
+        : undefined;
+    const clientEmail = credentialField("client_email");
 
     if (
-      credentials.type !== "service_account" ||
-      !credentials.client_email ||
-      !credentials.private_key
+      credentialField("type") !== "service_account" ||
+      typeof clientEmail !== "string" ||
+      !clientEmail ||
+      !credentialField("private_key")
     ) {
       return {
         success: false,
@@ -119,7 +127,7 @@ export const testConnection = action({
 
       return {
         success: true,
-        clientEmail: credentials.client_email as string,
+        clientEmail,
       };
     } catch (err: unknown) {
       const message =
@@ -159,17 +167,7 @@ export const fetchTrafficData = action({
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
-  returns: v.object({
-    totalPageviews: v.number(),
-    totalSessions: v.number(),
-    totalUsers: v.number(),
-    newUsers: v.number(),
-    sources: v.array(v.object({ channel: v.string(), sessions: v.number() })),
-    referrers: v.array(v.object({ domain: v.string(), sessions: v.number() })),
-    countries: v.array(v.object({ country: v.string(), users: v.number() })),
-    devices: v.array(v.object({ category: v.string(), sessions: v.number() })),
-    daily: v.array(v.object({ date: v.string(), pageviews: v.number(), sessions: v.number(), users: v.number() })),
-  }),
+  returns: ga4TrafficDataValidator,
   handler: async (ctx, args) => {
     // Read credentials from env var
     const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");
@@ -275,12 +273,12 @@ export const fetchTrafficData = action({
 
       // Parse responses
       const data = buildTrafficData({
-        summary: parseGA4RunReportResponse(summaryRes.data as any),
-        sources: parseGA4RunReportResponse(sourcesRes.data as any),
-        referrers: parseGA4RunReportResponse(referrersRes.data as any),
-        countries: parseGA4RunReportResponse(countriesRes.data as any),
-        devices: parseGA4RunReportResponse(devicesRes.data as any),
-        daily: parseGA4RunReportResponse(dailyRes.data as any),
+        summary: parseGA4RunReportResponse(summaryRes.data),
+        sources: parseGA4RunReportResponse(sourcesRes.data),
+        referrers: parseGA4RunReportResponse(referrersRes.data),
+        countries: parseGA4RunReportResponse(countriesRes.data),
+        devices: parseGA4RunReportResponse(devicesRes.data),
+        daily: parseGA4RunReportResponse(dailyRes.data),
       });
 
       // Cache the result
@@ -331,21 +329,7 @@ export const fetchEngagementData = action({
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
-  returns: v.object({
-    bounceRate: v.number(),
-    avgSessionDuration: v.number(),
-    pagesPerSession: v.number(),
-    engagementRate: v.number(),
-    totalEvents: v.number(),
-    daily: v.array(v.object({
-      date: v.string(),
-      bounceRate: v.number(),
-      avgSessionDuration: v.number(),
-      pagesPerSession: v.number(),
-      engagementRate: v.number(),
-      eventCount: v.number(),
-    })),
-  }),
+  returns: ga4EngagementDataValidator,
   handler: async (ctx, args) => {
     // Read credentials from env var
     const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");
@@ -395,7 +379,7 @@ export const fetchEngagementData = action({
 
       // Parse response
       const data = buildEngagementData(
-        parseGA4RunReportResponse(response.data as any),
+        parseGA4RunReportResponse(response.data),
       );
 
       // Cache the result

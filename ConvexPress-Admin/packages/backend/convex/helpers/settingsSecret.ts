@@ -92,11 +92,11 @@ export function maskSecret(value: unknown): string | null {
  * Redact every secret field in a settings values object. Called by public
  * settings queries before returning to the admin UI.
  */
-export function redactSettingSecrets<T extends Record<string, any>>(
-  values: T | null | undefined,
-): T | null {
+export function redactSettingSecrets(
+  values: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
   if (!values) return null;
-  const out: any = { ...values };
+  const out: Record<string, unknown> = { ...values };
   for (const [k, v] of Object.entries(out)) {
     if (isSecretFieldName(k) && typeof v === "string" && v.length > 0) {
       out[k] = SENTINEL;

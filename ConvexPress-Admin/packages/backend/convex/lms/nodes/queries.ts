@@ -2,13 +2,28 @@
  * Curriculum tree (nodes) - queries.
  */
 
-import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { v, type Infer } from "convex/values";
+import { query, type QueryCtx } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan } from "../../helpers/permissions";
 import { canUserAccessNode } from "../access";
+import { lmsDocs } from "../../schema/lms.docs.generated";
 
-function serializeNode(node: any) {
+/** A node without lesson body, materials, video source, and AI media fields. */
+const publicNodeValidator = lmsDocs.lms_nodes.omit(
+  "bodyDoc",
+  "materialsDoc",
+  "videoUrl",
+  "videoProvider",
+  "videoMediaId",
+  "transcriptText",
+  "audioMediaId",
+  "captionsMediaId",
+  "aiVideoMediaId",
+);
+
+function serializeNode(node: Doc<"lms_nodes">): Infer<typeof publicNodeValidator> {
   const {
     bodyDoc: _bodyDoc,
     materialsDoc: _materialsDoc,
@@ -24,7 +39,7 @@ function serializeNode(node: any) {
   return publicNode;
 }
 
-async function canPreviewCourseTree(ctx: any) {
+async function canPreviewCourseTree(ctx: QueryCtx) {
   return (
     (await currentUserCan(ctx, "lms.course.view")) ||
     (await currentUserCan(ctx, "lms.builder.manage")) ||
@@ -34,6 +49,9 @@ async function canPreviewCourseTree(ctx: any) {
 
 export const getCourseTree = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.object({
+    topics: v.array(publicNodeValidator.extend({ children: v.array(publicNodeValidator) })),
+  }),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return { topics: [] };
     const course = await ctx.db.get(args.courseId);
@@ -62,6 +80,8 @@ export const getCourseTree = query({
 
 export const getNode = query({
   args: { nodeId: v.id("lms_nodes") },
+  // Managers get the whole node; everyone else gets the public projection.
+  returns: v.union(v.null(), lmsDocs.lms_nodes, publicNodeValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);

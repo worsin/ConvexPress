@@ -26,7 +26,7 @@ import { RequestReadLedger } from "../../helpers/requestReadLedger";
  * Capability: form.manage_confirmations.
  */
 
-import { query, mutation } from "../../_generated/server";
+import { query, mutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
 import { v, ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
@@ -35,7 +35,7 @@ import { sanitizeCommentContent } from "../../helpers/comment";
 import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { formsExtensionDocs } from "./schema.docs.generated";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 /** Local wrapper for Forms capability strings. */
@@ -266,13 +266,13 @@ export function buildConfirmationResult(
 
 /** Lazy-seed: ensure the form has exactly one default confirmation row. */
 async function ensureDefault(
-  ctx: any,
+  ctx: { db: MutationCtx["db"] },
   formId: Id<"forms">,
   userId: Id<"users">,
 ): Promise<void> {
   const existing = await ctx.db
     .query("form_confirmations")
-    .withIndex("by_form_default", (q: any) =>
+    .withIndex("by_form_default", (q) =>
       q.eq("formId", formId).eq("isDefault", true),
     )
     .first();
@@ -297,20 +297,20 @@ async function ensureDefault(
 }
 
 /** Next `order` value = max existing order + 1. */
-async function nextOrder(ctx: any, formId: Id<"forms">): Promise<number> {
+async function nextOrder(ctx: { db: QueryCtx["db"] }, formId: Id<"forms">): Promise<number> {
   const rows = await ctx.db
     .query("form_confirmations")
-    .withIndex("by_form_order", (q: any) => q.eq("formId", formId))
+    .withIndex("by_form_order", (q) => q.eq("formId", formId))
     .collect();
   if (rows.length === 0) return 0;
-  return Math.max(...rows.map((r: any) => r.order)) + 1;
+  return Math.max(...rows.map((r) => r.order)) + 1;
 }
 
 // ─── Admin query (gated) ─────────────────────────────────────────────────────
 
 export const listConfirmations = query({
   args: { formId: v.id("forms") },
-  returns: v.array(tableDocs.form_confirmations),
+  returns: v.array(formsExtensionDocs.form_confirmations),
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_confirmations"));
     await requirePluginEnabled(ctx, "forms");
@@ -332,7 +332,7 @@ export const listConfirmations = query({
 
 export const ensureDefaultConfirmation = mutation({
   args: { formId: v.id("forms") },
-  returns: v.union(v.null(), tableDocs.form_confirmations),
+  returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, { formId }) => {
     const user = await requireCan(ctx, formCap("form.manage_confirmations"));
     await requirePluginEnabled(ctx, "forms");
@@ -356,7 +356,7 @@ export const createConfirmation = mutation({
     pageId: v.optional(v.string()),
     conditionalLogic: v.optional(v.string()),
   },
-  returns: v.union(v.null(), tableDocs.form_confirmations),
+  returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.manage_confirmations"));
     await requirePluginEnabled(ctx, "forms");
@@ -409,7 +409,7 @@ export const updateConfirmation = mutation({
       conditionalLogic: v.optional(v.string()),
     }),
   },
-  returns: v.union(v.null(), tableDocs.form_confirmations),
+  returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, { confirmationId, patch }) => {
     const user = await requireCan(ctx, formCap("form.manage_confirmations"));
     await requirePluginEnabled(ctx, "forms");
@@ -600,7 +600,7 @@ export const resolveConfirmation = query({
     // SELECTION (first-match-wins + default fallback) and TYPE DISPATCH are
     // pure cores; the handler only supplies DB-loaded data. See unit tests.
     const { winner, def } = pickConfirmation(
-      all as unknown as ConfirmationRow[],
+      all,
       valueMap,
     );
     return buildConfirmationResult(

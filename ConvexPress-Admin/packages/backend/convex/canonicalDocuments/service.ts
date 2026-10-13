@@ -9,6 +9,7 @@ import { installation, displayContext } from "./displayContext";
 import { loadDocumentWriteContext, readAuthoredDocument, readStoredDocument, readApprovedDocument } from "./definitions";
 import { loadPublishedComposedRegistry } from "../blockDefinitions/publishedRegistry";
 import type { RuntimeCanonicalTree } from "./foundation/composedRegistry";
+import type { CanonicalTree } from "./foundation/generated/types";
 import type { ComposedDataContext } from "./foundation/planner";
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { syncDocumentContactForms } from "./contactDocuments";
@@ -1309,7 +1310,7 @@ export type ApiDocumentInput = {
 	content?: string;
 	blocks?: unknown;
 	excerpt?: string;
-	status?: string;
+	status?: Doc<"posts">["status"];
 	scheduledAt?: number;
 	slug?: string;
 	parentId?: Id<"posts"> | null;
@@ -1821,7 +1822,7 @@ export async function readApiDocument(
 	const post = budget.record(await ctx.db.get("posts", postId));
 	if (!post || post.type !== type) return null;
 	const editable = await apiCanEdit(ctx, user, post);
-	let blocks: unknown, revision: number | undefined;
+	let blocks: RuntimeCanonicalTree | CanonicalTree, revision: number | undefined;
 	if (editable) {
 		const authored = await readStoredDocument(ctx, post, budget);
 		blocks = authored.blocks;
@@ -1888,6 +1889,10 @@ export type WordPressDocumentInput = {
  termIds?: string[];
  document: {id:number;title:string;slug:string;content:string;excerpt:string;status:string;commentStatus:"open"|"closed";publishedAt?:number;guid?:string;isSticky?:boolean;menuOrder?:number;template?:string};
 };
+const IMPORTABLE_WORDPRESS_STATUSES = ["draft", "publish", "future", "private"] as const;
+function isImportableWordPressStatus(status: string): status is (typeof IMPORTABLE_WORDPRESS_STATUSES)[number] {
+ return (IMPORTABLE_WORDPRESS_STATUSES as readonly string[]).includes(status);
+}
 export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "page", args: WordPressDocumentInput): Promise<Id<"posts">> {
  const job = await ctx.db.get("wordpressSyncJobs", args.jobId);
  const site = await ctx.db.get("wordpressSites", args.siteId);
@@ -1899,8 +1904,9 @@ export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "
  const config = normalizeImportConfig(job.importConfig);
  if (config.behavior.dryRun) refuse("IMPORT_DRY_RUN", "A dry run cannot write documents.");
  const wp = args.document;
- if (!["draft","publish","future","private"].includes(wp.status))
-  refuse("IMPORT_STATUS_REVIEW_REQUIRED", `WordPress status ${wp.status} requires an explicit lifecycle review before import.`);
+ const wpStatus = wp.status;
+ if (!isImportableWordPressStatus(wpStatus))
+  refuse("IMPORT_STATUS_REVIEW_REQUIRED", `WordPress status ${wpStatus} requires an explicit lifecycle review before import.`);
  if (args.meta.length > 128 || (args.termIds?.length ?? 0) > 100)
   refuse("IMPORT_RECORD_TOO_LARGE", "Import metadata or taxonomy count exceeds the bounded record limit.");
  for (const item of args.meta) {
@@ -1931,7 +1937,7 @@ export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "
  const parentId = args.parentId ? ctx.db.normalizeId("posts",args.parentId) : null;
  if (args.parentId && !parentId) refuse("DOCUMENT_ROUTE_INVALID", "The mapped parent page is invalid.");
  const input: DocumentInput = {
-  title:wp.title,slug:wp.slug,content:wp.content,excerpt:wp.excerpt,status:wp.status,
+  title:wp.title,slug:wp.slug,content:wp.content,excerpt:wp.excerpt,status:wpStatus,
   visibility:wp.status === "private" ? "private" : "public",commentStatus:wp.commentStatus,
   ...(wp.status === "future" ? {scheduledAt:wp.publishedAt} : {}),
   ...(type === "page" ? {parentId,menuOrder:wp.menuOrder,pageTemplate:wp.template || "default"} : {}),

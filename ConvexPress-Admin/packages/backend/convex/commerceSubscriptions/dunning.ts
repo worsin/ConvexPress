@@ -26,7 +26,7 @@
 import { v } from "convex/values";
 import type { RegisteredAction } from "convex/server";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requirePluginEnabled } from "../helpers/plugins";
 
@@ -60,15 +60,12 @@ function disabledProviderFallback(invoice: {
   };
 }
 
-async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
+async function isLiveChargingEnabled(ctx: Pick<ActionCtx, "runQuery">): Promise<boolean> {
   const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
+    internal.commerceSubscriptions.internals.getPaymentChargingSettings,
+    {},
   );
-  const flag =
-    settings?.values?.subscriptionChargingEnabled ??
-    settings?.subscriptionChargingEnabled;
-  return flag === true;
+  return settings.subscriptionChargingEnabled;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -97,12 +94,7 @@ export const runDunningSweep: RegisteredAction<
 
     const limit = args.limit ?? 100;
 
-    const retryable: Array<{
-      attemptId: string;
-      subscriptionId: string;
-      invoiceId: string;
-      attemptNumber: number;
-    }> | null = await ctx.runQuery(
+    const retryable = await ctx.runQuery(
       internal.commerceSubscriptions.internals.getRetryableDunningAttempts,
       { limit },
     );
@@ -117,24 +109,22 @@ export const runDunningSweep: RegisteredAction<
 
     for (const attempt of retryable) {
       try {
-        // Fetch the invoice for this dunning attempt.
-        const invoice: {
-          _id: string;
-          totalAmount: number;
-          savedPaymentMethodId?: string;
-          manualBilling?: boolean;
-          subscriptionId: string;
-        } | null = await ctx.runQuery(
-          internal.commerceSubscriptions.internals.getInvoiceForRenewal,
-          { invoiceId: attempt.invoiceId as Parameters<typeof String>[0] },
-        );
+        // Fetch the invoice for this dunning attempt. An attempt that never
+        // referenced an invoice has nothing to retry.
+        const invoiceId = attempt.invoiceId;
+        const invoice = invoiceId
+          ? await ctx.runQuery(
+              internal.commerceSubscriptions.internals.getInvoiceForRenewal,
+              { invoiceId },
+            )
+          : null;
 
-        if (!invoice) {
+        if (!invoiceId || !invoice) {
           // Invoice gone — abort this attempt.
           await ctx.runMutation(
             internal.commerceSubscriptions.internals.abortDunningAttempt,
             {
-              attemptId: attempt.attemptId as Parameters<typeof String>[0],
+              attemptId: attempt.attemptId,
               reason: "invoice_not_found",
             },
           );
@@ -150,7 +140,7 @@ export const runDunningSweep: RegisteredAction<
           const stripeResult = await ctx.runAction(
             internal.commerceSubscriptions.stripeCharge
               .chargeSubscriptionInvoice,
-            { invoiceId: attempt.invoiceId as Parameters<typeof String>[0] },
+            { invoiceId },
           );
           chargeResult = {
             success: stripeResult.success,
@@ -167,7 +157,7 @@ export const runDunningSweep: RegisteredAction<
           await ctx.runMutation(
             internal.commerceSubscriptions.internals.handleInvoicePaymentResult,
             {
-              invoiceId: attempt.invoiceId as Parameters<typeof String>[0],
+              invoiceId,
               succeeded: true,
               paymentTransactionId: chargeResult.transactionId,
             },
@@ -177,7 +167,7 @@ export const runDunningSweep: RegisteredAction<
           await ctx.runMutation(
             internal.commerceSubscriptions.internals.completeDunningAttempt,
             {
-              attemptId: attempt.attemptId as Parameters<typeof String>[0],
+              attemptId: attempt.attemptId,
               outcome: "success",
             },
           );
@@ -185,16 +175,12 @@ export const runDunningSweep: RegisteredAction<
           succeeded++;
         } else {
           // On failure: update dunning attempt, decide if we cancel.
-          const outcome: {
-            cancelled: boolean;
-            nextRetryAt?: number;
-          } = await ctx.runMutation(
+          const outcome = await ctx.runMutation(
             internal.commerceSubscriptions.internals.recordDunningFailure,
             {
-              attemptId: attempt.attemptId as Parameters<typeof String>[0],
-              subscriptionId:
-                attempt.subscriptionId as Parameters<typeof String>[0],
-              invoiceId: attempt.invoiceId as Parameters<typeof String>[0],
+              attemptId: attempt.attemptId,
+              subscriptionId: attempt.subscriptionId,
+              invoiceId,
               attemptNumber: attempt.attemptNumber,
               failureReason: chargeResult.failureReason,
               maxAttempts: DEFAULT_MAX_ATTEMPTS,

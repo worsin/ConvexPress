@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Membership — Mutations
@@ -26,7 +25,8 @@ import * as catalogRevisionWrites from "../media/attachmentGuard";
 
 import { ConvexError, v } from "convex/values";
 
-import { mutation } from "../_generated/server";
+import { mutation, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import {
   getUnsafeMembershipLinkedCapabilities,
   requireCan,
@@ -42,7 +42,10 @@ import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/in
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-async function requireCustomerLinkedRole(ctx: any, roleId: any) {
+async function requireCustomerLinkedRole(
+  ctx: { db: QueryCtx["db"] },
+  roleId: Id<"roles"> | undefined,
+) {
   if (!roleId) return;
   const role = await ctx.db.get(roleId);
   if (!role) {
@@ -103,7 +106,7 @@ export const createPlan = mutation({
     ),
   },
   returns: v.id("membership_plans"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -113,7 +116,7 @@ export const createPlan = mutation({
     // Check slug uniqueness
     const existing = await ctx.db
       .query("membership_plans")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
 
     if (existing) {
@@ -194,7 +197,8 @@ export const updatePlan = mutation({
       ),
     ),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("membership_plans"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -214,16 +218,17 @@ export const updatePlan = mutation({
     }
 
     // Check slug uniqueness if changing
-    if (args.slug && args.slug !== plan.slug) {
+    const newSlug = args.slug;
+    if (newSlug && newSlug !== plan.slug) {
       const existing = await ctx.db
         .query("membership_plans")
-        .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
         .first();
 
       if (existing) {
         throw new ConvexError({
           code: "DUPLICATE_SLUG",
-          message: `A plan with slug "${args.slug}" already exists.`,
+          message: `A plan with slug "${newSlug}" already exists.`,
         });
       }
     }
@@ -231,7 +236,7 @@ export const updatePlan = mutation({
     const now = Date.now();
 
     // Build patch — only include provided fields
-    const patch: any = { updatedAt: now };
+    const patch: Record<string, unknown> = { updatedAt: now };
     if (args.title !== undefined) patch.title = args.title;
     if (args.slug !== undefined) patch.slug = args.slug;
     if (args.description !== undefined) patch.description = args.description;
@@ -251,7 +256,7 @@ export const updatePlan = mutation({
       // Delete existing benefits
       const existingBenefits = await ctx.db
         .query("membership_plan_benefits")
-        .withIndex("by_plan", (q: any) => q.eq("planId", args.planId))
+        .withIndex("by_plan", (q) => q.eq("planId", args.planId))
         .collect();
 
       for (const benefit of existingBenefits) {
@@ -286,7 +291,7 @@ export const deletePlan = mutation({
     planId: v.id("membership_plans"),
   },
   returns: v.object({ deleted: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -302,11 +307,11 @@ export const deletePlan = mutation({
     // Check for active grants
     const grants = await ctx.db
       .query("membership_grants")
-      .withIndex("by_plan", (q: any) => q.eq("planId", args.planId))
+      .withIndex("by_plan", (q) => q.eq("planId", args.planId))
       .collect();
 
     const activeGrants = grants.filter(
-      (g: any) => g.status === "active" || g.status === "grace",
+      (g) => g.status === "active" || g.status === "grace",
     );
 
     if (activeGrants.length > 0) {
@@ -319,7 +324,7 @@ export const deletePlan = mutation({
     // Delete benefits
     const benefits = await ctx.db
       .query("membership_plan_benefits")
-      .withIndex("by_plan", (q: any) => q.eq("planId", args.planId))
+      .withIndex("by_plan", (q) => q.eq("planId", args.planId))
       .collect();
 
     for (const benefit of benefits) {
@@ -334,7 +339,7 @@ export const deletePlan = mutation({
     for (const rule of rules) {
       if (!(rule.planIds ?? []).includes(args.planId)) continue;
       const filteredPlanIds = (rule.planIds ?? []).filter(
-        (pid: string) => pid !== args.planId,
+        (pid) => pid !== args.planId,
       );
       if (filteredPlanIds.length === 0) {
         // No plans left in rule — delete the rule entirely
@@ -385,7 +390,7 @@ export const grantMembership = mutation({
     metadata: v.optional(v.any()),
   },
   returns: v.id("membership_grants"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -418,13 +423,13 @@ export const grantMembership = mutation({
     // Check for duplicate active grant on same plan
     const existingGrants = await ctx.db
       .query("membership_grants")
-      .withIndex("by_user_status", (q: any) =>
+      .withIndex("by_user_status", (q) =>
         q.eq("userId", args.userId).eq("status", "active"),
       )
       .collect();
 
     const duplicateGrant = existingGrants.find(
-      (g: any) => g.planId === args.planId,
+      (g) => g.planId === args.planId,
     );
 
     if (duplicateGrant) {
@@ -470,7 +475,7 @@ export const revokeMembership = mutation({
     reason: v.optional(v.string()),
   },
   returns: v.object({ revoked: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -535,7 +540,12 @@ export const extendGrant = mutation({
     newExpiresAt: v.number(),
     reason: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    extended: v.boolean(),
+    grantId: v.id("membership_grants"),
+    newExpiresAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -624,7 +634,7 @@ export const createRestrictionRule = mutation({
     loginRequired: v.boolean(),
   },
   returns: v.id("membership_restriction_rules"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -680,7 +690,8 @@ export const updateRestrictionRule = mutation({
     customMessage: v.optional(v.string()),
     loginRequired: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("membership_restriction_rules"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -708,7 +719,7 @@ export const updateRestrictionRule = mutation({
 
     const now = Date.now();
 
-    const patch: any = { updatedAt: now };
+    const patch: Record<string, unknown> = { updatedAt: now };
     if (args.resourceType !== undefined) patch.resourceType = args.resourceType;
     if (args.resourceIdOrKey !== undefined)
       patch.resourceIdOrKey = args.resourceIdOrKey;
@@ -736,7 +747,7 @@ export const deleteRestrictionRule = mutation({
     ruleId: v.id("membership_restriction_rules"),
   },
   returns: v.object({ deleted: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -780,7 +791,11 @@ export const upsertRestrictionRuleForResource = mutation({
     customMessage: v.optional(v.string()),
     loginRequired: v.boolean(),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    ruleId: v.id("membership_restriction_rules"),
+    created: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -802,7 +817,7 @@ export const upsertRestrictionRuleForResource = mutation({
     // metabox UI guarantees one rule per resource).
     const existingRule = await ctx.db
       .query("membership_restriction_rules")
-      .withIndex("by_resource", (q: any) =>
+      .withIndex("by_resource", (q) =>
         q
           .eq("resourceType", args.resourceType)
           .eq("resourceIdOrKey", args.resourceIdOrKey),

@@ -21,6 +21,7 @@ import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 
+import { v } from "convex/values";
 // ─── Auth helper ────────────────────────────────────────────────────────────
 
 async function requireAdmin(ctx: ActionCtx) {
@@ -44,6 +45,14 @@ async function requireAdmin(ctx: ActionCtx) {
 
 export const syncRoles = action({
   args: {},
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
     return await ctx.runAction(
@@ -57,6 +66,14 @@ export const syncRoles = action({
 
 export const syncCapabilities = action({
   args: {},
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
     return await ctx.runAction(
@@ -70,6 +87,14 @@ export const syncCapabilities = action({
 
 export const syncEvents = action({
   args: {},
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
     return await ctx.runAction(
@@ -83,6 +108,14 @@ export const syncEvents = action({
 
 export const syncRoutes = action({
   args: {},
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
     return await ctx.runAction(
@@ -96,6 +129,14 @@ export const syncRoutes = action({
 
 export const syncEmailNotifications = action({
   args: {},
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
     return await ctx.runAction(
@@ -109,6 +150,14 @@ export const syncEmailNotifications = action({
 
 export const syncSiteNotifications = action({
   args: {},
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
     return await ctx.runAction(

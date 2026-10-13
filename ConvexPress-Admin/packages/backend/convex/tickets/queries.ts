@@ -21,7 +21,8 @@
  */
 
 import { ConvexError } from "convex/values";
-import { query } from "../_generated/server";
+import { query, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import {
   getCurrentUser,
   currentUserCan,
@@ -53,7 +54,7 @@ import { isPluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
 import { paginationResultValidator } from "convex/server";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { ticketsDocs } from "../schema/tickets.docs.generated";
 type TicketUserNameFields = {
   displayName?: string | null;
   firstName?: string | null;
@@ -137,7 +138,7 @@ export const getMyTickets = query({
  */
 export const getByTicketNumber = query({
   args: getByTicketNumberArgs,
-  returns: v.union(v.null(), tableDocs.ticket_tickets),
+  returns: v.union(v.null(), ticketsDocs.ticket_tickets),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -175,7 +176,7 @@ export const getByTicketNumber = query({
  */
 export const getById = query({
   args: getByIdArgs,
-  returns: v.union(v.null(), tableDocs.ticket_tickets),
+  returns: v.union(v.null(), ticketsDocs.ticket_tickets),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -243,7 +244,7 @@ export const getTicketWithReplies = query({
       aiAttempted: v.boolean(),
       messageCount: v.number(),
     }),
-    messages: v.array(tableDocs.ticket_messages),
+    messages: v.array(ticketsDocs.ticket_messages),
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
@@ -725,7 +726,7 @@ export const getAwaitingFirstResponse = query({
 
 // ─── Customer settings helpers ──────────────────────────────────────────────
 
-async function readTicketSection(ctx: any, section: "ticket.general" | "ticket.sla") {
+async function readTicketSection(ctx: Pick<QueryCtx, "db">, section: "ticket.general" | "ticket.sla") {
   const defaults = getDefaults(section) as Record<string, unknown>;
   const doc = await ctx.db
     .query("settings")
@@ -752,7 +753,7 @@ function normalizeCategories(raw: unknown): CategoryOption[] {
   return out;
 }
 
-async function loadCustomerSla(ctx: any) {
+async function loadCustomerSla(ctx: Pick<QueryCtx, "db">) {
   const general = await readTicketSection(ctx, "ticket.general");
   const sla = await readTicketSection(ctx, "ticket.sla");
   const categories = normalizeCategories(general.categories);
@@ -813,8 +814,33 @@ export const getCustomerCategories = query({
 /** Tickets scanned per member for the website inbox. */
 const OVERVIEW_SCAN_LIMIT = 200;
 
+export interface TicketsOverviewItem {
+  _id: Id<"ticket_tickets">;
+  ticketNumber: string;
+  subject: string;
+  category: Doc<"ticket_tickets">["category"];
+  status: Doc<"ticket_tickets">["status"];
+  priority: Doc<"ticket_tickets">["priority"];
+  messageCount: number;
+  createdAt: number;
+  updatedAt: number;
+  lastMessageAt: Doc<"ticket_tickets">["lastMessageAt"];
+  firstResponseAt: Doc<"ticket_tickets">["firstResponseAt"];
+  resolvedAt: Doc<"ticket_tickets">["resolvedAt"];
+  closedAt: Doc<"ticket_tickets">["closedAt"];
+  rating: Doc<"ticket_tickets">["rating"];
+  unread: boolean;
+  waitingOnYou: boolean;
+  finished: boolean;
+  lastMessagePreview: string;
+  lastMessageSender: Doc<"ticket_messages">["senderType"];
+  agentName: string | null;
+  agentInitials: string | null;
+  responseWindow: string;
+}
+
 export interface TicketsOverviewResult {
-  tickets: Array<Record<string, unknown>>;
+  tickets: TicketsOverviewItem[];
   counts: { yours: number; active: number; done: number; total: number };
   responseWindow: string;
 }
@@ -828,6 +854,34 @@ export interface TicketsOverviewResult {
  */
 export const getMyTicketsOverview = query({
   args: getMyTicketsOverviewArgs,
+  returns: v.object({
+    tickets: v.array(v.object({
+      _id: v.id("ticket_tickets"),
+      ticketNumber: v.string(),
+      subject: v.string(),
+      category: v.union(v.literal("general"), v.literal("other"), v.literal("billing"), v.literal("technical"), v.literal("account"), v.literal("featureRequest")),
+      status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+      priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+      messageCount: v.number(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      lastMessageAt: v.optional(v.number()),
+      firstResponseAt: v.optional(v.number()),
+      resolvedAt: v.optional(v.number()),
+      closedAt: v.optional(v.number()),
+      rating: v.optional(v.number()),
+      unread: v.boolean(),
+      waitingOnYou: v.boolean(),
+      finished: v.boolean(),
+      lastMessagePreview: v.string(),
+      lastMessageSender: v.union(v.literal("system"), v.literal("ai"), v.literal("user"), v.literal("admin")),
+      agentName: v.union(v.null(), v.string()),
+      agentInitials: v.union(v.null(), v.string()),
+      responseWindow: v.string(),
+    })),
+    counts: v.object({ yours: v.number(), active: v.number(), done: v.number(), total: v.number() }),
+    responseWindow: v.string(),
+  }),
   handler: async (ctx, args): Promise<TicketsOverviewResult> => {
     const empty: TicketsOverviewResult = {
       tickets: [],
@@ -839,7 +893,7 @@ export const getMyTicketsOverview = query({
     if (!user) return empty;
 
     const limit = Math.max(1, Math.min(args.limit ?? OVERVIEW_SCAN_LIMIT, OVERVIEW_SCAN_LIMIT));
-    const rows: any[] = await ctx.db
+    const rows = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
@@ -849,9 +903,9 @@ export const getMyTicketsOverview = query({
     const counts = overviewCounts(rows);
     const sorted = [...rows].sort(compareForCustomerList);
 
-    const agentNames: Map<string, string> = new Map();
-    const tickets: Array<Record<string, unknown>> = [];
-    for (const t of sorted as any[]) {
+    const agentNames: Map<Id<"users">, string> = new Map();
+    const tickets: TicketsOverviewItem[] = [];
+    for (const t of sorted) {
       // Latest public message for the preview (internal notes never leak).
       const recent = await ctx.db
         .query("ticket_messages")
@@ -920,12 +974,52 @@ export const getMyTicketsOverview = query({
  */
 export const getMyTicketThread = query({
   args: getMyTicketThreadArgs,
-  handler: async (ctx, args): Promise<Record<string, unknown> | null> => {
+  returns: v.union(v.null(), v.object({
+    ticket: v.object({
+      _id: v.id("ticket_tickets"),
+      ticketNumber: v.string(),
+      subject: v.string(),
+      description: v.string(),
+      category: v.union(v.literal("general"), v.literal("other"), v.literal("billing"), v.literal("technical"), v.literal("account"), v.literal("featureRequest")),
+      categoryLabel: v.string(),
+      status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+      priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+      messageCount: v.number(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      lastMessageAt: v.optional(v.number()),
+      lastMessageSenderType: v.optional(v.union(v.literal("system"), v.literal("ai"), v.literal("user"), v.literal("admin"))),
+      firstResponseAt: v.optional(v.number()),
+      resolvedAt: v.optional(v.number()),
+      closedAt: v.optional(v.number()),
+      rating: v.optional(v.number()),
+      ratingComment: v.optional(v.string()),
+      unread: v.boolean(),
+      waitingOnYou: v.boolean(),
+      finished: v.boolean(),
+      isOwner: v.boolean(),
+      viewerName: v.string(),
+    }),
+    messages: v.array(v.object({
+      _id: v.id("ticket_messages"),
+      sequence: v.number(),
+      senderType: v.union(v.literal("system"), v.literal("ai"), v.literal("user"), v.literal("admin")),
+      senderName: v.string(),
+      content: v.string(),
+      createdAt: v.number(),
+      editedAt: v.optional(v.number()),
+      attachments: v.array(v.object({ name: v.string(), mimeType: v.string(), size: v.number(), url: v.string() })),
+    })),
+    agent: v.union(v.null(), v.object({ name: v.string(), initials: v.string() })),
+    responseWindow: v.string(),
+    resolutionTargetMinutes: v.union(v.null(), v.number()),
+  })),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    const ticket: any = await ctx.db
+    const ticket = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_ticket_number", (q) =>
         q.eq("ticketNumber", args.ticketNumber.trim().toUpperCase()),
@@ -939,15 +1033,15 @@ export const getMyTicketThread = query({
       if (!canViewAll) return null;
     }
 
-    const allMessages: any[] = await ctx.db
+    const allMessages = await ctx.db
       .query("ticket_messages")
       .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", ticket._id))
       .take(1000);
 
-    const messages: Array<Record<string, unknown>> = [];
-    for (const m of allMessages.filter((m: any) => !m.isInternal)) {
+    const messages = [];
+    for (const m of allMessages.filter((m) => !m.isInternal)) {
       const attachments: Array<{ name: string; mimeType: string; size: number; url: string }> = [];
-      for (const a of (m.attachments ?? []) as Array<{ name: string; mimeType: string; size: number; storageId: any }>) {
+      for (const a of m.attachments ?? []) {
         const url = await ctx.storage.getUrl(a.storageId);
         if (!url) continue;
         attachments.push({ name: a.name, mimeType: a.mimeType, size: a.size, url });

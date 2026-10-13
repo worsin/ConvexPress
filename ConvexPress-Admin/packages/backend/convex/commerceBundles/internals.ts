@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Bundles — Internal Functions
  *
@@ -30,7 +29,7 @@ export const cleanupStaleBundleSelections = internalMutation({
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const stale = await ctx.db
       .query("commerce_bundle_selections")
-      .filter((q: any) => q.lt(q.field("_creationTime"), cutoff))
+      .filter((q) => q.lt(q.field("_creationTime"), cutoff))
       .take(500);
 
     let deleted = 0;
@@ -57,6 +56,17 @@ export const commitBundleInventory = internalMutation({
     bundleId: v.id("commerce_bundles"),
     quantity: v.number(),
   },
+  returns: v.union(v.object({
+    success: v.boolean(),
+    reason: v.string(),
+    purchaseCount: v.optional(v.null()),
+    stockCount: v.optional(v.null()),
+  }), v.object({
+    success: v.boolean(),
+    purchaseCount: v.number(),
+    stockCount: v.optional(v.number()),
+    reason: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     const bundle = await ctx.db.get(args.bundleId);
@@ -68,21 +78,21 @@ export const commitBundleInventory = internalMutation({
     const newPurchaseCount = (bundle.purchaseCount ?? 0) + args.quantity;
 
     // Decrement stock if inventory is tracked
-    const updates: Record<string, any> = {
+    const stockCount =
+      bundle.trackInventory && typeof bundle.stockCount === "number"
+        ? Math.max(0, bundle.stockCount - args.quantity)
+        : undefined;
+
+    await patchDynamicWithMediaReferences(ctx, args.bundleId, {
       purchaseCount: newPurchaseCount,
       updatedAt: now,
-    };
-
-    if (bundle.trackInventory && typeof bundle.stockCount === "number") {
-      updates.stockCount = Math.max(0, bundle.stockCount - args.quantity);
-    }
-
-    await patchDynamicWithMediaReferences(ctx, args.bundleId, updates);
+      ...(stockCount === undefined ? {} : { stockCount }),
+    });
 
     return {
       success: true,
       purchaseCount: newPurchaseCount,
-      stockCount: updates.stockCount ?? bundle.stockCount,
+      stockCount: stockCount ?? bundle.stockCount,
     };
   },
 });
@@ -98,27 +108,33 @@ export const commitBundleInventory = internalMutation({
  * Safe to call multiple times — skips bundles that already have a productId.
  */
 export const backfillOwningProducts = internalMutation({
-  args: {},
+  args: { actorId: v.id("users") },
   returns: v.object({ linked: v.number(), total: v.number() }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     const bundles = await ctx.db.query("commerce_bundles").collect();
-    const unlinked = bundles.filter((b: any) => !b.productId);
+    const unlinked = bundles.filter((b) => !b.productId);
 
     let linked = 0;
     const now = Date.now();
 
     for (const bundle of unlinked) {
       // Create a virtual product entry for the bundle
-      const productId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
+      const productId = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
         title: bundle.name,
         slug: `bundle-${bundle.slug}`,
         status: bundle.status === "active" ? "publish" : "draft",
-        productType: "bundle",
-        basePrice: { amount: bundle.bundlePrice ?? bundle.regularPrice ?? 0, currency: "USD" },
+        // Owning products of bundles are simple products; the bundle row carries the composition.
+        productType: "simple",
+        authorId: args.actorId,
+        galleryMediaIds: [],
+        categoryIds: bundle.categoryIds ?? [],
+        basePrice: { amount: bundle.bundlePrice ?? bundle.regularPrice ?? 0, currencyCode: "USD" },
         trackInventory: bundle.trackInventory ?? false,
         stockQuantity: bundle.stockCount ?? 0,
         allowBackorders: false,
+        isVirtual: false,
+        isDownloadable: false,
         createdAt: now,
         updatedAt: now,
       });

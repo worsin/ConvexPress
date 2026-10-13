@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Base Adapter
  *

@@ -5,6 +5,7 @@ import {
 } from "../lib/auth/roleAssignment";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import {
   getCurrentUser as getUser,
   requireAuth,
@@ -16,37 +17,38 @@ import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "./seed/roles";
 import { hasActiveAdmin, hasOtherActiveAdmin } from "./auth/adminPresence";
 import { patchWithMediaReferences } from "./media/attachmentGuard";
 
-type CurrentUserPublic = {
-  _id: string;
-  _creationTime: number;
-  email: string;
-  emailVerified: boolean;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  profilePictureUrl?: string;
-  username?: string;
-  nickname?: string;
-  displayName?: string;
-  slug?: string;
-  bio?: string;
-  url?: string;
-  avatarUrl?: string;
-  avatarMediaId?: string;
-  avatarStorageId?: string;
-  socialLinks?: Record<string, string | undefined>;
-  roleId?: string;
-  status: "active" | "inactive" | "banned";
-  preferences?: Record<string, unknown>;
-  locale?: string;
-  timezone?: string;
-  postCount?: number;
-  commentCount?: number;
-  internalRole?: string;
-  isInternal?: boolean;
-  createdAt: number;
-  updatedAt: number;
-};
+type CurrentUserPublic = Pick<
+  Doc<"users">,
+  | "_id"
+  | "_creationTime"
+  | "email"
+  | "emailVerified"
+  | "firstName"
+  | "lastName"
+  | "phone"
+  | "profilePictureUrl"
+  | "username"
+  | "nickname"
+  | "displayName"
+  | "slug"
+  | "bio"
+  | "url"
+  | "avatarUrl"
+  | "avatarMediaId"
+  | "avatarStorageId"
+  | "socialLinks"
+  | "roleId"
+  | "status"
+  | "preferences"
+  | "locale"
+  | "timezone"
+  | "postCount"
+  | "commentCount"
+  | "internalRole"
+  | "isInternal"
+  | "createdAt"
+  | "updatedAt"
+>;
 
 const ADMINISTRATOR_ROLE_SLUG = "administrator";
 const LEGACY_UPDATE_ROLE_MAP: Record<string, string> = {
@@ -102,6 +104,53 @@ function toPublicCurrentUser(user: Awaited<ReturnType<typeof getUser>>): Current
 
 export const getCurrentUser = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    updatedAt: v.number(),
+    _creationTime: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    username: v.optional(v.string()),
+    nickname: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    url: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    avatarMediaId: v.optional(v.id("media")),
+    avatarStorageId: v.optional(v.string()),
+    socialLinks: v.optional(v.object({
+      twitter: v.optional(v.string()),
+      facebook: v.optional(v.string()),
+      instagram: v.optional(v.string()),
+      linkedin: v.optional(v.string()),
+      youtube: v.optional(v.string()),
+      github: v.optional(v.string()),
+      website: v.optional(v.string()),
+    })),
+    roleId: v.optional(v.id("roles")),
+    preferences: v.optional(v.object({
+      adminColorScheme: v.optional(v.string()),
+      showAdminBar: v.optional(v.boolean()),
+      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+      notifyOnComment: v.optional(v.boolean()),
+      notifyOnReply: v.optional(v.boolean()),
+      notifyOnMention: v.optional(v.boolean()),
+    })),
+    locale: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    postCount: v.optional(v.number()),
+    commentCount: v.optional(v.number()),
+    internalRole: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+    _id: v.id("users"),
+  })),
   handler: async (ctx) => {
     return toPublicCurrentUser(await getUser(ctx));
   },
@@ -203,6 +252,7 @@ export const checkAdminAccess = query({
 
 export const bootstrapAdmin = mutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     throw new ConvexError(
       "Legacy bootstrapAdmin is disabled. Use auth.setup.createFirstAdmin.",

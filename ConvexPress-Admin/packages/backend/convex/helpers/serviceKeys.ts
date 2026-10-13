@@ -22,8 +22,16 @@
  *   const apiKey = resolveServiceKey(settings, "resendApiKey", "RESEND_API_KEY");
  */
 
-import type { QueryCtx } from "../_generated/server";
+import type { ActionCtx, QueryCtx } from "../_generated/server";
+import type { SettingsSection } from "../settings/defaults";
+import type { SectionValues } from "../settings/sectionValues";
 import { decryptSettingSecret } from "./settingsSecret";
+import { settingsRecord } from "./settingsReader";
+
+/** A field of a settings section that holds text (where service keys live). */
+export type SectionTextKey<S extends SettingsSection> = {
+  [K in keyof SectionValues<S>]-?: SectionValues<S>[K] extends string | null | undefined ? K : never;
+}[keyof SectionValues<S>] & string;
 
 // ─── For Query / Mutation Contexts ──────────────────────────────────────────
 
@@ -39,21 +47,20 @@ import { decryptSettingSecret } from "./settingsSecret";
  * @param envVarName  - Environment variable fallback (e.g. "RESEND_API_KEY")
  * @returns The resolved key string, or undefined if neither source has it
  */
-export async function getServiceKey(
+export async function getServiceKey<S extends SettingsSection>(
   ctx: QueryCtx,
-  section: string,
-  settingsKey: string,
+  section: S,
+  settingsKey: SectionTextKey<S>,
   envVarName: string,
 ): Promise<string | undefined> {
   // Try settings table
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q) => q.eq("section", section as any))
+    .withIndex("by_section", (q) => q.eq("section", section))
     .unique();
 
   if (doc) {
-    const values = doc.values as Record<string, unknown> | undefined;
-    const value = values?.[settingsKey];
+    const value = settingsRecord(doc.values)[settingsKey];
     if (typeof value === "string" && value.trim()) {
       // Decrypt if the value is a stored ciphertext (enc:... or b64:...).
       // Plain strings pass through unchanged for backwards compatibility.
@@ -137,18 +144,15 @@ export async function resolveServiceKeyAsync(
  *   const key = await getServiceKeyFromAction(ctx, "commerce.payments",
  *     "stripeSecretKey", "STRIPE_SECRET_KEY");
  */
-export async function getServiceKeyFromAction(
-  ctx: { runQuery: (...args: any[]) => Promise<any> },
-  section: string,
-  settingsKey: string,
+export async function getServiceKeyFromAction<S extends SettingsSection>(
+  ctx: Pick<ActionCtx, "runQuery">,
+  section: S,
+  settingsKey: SectionTextKey<S>,
   envVarName: string,
 ): Promise<string | undefined> {
   const { internal } = await import("../_generated/api");
-  const doc: any = await ctx.runQuery(
-    (internal as any).settings.httpInternals.getBySectionInternal,
-    { section },
-  );
-  const value = doc?.[settingsKey];
+  const doc = await ctx.runQuery(internal.settings.httpInternals.getBySectionInternal, { section });
+  const value = settingsRecord(doc)[settingsKey];
   if (typeof value === "string" && value.trim()) {
     const raw = value.trim();
     if (raw.startsWith("enc:") || raw.startsWith("b64:")) {

@@ -28,20 +28,6 @@ import { MAX_RESPONSE_BODY_SIZE } from "./validators";
 import { v } from "convex/values";
 // ─── testWebhook ───────────────────────────────────────────────────────────
 
-interface WebhookTestPermissionResult {
-  authorized: boolean;
-  error?: string;
-  errorCode?: string;
-  webhookName?: string;
-}
-
-interface WebhookInternalRecord {
-  secret: string;
-  deliveryUrl: string;
-  contentType: string;
-  deliveryTimeout: number;
-}
-
 interface WebhookDeliveryResult {
   success: boolean;
   statusCode: number | null;
@@ -90,7 +76,7 @@ export const testWebhook = action({
   }),
   handler: async (ctx, args): Promise<WebhookDeliveryResult> => {
     // 1. Verify authentication and permissions via internal mutation
-    const authResult: WebhookTestPermissionResult = await ctx.runMutation(
+    const authResult = await ctx.runMutation(
       internal.api.internals.verifyWebhookTestPermission,
       { webhookId: args.webhookId },
     );
@@ -106,7 +92,7 @@ export const testWebhook = action({
     const webhook = await ctx.runQuery(
       internal.api.internals.getWebhookInternal,
       { webhookId: args.webhookId },
-    ) as WebhookInternalRecord | null;
+    );
 
     if (!webhook) {
       throw new ConvexError({

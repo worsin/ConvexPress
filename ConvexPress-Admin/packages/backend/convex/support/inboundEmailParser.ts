@@ -21,39 +21,72 @@ export type NormalizedInboundEmail = {
   provider: "postmark" | "mailgun" | "sendgrid" | "unknown";
 };
 
-export function parsePostmarkPayload(p: any): NormalizedInboundEmail | null {
-  if (!p || typeof p !== "object") return null;
+type Payload = Record<string, unknown>;
+
+/** The payload as a plain object, or null. */
+function payloadRecord(value: unknown): Payload | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? { ...value }
+    : null;
+}
+
+/** A field of a nested object, or undefined. */
+function field(value: unknown, key: string): unknown {
+  return payloadRecord(value)?.[key];
+}
+
+/** The first entry of an array, or undefined. */
+function first(value: unknown): unknown {
+  return Array.isArray(value) ? value[0] : undefined;
+}
+
+/** A text value, or undefined. */
+function text(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+/** A provider timestamp (ISO text or epoch number) as epoch ms, or now. */
+function dateMs(value: unknown): number {
+  return (typeof value === "string" || typeof value === "number") && value
+    ? new Date(value).getTime()
+    : Date.now();
+}
+
+export function parsePostmarkPayload(raw: unknown): NormalizedInboundEmail | null {
+  const p = payloadRecord(raw);
+  if (!p) return null;
   // Prefer FromFull.Email (bare email) over From (may be "Name <email>").
-  const from = p.FromFull?.Email ?? p.From ?? "";
-  const to = p.ToFull?.[0]?.Email ?? p.To ?? "";
+  const from = field(p.FromFull, "Email") ?? p.From ?? "";
+  const to = field(first(p.ToFull), "Email") ?? p.To ?? "";
   if (!from) return null;
+  const headers = Array.isArray(p.Headers) ? p.Headers : [];
   return {
-    externalId: String(p.MessageID ?? `${from}-${p.Date ?? Date.now()}`),
+    externalId: String(p.MessageID ?? `${String(from)}-${String(p.Date ?? Date.now())}`),
     fromEmail: String(from).toLowerCase().trim(),
-    fromName: p.FromFull?.Name ?? undefined,
+    fromName: text(field(p.FromFull, "Name")),
     toEmail: String(to).toLowerCase().trim(),
     subject: String(p.Subject ?? "(no subject)").trim(),
     body: String(p.TextBody ?? p.HtmlBody ?? "").trim(),
     htmlBody: p.HtmlBody ? String(p.HtmlBody) : undefined,
     threadKey: p.MessageID ? String(p.MessageID) : undefined,
-    inReplyToKey:
-      p.Headers?.find?.((h: any) => h.Name === "In-Reply-To")?.Value ?? undefined,
-    receivedAt: p.Date ? new Date(p.Date).getTime() : Date.now(),
+    inReplyToKey: text(field(headers.find((h) => field(h, "Name") === "In-Reply-To"), "Value")),
+    receivedAt: dateMs(p.Date),
     provider: "postmark",
   };
 }
 
-export function parseMailgunPayload(p: any): NormalizedInboundEmail | null {
-  if (!p || typeof p !== "object") return null;
+export function parseMailgunPayload(raw: unknown): NormalizedInboundEmail | null {
+  const p = payloadRecord(raw);
+  if (!p) return null;
   const from = p.sender ?? p.from ?? "";
   const to = p.recipient ?? p.to ?? "";
   if (!from) return null;
   return {
     externalId: String(
-      p["Message-Id"] ?? p.token ?? `${from}-${p.timestamp ?? Date.now()}`,
+      p["Message-Id"] ?? p.token ?? `${String(from)}-${String(p.timestamp ?? Date.now())}`,
     ),
     fromEmail: String(from).toLowerCase().trim(),
-    fromName: p["from-name"] ?? undefined,
+    fromName: text(p["from-name"]),
     toEmail: String(to).toLowerCase().trim(),
     subject: String(p.subject ?? "(no subject)").trim(),
     body: String(p["body-plain"] ?? p["stripped-text"] ?? p["body-html"] ?? "").trim(),
@@ -65,18 +98,21 @@ export function parseMailgunPayload(p: any): NormalizedInboundEmail | null {
   };
 }
 
-export function parseSendGridPayload(p: any): NormalizedInboundEmail | null {
-  if (!p || typeof p !== "object") return null;
+export function parseSendGridPayload(raw: unknown): NormalizedInboundEmail | null {
+  const p = payloadRecord(raw);
+  if (!p) return null;
   const from = p.from ?? "";
-  const to = p.to ?? p.envelope?.to?.[0] ?? "";
+  const to = p.to ?? first(field(p.envelope, "to")) ?? "";
   if (!from) return null;
   // SendGrid `from` can look like `"Name <email@host>"`; extract.
-  const match = String(from).match(/<([^>]+)>/);
-  const fromEmail = (match ? match[1] : from).toLowerCase().trim();
-  const fromName = match ? String(from).replace(/<[^>]+>/, "").trim().replace(/^"|"$/g, "") : undefined;
+  const fromText = String(from);
+  const match = fromText.match(/<([^>]+)>/);
+  const fromEmail = (match ? match[1] : fromText).toLowerCase().trim();
+  const fromName = match ? fromText.replace(/<[^>]+>/, "").trim().replace(/^"|"$/g, "") : undefined;
+  const headers = text(p.headers);
   return {
     externalId: String(
-      p.headers?.match?.(/Message-ID:\s*<([^>]+)>/i)?.[1] ??
+      headers?.match(/Message-ID:\s*<([^>]+)>/i)?.[1] ??
         `${fromEmail}-${Date.now()}`,
     ),
     fromEmail,
@@ -94,8 +130,9 @@ export function parseSendGridPayload(p: any): NormalizedInboundEmail | null {
  * Auto-detect provider from payload shape. Postmark has `FromFull`,
  * Mailgun has `body-plain`, SendGrid has `envelope`.
  */
-export function parseInboundEmail(p: any): NormalizedInboundEmail | null {
-  if (!p || typeof p !== "object") return null;
+export function parseInboundEmail(raw: unknown): NormalizedInboundEmail | null {
+  const p = payloadRecord(raw);
+  if (!p) return null;
   if (p.FromFull || p.MessageID) return parsePostmarkPayload(p);
   if (p["body-plain"] !== undefined || p.sender) return parseMailgunPayload(p);
   if (p.envelope || p.headers) return parseSendGridPayload(p);

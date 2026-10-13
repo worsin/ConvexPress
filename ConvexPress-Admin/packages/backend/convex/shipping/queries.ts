@@ -1,5 +1,4 @@
 import { assertCheckoutAccess } from "../commerce/shopperAccess";
-// @ts-nocheck
 import { v } from "convex/values";
 import { publicShippingQuote, publicShippingQuoteValidator } from "./quoteProvenance";
 
@@ -10,23 +9,80 @@ import { computeAddressKey, computeCartKey } from "../commerce/checkoutShippingG
 import {
   SHIPPING_PROVIDERS,
   type ShippingProvider,
-  type ShippingSettingsSection,
-  getShippingSettingsSection,
   requireShippingAdmin,
 } from "./helpers";
+import { readShippingIntegrationSettings, readShippingProviderSettings } from "./settingsInternals";
 import { getShippingProviderDescriptor } from "./providers";
 import { getProviderConnectionArgs } from "./validators";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { shippingDocs } from "../schema/shipping.docs.generated";
 export const getOverview = query({
   args: {},
+  returns: v.object({
+    integrationSettings: v.object({
+      preferredProvider: v.union(v.literal(""), v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+      liveRatesEnabled: v.boolean(),
+      fallbackToManualRates: v.boolean(),
+      fallbackMessage: v.string(),
+      recommendationStrategy: v.literal("best_value_weighted"),
+      cheapestBadgeLabel: v.string(),
+      fastestBadgeLabel: v.string(),
+      bestOptionBadgeLabel: v.string(),
+      quoteCacheTtlSeconds: v.number(),
+      defaultPackageWeightOz: v.number(),
+      shipFromName: v.string(),
+      shipFromCompany: v.string(),
+      shipFromLine1: v.string(),
+      shipFromLine2: v.string(),
+      shipFromCity: v.string(),
+      shipFromState: v.string(),
+      shipFromPostalCode: v.string(),
+      shipFromCountryCode: v.string(),
+    }),
+    providers: v.array(v.object({
+      provider: v.union(v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+      descriptor: v.object({
+        provider: v.union(v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+        title: v.string(),
+        summary: v.string(),
+        modeNotes: v.string(),
+        implementationStatus: v.union(v.literal("active"), v.literal("foundation"), v.literal("planned")),
+        operations: v.object({
+          returns: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+          rates: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+          labels: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+          tracking: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+          manifests: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+          address_validation: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+        }),
+        primaryUseCase: v.string(),
+        verificationMode: v.union(v.literal("live_api"), v.literal("local_readiness")),
+        credentialFields: v.array(v.object({
+          key: v.string(),
+          label: v.string(),
+          type: v.union(v.literal("url"), v.literal("password"), v.literal("text")),
+          placeholder: v.optional(v.string()),
+          required: v.boolean(),
+        })),
+      }),
+      connection: v.union(v.null(), shippingDocs.shipping_provider_connections),
+      secretStored: v.boolean(),
+      settings: v.object({
+        enabled: v.boolean(),
+        displayName: v.string(),
+        mode: v.union(v.literal("sandbox"), v.literal("production")),
+        isPrimary: v.boolean(),
+        rateShoppingEnabled: v.boolean(),
+        rateShoppingPriority: v.number(),
+        accountNickname: v.string(),
+      }),
+      accountCount: v.number(),
+    })),
+  }),
   handler: async (ctx) => {
     await requireShippingAdmin(ctx);
 
-    const integrationSettings = await getShippingSettingsSection(
-      ctx,
-      "integrations.shipping",
-    );
+    const integrationSettings = await readShippingIntegrationSettings(ctx);
     const connections = await ctx.db
       .query("shipping_provider_connections")
       .collect();
@@ -37,10 +93,7 @@ export const getOverview = query({
       SHIPPING_PROVIDERS.map(async (provider) => {
         const connection = connections.find((entry) => entry.provider === provider) ?? null;
         const accountCount = accounts.filter((entry) => entry.provider === provider).length;
-        const settings = await getShippingSettingsSection(
-          ctx,
-          `integrations.shipping.${provider}` as ShippingSettingsSection,
-        );
+        const settings = await readShippingProviderSettings(ctx, provider);
         return {
           provider,
           descriptor: getShippingProviderDescriptor(provider),
@@ -64,12 +117,50 @@ export const getOverview = query({
 
 export const getProviderConnection = query({
   args: getProviderConnectionArgs,
+  returns: v.object({
+    provider: v.union(v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+    descriptor: v.object({
+      provider: v.union(v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+      title: v.string(),
+      summary: v.string(),
+      modeNotes: v.string(),
+      implementationStatus: v.union(v.literal("active"), v.literal("foundation"), v.literal("planned")),
+      operations: v.object({
+        returns: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+        rates: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+        labels: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+        tracking: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+        manifests: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+        address_validation: v.union(v.literal("planned"), v.literal("implemented"), v.literal("not_supported")),
+      }),
+      primaryUseCase: v.string(),
+      verificationMode: v.union(v.literal("live_api"), v.literal("local_readiness")),
+      credentialFields: v.array(v.object({
+        key: v.string(),
+        label: v.string(),
+        type: v.union(v.literal("url"), v.literal("password"), v.literal("text")),
+        placeholder: v.optional(v.string()),
+        required: v.boolean(),
+      })),
+    }),
+    settings: v.object({
+      enabled: v.boolean(),
+      displayName: v.string(),
+      mode: v.union(v.literal("sandbox"), v.literal("production")),
+      isPrimary: v.boolean(),
+      rateShoppingEnabled: v.boolean(),
+      rateShoppingPriority: v.number(),
+      accountNickname: v.string(),
+    }),
+    connection: v.union(v.null(), shippingDocs.shipping_provider_connections),
+    secretStored: v.boolean(),
+    accounts: v.array(shippingDocs.shipping_provider_accounts),
+    services: v.array(shippingDocs.shipping_provider_services),
+  }),
   handler: async (ctx, args) => {
     await requireShippingAdmin(ctx);
 
-    const section =
-      `integrations.shipping.${args.provider}` as ShippingSettingsSection;
-    const settings = await getShippingSettingsSection(ctx, section);
+    const settings = await readShippingProviderSettings(ctx, args.provider);
     const connection = await ctx.db
       .query("shipping_provider_connections")
       .withIndex("by_provider", (q) => q.eq("provider", args.provider))
@@ -164,7 +255,7 @@ export const listCheckoutQuotes = query({
 
 export const getRecentQuoteDiagnostics = query({
   args: { limit: v.optional(v.number()) },
-  returns: v.array(tableDocs.shipping_quote_diagnostics),
+  returns: v.array(shippingDocs.shipping_quote_diagnostics),
   handler: async (ctx, args) => {
     await requireShippingAdmin(ctx);
     const limit = args.limit ?? 25;
@@ -179,7 +270,7 @@ export const getRecentQuoteDiagnostics = query({
 export const listZonesWithMethods = query({
   args: {},
   returns: v.array(v.object({
-    methods: v.array(tableDocs.commerce_shipping_zone_methods),
+    methods: v.array(shippingDocs.commerce_shipping_zone_methods),
     _id: v.id("commerce_shipping_zones"),
     _creationTime: v.number(),
     updatedBy: v.optional(v.id("users")),
@@ -219,7 +310,7 @@ export const listZonesWithMethods = query({
 
 export const listPackages = query({
   args: {},
-  returns: v.array(tableDocs.commerce_shipping_packages),
+  returns: v.array(shippingDocs.commerce_shipping_packages),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.packages.read");
     const packages = await ctx.db.query("commerce_shipping_packages").collect();
@@ -231,7 +322,7 @@ export const listPackages = query({
 
 export const getPackage = query({
   args: { packageId: v.id("commerce_shipping_packages") },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     return ctx.db.get(args.packageId);
@@ -262,7 +353,7 @@ export const getProviderCapabilities = query({
       );
       const primaryAccount = providerAccounts[0];
       return {
-        provider: conn.provider as ShippingProvider,
+        provider: conn.provider,
         status: conn.status,
         enabled: conn.enabled,
         supportsRates: primaryAccount?.supportsRates ?? false,

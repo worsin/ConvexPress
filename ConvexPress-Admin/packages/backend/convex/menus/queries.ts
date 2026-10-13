@@ -33,7 +33,7 @@ import {
   DEFAULT_MENU_LOCATIONS,
   MAX_DEPTH,
 } from "./validators";
-import { publicMenuResultValidator, type PublicMenuItem, type PublicMenuResult } from "./publicContract";
+import { menuItemTreeValidator, publicMenuResultValidator, type PublicMenuItem, type PublicMenuResult } from "./publicContract";
 import type { Doc, Id } from "../_generated/dataModel";
 import { buildMenuItemTree, resolveMenuItemUrl } from "./internals";
 import { DASHBOARD_PAGES, getDashboardPage, pluginIsEnabled } from "../extensions/dashboard/registry";
@@ -42,7 +42,8 @@ import { getDefaults, type SettingsSection } from "../settings/defaults";
 import { resolveUserRole } from "../helpers/permissions";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { settingsRecord } from "../helpers/settingsReader";
+import { menusDocs } from "../schema/menus.docs.generated";
 const DASHBOARD_DEFAULT_BASE = "/dashboard";
 
 /** Merged settings section (defaults + stored) without auth; public-safe fields only. */
@@ -53,7 +54,7 @@ async function getMergedSettingsSection(ctx: QueryCtx, section: SettingsSection,
     .withIndex("by_section", (q) => q.eq("section", section))
     .unique();
   budget?.record(doc);
-  return { ...getDefaults(section), ...((doc?.values as Record<string, unknown>) ?? {}) };
+  return { ...getDefaults(section), ...settingsRecord(doc?.values) };
 }
 
 /** Who is looking at the menu: signed-in state, role, membership plans, capabilities. */
@@ -159,7 +160,7 @@ export const listMenus = query({
 export const getMenu = query({
   args: getMenuArgs,
   returns: v.union(v.null(), v.object({
-    items: v.array(tableDocs.menuItems),
+    items: v.array(menusDocs.menuItems),
     assignedLocations: v.array(v.string()),
     _id: v.id("menus"),
     _creationTime: v.number(),
@@ -222,6 +223,7 @@ export const getMenu = query({
  */
 export const getMenuItemTree = query({
   args: getMenuItemTreeArgs,
+  returns: menuItemTreeValidator,
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -573,6 +575,22 @@ export const getMenuLocations = query({
  */
 export const getLinkableContent = query({
   args: getLinkableContentArgs,
+  returns: v.union(v.array(v.object({
+    id: v.string(),
+    title: v.string(),
+    slug: v.string(),
+    url: v.string(),
+    type: v.literal("dashboard"),
+    icon: v.string(),
+    group: v.union(v.literal("overview"), v.literal("account"), v.literal("commerce"), v.literal("activity"), v.literal("learning"), v.literal("support")),
+    pluginId: v.union(v.literal("forms"), v.literal("core"), v.literal("commerce"), v.literal("commerceDigital"), v.literal("commerceReviews"), v.literal("commerceSubscriptions"), v.literal("commerceWishlists"), v.literal("commerceReturns"), v.literal("membership"), v.literal("tickets"), v.literal("knowledgeBase"), v.literal("lms"), v.string()),
+    description: v.string(),
+  })), v.array(v.object({
+    id: v.string(),
+    label: v.string(),
+    type: v.union(v.literal("dashboard"), v.literal("category"), v.literal("post"), v.literal("page"), v.literal("tag")),
+    url: v.string(),
+  }))),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {

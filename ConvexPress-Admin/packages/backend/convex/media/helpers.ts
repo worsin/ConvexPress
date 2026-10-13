@@ -16,7 +16,7 @@
 
 import { requireAttachableMedia } from "./attachmentGuard";
 import type { Id } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { patchDynamicWithMediaReferences } from "./attachmentGuard";
 
 
@@ -330,7 +330,7 @@ export function formatFileSize(bytes: number): string {
  * attached; missing or unavailable targets are rejected.
  */
 export async function setMediaAttachment(
-  ctx: { db: any },
+  ctx: Pick<MutationCtx, "db">,
   mediaId: Id<"media"> | string | undefined | null,
   postId: Id<"posts"> | string,
 ): Promise<void> {
@@ -348,7 +348,7 @@ export async function setMediaAttachment(
  * attached to `postId`. Used for galleries / structured content arrays.
  */
 export async function setMediaAttachmentBatch(
-  ctx: { db: any },
+  ctx: Pick<MutationCtx, "db">,
   mediaIds: Array<Id<"media"> | string | undefined | null>,
   postId: Id<"posts"> | string,
 ): Promise<void> {

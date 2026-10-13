@@ -178,14 +178,10 @@ export const getTopDeflectingArticles = query({
 
     for (const [articleId, counts] of sorted) {
       let title = articleId;
-      try {
-        const article = await ctx.db.get(articleId as any);
-        if (article && "title" in article && typeof article.title === "string") {
-          title = article.title;
-        }
-      } catch {
-        // kbArticleIds are stored as strings for schema independence.
-      }
+      // kbArticleIds are stored as strings for schema independence.
+      const kbArticleId = ctx.db.normalizeId("kb_articles", articleId);
+      const article = kbArticleId ? await ctx.db.get("kb_articles", kbArticleId) : null;
+      if (article) title = article.title;
 
       results.push({
         articleId,
@@ -267,7 +263,6 @@ export const getCommonUnanswered = query({
     for (const group of queryGroups.values()) {
       groupedQueries.push(group);
     }
-    // @ts-ignore TS2589: Convex generated API union types exceed TypeScript instantiation depth here.
     return groupedQueries
       .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
       .slice(0, limit)

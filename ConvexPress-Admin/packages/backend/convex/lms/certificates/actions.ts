@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { internalAction, internalMutation, internalQuery } from "../../_generated/server";
+import { internalAction, internalMutation, internalQuery, type QueryCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { isPluginEnabled } from "../../helpers/plugins";
 import {
@@ -21,7 +21,7 @@ export const renderCertificatePdf = internalAction({
     | { ok: false; reason: "not_renderable" | "superseded" }
   > => {
     const payload = await ctx.runQuery(
-      (internal as any).lms.certificates.actions.getRenderPayload,
+      internal.lms.certificates.actions.getRenderPayload,
       { issueId: args.issueId },
     );
     if (!payload) {
@@ -42,7 +42,7 @@ export const renderCertificatePdf = internalAction({
       new Blob([bytes], { type: "application/pdf" }),
     );
     const mediaId = await ctx.runMutation(
-      (internal as any).lms.certificates.actions.attachPdfMedia,
+      internal.lms.certificates.actions.attachPdfMedia,
       {
         issueId: args.issueId,
         expected: {
@@ -136,7 +136,7 @@ export const attachPdfMedia = internalMutation({
     if (issue?.status === "issued" && !issue.pdfMediaId && !expected && args.mediaId) {
       // An action from the previous deployment cannot prove its issuance.
       // Queue a current render instead of stranding the certificate without a PDF.
-      await ctx.scheduler.runAfter(0, (internal as any).lms.certificates.actions.renderCertificatePdf, { issueId: args.issueId });
+      await ctx.scheduler.runAfter(0, internal.lms.certificates.actions.renderCertificatePdf, { issueId: args.issueId });
       return null;
     }
     if (!issue || issue.status !== "issued" || issue.pdfMediaId || !expected ||
@@ -157,9 +157,9 @@ export const attachPdfMedia = internalMutation({
   },
 });
 
-async function findCompletion(ctx: any, userId: Id<"users">, courseId: Id<"lms_courses">) {
+async function findCompletion(ctx: QueryCtx, userId: Id<"users">, courseId: Id<"lms_courses">) {
   return ctx.db.query("lms_course_completions")
-    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId)).first();
+    .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId)).first();
 }
 
 function buildPdfBytes(input: {

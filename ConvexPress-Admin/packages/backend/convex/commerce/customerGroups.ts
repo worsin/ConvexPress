@@ -1,13 +1,12 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 export const list = query({
   args: {},
-  returns: v.array(tableDocs.commerce_customer_groups),
+  returns: v.array(commerceDocs.commerce_customer_groups),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db.query("commerce_customer_groups").collect();
@@ -61,7 +60,7 @@ export const addMember = mutation({
     const actor = await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("commerce_customer_group_members")
-      .withIndex("by_group_customer", (q: any) =>
+      .withIndex("by_group_customer", (q) =>
         q.eq("groupId", args.groupId).eq("customerId", args.customerId),
       )
       .unique();
@@ -85,7 +84,7 @@ export const removeMember = mutation({
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("commerce_customer_group_members")
-      .withIndex("by_group_customer", (q: any) =>
+      .withIndex("by_group_customer", (q) =>
         q.eq("groupId", args.groupId).eq("customerId", args.customerId),
       )
       .unique();

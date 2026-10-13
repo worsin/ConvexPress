@@ -60,7 +60,7 @@ import {
 } from "./helpers";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { searchDocs } from "../schema/search.docs.generated";
 // ─── search (Public / Website) ──────────────────────────────────────────────
 
 /**
@@ -376,8 +376,62 @@ export const search = query({
  *   The client should call `logSearch` mutation after receiving results with
  *   source="admin" for analytics tracking.
  */
+type AdminSearchItem = Pick<
+  Doc<"searchIndex">,
+  "contentType" | "contentId" | "title" | "url" | "authorName" | "authorId" | "status" | "categoryNames" | "tagNames" | "mimeType"
+> & { excerpt: string; publishedAt: number | null; relevanceScore: number };
+
 export const adminSearch = query({
   args: adminSearchQueryArgs,
+  returns: v.union(v.object({
+    results: v.array(v.object({
+      title: v.string(),
+      mimeType: v.optional(v.string()),
+      status: v.string(),
+      url: v.string(),
+      authorId: v.string(),
+      authorName: v.string(),
+      contentType: v.union(v.literal("event"), v.literal("media"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("course"), v.literal("product")),
+      contentId: v.string(),
+      categoryNames: v.optional(v.array(v.string())),
+      tagNames: v.optional(v.array(v.string())),
+      excerpt: v.string(),
+      publishedAt: v.union(v.null(), v.number()),
+      relevanceScore: v.number(),
+    })),
+    query: v.string(),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    filters: v.object({}),
+  }), v.object({
+    results: v.array(v.object({
+      title: v.string(),
+      mimeType: v.optional(v.string()),
+      status: v.string(),
+      url: v.string(),
+      authorId: v.string(),
+      authorName: v.string(),
+      contentType: v.union(v.literal("event"), v.literal("media"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("course"), v.literal("product")),
+      contentId: v.string(),
+      categoryNames: v.optional(v.array(v.string())),
+      tagNames: v.optional(v.array(v.string())),
+      excerpt: v.string(),
+      publishedAt: v.union(v.null(), v.number()),
+      relevanceScore: v.number(),
+    })),
+    query: v.string(),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    filters: v.object({
+      contentType: v.optional(v.union(v.literal("event"), v.literal("media"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("course"), v.literal("product"))),
+      status: v.optional(v.string()),
+      authorId: v.optional(v.string()),
+    }),
+  })),
   handler: async (ctx, args) => {
     // ── Auth check ──────────────────────────────────────────────────────
     const user = await getCurrentUser(ctx);
@@ -399,8 +453,9 @@ export const adminSearch = query({
     // ── Validate query ──────────────────────────────────────────────────
     const rawQuery = sanitizeQuery(args.q);
     if (rawQuery.length < MIN_QUERY_LENGTH) {
+      const noResults: AdminSearchItem[] = [];
       return {
-        results: [],
+        results: noResults,
         query: args.q.trim(),
         total: 0,
         page: 1,
@@ -521,7 +576,7 @@ export const adminSearch = query({
 
     // ── Format results with relevance scores and grouping ───────────────
     const queryTerms = normalizedQuery.split(/\s+/).filter(Boolean);
-    const formattedResults = paginatedResults.map((r) => ({
+    const formattedResults: AdminSearchItem[] = paginatedResults.map((r) => ({
       contentType: r.doc.contentType,
       contentId: r.doc.contentId,
       title: r.doc.title,
@@ -779,7 +834,7 @@ export const getAnalytics = query({
  */
 export const listSynonyms = query({
   args: {},
-  returns: v.array(tableDocs.searchSynonyms),
+  returns: v.array(searchDocs.searchSynonyms),
   handler: async (ctx) => {
     const user = await requireCan(ctx, "search.reindex");
 

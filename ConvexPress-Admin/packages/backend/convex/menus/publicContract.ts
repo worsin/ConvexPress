@@ -1,7 +1,9 @@
 import { v, type Validator } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { menuItemTypeValidator } from "../schema/menus";
-import { MAX_DEPTH } from "./validators";
+import { menuItemTypeValidator, menuVisibilityValidator } from "../schema/menus";
+import { boundedTreeValidator } from "../helpers/boundedTree";
+import type { MenuItemTreeNode } from "./internals";
+import { MAX_DEPTH, MENU_TREE_LEVELS } from "./validators";
 
 export interface PublicMenuItem {
   _id: string;
@@ -60,3 +62,34 @@ export const publicMenuResultValidator: Validator<PublicMenuResult | null, "requ
       items: v.array(item),
     }),
   );
+
+/** Exact transport for the admin builder tree (`getMenuItemTree`). */
+export const menuItemTreeValidator = v.array(
+  boundedTreeValidator<MenuItemTreeNode>(MENU_TREE_LEVELS, (children) =>
+    v.object({
+      _id: v.string(),
+      menuId: v.string(),
+      itemType: menuItemTypeValidator,
+      objectId: v.optional(v.string()),
+      icon: v.optional(v.string()),
+      badge: v.optional(v.string()),
+      pathOverride: v.optional(v.string()),
+      visibility: v.optional(menuVisibilityValidator),
+      roles: v.optional(v.array(v.string())),
+      membershipPlans: v.optional(v.array(v.string())),
+      capability: v.optional(v.string()),
+      label: v.string(),
+      title: v.optional(v.string()),
+      description: v.optional(v.string()),
+      url: v.optional(v.string()),
+      parentItemId: v.optional(v.string()),
+      position: v.number(),
+      depth: v.number(),
+      target: v.optional(v.union(v.literal("_self"), v.literal("_blank"))),
+      cssClasses: v.optional(v.string()),
+      linkRel: v.optional(v.string()),
+      isOrphaned: v.optional(v.boolean()),
+      children,
+    }),
+  ),
+);

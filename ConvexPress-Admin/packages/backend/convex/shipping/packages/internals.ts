@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internalQuery } from "../../_generated/server";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 /**
  * Resolve the effective package for a cart line (PRD A3 §5.2 resolution order):
  * 1. Product-level override (product.preferredPackageId)
@@ -16,7 +16,7 @@ export const resolveForCartLine = internalQuery({
     variantId: v.optional(v.id("commerce_product_variants")),
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
   },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     const product = await ctx.db.get(args.productId);
     if (!product) return null;
@@ -45,7 +45,7 @@ export const resolveForCartLine = internalQuery({
     if (args.shipFromLocationId) {
       const locScoped = await ctx.db
         .query("commerce_shipping_packages")
-        .withIndex("by_default_scope", (q: any) =>
+        .withIndex("by_default_scope", (q) =>
           q.eq("shipFromLocationId", args.shipFromLocationId).eq("isDefault", true),
         )
         .unique();
@@ -55,7 +55,7 @@ export const resolveForCartLine = internalQuery({
     // 4. Global default.
     const globalDefault = await ctx.db
       .query("commerce_shipping_packages")
-      .withIndex("by_default_scope", (q: any) =>
+      .withIndex("by_default_scope", (q) =>
         q.eq("shipFromLocationId", undefined).eq("isDefault", true),
       )
       .unique();
@@ -67,10 +67,10 @@ export const listAvailablePackages = internalQuery({
   args: {
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
   },
-  returns: v.array(tableDocs.commerce_shipping_packages),
+  returns: v.array(shippingDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     const all = await ctx.db.query("commerce_shipping_packages").collect();
-    return all.filter((pkg: any) => {
+    return all.filter((pkg) => {
       if (pkg.isArchived) return false;
       // Include global packages and location-scoped ones matching the arg.
       if (!pkg.shipFromLocationId) return true;

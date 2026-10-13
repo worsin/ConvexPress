@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../_generated/server";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 /**
  * PRD D2 §5 — append a durable sync log entry. Called from tracking
  * actions (poll) and webhook handlers so admins can inspect the full
@@ -30,7 +30,7 @@ export const recordSyncLog = internalMutation({
     if (args.shipmentId) {
       const latest = await ctx.db
         .query("commerce_tracking_sync_log")
-        .withIndex("by_shipment", (q: any) =>
+        .withIndex("by_shipment", (q) =>
           q.eq("shipmentId", args.shipmentId),
         )
         .order("desc")
@@ -64,7 +64,7 @@ const TERMINAL_STATUSES = new Set(["delivered", "returned"]);
  */
 export const listSyncableLabels = internalQuery({
   args: { maxAgeMs: v.number() },
-  returns: v.array(tableDocs.commerce_shipment_labels),
+  returns: v.array(shippingDocs.commerce_shipment_labels),
   handler: async (ctx, args) => {
     const cutoff = Date.now() - args.maxAgeMs;
     const labels = await ctx.db
@@ -80,7 +80,7 @@ export const listSyncableLabels = internalQuery({
       // Check the most recent tracking event status — skip if terminal.
       const latest = await ctx.db
         .query("commerce_shipment_tracking_events")
-        .withIndex("by_shipment_time", (q: any) =>
+        .withIndex("by_shipment_time", (q) =>
           q.eq("shipmentId", label.shipmentId),
         )
         .order("desc")
@@ -96,7 +96,7 @@ export const listSyncableLabels = internalQuery({
 
 export const getLabelById = internalQuery({
   args: { labelId: v.id("commerce_shipment_labels") },
-  returns: v.union(v.null(), tableDocs.commerce_shipment_labels),
+  returns: v.union(v.null(), shippingDocs.commerce_shipment_labels),
   handler: async (ctx, args) => {
     return ctx.db.get(args.labelId);
   },
@@ -121,7 +121,7 @@ export const findShipmentByTracking = internalQuery({
     // Try the shipment_labels table first (most granular for multi-package).
     const label = await ctx.db
       .query("commerce_shipment_labels")
-      .withIndex("by_tracking", (q: any) => q.eq("trackingNumber", args.trackingNumber))
+      .withIndex("by_tracking", (q) => q.eq("trackingNumber", args.trackingNumber))
       .first();
     if (label) {
       return {
@@ -134,13 +134,13 @@ export const findShipmentByTracking = internalQuery({
     // Fall back to the legacy commerce_shipments table.
     const shipment = await ctx.db
       .query("commerce_shipments")
-      .withIndex("by_tracking", (q: any) => q.eq("trackingNumber", args.trackingNumber))
+      .withIndex("by_tracking", (q) => q.eq("trackingNumber", args.trackingNumber))
       .first();
     if (shipment) {
       return {
         shipmentId: shipment._id,
         orderId: shipment.orderId,
-        labelId: undefined,
+        labelId: null,
       };
     }
 

@@ -29,7 +29,7 @@
  */
 
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { OBSOLETE_EMAIL_LISTENERS } from "../emails/registry";
 import {
   NOTIFICATION_ENGINE_LISTENER_DEFINITIONS,
@@ -1504,7 +1504,7 @@ const EFFECTIVE_LISTENER_DEFINITIONS: ListenerDef[] = [
  * Safe to call multiple times. Will not create duplicates.
  */
 export async function registerListenerDefinitions(
-  ctx: any,
+  ctx: Pick<MutationCtx, "db">,
   now = Date.now(),
   options: { preserveExisting?: boolean } = {},
 ) {
@@ -1525,7 +1525,6 @@ export async function registerListenerDefinitions(
       throw new Error("Too many listeners for one event code; bootstrap cannot safely reconcile.");
     }
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const existing = existingListeners.find((l) => l.name === def.name);
 
     if (existing) {
@@ -1634,26 +1633,25 @@ export async function registerListenerDefinitions(
   };
 }
 
-const runConfig: any = {
+const registerListenersResult = v.object({
+  total: v.number(),
+  created: v.number(),
+  reactivated: v.number(),
+  skipped: v.number(),
+  deactivated: v.number(),
+});
+
+export const run = internalMutation({
   args: {},
-  handler: async (ctx: any) => {
+  returns: registerListenersResult,
+  handler: async (ctx) => {
     return await registerListenerDefinitions(ctx);
   },
-};
-
-export const run = internalMutation(runConfig);
+});
 
 /** Safe installation repair: insert missing defaults without changing existing listeners. */
-const ensureRequiredConfig: any = {
+export const ensureRequired = internalMutation({
   args: {},
-  returns: v.object({
-    total: v.number(),
-    created: v.number(),
-    reactivated: v.number(),
-    skipped: v.number(),
-    deactivated: v.number(),
-  }),
-  handler: async (ctx: any) => registerListenerDefinitions(ctx, Date.now(), { preserveExisting: true }),
-};
-
-export const ensureRequired = internalMutation(ensureRequiredConfig);
+  returns: registerListenersResult,
+  handler: async (ctx) => registerListenerDefinitions(ctx, Date.now(), { preserveExisting: true }),
+});

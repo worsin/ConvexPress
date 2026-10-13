@@ -28,7 +28,7 @@ import {
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_articles">, userId: Id<"users">): Promise<void> {
   const article = await ctx.db.get("kb_articles", articleId);
   if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
@@ -39,7 +39,7 @@ async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_article
 
 export const list = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_tags)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_tags)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_tags").take(500);
@@ -50,7 +50,7 @@ export const list = query({
 
 export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_tags"> | null> = query({
   args: getTagBySlugArgs,
-  returns: v.union(v.null(), tableDocs.kb_tags),
+  returns: v.union(v.null(), kbDocs.kb_tags),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db

@@ -36,7 +36,7 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { apiDocs } from "../schema/api.docs.generated";
 // ─── listKeys ─────────────────────────────────────────────────────────────
 
 /**
@@ -239,7 +239,7 @@ export const getWebhook = query({
  */
 export const listDeliveries = query({
   args: listDeliveriesArgs,
-  returns: v.array(tableDocs.webhookDeliveries),
+  returns: v.array(apiDocs.webhookDeliveries),
   handler: async (ctx, args) => {
     await requireCan(ctx, "api.create_webhook");
 

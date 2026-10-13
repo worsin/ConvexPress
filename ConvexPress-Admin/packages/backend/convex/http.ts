@@ -62,7 +62,9 @@ import {
 import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { getPayPalBaseUrl } from "./commerce/paypalMode";
+import { jsonAt } from "./helpers/jsonValue";
 import {
   healthHandler as managementHealthHandler,
   sessionExchangeHandler as managementSessionExchangeHandler,
@@ -503,7 +505,7 @@ http.route({
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeSecretKey);
 
-    let webhookEventId: string | undefined;
+    let webhookEventId: Id<"commerce_webhook_events"> | undefined;
 
     try {
       const event = await stripe.webhooks.constructEventAsync(
@@ -553,7 +555,7 @@ http.route({
                 internal.commerceSubscriptions.internals
                   .handleInvoicePaymentResult,
                 {
-                  invoiceId: invoiceId as any,
+                  invoiceId: invoiceId as Id<"commerce_subscription_invoices">,
                   succeeded: true,
                   paymentTransactionId: paymentIntent.id,
                 },
@@ -569,10 +571,10 @@ http.route({
                 : paymentIntent.payment_method?.id;
             if (checkoutIntentId) {
               await ctx.runMutation(
-                (internal.commerceSubscriptions.internals as any)
+                internal.commerceSubscriptions.internals
                   .activateCheckoutIntentFromStripe,
                 {
-                  checkoutIntentId: checkoutIntentId as any,
+                  checkoutIntentId: checkoutIntentId as Id<"commerce_subscription_checkout_intents">,
                   paymentIntentId: paymentIntent.id,
                   paymentMethodId: paymentMethodId ?? undefined,
                   stripeCustomerId:
@@ -588,10 +590,10 @@ http.route({
             const submissionId = paymentIntent.metadata?.submissionId;
             if (submissionId) {
               await ctx.runMutation(
-                (internal as any).extensions.forms.orderPayments
+                internal.extensions.forms.orderPayments
                   .markOrderPaymentSucceeded,
                 {
-                  submissionId: submissionId as any,
+                  submissionId: submissionId as Id<"form_submissions">,
                   paymentIntentId: paymentIntent.id,
                 },
               );
@@ -618,7 +620,7 @@ http.route({
                 internal.commerceSubscriptions.internals
                   .handleInvoicePaymentResult,
                 {
-                  invoiceId: invoiceId as any,
+                  invoiceId: invoiceId as Id<"commerce_subscription_invoices">,
                   succeeded: false,
                   paymentTransactionId: paymentIntent.id,
                   failureReason:
@@ -634,10 +636,10 @@ http.route({
             const submissionId = paymentIntent.metadata?.submissionId;
             if (submissionId) {
               await ctx.runMutation(
-                (internal as any).extensions.forms.orderPayments
+                internal.extensions.forms.orderPayments
                   .markOrderPaymentFailed,
                 {
-                  submissionId: submissionId as any,
+                  submissionId: submissionId as Id<"form_submissions">,
                   paymentIntentId: paymentIntent.id,
                   error:
                     paymentIntent.last_payment_error?.message ??
@@ -676,7 +678,7 @@ http.route({
               internal.commerceSubscriptions.stripeCharge
                 .saveSetupIntentResult,
               {
-                checkoutIntentId: intentId as any,
+                checkoutIntentId: intentId as Id<"commerce_subscription_checkout_intents">,
                 stripeCustomerId: customerId,
                 paymentMethodId,
                 setupIntentId: setupIntent.id,
@@ -705,10 +707,10 @@ http.route({
             const submissionId = paymentIntent.metadata?.submissionId;
             if (submissionId) {
               await ctx.runMutation(
-                (internal as any).extensions.forms.orderPayments
+                internal.extensions.forms.orderPayments
                   .markOrderPaymentFailed,
                 {
-                  submissionId: submissionId as any,
+                  submissionId: submissionId as Id<"form_submissions">,
                   paymentIntentId: paymentIntent.id,
                   error: "Payment cancelled",
                 },
@@ -730,21 +732,21 @@ http.route({
         case "refund.created":
         case "refund.updated":
         case "refund.failed": {
-          const refund = event.data.object as any;
+          const refund = event.data.object;
           await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
             provider: "stripe", providerRefundId: refund.id, providerStatus: refund.status ?? "pending",
-            refundId: refund.metadata?.refundId || undefined,
+            refundId: (refund.metadata?.refundId || undefined) as Id<"commerce_payment_refunds"> | undefined,
             providerTransactionId: typeof refund.payment_intent === "string" ? refund.payment_intent : undefined,
             amount: refund.amount, error: refund.failure_reason ?? undefined,
           });
           break;
         }
         case "charge.refunded": {
-          const charge = event.data.object as any;
+          const charge = event.data.object;
           for (const refund of charge.refunds?.data ?? []) {
             await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
               provider: "stripe", providerRefundId: refund.id, providerStatus: refund.status ?? "pending",
-              refundId: refund.metadata?.refundId || undefined,
+              refundId: (refund.metadata?.refundId || undefined) as Id<"commerce_payment_refunds"> | undefined,
               providerTransactionId: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
               amount: refund.amount, error: refund.failure_reason ?? undefined,
             });
@@ -787,8 +789,9 @@ http.route({
         JSON.stringify({ received: true }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
-    } catch (error: any) {
-      console.error("[Stripe Webhook] Error:", error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[Stripe Webhook] Error:", message);
 
       // Mark webhook as failed if we have an event ID
       if (webhookEventId) {
@@ -796,8 +799,8 @@ http.route({
           await ctx.runMutation(
             internal.commerce.payments.markWebhookFailed,
             {
-              eventId: webhookEventId as any,
-              errorMessage: error.message || "Unknown error",
+              eventId: webhookEventId,
+              errorMessage: message || "Unknown error",
             },
           );
         } catch (markError) {
@@ -817,12 +820,38 @@ http.route({
 });
 
 // ─── PayPal Webhook ────────────────────────────────────────────────────────
+
+/** The PayPal webhook event fields this handler reads; absent or non-text values are undefined. */
+type PayPalWebhookEvent = {
+  id?: string;
+  eventType?: string;
+  resourceId?: string;
+  resourceCustomId?: string;
+  relatedOrderId?: string;
+  firstPurchaseUnitCustomId?: string;
+};
+
+function jsonText(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readPayPalWebhookEvent(payload: unknown): PayPalWebhookEvent {
+  return {
+    id: jsonText(jsonAt(payload, "id")),
+    eventType: jsonText(jsonAt(payload, "event_type")),
+    resourceId: jsonText(jsonAt(payload, "resource", "id")),
+    resourceCustomId: jsonText(jsonAt(payload, "resource", "custom_id")),
+    relatedOrderId: jsonText(jsonAt(payload, "resource", "supplementary_data", "related_ids", "order_id")),
+    firstPurchaseUnitCustomId: jsonText(jsonAt(payload, "resource", "purchase_units", 0, "custom_id")),
+  };
+}
+
 http.route({
   path: "/webhooks/paypal",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     const body = await request.text();
-    let payload: any;
+    let payload: unknown;
 
     try {
       payload = JSON.parse(body);
@@ -975,10 +1004,10 @@ http.route({
           { status: 401, headers: { "Content-Type": "application/json" } },
         );
       }
-    } catch (verifyError: any) {
+    } catch (verifyError) {
       console.error(
         "[PayPal Webhook] Signature verification error:",
-        verifyError.message,
+        verifyError instanceof Error ? verifyError.message : String(verifyError),
       );
       return new Response(
         JSON.stringify({ error: "Signature verification failed" }),
@@ -987,16 +1016,20 @@ http.route({
     }
 
     // ── Signature verified — process events ────────────────────────────────
-    let webhookEventId: string | undefined;
+    let webhookEventId: Id<"commerce_webhook_events"> | undefined;
+    const event = readPayPalWebhookEvent(payload);
 
     try {
+      if (event.id === undefined || event.eventType === undefined) {
+        throw new Error("PayPal webhook event is missing id or event_type");
+      }
       // Log the webhook event and check for idempotency
       const logResult = await ctx.runMutation(
         internal.commerce.payments.logWebhookEvent,
         {
           provider: "paypal",
-          eventType: payload.event_type,
-          eventId: payload.id, // PayPal includes event ID in payload
+          eventType: event.eventType,
+          eventId: event.id, // PayPal includes event ID in payload
           payload: body.substring(0, 10000),
         },
       );
@@ -1017,11 +1050,9 @@ http.route({
         { eventId: logResult.eventId },
       );
 
-      switch (payload.event_type) {
+      switch (event.eventType) {
         case "PAYMENT.CAPTURE.COMPLETED": {
-          const orderId =
-            payload.resource?.supplementary_data?.related_ids?.order_id ||
-            payload.resource?.custom_id;
+          const orderId = event.relatedOrderId || event.resourceCustomId;
 
           if (orderId) {
             await ctx.runMutation(
@@ -1036,9 +1067,7 @@ http.route({
         }
 
         case "PAYMENT.CAPTURE.DENIED": {
-          const orderId =
-            payload.resource?.supplementary_data?.related_ids?.order_id ||
-            payload.resource?.custom_id;
+          const orderId = event.relatedOrderId || event.resourceCustomId;
 
           if (orderId) {
             await ctx.runMutation(
@@ -1056,25 +1085,24 @@ http.route({
         case "PAYMENT.CAPTURE.REFUNDED":
         case "PAYMENT.REFUND.PENDING":
         case "PAYMENT.REFUND.FAILED": {
-          if (payload.resource?.id) await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
-            provider: "paypal", providerRefundId: payload.resource.id,
-            providerStatus: payload.event_type === "PAYMENT.CAPTURE.REFUNDED" ? "completed"
-              : payload.event_type === "PAYMENT.REFUND.FAILED" ? "failed" : "pending",
+          if (event.resourceId) await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
+            provider: "paypal", providerRefundId: event.resourceId,
+            providerStatus: event.eventType === "PAYMENT.CAPTURE.REFUNDED" ? "completed"
+              : event.eventType === "PAYMENT.REFUND.FAILED" ? "failed" : "pending",
           });
           break;
         }
 
         case "CHECKOUT.ORDER.APPROVED": {
           // Customer approved the order — trigger capture
-          const paypalOrderId = payload.resource?.id;
-          const transactionId =
-            payload.resource?.purchase_units?.[0]?.custom_id;
+          const paypalOrderId = event.resourceId;
+          const transactionId = event.firstPurchaseUnitCustomId;
 
           if (paypalOrderId && transactionId) {
             await ctx.runAction(
               internal.commerce.paymentActions.capturePayPalOrderAction,
               {
-                transactionId: transactionId as any,
+                transactionId: transactionId as Id<"commerce_payment_transactions">,
                 paypalOrderId,
               },
             );
@@ -1085,7 +1113,7 @@ http.route({
         default:
           console.log(
             "[PayPal Webhook] Unhandled event type:",
-            payload.event_type,
+            event.eventType,
           );
       }
 
@@ -1099,8 +1127,9 @@ http.route({
         JSON.stringify({ received: true }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
-    } catch (error: any) {
-      console.error("[PayPal Webhook] Error:", error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[PayPal Webhook] Error:", message);
 
       // Mark webhook as failed if we have an event ID
       if (webhookEventId) {
@@ -1108,8 +1137,8 @@ http.route({
           await ctx.runMutation(
             internal.commerce.payments.markWebhookFailed,
             {
-              eventId: webhookEventId as any,
-              errorMessage: error.message || "Unknown error",
+              eventId: webhookEventId,
+              errorMessage: message || "Unknown error",
             },
           );
         } catch (markError) {

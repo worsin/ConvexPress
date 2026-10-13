@@ -60,80 +60,8 @@ const CUSTOMER_ROLE_AUTH_CAPABILITIES = new Set<string>(
 type DbReadCtx = Pick<QueryCtx, "db" | "runQuery">;
 type AuthReadCtx = Pick<QueryCtx, "auth" | "db" | "runQuery">;
 
-/** The user document shape as returned from the users table. */
-type UserDoc = {
-  _id: Id<"users">;
-  _creationTime: number;
-  // Auth fields
-  authSource?: "local" | "clerk" | "management";
-  passwordHash?: string;
-  clerkUserId?: string;
-  email: string;
-  emailVerified: boolean;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  profilePictureUrl?: string;
-  // ConvexPress-managed profile fields
-  username?: string;
-  nickname?: string;
-  displayName?: string;
-  slug?: string;
-  bio?: string;
-  url?: string;
-  avatarUrl?: string;
-  avatarMediaId?: Id<"media">;
-  avatarStorageId?: string;
-  // Social links
-  socialLinks?: {
-    twitter?: string;
-    facebook?: string;
-    instagram?: string;
-    linkedin?: string;
-    youtube?: string;
-    github?: string;
-    website?: string;
-  };
-  // Role & capability
-  roleId?: Id<"roles">;
-  // Account status
-  status: "active" | "inactive" | "banned";
-  deactivatedAt?: number;
-  deactivatedBy?: Id<"users">;
-  // Preferences
-  preferences?: {
-    adminColorScheme?: string;
-    showAdminBar?: boolean;
-    editorMode?: "visual" | "code";
-    emailDigest?: "immediate" | "daily" | "weekly" | "none";
-    notifyOnComment?: boolean;
-    notifyOnReply?: boolean;
-    notifyOnMention?: boolean;
-  };
-  // Locale & timezone
-  locale?: string;
-  timezone?: string;
-  // Denormalized counts
-  postCount?: number;
-  commentCount?: number;
-  // Registration metadata
-  registrationMethod?: string;
-  invitedBy?: Id<"users">;
-  emailVerifiedAt?: number;
-  registeredAt?: number;
-  // Metadata
-  lastLoginAt?: number;
-  // Password management
-  lastPasswordChangedAt?: number;
-  passwordResetRequestedAt?: number;
-  passwordResetCount?: number;
-  // Legacy fields
-  internalRole?: string;
-  isInternal?: boolean;
-  // Timestamps
-  createdAt: number;
-  updatedAt: number;
-};
+/** The user document as stored in the users table. */
+type UserDoc = Doc<"users">;
 
 /** The role document shape as returned from the roles table. */
 type RoleDoc = {
@@ -234,7 +162,7 @@ export async function readActiveManagementSession(
       return null;
     }
     return {
-      user: user as UserDoc,
+      user,
       siteRoleSlug: session.siteRoleSlug,
       siteCapabilities: session.siteCapabilities,
       sessionId: session._id,
@@ -315,10 +243,10 @@ export async function getCurrentUser(
     // A stale local JWT must not continue to authorize an account that has
     // since been linked to Clerk or otherwise moved out of local admin auth.
     budget?.beforeRead();
-    const user = (await ctx.db.get(
+    const user = await ctx.db.get(
       "users",
       identity.subject as Id<"users">,
-    )) as UserDoc | null;
+    );
     budget?.record(user);
     if (!user || user.authSource !== "local") return null;
     return user;
@@ -335,7 +263,7 @@ export async function getCurrentUser(
 
   budget?.record(user);
   if (!user || user.authSource !== "clerk") return null;
-  return user as UserDoc;
+  return user;
 }
 
 /**
@@ -553,9 +481,7 @@ async function userHasMembershipCapability(
   if (!isMembershipAuthCapability(capability)) return false;
 
   // Plugin off → no augmentation. Fail soft.
-  // `isPluginEnabled` types its ctx as `AnyCtx` (QueryCtx|MutationCtx|ActionCtx).
-  // Our narrower `AuthReadCtx` is a structural subset — cast to satisfy the compiler.
-  if (!(await isPluginEnabled(ctx as any, "membership", budget))) return false;
+  if (!(await isPluginEnabled(ctx, "membership", budget))) return false;
 
   const validGrants = await readMembershipAuthorityGrants(ctx, userId, budget);
 
@@ -632,7 +558,7 @@ export async function userCan(
   if (user.status !== "active") return false;
   if (user.authSource === "management") return false;
 
-  const capabilities = await getUserCapabilities(ctx, user as UserDoc);
+  const capabilities = await getUserCapabilities(ctx, user);
   return capabilities.includes(capability);
 }
 
@@ -1062,7 +988,7 @@ export function getUserIdentifier(
  * @returns User document or null
  */
 export async function lookupUserByIdentifier(
-  ctx: DbReadCtx,
+  ctx: Pick<QueryCtx, "db">,
   identifier: string,
 ): Promise<UserDoc | null> {
   // Try clerkUserId
@@ -1070,14 +996,13 @@ export async function lookupUserByIdentifier(
     .query("users")
     .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identifier))
     .unique();
-  if (byClerk) return byClerk as UserDoc;
+  if (byClerk) return byClerk;
 
-  // Try as a direct Convex document ID
-  try {
-    const byId = await ctx.db.get(identifier as Id<"users">);
-    if (byId) return byId as UserDoc;
-  } catch {
-    // Invalid ID format - not a Convex ID
+  // Try as a direct Convex users document ID (ids of other tables never match)
+  const userId = ctx.db.normalizeId("users", identifier);
+  if (userId) {
+    const byId = await ctx.db.get("users", userId);
+    if (byId) return byId;
   }
 
   return null;

@@ -56,6 +56,9 @@ for (const t of schemaExport.tables) {
   docFields.set(t.tableName, fields);
 }
 
+// Per-module document validators (scripts/typing/generate-table-docs.ts).
+const tableDocsManifest = JSON.parse(readFileSync(join(backendDir, "scripts", "typing", "table-docs-manifest.json"), "utf8")) as Record<string, { module: string; exportName: string }>;
+
 // ─── Program ─────────────────────────────────────────────────────────────────
 const configPath = join(convexDir, "tsconfig.json");
 const config = ts.readConfigFile(configPath, ts.sys.readFile);
@@ -108,7 +111,11 @@ function convert(type: ts.Type, ctx: Ctx, where: string): string {
   const f = type.flags;
   if (f & ts.TypeFlags.Any) throw new Refusal(`any at ${where}`);
   if (f & ts.TypeFlags.Unknown) throw new Refusal(`unknown at ${where}`);
-  if (f & ts.TypeFlags.Never) throw new Refusal(`never at ${where}`);
+  // A handler whose return type is `never` always throws; it never returns a value.
+  if (f & ts.TypeFlags.Never) {
+    if (where === "return") return "v.null()";
+    throw new Refusal(`never at ${where}`);
+  }
   if (f & (ts.TypeFlags.Undefined | ts.TypeFlags.Void | ts.TypeFlags.Null)) return "v.null()";
   if (f & ts.TypeFlags.BooleanLiteral) return `v.literal(${checker.typeToString(type)})`;
   if (f & ts.TypeFlags.Boolean) return "v.boolean()";
@@ -121,7 +128,19 @@ function convert(type: ts.Type, ctx: Ctx, where: string): string {
   if (f & ts.TypeFlags.Union) return convertUnion(type as ts.UnionType, ctx, where);
   const table = idTable(type);
   if (table) return `v.id(${JSON.stringify(table)})`;
-  if (f & ts.TypeFlags.Intersection) throw new Refusal(`intersection ${checker.typeToString(type)} at ${where}`);
+  if (f & ts.TypeFlags.Intersection) {
+    const parts = (type as ts.IntersectionType).types;
+    const isEmptyObject = (p: ts.Type) => !!(p.flags & ts.TypeFlags.Object) && checker.getPropertiesOfType(p).length === 0
+      && !checker.getIndexInfosOfType(p).length && !p.getCallSignatures().length;
+    // `string & {}` / `number & {}`: the open-ended "string with suggestions" idiom.
+    const primitives = parts.filter((p) => !isEmptyObject(p));
+    if (primitives.length === 1 && primitives[0].flags & (ts.TypeFlags.String | ts.TypeFlags.Number)) {
+      return convert(primitives[0], ctx, where);
+    }
+    // Intersections of object types are one object with every member's properties.
+    if (parts.every((p) => p.flags & ts.TypeFlags.Object)) return convertObject(type as unknown as ts.ObjectType, ctx, where);
+    throw new Refusal(`intersection ${checker.typeToString(type)} at ${where}`);
+  }
   if (f & ts.TypeFlags.Object) return convertObject(type as ts.ObjectType, ctx, where);
   throw new Refusal(`unsupported type ${checker.typeToString(type)} at ${where}`);
 }
@@ -179,9 +198,10 @@ function convertObject(type: ts.ObjectType, ctx: Ctx, where: string): string {
     if (idProp && names.includes("_creationTime")) {
       const table = idTable(propertyType(idProp, idProp.valueDeclaration ?? (type.getSymbol()?.declarations?.[0] as ts.Node)));
       const fields = table ? docFields.get(table) : undefined;
-      if (table && fields && fields.size === names.length && names.every((n) => fields.has(n))) {
+      const docs = table ? tableDocsManifest[table] : undefined;
+      if (table && docs && fields && fields.size === names.length && names.every((n) => fields.has(n))) {
         ctx.tableDocs.add(table);
-        return `tableDocs.${isIdent(table) ? table : `[${JSON.stringify(table)}]`}`;
+        return isIdent(table) ? `${docs.exportName}.${table}` : `${docs.exportName}[${JSON.stringify(table)}]`;
       }
     }
     // Convex pagination result.
@@ -309,10 +329,17 @@ function ensureImports(text: string, file: string, w: FileWork): string {
   if (w.needsPagination && !/\bpaginationResultValidator\b/.test(text.split("\n").filter((l) => l.startsWith("import")).join("\n"))) {
     additions.push(`import { paginationResultValidator } from "convex/server";`);
   }
-  if (w.tableDocs.size && !/\btableDocs\b/.test(text.split("\n").filter((l) => l.startsWith("import")).join("\n"))) {
-    let r = relative(dirname(file), join(convexDir, "schema", "tableDocs.generated")).split("\\").join("/");
+  const importLines = text.split("\n").filter((l) => l.startsWith("import")).join("\n");
+  const companions = new Map<string, string>();
+  for (const table of w.tableDocs) {
+    const docs = tableDocsManifest[table];
+    companions.set(docs.module, docs.exportName);
+  }
+  for (const [module, exportName] of companions) {
+    if (new RegExp(`\\b${exportName}\\b`).test(importLines)) continue;
+    let r = relative(dirname(file), join(convexDir, module)).split("\\").join("/");
     if (!r.startsWith(".")) r = `./${r}`;
-    additions.push(`import { tableDocs } from "${r}";`);
+    additions.push(`import { ${exportName} } from "${r}";`);
   }
   if (!additions.length) return text;
   // After the last top-level import statement.

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { v } from "convex/values";
 
 export const commerceSlugValidator = v.string();

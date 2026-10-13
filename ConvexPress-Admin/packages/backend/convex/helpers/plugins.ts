@@ -23,32 +23,34 @@ import {
   type PluginId,
 } from "../plugins/registry";
 
-type AnyCtx = QueryCtx | MutationCtx | ActionCtx;
+/** Queries and mutations read settings directly; actions go through a query. */
+type AnyCtx = Pick<QueryCtx, "db"> | Pick<ActionCtx, "runQuery">;
 
-/** Return the merged plugins settings object (defaults + stored). */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Return the stored plugins settings values (defaults are applied by the registry). */
 async function readPluginsSettings(
   ctx: AnyCtx,
   budget?: RequestReadLedger,
-): Promise<Record<string, boolean>> {
-  const ctxAny = ctx as any;
-  // Actions don't have ctx.db. Use the public settings query so cron/action
-  // contexts are not blocked by admin-only getBySection auth checks.
-  if (typeof ctxAny.runQuery === "function" && !ctxAny.db) {
-    if (budget) throw new ConvexError({code:"CANONICAL_READ_BUDGET",message:"Canonical reads require a database query context."});
-    const result = await ctxAny.runQuery(api.settings.queries.getPublic, {});
-    return (result?.plugins ?? {}) as Record<string, boolean>;
-  }
+): Promise<Record<string, unknown>> {
   // Query/mutation context: direct DB read.
-  if (ctxAny.db) {
+  if ("db" in ctx) {
     budget?.beforeRead();
-    const row = await ctxAny.db
+    const row = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
+      .withIndex("by_section", (q) => q.eq("section", "plugins"))
       .unique();
     budget?.record(row);
-    return (row?.values ?? {}) as Record<string, boolean>;
+    const values: unknown = row?.values;
+    return isRecord(values) ? values : {};
   }
-  return {};
+  // Actions don't have ctx.db. Use the public settings query so cron/action
+  // contexts are not blocked by admin-only getBySection auth checks.
+  if (budget) throw new ConvexError({code:"CANONICAL_READ_BUDGET",message:"Canonical reads require a database query context."});
+  const result = await ctx.runQuery(api.settings.queries.getPublic, {});
+  return result?.plugins ?? {};
 }
 
 /** True iff the plugin (and its parent, if any) is enabled. */

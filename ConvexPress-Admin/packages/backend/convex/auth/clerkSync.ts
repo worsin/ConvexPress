@@ -16,6 +16,9 @@ import {
   getRegistrationSettings,
 } from "../helpers/registration";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { canUseAdminLocalAuth } from "./adminPresence";
+import type { Doc } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 
 /**
  * Upsert a user from a Clerk webhook event.
@@ -103,14 +106,18 @@ export const upsertClerkUser = internalMutation({
 
     if (byEmail) {
       if (!byEmail.clerkUserId) {
-        if (byEmail.passwordHash || byEmail.authSource === "management" || byEmail.adminLoginAllowed) {
+        if (
+          byEmail.passwordHash ||
+          byEmail.authSource === "management" ||
+          (await canUseAdminLocalAuth(ctx, byEmail))
+        ) {
           console.warn(
             `[ClerkSync] Email ${normalizedEmail} belongs to a local account; skipping link for Clerk user ${clerkUserId}.`,
           );
           return;
         }
         // Link the existing imported user to this Clerk identity
-        const patch: Record<string, unknown> = {
+        const patch: Partial<WithoutSystemFields<Doc<"users">>> = {
           clerkUserId,
           authSource: "clerk",
           emailVerified: true,

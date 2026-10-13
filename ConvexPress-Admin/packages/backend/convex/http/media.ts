@@ -165,13 +165,12 @@ export const mediaUploadHandler = httpAction(async (ctx, request) => {
     const mimeType = optionalString(body?.mimeType) ?? optionalString(body?.mime_type);
     const fileSize = optionalNumber(body?.fileSize) ?? optionalNumber(body?.file_size);
 
-    const missingFields = [
-      !fileName ? "fileName" : null,
-      !mimeType ? "mimeType" : null,
-      fileSize === undefined ? "fileSize" : null,
-    ].filter((field): field is string => Boolean(field));
-
-    if (missingFields.length > 0) {
+    if (!fileName || !mimeType || fileSize === undefined) {
+      const missingFields = [
+        !fileName ? "fileName" : null,
+        !mimeType ? "mimeType" : null,
+        fileSize === undefined ? "fileSize" : null,
+      ].filter((field): field is string => Boolean(field));
       return errorResponse(
         `Missing required media finalization fields: ${missingFields.join(", ")}`,
         "VALIDATION_ERROR",

@@ -25,7 +25,7 @@
  *   await markRead({ notificationId: id });
  */
 
-import { mutation } from "../_generated/server";
+import { mutation, type MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import { getCurrentUser, requireMinimumRoleLevel, getUserIdentifier } from "../helpers/permissions";
@@ -43,13 +43,14 @@ import {
 import { isSnoozed, validateSnoozeUntil } from "./center";
 
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 // ─── Ownership helper ────────────────────────────────────────────────────────
 
 /**
  * Load a notification the current user owns, or throw. Shared by every
  * single-row center mutation (markUnread, archive, restore, snooze, ...).
  */
-async function requireOwnNotification(ctx: any, notificationId: any) {
+async function requireOwnNotification(ctx: MutationCtx, notificationId: Id<"siteNotifications">) {
   const user = await getCurrentUser(ctx);
   if (!user) {
     throw new ConvexError({

@@ -34,6 +34,15 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
+import { auditLogsDocs } from "../schema/auditLogs.docs.generated";
+import { eventsDocs } from "../schema/events.docs.generated";
+import {
+  boundedJsonObjectValidator,
+  boundedJsonValidator,
+  parseBoundedJsonObject,
+  toBoundedJson,
+  type JsonValue,
+} from "../helpers/jsonValue";
 // ─── list ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -318,6 +327,39 @@ export const list: import("convex/server").RegisteredQuery<"public", { severity?
 // ─── get ──────────────────────────────────────────────────────────────────────
 
 /**
+ * Changed values and payloads are arbitrary JSON; they are returned through
+ * bounded JSON validators (see helpers/jsonValue): anything nested deeper than
+ * the bound is delivered as its JSON text.
+ */
+const AUDIT_JSON_DEPTH = 4;
+const auditJsonValueValidator = boundedJsonValidator(AUDIT_JSON_DEPTH);
+
+type AuditChange = { field: string; oldValue?: JsonValue; newValue?: JsonValue };
+
+/** Parse the stored `changes` JSON: an array of { field, oldValue, newValue }. */
+function parseAuditChanges(text: string): AuditChange[] | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+  if (!Array.isArray(parsed)) return undefined;
+  const changes: AuditChange[] = [];
+  for (const item of parsed) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) continue;
+    const field: unknown = "field" in item ? item.field : undefined;
+    if (typeof field !== "string") continue;
+    changes.push({
+      field,
+      oldValue: "oldValue" in item ? toBoundedJson(item.oldValue, AUDIT_JSON_DEPTH) : undefined,
+      newValue: "newValue" in item ? toBoundedJson(item.newValue, AUDIT_JSON_DEPTH) : undefined,
+    });
+  }
+  return changes;
+}
+
+/**
  * Get a single audit entry by ID with full detail.
  *
  * Returns the complete entry including:
@@ -327,8 +369,31 @@ export const list: import("convex/server").RegisteredQuery<"public", { severity?
  *   - Linked event processing metadata
  *   - Related entries (via correlationId, up to 20)
  */
-export const get: import("convex/server").RegisteredQuery<"public", { entryId: import("../_generated/dataModel").Id<"auditEntries"> }, Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventId" | "eventCode" | "action" | "description" | "severity" | "system" | "objectType" | "objectId" | "objectLabel" | "occurredAt"> & { actor: { id?: string; name?: string; email?: string; role?: string; ip?: string; userAgent?: string }; changes: unknown; rawPayload: Record<string, unknown>; event: Pick<import("../_generated/dataModel").Doc<"events">, "status" | "listenersTotal" | "listenersCompleted" | "listenersFailed" | "processedAt"> | null; relatedEntries?: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventCode" | "description" | "occurredAt">> }> = query({
+export const get = query({
   args: getArgs,
+  returns: auditLogsDocs.auditEntries
+    .pick("_id", "eventId", "eventCode", "action", "description", "severity", "system", "objectType", "objectId", "objectLabel", "occurredAt")
+    .extend({
+      actor: v.object({
+        id: v.optional(v.string()),
+        name: v.optional(v.string()),
+        email: v.optional(v.string()),
+        role: v.optional(v.string()),
+        ip: v.optional(v.string()),
+        userAgent: v.optional(v.string()),
+      }),
+      changes: v.optional(v.array(v.object({
+        field: v.string(),
+        oldValue: v.optional(auditJsonValueValidator),
+        newValue: v.optional(auditJsonValueValidator),
+      }))),
+      rawPayload: boundedJsonObjectValidator(AUDIT_JSON_DEPTH + 1),
+      event: v.union(
+        v.null(),
+        eventsDocs.events.pick("status", "listenersTotal", "listenersCompleted", "listenersFailed", "processedAt"),
+      ),
+      relatedEntries: v.optional(v.array(auditLogsDocs.auditEntries.pick("_id", "eventCode", "description", "occurredAt"))),
+    }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -353,23 +418,11 @@ export const get: import("convex/server").RegisteredQuery<"public", { entryId: i
       };
     }
 
-    // Parse changes JSON if present
-    let parsedChanges = undefined;
-    if (entry.changes) {
-      try {
-        parsedChanges = JSON.parse(entry.changes);
-      } catch {
-        // Keep as undefined if parsing fails
-      }
-    }
+    // Parse changes JSON if present (undefined if it does not parse)
+    const parsedChanges = entry.changes ? parseAuditChanges(entry.changes) : undefined;
 
-    // Parse raw payload
-    let parsedPayload: Record<string, unknown> = {};
-    try {
-      parsedPayload = JSON.parse(entry.rawPayload);
-    } catch {
-      // Keep empty object
-    }
+    // Parse raw payload (empty object if it is not a JSON object)
+    const parsedPayload = parseBoundedJsonObject(entry.rawPayload, AUDIT_JSON_DEPTH + 1) ?? {};
 
     // Fetch related entries via correlationId (up to 20)
     let relatedEntries = undefined;

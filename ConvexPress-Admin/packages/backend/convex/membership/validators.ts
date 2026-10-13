@@ -73,3 +73,11 @@ export const membershipRestrictionRulePayloadValidator = v.object({
   customMessage: v.optional(v.string()),
   loginRequired: v.boolean(),
 });
+
+// ─── Displayable Benefit (pricing surfaces) ───────────────────────────────
+export const displayableBenefitValidator = v.object({
+  _id: v.id("membership_plan_benefits"),
+  label: v.string(),
+  description: v.optional(v.string()),
+  sourcePlanId: v.id("membership_plans"),
+});

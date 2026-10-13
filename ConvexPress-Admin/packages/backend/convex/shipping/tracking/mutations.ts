@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
-import { internalMutation } from "../../_generated/server";
+import { internalMutation, type MutationCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
@@ -22,8 +23,8 @@ const NOTIFY_ON_STATUS = new Set([
 ]);
 
 async function maybeNotifyCustomer(
-  ctx: any,
-  shipmentId: any,
+  ctx: MutationCtx,
+  shipmentId: Id<"commerce_shipments">,
   status: string,
   description?: string,
 ) {
@@ -35,7 +36,7 @@ async function maybeNotifyCustomer(
 
   const templateSlug = `shipping_${status}`;
   try {
-    await ctx.runMutation((internal as any).emails.internals.queueEmail, {
+    await ctx.runMutation(internal.emails.internals.queueEmail, {
       templateSlug,
       recipientEmail: order.email,
       recipientName:
@@ -61,7 +62,7 @@ async function maybeNotifyCustomer(
  * for that order has reached a terminal "delivered" status.
  * PRD 7.8 — runs after every recordTrackingEvent.
  */
-async function maybeMarkOrderFulfilled(ctx: any, shipmentId: any) {
+async function maybeMarkOrderFulfilled(ctx: MutationCtx, shipmentId: Id<"commerce_shipments">) {
   const shipment = await ctx.db.get(shipmentId);
   if (!shipment) return;
   const order = await ctx.db.get(shipment.orderId);
@@ -70,17 +71,17 @@ async function maybeMarkOrderFulfilled(ctx: any, shipmentId: any) {
   // Gather all labels for this order and check if every one is delivered.
   const labels = await ctx.db
     .query("commerce_shipment_labels")
-    .withIndex("by_order", (q: any) => q.eq("orderId", shipment.orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", shipment.orderId))
     .collect();
 
   // If no labels exist (legacy flow only), fall back to checking shipments table.
   if (labels.length === 0) {
     const shipments = await ctx.db
       .query("commerce_shipments")
-      .withIndex("by_order", (q: any) => q.eq("orderId", shipment.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", shipment.orderId))
       .collect();
     if (shipments.length === 0) return;
-    const allDelivered = shipments.every((s: any) => s.status === "delivered");
+    const allDelivered = shipments.every((s) => s.status === "delivered");
     if (allDelivered) {
       await patchDynamicWithMediaReferences(ctx, shipment.orderId, {
         fulfillmentStatus: "fulfilled",
@@ -99,13 +100,13 @@ async function maybeMarkOrderFulfilled(ctx: any, shipmentId: any) {
     if (label.voidedAt) continue;
     const labelScopedLatest = await ctx.db
       .query("commerce_shipment_tracking_events")
-      .withIndex("by_shipment_time", (q: any) =>
+      .withIndex("by_shipment_time", (q) =>
         q.eq("shipmentId", label.shipmentId),
       )
       .order("desc")
       .collect();
     const matched = labelScopedLatest.find(
-      (e: any) => e.labelId === label._id,
+      (e) => e.labelId === label._id,
     );
     const latest = matched ?? labelScopedLatest[0];
     if (!latest || latest.normalizedStatus !== "delivered") {
@@ -152,7 +153,7 @@ export const recordTrackingEvent = internalMutation({
     // Dedup: (shipmentId, eventId).
     const existing = await ctx.db
       .query("commerce_shipment_tracking_events")
-      .withIndex("by_shipment_event", (q: any) =>
+      .withIndex("by_shipment_event", (q) =>
         q.eq("shipmentId", args.shipmentId).eq("eventId", args.eventId),
       )
       .unique();

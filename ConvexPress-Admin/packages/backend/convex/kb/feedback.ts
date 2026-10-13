@@ -25,7 +25,7 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── Submit Helpful ─────────────────────────────────────────────────────────
 
 export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; comment?: string }, Id<"kb_articleFeedback">> = mutation({
@@ -244,7 +244,7 @@ export const getArticleStats = query({
 
 export const getUserFeedback: RegisteredQuery<"public", { articleId: Id<"kb_articles">; sessionId: string }, Doc<"kb_articleFeedback"> | null> = query({
   args: getUserFeedbackArgs,
-  returns: v.union(v.null(), tableDocs.kb_articleFeedback),
+  returns: v.union(v.null(), kbDocs.kb_articleFeedback),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db

@@ -88,7 +88,7 @@ export const inboundEmailWebhookHandler = httpAction(async (ctx, request) => {
   }
 
   // Accept JSON or form-encoded payloads.
-  let payload: any;
+  let payload: unknown;
   const contentType = request.headers.get("content-type") ?? "";
   try {
     if (contentType.includes("application/json")) {

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../../_generated/server";
 
-import { tableDocs } from "../../../schema/tableDocs.generated";
+import { shippingDocs } from "../../../schema/shipping.docs.generated";
 /**
  * Tier 1.1 — cross-invocation OAuth token cache.
  * Stores tokens in the database keyed by (connectionId, provider) so that
@@ -21,11 +21,11 @@ export const getCachedToken = internalQuery({
   args: {
     connectionId: v.id("shipping_provider_connections"),
   },
-  returns: v.union(v.null(), tableDocs.shipping_provider_oauth_tokens),
+  returns: v.union(v.null(), shippingDocs.shipping_provider_oauth_tokens),
   handler: async (ctx, args) => {
     const row = await ctx.db
       .query("shipping_provider_oauth_tokens")
-      .withIndex("by_connection", (q: any) => q.eq("connectionId", args.connectionId))
+      .withIndex("by_connection", (q) => q.eq("connectionId", args.connectionId))
       .unique();
     if (!row) return null;
     if (row.expiresAt < Date.now()) return null;
@@ -45,7 +45,7 @@ export const setCachedToken = internalMutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("shipping_provider_oauth_tokens")
-      .withIndex("by_connection", (q: any) => q.eq("connectionId", args.connectionId))
+      .withIndex("by_connection", (q) => q.eq("connectionId", args.connectionId))
       .unique();
     if (existing) {
       await ctx.db.patch("shipping_provider_oauth_tokens", existing._id, {
@@ -72,7 +72,7 @@ export const purgeExpiredTokens = internalMutation({
     const now = Date.now();
     const expired = await ctx.db
       .query("shipping_provider_oauth_tokens")
-      .withIndex("by_expires", (q: any) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
       .collect();
     for (const row of expired) await ctx.db.delete("shipping_provider_oauth_tokens", row._id);
     return { purged: expired.length };
@@ -81,11 +81,11 @@ export const purgeExpiredTokens = internalMutation({
 
 export const findConnectionByProvider = internalQuery({
   args: { provider: PROVIDER_VALIDATOR },
-  returns: v.union(v.null(), tableDocs.shipping_provider_connections),
+  returns: v.union(v.null(), shippingDocs.shipping_provider_connections),
   handler: async (ctx, args) => {
     return ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
   },
 });
@@ -100,12 +100,12 @@ export const invalidateForProvider = internalMutation({
   handler: async (ctx, args) => {
     const connection = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
     if (!connection) return { invalidated: 0 };
     const rows = await ctx.db
       .query("shipping_provider_oauth_tokens")
-      .withIndex("by_connection", (q: any) =>
+      .withIndex("by_connection", (q) =>
         q.eq("connectionId", connection._id),
       )
       .collect();

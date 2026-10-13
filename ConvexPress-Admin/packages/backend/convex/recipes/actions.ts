@@ -1,7 +1,7 @@
 "use node";
 
 import { ConvexError } from "convex/values";
-import { action } from "../_generated/server";
+import { action, type ActionCtx } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import { extractRecipeFromImageArgs } from "./validators";
@@ -22,9 +22,7 @@ function fallbackModelForProvider(provider: AiProvider): string {
   return "anthropic/claude-opus-4.7";
 }
 
-async function resolveAiSettings(ctx: {
-  runQuery: (queryRef: any, args?: any) => Promise<any>;
-}) {
+async function resolveAiSettings(ctx: Pick<ActionCtx, "runQuery">) {
   const settings = (await ctx.runQuery(internal.settings.internals.getInternal, {
     section: "ai",
   })) as Record<string, unknown> | null;
@@ -41,29 +39,84 @@ async function resolveAiSettings(ctx: {
   };
 }
 
-function parseJsonResponse(raw: string) {
+interface ExtractedRecipe {
+  title?: string;
+  excerpt?: string;
+  description?: string;
+  prepMinutes?: number;
+  cookMinutes?: number;
+  totalMinutes?: number;
+  servings?: string;
+  yieldText?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  ingredients?: string[];
+  instructions?: string[];
+  notes?: string;
+  categorySuggestions?: string[];
+  scannedText?: string;
+}
+
+/**
+ * Parse the model's JSON into the exact extraction shape. The model may return
+ * nulls, wrong types, or extra keys; those are dropped rather than forwarded.
+ */
+function parseJsonResponse(raw: string): ExtractedRecipe {
   const cleaned = raw
     .trim()
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/, "");
 
-  return JSON.parse(cleaned) as {
-    title?: string;
-    excerpt?: string;
-    description?: string;
-    prepMinutes?: number;
-    cookMinutes?: number;
-    totalMinutes?: number;
-    servings?: string;
-    yieldText?: string;
-    difficulty?: "easy" | "medium" | "hard";
-    ingredients?: string[];
-    instructions?: string[];
-    notes?: string;
-    categorySuggestions?: string[];
-    scannedText?: string;
+  const parsed: unknown = JSON.parse(cleaned);
+  const field = (key: string): unknown =>
+    typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? Object.getOwnPropertyDescriptor(parsed, key)?.value
+      : undefined;
+  const text = (key: string) => {
+    const value = field(key);
+    return typeof value === "string" ? value : undefined;
   };
+  const count = (key: string) => {
+    const value = field(key);
+    return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  };
+  const list = (key: string) => {
+    const value = field(key);
+    return Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === "string")
+      : undefined;
+  };
+  const difficulty = field("difficulty");
+  return {
+    title: text("title"),
+    excerpt: text("excerpt"),
+    description: text("description"),
+    prepMinutes: count("prepMinutes"),
+    cookMinutes: count("cookMinutes"),
+    totalMinutes: count("totalMinutes"),
+    servings: text("servings"),
+    yieldText: text("yieldText"),
+    difficulty:
+      difficulty === "easy" || difficulty === "medium" || difficulty === "hard" ? difficulty : undefined,
+    ingredients: list("ingredients"),
+    instructions: list("instructions"),
+    notes: text("notes"),
+    categorySuggestions: list("categorySuggestions"),
+    scannedText: text("scannedText"),
+  };
+}
+
+type AnthropicImageMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+function anthropicImageMediaType(mimeType: string): AnthropicImageMediaType {
+  if (mimeType === "image/png" || mimeType === "image/gif" || mimeType === "image/webp") {
+    return mimeType;
+  }
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "image/jpeg";
+  throw new ConvexError({
+    code: "VALIDATION_ERROR",
+    message: "Recipe scans must be JPEG, PNG, GIF, or WebP images for this AI provider.",
+  });
 }
 
 async function extractWithAnthropic(
@@ -89,7 +142,7 @@ async function extractWithAnthropic(
             type: "image",
             source: {
               type: "base64",
-              media_type: mimeType as any,
+              media_type: anthropicImageMediaType(mimeType),
               data: base64Data,
             },
           },
@@ -348,9 +401,6 @@ Rules:
     const parsed = parseJsonResponse(raw);
     return {
       ...parsed,
-      prepMinutes: parsed.prepMinutes ?? undefined,
-      cookMinutes: parsed.cookMinutes ?? undefined,
-      totalMinutes: parsed.totalMinutes ?? undefined,
       scanMediaId: args.mediaId,
       aiExtractedFromScan: true,
     };

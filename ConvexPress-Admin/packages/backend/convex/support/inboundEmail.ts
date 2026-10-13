@@ -18,7 +18,8 @@
 
 import { v } from "convex/values";
 
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import {
   parseInboundChannelSecurity,
   type InboundChannelSecurity,
@@ -52,7 +53,7 @@ export const getInboundChannelSecurity = internalQuery({
     }
     const channel = await ctx.db
       .query("support_channels")
-      .withIndex("by_code", (q: any) => q.eq("code", args.channelCode))
+      .withIndex("by_code", (q) => q.eq("code", args.channelCode))
       .unique();
     if (!channel) {
       return { exists: false as const, active: false as const };
@@ -121,7 +122,7 @@ export const recordInboundEmail = internalMutation({
     // 1. Resolve channel.
     const channel = await ctx.db
       .query("support_channels")
-      .withIndex("by_code", (q: any) => q.eq("code", args.channelCode))
+      .withIndex("by_code", (q) => q.eq("code", args.channelCode))
       .unique();
     if (!channel) {
       return { ok: false as const, reason: "channel_not_found" as const };
@@ -133,7 +134,7 @@ export const recordInboundEmail = internalMutation({
     // 2. Idempotency guard.
     const prior = await ctx.db
       .query("support_inbound_events")
-      .withIndex("by_channel_external_id", (q: any) =>
+      .withIndex("by_channel_external_id", (q) =>
         q.eq("channelId", channel._id).eq("externalId", args.externalId),
       )
       .unique();
@@ -149,7 +150,7 @@ export const recordInboundEmail = internalMutation({
     // 3. Resolve user — required by tickets schema.
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: any) =>
+      .withIndex("by_email", (q) =>
         q.eq("email", args.fromEmail.toLowerCase()),
       )
       .unique();
@@ -175,11 +176,11 @@ export const recordInboundEmail = internalMutation({
     }
 
     // 4. Existing-ticket append path.
-    let ticketId: any = undefined;
+    let ticketId: Id<"ticket_tickets"> | undefined = undefined;
     if (args.ticketNumber) {
       const existing = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_ticket_number", (q: any) =>
+        .withIndex("by_ticket_number", (q) =>
           q.eq("ticketNumber", args.ticketNumber!),
         )
         .unique();
@@ -198,7 +199,7 @@ export const recordInboundEmail = internalMutation({
           isInternal: false,
           createdAt: args.receivedAt,
         });
-        await patchDynamicWithMediaReferences(ctx, ticketId, {
+        await patchDynamicWithMediaReferences(ctx, existing._id, {
           status:
             existing.status === "closed"
               ? ("open" as const)
@@ -279,13 +280,13 @@ export const recordInboundEmail = internalMutation({
   },
 });
 
-async function allocateTicketNumber(ctx: any, nowMs: number): Promise<string> {
+async function allocateTicketNumber(ctx: Pick<MutationCtx, "db">, nowMs: number): Promise<string> {
   const d = new Date(nowMs);
   const year = d.getUTCFullYear();
   const month = d.getUTCMonth() + 1;
   const counterRow = await ctx.db
     .query("ticket_counters")
-    .withIndex("by_year_month", (q: any) =>
+    .withIndex("by_year_month", (q) =>
       q.eq("year", year).eq("month", month),
     )
     .unique();

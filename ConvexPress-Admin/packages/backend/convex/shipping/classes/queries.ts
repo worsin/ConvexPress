@@ -3,17 +3,17 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 export const list = query({
   args: {},
-  returns: v.array(tableDocs.commerce_shipping_classes),
+  returns: v.array(shippingDocs.commerce_shipping_classes),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.classes.read");
     const classes = await ctx.db
       .query("commerce_shipping_classes")
       .withIndex("by_sort_order")
       .collect();
-    return classes.sort((a: any, b: any) => {
+    return classes.sort((a, b) => {
       if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
       return a.name.localeCompare(b.name);
     });
@@ -22,7 +22,7 @@ export const list = query({
 
 export const get = query({
   args: { classId: v.id("commerce_shipping_classes") },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_classes),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_classes),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.classes.read");
     return ctx.db.get(args.classId);
@@ -31,12 +31,12 @@ export const get = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_shipping_classes),
+  returns: v.union(v.null(), shippingDocs.commerce_shipping_classes),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.classes.read");
     return ctx.db
       .query("commerce_shipping_classes")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
   },
 });
@@ -51,11 +51,11 @@ export const countProductsPerClass = query({
     for (const cls of classes) {
       const products = await ctx.db
         .query("commerce_products")
-        .withIndex("by_shipping_class", (q: any) => q.eq("shippingClassId", cls._id))
+        .withIndex("by_shipping_class", (q) => q.eq("shippingClassId", cls._id))
         .collect();
       const variants = await ctx.db
         .query("commerce_product_variants")
-        .withIndex("by_shipping_class", (q: any) => q.eq("shippingClassId", cls._id))
+        .withIndex("by_shipping_class", (q) => q.eq("shippingClassId", cls._id))
         .collect();
       counts[cls._id] = { productCount: products.length, variantCount: variants.length };
     }

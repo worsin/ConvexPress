@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Shared types for all source adapters.
  */

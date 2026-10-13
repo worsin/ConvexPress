@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 import { mutation, internalMutation } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
@@ -9,6 +9,23 @@ import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } fro
 // Slug generation helper
 function slugify(value: string): string {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28);
+}
+
+type AttributeType = Doc<"commerce_product_attributes">["type"];
+type AttributeOrderBy = Doc<"commerce_product_attributes">["orderBy"];
+const ATTRIBUTE_TYPES: readonly AttributeType[] = ["select", "text"];
+const ATTRIBUTE_ORDER_BY: readonly AttributeOrderBy[] = ["menu_order", "name", "name_num", "id"];
+
+/** Sync callers pass free-form strings; only schema values are stored. */
+function attributeType(value: string): AttributeType {
+  const match = ATTRIBUTE_TYPES.find((type) => type === value);
+  if (!match) throw new ConvexError({ code: "validation_error", message: `Unsupported attribute type "${value}".` });
+  return match;
+}
+function attributeOrderBy(value: string): AttributeOrderBy {
+  const match = ATTRIBUTE_ORDER_BY.find((orderBy) => orderBy === value);
+  if (!match) throw new ConvexError({ code: "validation_error", message: `Unsupported attribute order "${value}".` });
+  return match;
 }
 
 // --- Admin-facing mutations ---
@@ -22,14 +39,15 @@ export const createAttribute = mutation({
     orderBy: v.optional(v.union(v.literal("menu_order"), v.literal("name"), v.literal("name_num"), v.literal("id"))),
     hasArchives: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_attributes"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
     const slug = slugify(args.slug || args.name);
     if (slug.length === 0) throw new ConvexError({ code: "validation_error", message: "Attribute name is required." });
     if (slug.length > 28) throw new ConvexError({ code: "validation_error", message: "Attribute slug must be 28 characters or less." });
 
-    const existing = await ctx.db.query("commerce_product_attributes").withIndex("by_slug", (q: any) => q.eq("slug", slug)).unique();
+    const existing = await ctx.db.query("commerce_product_attributes").withIndex("by_slug", (q) => q.eq("slug", slug)).unique();
     if (existing) throw new ConvexError({ code: "duplicate", message: `Attribute "${slug}" already exists.` });
 
     const now = Date.now();
@@ -54,13 +72,14 @@ export const updateAttribute = mutation({
     orderBy: v.optional(v.union(v.literal("menu_order"), v.literal("name"), v.literal("name_num"), v.literal("id"))),
     hasArchives: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_attributes"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
-    const attr = await ctx.db.get(args.attributeId);
+    const attr = await ctx.db.get("commerce_product_attributes", args.attributeId);
     if (!attr) throw new ConvexError({ code: "not_found", message: "Attribute not found." });
 
-    const patch: any = { updatedAt: Date.now() };
+    const patch: Partial<Doc<"commerce_product_attributes">> = { updatedAt: Date.now() };
     if (args.label !== undefined) patch.label = args.label.trim();
     if (args.type !== undefined) patch.type = args.type;
     if (args.orderBy !== undefined) patch.orderBy = args.orderBy;
@@ -74,14 +93,14 @@ export const updateAttribute = mutation({
 export const deleteAttribute = mutation({
   args: { attributeId: v.id("commerce_product_attributes") },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
-    const attr = await ctx.db.get(args.attributeId);
+    const attr = await ctx.db.get("commerce_product_attributes", args.attributeId);
     if (!attr) throw new ConvexError({ code: "not_found", message: "Attribute not found." });
 
     // Cascade delete all terms
-    const terms = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute", (q: any) => q.eq("attributeId", args.attributeId)).collect();
+    const terms = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute", (q) => q.eq("attributeId", args.attributeId)).collect();
     for (const term of terms) {
       await deleteDynamicWithMediaReferences(ctx, term._id);
     }
@@ -99,17 +118,18 @@ export const createTerm = mutation({
     description: v.optional(v.string()),
     menuOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_attribute_terms"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
-    const attr = await ctx.db.get(args.attributeId);
+    const attr = await ctx.db.get("commerce_product_attributes", args.attributeId);
     if (!attr) throw new ConvexError({ code: "not_found", message: "Attribute not found." });
 
     const slug = slugify(args.slug || args.name);
-    const existing = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute_slug", (q: any) => q.eq("attributeId", args.attributeId).eq("slug", slug)).unique();
+    const existing = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute_slug", (q) => q.eq("attributeId", args.attributeId).eq("slug", slug)).unique();
     if (existing) throw new ConvexError({ code: "duplicate", message: `Term "${slug}" already exists in this attribute.` });
 
-    const terms = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute", (q: any) => q.eq("attributeId", args.attributeId)).collect();
+    const terms = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute", (q) => q.eq("attributeId", args.attributeId)).collect();
     const now = Date.now();
     return ctx.db.insert("commerce_product_attribute_terms", {
       attributeId: args.attributeId,
@@ -132,13 +152,14 @@ export const updateTerm = mutation({
     description: v.optional(v.string()),
     menuOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_attribute_terms"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
-    const term = await ctx.db.get(args.termId);
+    const term = await ctx.db.get("commerce_product_attribute_terms", args.termId);
     if (!term) throw new ConvexError({ code: "not_found", message: "Term not found." });
 
-    const patch: any = { updatedAt: Date.now() };
+    const patch: Partial<Doc<"commerce_product_attribute_terms">> = { updatedAt: Date.now() };
     if (args.name !== undefined) patch.name = args.name.trim();
     if (args.slug !== undefined) patch.slug = slugify(args.slug);
     if (args.description !== undefined) patch.description = args.description?.trim();
@@ -152,10 +173,10 @@ export const updateTerm = mutation({
 export const deleteTerm = mutation({
   args: { termId: v.id("commerce_product_attribute_terms") },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
-    const term = await ctx.db.get(args.termId);
+    const term = await ctx.db.get("commerce_product_attribute_terms", args.termId);
     if (!term) throw new ConvexError({ code: "not_found", message: "Term not found." });
     await deleteDynamicWithMediaReferences(ctx, args.termId);
     return { success: true };
@@ -168,7 +189,7 @@ export const reorderTerms = mutation({
     termIds: v.array(v.id("commerce_product_attribute_terms")),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -189,16 +210,17 @@ export const upsertAttribute = internalMutation({
     orderBy: v.optional(v.string()),
     hasArchives: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_attributes"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     const now = Date.now();
-    const existing = await ctx.db.query("commerce_product_attributes").withIndex("by_slug", (q: any) => q.eq("slug", args.slug)).unique();
+    const existing = await ctx.db.query("commerce_product_attributes").withIndex("by_slug", (q) => q.eq("slug", args.slug)).unique();
 
     if (existing) {
       await patchDynamicWithMediaReferences(ctx, existing._id, {
         label: args.label,
-        type: args.type ?? existing.type,
-        orderBy: args.orderBy ?? existing.orderBy,
+        type: args.type === undefined ? existing.type : attributeType(args.type),
+        orderBy: args.orderBy === undefined ? existing.orderBy : attributeOrderBy(args.orderBy),
         hasArchives: args.hasArchives ?? existing.hasArchives,
         updatedAt: now,
       });
@@ -209,8 +231,8 @@ export const upsertAttribute = internalMutation({
       name: args.slug,
       label: args.label,
       slug: args.slug,
-      type: (args.type as any) ?? "select",
-      orderBy: (args.orderBy as any) ?? "menu_order",
+      type: args.type === undefined ? "select" : attributeType(args.type),
+      orderBy: args.orderBy === undefined ? "menu_order" : attributeOrderBy(args.orderBy),
       hasArchives: args.hasArchives ?? false,
       createdAt: now,
       updatedAt: now,
@@ -226,10 +248,11 @@ export const upsertTerm = internalMutation({
     description: v.optional(v.string()),
     menuOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_attribute_terms"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     const now = Date.now();
-    const existing = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute_slug", (q: any) => q.eq("attributeId", args.attributeId).eq("slug", args.slug)).unique();
+    const existing = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute_slug", (q) => q.eq("attributeId", args.attributeId).eq("slug", args.slug)).unique();
 
     if (existing) {
       await patchDynamicWithMediaReferences(ctx, existing._id, {

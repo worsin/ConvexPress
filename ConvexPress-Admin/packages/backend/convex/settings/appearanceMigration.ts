@@ -2,26 +2,23 @@ import type { RequestReadLedger } from "../helpers/requestReadLedger";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { getDefaults } from "./defaults";
+import { readSectionValues, type SectionValues } from "./sectionValues";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { settingsRecord as record } from "../helpers/settingsReader";
 
 type Fields = Record<string, unknown>;
-export interface AppearanceValues {
-  active: string;
-  overrides: Record<string, string>;
-  variants: Record<string, string>;
-  settings: Record<string, Record<string, Fields>>;
-}
-const record = (value: unknown): Fields => value && typeof value === "object" && !Array.isArray(value) ? value as Fields : {};
+/** The appearance template section at its declared type (JSON field values). */
+export type AppearanceValues = SectionValues<"appearance.template">;
 
 /** Fill legacy values once. Explicit template configuration always wins. */
 export function projectLegacyAppearance(raw: unknown, layout: unknown, palette: unknown): AppearanceValues {
   const source = record(raw);
   const active = typeof source.active === "string" && source.active ? source.active : "core";
-  const settings = { ...record(source.settings) } as AppearanceValues["settings"];
-  const pack = { ...record(settings[active]) } as Record<string, Fields>;
+  const settings: Fields = { ...record(source.settings) };
+  const pack: Fields = { ...record(settings[active]) };
   const shop = { ...record(pack.shop) };
   const colors = { ...record(pack.colors) };
-  const variants = { ...record(source.variants) } as Record<string, string>;
+  const variants: Fields = { ...record(source.variants) };
   const legacy = record(layout);
   for (const [legacyKey, field, surface] of [["shopLayout", "catalogVariant", "shop.catalog"], ["productLayout", "productVariant", "shop.product"]]) {
     const effective = variants[surface] ?? shop[field] ?? legacy[legacyKey];
@@ -38,7 +35,9 @@ export function projectLegacyAppearance(raw: unknown, layout: unknown, palette: 
   if (Object.keys(shop).length) pack.shop = shop;
   if (Object.keys(colors).length) pack.colors = colors;
   if (Object.keys(pack).length) settings[active] = pack;
-  return { active, overrides: { ...record(source.overrides) } as Record<string, string>, variants, settings };
+  // Read the projection back at the section's declared type: entries that are
+  // not text (overrides, variants) or not JSON (field values) are dropped.
+  return readSectionValues("appearance.template", { active, overrides: { ...record(source.overrides) }, variants, settings });
 }
 
 /** Convert former flat Customizer aliases once so nested controls can subsequently change them. */
@@ -74,12 +73,12 @@ export async function readAppearance(ctx: Pick<QueryCtx, "db">, budget?: Request
   budget?.record(doc);
   const version = doc?.legacyAppearanceMigration?.version ?? 0;
   if (version >= 2) {
-    return { doc, values: { ...getDefaults("appearance.template"), ...record(doc?.values) } as unknown as AppearanceValues };
+    return { doc, values: readSectionValues("appearance.template", doc?.values) };
   }
   let values: AppearanceValues;
   if (version >= 1) {
     // Version 1 already cut off palette/shop sources. Never revive resets during the chrome upgrade.
-    values = { ...getDefaults("appearance.template"), ...record(doc?.values) } as unknown as AppearanceValues;
+    values = readSectionValues("appearance.template", doc?.values);
   } else {
     budget?.beforeRead();
     const layout = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "commerce.layout")).unique();
@@ -88,7 +87,7 @@ export async function readAppearance(ctx: Pick<QueryCtx, "db">, budget?: Request
     // never participate in active appearance or resurrect an explicit reset.
     values = projectLegacyAppearance(doc?.values, layout?.values, undefined);
   }
-  const pack = { ...values.settings[values.active] };
+  const pack: Fields = { ...values.settings[values.active] };
   for (const section of ["header", "footer"] as const) {
     budget?.beforeRead();
     const legacy = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", section)).unique();
@@ -96,7 +95,8 @@ export async function readAppearance(ctx: Pick<QueryCtx, "db">, budget?: Request
     const overrides = normalizeChromeAliases(section, record(pack[section]));
     if (legacy || Object.keys(overrides).length) pack[section] = mergeMissing(record(legacy?.values), overrides);
   }
-  return { doc, values: { ...values, settings: { ...values.settings, ...(Object.keys(pack).length ? { [values.active]: pack } : {}) } } };
+  const merged = { ...values, settings: { ...values.settings, ...(Object.keys(pack).length ? { [values.active]: pack } : {}) } };
+  return { doc, values: readSectionValues("appearance.template", merged) };
 
 }
 

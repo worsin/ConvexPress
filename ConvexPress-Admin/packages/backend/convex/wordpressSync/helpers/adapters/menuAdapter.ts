@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Menu Adapter
  *

@@ -4,6 +4,8 @@
 
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
@@ -26,12 +28,12 @@ export const updateTopic = mutation({
     if (!node || node.kind !== "topic") {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Not a topic" });
     }
-    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    const patch: Partial<WithoutSystemFields<Doc<"lms_nodes">>> = { updatedAt: Date.now() };
     if (args.description !== undefined) patch.description = args.description;
     if (args.dripMode !== undefined) patch.topicDripMode = args.dripMode;
     if (args.dripOffsetDays !== undefined) patch.topicDripOffsetDays = args.dripOffsetDays;
     if (args.dripDate !== undefined) patch.topicDripDate = args.dripDate;
-    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, patch as never);
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, patch);
     await emitEvent(ctx, LMS_EVENTS.TOPIC_UPDATED, SYSTEM.LMS, {
       courseId: node.courseId,
       nodeId: args.nodeId,

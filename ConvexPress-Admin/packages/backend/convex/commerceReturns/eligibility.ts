@@ -1,14 +1,11 @@
 import { ConvexError } from "convex/values";
 
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 import { getSettingsDoc, mergeWithDefaults } from "../settings/helpers";
 import { normalizeStoredReturnItems } from "./itemState";
 
-type ReturnsCtx = {
-  db: {
-    get: (id: any) => Promise<any>;
-    query: (table: string) => any;
-  };
-};
+type ReturnsCtx = Pick<QueryCtx, "db">;
 
 export const CUSTOMER_RETURNABLE_ORDER_STATUSES = new Set([
   "completed",
@@ -69,7 +66,7 @@ export interface ReturnEligibilityItem {
 }
 
 async function getReturnsPolicySettings(ctx: ReturnsCtx): Promise<ReturnsPolicySettings> {
-  const doc = await getSettingsDoc(ctx as any, "commerce.general");
+  const doc = await getSettingsDoc(ctx, "commerce.general");
   const settings = mergeWithDefaults(
     "commerce.general",
     doc?.values as Record<string, unknown> | null | undefined,
@@ -85,18 +82,18 @@ async function getReturnsPolicySettings(ctx: ReturnsCtx): Promise<ReturnsPolicyS
 
 async function getOrderDeliveryTimestamp(
   ctx: ReturnsCtx,
-  orderId: any,
-  order: any,
+  orderId: Id<"commerce_orders">,
+  order: Doc<"commerce_orders">,
   requireDeliveryBeforeReturn: boolean,
 ) {
   const shipments = await ctx.db
     .query("commerce_shipments")
-    .withIndex("by_order", (q: any) => q.eq("orderId", orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
     .collect();
 
   const deliveredTimestamps = shipments
-    .map((shipment: any) => shipment.deliveredAt)
-    .filter((value: any): value is number => typeof value === "number");
+    .map((shipment) => shipment.deliveredAt)
+    .filter((value): value is number => typeof value === "number");
 
   if (deliveredTimestamps.length > 0) {
     return Math.max(...deliveredTimestamps);
@@ -114,8 +111,8 @@ async function getOrderDeliveryTimestamp(
 }
 
 function normalizeReturnItems(
-  returnRequest: any,
-  returnItems?: any[],
+  returnRequest: Doc<"commerce_return_requests">,
+  returnItems?: Doc<"commerce_return_items">[],
 ): Array<{ orderItemId: string; quantity: number }> {
   return normalizeStoredReturnItems(returnRequest, returnItems).map((item) => ({
     orderItemId: item.orderItemId ?? "",
@@ -124,10 +121,10 @@ function normalizeReturnItems(
 }
 
 export function buildRequestedQuantityMap(
-  returnRequests: any[],
+  returnRequests: Doc<"commerce_return_requests">[],
   options?: {
     excludeReturnId?: string;
-    returnItemsByReturnId?: Map<string, any[]>;
+    returnItemsByReturnId?: Map<string, Doc<"commerce_return_items">[]>;
   },
 ) {
   const quantities = new Map<string, number>();
@@ -209,8 +206,8 @@ export function assertValidRequestedItems(
 export async function getCustomerOrderReturnEligibility(
   ctx: ReturnsCtx,
   args: {
-    orderId: any;
-    userId: any;
+    orderId: Id<"commerce_orders">;
+    userId: Id<"users">;
     excludeReturnId?: string;
   },
 ) {
@@ -233,20 +230,20 @@ export async function getCustomerOrderReturnEligibility(
 
   const orderItems = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
     .collect();
 
   const existingReturns = await ctx.db
     .query("commerce_return_requests")
-    .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
     .collect();
 
-  const returnItemsByReturnId = new Map<string, any[]>();
+  const returnItemsByReturnId = new Map<string, Doc<"commerce_return_items">[]>();
   await Promise.all(
-    existingReturns.map(async (returnRequest: any) => {
+    existingReturns.map(async (returnRequest) => {
       const returnItems = await ctx.db
         .query("commerce_return_items")
-        .withIndex("by_return_request", (q: any) =>
+        .withIndex("by_return_request", (q) =>
           q.eq("returnRequestId", returnRequest._id),
         )
         .collect();
@@ -261,8 +258,7 @@ export async function getCustomerOrderReturnEligibility(
     returnItemsByReturnId,
   });
 
-  const orderItemsList: any[] = orderItems as any[];
-  const items: ReturnEligibilityItem[] = orderItemsList.map((item: any) => {
+  const items: ReturnEligibilityItem[] = orderItems.map((item) => {
     const alreadyRequested = requestedQuantities.get(item._id.toString()) ?? 0;
     const available = Math.max(0, item.quantity - alreadyRequested);
 

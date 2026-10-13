@@ -29,8 +29,18 @@ import {
   getDefaults,
   TICKET_GENERAL_DEFAULTS,
   TICKET_SLA_DEFAULTS,
+  type TicketGeneralSettings,
+  type TicketSlaSettings,
 } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
+import {
+  choiceSetting,
+  listSetting,
+  numberSetting,
+  readSettingsGroup,
+  settingsRecord,
+  type SettingsSpec,
+} from "../helpers/settingsReader";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
@@ -45,6 +55,24 @@ import { insertWithMediaReferences, patchWithMediaReferences } from "../media/at
  *
  * @auth ticket.viewAll capability required
  */
+function ticketCategory(value: unknown): TicketGeneralSettings["categories"][number] | null {
+  const entry = settingsRecord(value);
+  return typeof entry.value === "string" && typeof entry.label === "string"
+    ? { value: entry.value, label: entry.label }
+    : null;
+}
+
+const TICKET_GENERAL_SPEC: SettingsSpec<TicketGeneralSettings> = {
+  categories: listSetting(ticketCategory),
+  defaultPriority: choiceSetting(["low", "medium", "high", "urgent"]),
+  autoCloseAfterDays: numberSetting,
+};
+
+const TICKET_SLA_SPEC: SettingsSpec<TicketSlaSettings> = {
+  firstResponseTarget: numberSetting,
+  resolutionTarget: numberSetting,
+};
+
 export const getTicketSettings = query({
   args: {},
   returns: v.union(v.null(), v.object({
@@ -60,25 +88,16 @@ export const getTicketSettings = query({
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 
-    // Load both ticket sections, merging stored values with defaults
-    const sections = ["ticket.general", "ticket.sla"] as const;
-    const result: Record<string, Record<string, unknown>> = {};
-
-    for (const section of sections) {
-      const defaults = getDefaults(section);
-      const doc = await ctx.db
+    // Load both ticket sections, each read field by field over its defaults
+    const read = async (section: "ticket.general" | "ticket.sla") =>
+      (await ctx.db
         .query("settings")
         .withIndex("by_section", (q) => q.eq("section", section))
-        .unique();
-
-      result[section] = doc
-        ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-        : { ...defaults };
-    }
+        .unique())?.values;
 
     return {
-      general: result["ticket.general"] as unknown as typeof TICKET_GENERAL_DEFAULTS,
-      sla: result["ticket.sla"] as unknown as typeof TICKET_SLA_DEFAULTS,
+      general: readSettingsGroup(TICKET_GENERAL_SPEC, TICKET_GENERAL_DEFAULTS, await read("ticket.general")),
+      sla: readSettingsGroup(TICKET_SLA_SPEC, TICKET_SLA_DEFAULTS, await read("ticket.sla")),
     };
   },
 });

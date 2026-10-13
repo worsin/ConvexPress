@@ -34,6 +34,7 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
+import { revisionsDocs } from "../schema/revisions.docs.generated";
 // ─── Shared Helper: Resolve Author Data ─────────────────────────────────────
 
 /**
@@ -82,6 +83,66 @@ async function resolveRevisionAuthor(
  */
 export const listByPost: import("convex/server").RegisteredQuery<"public", { parentId: import("../_generated/dataModel").Id<"posts">; type?: import("../_generated/dataModel").Doc<"revisions">["type"]; limit?: number }, { revisions: Array<import("../_generated/dataModel").Doc<"revisions"> & { details: ReturnType<typeof authoringDetails>; authorName: string; authorAvatar: string | undefined }>; total: number; hasMore: boolean }> = query({
   args: listByPostArgs,
+  returns: v.object({
+    revisions: v.array(v.object({
+      details: v.string(),
+      authorName: v.string(),
+      authorAvatar: v.optional(v.string()),
+      _id: v.id("revisions"),
+      _creationTime: v.number(),
+      blocks: revisionsDocs.revisions.fields.blocks,
+      composedDefinitions: v.optional(v.object({
+        scope: v.object({ websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string() }),
+        definitions: v.array(v.object({ name: v.string(), version: v.number(), digest: v.string(), definitionJson: v.string() })),
+      })),
+      summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+      excerpt: v.optional(v.string()),
+      featuredImageId: v.optional(v.id("media")),
+      pageTemplate: v.optional(v.string()),
+      blocksVersion: v.optional(v.number()),
+      blocksRevision: v.optional(v.number()),
+      layoutId: v.optional(v.string()),
+      hideHeader: v.optional(v.boolean()),
+      hideFooter: v.optional(v.boolean()),
+      autosaveContent: v.optional(v.string()),
+      autosaveTitle: v.optional(v.string()),
+      autosavedAt: v.optional(v.number()),
+      hero: v.optional(v.object({
+        title: v.optional(v.string()),
+        content: v.optional(v.string()),
+        subtitle: v.optional(v.string()),
+        imageId: v.optional(v.id("media")),
+        videoUrl: v.optional(v.string()),
+        ctaText: v.optional(v.string()),
+        ctaUrl: v.optional(v.string()),
+      })),
+      topics: v.optional(v.array(v.object({
+        title: v.optional(v.string()),
+        content: v.optional(v.string()),
+        subtitle: v.optional(v.string()),
+        imageId: v.optional(v.id("media")),
+        videoUrl: v.optional(v.string()),
+      }))),
+      sources: v.optional(v.string()),
+      tableOfContents: v.optional(v.string()),
+      pagePrompt: v.optional(v.string()),
+      snapshotVersion: v.optional(v.union(v.literal(1), v.literal(2))),
+      contentMode: v.optional(v.union(v.literal("blocks"), v.literal("article"))),
+      pageSections: revisionsDocs.revisions.fields.pageSections,
+      type: v.union(v.literal("manual"), v.literal("autosave")),
+      title: v.string(),
+      createdAt: v.number(),
+      authorId: v.string(),
+      parentId: v.id("posts"),
+      content: v.string(),
+      parentType: v.union(v.literal("post"), v.literal("page")),
+      revisionNumber: v.number(),
+      changedFields: v.array(v.string()),
+      contentLength: v.number(),
+    })),
+    total: v.number(),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -162,6 +223,61 @@ export const listByPost: import("convex/server").RegisteredQuery<"public", { par
  */
 export const get = query({
   args: getRevisionArgs,
+  returns: v.object({
+    authorName: v.string(),
+    authorAvatar: v.optional(v.string()),
+    _id: v.id("revisions"),
+    _creationTime: v.number(),
+    blocks: revisionsDocs.revisions.fields.blocks,
+    composedDefinitions: v.optional(v.object({
+      scope: v.object({ websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string() }),
+      definitions: v.array(v.object({ name: v.string(), version: v.number(), digest: v.string(), definitionJson: v.string() })),
+    })),
+    summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+    excerpt: v.optional(v.string()),
+    featuredImageId: v.optional(v.id("media")),
+    pageTemplate: v.optional(v.string()),
+    blocksVersion: v.optional(v.number()),
+    blocksRevision: v.optional(v.number()),
+    layoutId: v.optional(v.string()),
+    hideHeader: v.optional(v.boolean()),
+    hideFooter: v.optional(v.boolean()),
+    autosaveContent: v.optional(v.string()),
+    autosaveTitle: v.optional(v.string()),
+    autosavedAt: v.optional(v.number()),
+    hero: v.optional(v.object({
+      title: v.optional(v.string()),
+      content: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      imageId: v.optional(v.id("media")),
+      videoUrl: v.optional(v.string()),
+      ctaText: v.optional(v.string()),
+      ctaUrl: v.optional(v.string()),
+    })),
+    topics: v.optional(v.array(v.object({
+      title: v.optional(v.string()),
+      content: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      imageId: v.optional(v.id("media")),
+      videoUrl: v.optional(v.string()),
+    }))),
+    sources: v.optional(v.string()),
+    tableOfContents: v.optional(v.string()),
+    pagePrompt: v.optional(v.string()),
+    snapshotVersion: v.optional(v.union(v.literal(1), v.literal(2))),
+    contentMode: v.optional(v.union(v.literal("blocks"), v.literal("article"))),
+    pageSections: revisionsDocs.revisions.fields.pageSections,
+    type: v.union(v.literal("manual"), v.literal("autosave")),
+    title: v.string(),
+    createdAt: v.number(),
+    authorId: v.string(),
+    parentId: v.id("posts"),
+    content: v.string(),
+    parentType: v.union(v.literal("post"), v.literal("page")),
+    revisionNumber: v.number(),
+    changedFields: v.array(v.string()),
+    contentLength: v.number(),
+  }),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -220,6 +336,39 @@ type ComparisonResult = { left: ComparisonSide; right: ComparisonSide; parentId:
 type ComparisonArgs = { leftRevisionId: Id<"revisions">; rightRevisionId: Id<"revisions"> };
 export const compare: RegisteredQuery<"public", ComparisonArgs, Promise<ComparisonResult>> = query({
   args: compareRevisionsArgs,
+  returns: v.object({
+    left: v.object({
+      type: v.union(v.literal("manual"), v.literal("autosave")),
+      title: v.string(),
+      createdAt: v.number(),
+      excerpt: v.optional(v.string()),
+      content: v.string(),
+      revisionNumber: v.number(),
+      changedFields: v.array(v.string()),
+      contentLength: v.number(),
+      _id: v.id("revisions"),
+      details: v.string(),
+      authorName: v.string(),
+      authorAvatar: v.optional(v.string()),
+    }),
+    right: v.object({
+      type: v.union(v.literal("manual"), v.literal("autosave")),
+      title: v.string(),
+      createdAt: v.number(),
+      excerpt: v.optional(v.string()),
+      content: v.string(),
+      revisionNumber: v.number(),
+      changedFields: v.array(v.string()),
+      contentLength: v.number(),
+      _id: v.id("revisions"),
+      details: v.string(),
+      authorName: v.string(),
+      authorAvatar: v.optional(v.string()),
+    }),
+    parentId: v.id("posts"),
+    parentTitle: v.string(),
+    totalRevisions: v.number(),
+  }),
   handler: async (ctx: QueryCtx, args: ComparisonArgs): Promise<ComparisonResult> => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -362,6 +511,61 @@ export const count = query({
  */
 export const getLatest = query({
   args: getLatestRevisionArgs,
+  returns: v.union(v.null(), v.object({
+    authorName: v.string(),
+    authorAvatar: v.optional(v.string()),
+    _id: v.id("revisions"),
+    _creationTime: v.number(),
+    blocks: revisionsDocs.revisions.fields.blocks,
+    composedDefinitions: v.optional(v.object({
+      scope: v.object({ websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string() }),
+      definitions: v.array(v.object({ name: v.string(), version: v.number(), digest: v.string(), definitionJson: v.string() })),
+    })),
+    summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+    excerpt: v.optional(v.string()),
+    featuredImageId: v.optional(v.id("media")),
+    pageTemplate: v.optional(v.string()),
+    blocksVersion: v.optional(v.number()),
+    blocksRevision: v.optional(v.number()),
+    layoutId: v.optional(v.string()),
+    hideHeader: v.optional(v.boolean()),
+    hideFooter: v.optional(v.boolean()),
+    autosaveContent: v.optional(v.string()),
+    autosaveTitle: v.optional(v.string()),
+    autosavedAt: v.optional(v.number()),
+    hero: v.optional(v.object({
+      title: v.optional(v.string()),
+      content: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      imageId: v.optional(v.id("media")),
+      videoUrl: v.optional(v.string()),
+      ctaText: v.optional(v.string()),
+      ctaUrl: v.optional(v.string()),
+    })),
+    topics: v.optional(v.array(v.object({
+      title: v.optional(v.string()),
+      content: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      imageId: v.optional(v.id("media")),
+      videoUrl: v.optional(v.string()),
+    }))),
+    sources: v.optional(v.string()),
+    tableOfContents: v.optional(v.string()),
+    pagePrompt: v.optional(v.string()),
+    snapshotVersion: v.optional(v.union(v.literal(1), v.literal(2))),
+    contentMode: v.optional(v.union(v.literal("blocks"), v.literal("article"))),
+    pageSections: revisionsDocs.revisions.fields.pageSections,
+    type: v.union(v.literal("manual"), v.literal("autosave")),
+    title: v.string(),
+    createdAt: v.number(),
+    authorId: v.string(),
+    parentId: v.id("posts"),
+    content: v.string(),
+    parentType: v.union(v.literal("post"), v.literal("page")),
+    revisionNumber: v.number(),
+    changedFields: v.array(v.string()),
+    contentLength: v.number(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {

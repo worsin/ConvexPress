@@ -1,17 +1,19 @@
 import type { Doc } from "../../_generated/dataModel";
+import type { QueryCtx } from "../../_generated/server";
 /**
  * Course System - queries.
  */
 
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan } from "../../helpers/permissions";
 import { lmsCourseStatusValidator } from "../../schema/lms";
 import { canUserAccessCourse, requireCourseAuthorOrEditor } from "../access";
 import { docToText } from "../lessons/helpers";
+import { publicCoursePayloadValidator } from "./validators";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { lmsDocs } from "../../schema/lms.docs.generated";
 const catalogSortValidator = v.union(
   v.literal("newest"),
   v.literal("title_asc"),
@@ -19,7 +21,7 @@ const catalogSortValidator = v.union(
   v.literal("popular"),
 );
 
-function publicCoursePayload(course: Doc<"lms_courses">) {
+function publicCoursePayload(course: Doc<"lms_courses">): Infer<typeof publicCoursePayloadValidator> {
   return {
     _id: course._id,
     title: course.title,
@@ -53,7 +55,7 @@ export const list = query({
     status: v.optional(lmsCourseStatusValidator),
     search: v.optional(v.string()),
   },
-  returns: v.array(tableDocs.lms_courses),
+  returns: v.array(lmsDocs.lms_courses),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     if (!(await currentUserCan(ctx, "lms.course.view"))) return [];
@@ -79,6 +81,7 @@ export const list = query({
 
 export const getById = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.union(v.null(), lmsDocs.lms_courses, publicCoursePayloadValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const course = await ctx.db.get(args.courseId);
@@ -91,6 +94,7 @@ export const getById = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(v.null(), publicCoursePayloadValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const course = await ctx.db
@@ -107,6 +111,7 @@ export const getBySlug = query({
 
 export const listPublished = query({
   args: {},
+  returns: v.array(publicCoursePayloadValidator),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     const rows = await ctx.db
@@ -126,6 +131,21 @@ export const listCatalog = query({
     accessMode: v.optional(v.string()),
     sort: v.optional(catalogSortValidator),
   },
+  returns: v.array(v.object({
+    _id: v.id("lms_courses"),
+    title: v.string(),
+    slug: v.string(),
+    excerpt: v.optional(v.string()),
+    featuredImageId: v.optional(v.id("media")),
+    accessMode: v.union(v.literal("open"), v.literal("closed"), v.literal("recurring"), v.literal("free"), v.literal("members"), v.literal("buy")),
+    categoryIds: v.array(v.string()),
+    tagIds: v.array(v.string()),
+    lessonCount: v.number(),
+    topicCount: v.number(),
+    allowed: v.boolean(),
+    accessReason: v.string(),
+    requiresLogin: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     const courses = await getFilteredCatalogCourses(ctx, args);
@@ -144,6 +164,27 @@ export const getCatalog = query({
     page: v.optional(v.number()),
     pageSize: v.optional(v.number()),
   },
+  returns: v.object({
+    items: v.array(v.object({
+      _id: v.id("lms_courses"),
+      title: v.string(),
+      slug: v.string(),
+      excerpt: v.optional(v.string()),
+      featuredImageId: v.optional(v.id("media")),
+      accessMode: v.union(v.literal("open"), v.literal("closed"), v.literal("recurring"), v.literal("free"), v.literal("members"), v.literal("buy")),
+      categoryIds: v.array(v.string()),
+      tagIds: v.array(v.string()),
+      lessonCount: v.number(),
+      topicCount: v.number(),
+      allowed: v.boolean(),
+      accessReason: v.string(),
+      requiresLogin: v.boolean(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    pageSize: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { items: [], total: 0, page: 1, pageSize: 12, totalPages: 0 };
@@ -164,22 +205,22 @@ export const getCatalog = query({
 });
 
 async function getFilteredCatalogCourses(
-  ctx: any,
+  ctx: QueryCtx,
   args: {
     search?: string;
     category?: string;
     tag?: string;
     accessMode?: string;
   },
-) {
+): Promise<Doc<"lms_courses">[]> {
   let courses = await ctx.db
     .query("lms_courses")
-    .withIndex("by_status", (q: any) => q.eq("status", "published"))
+    .withIndex("by_status", (q) => q.eq("status", "published"))
     .order("desc")
     .take(500);
   const search = args.search?.trim().toLowerCase();
   if (search) {
-    courses = courses.filter((course: any) =>
+    courses = courses.filter((course) =>
       [
         course.title,
         course.excerpt,
@@ -195,37 +236,41 @@ async function getFilteredCatalogCourses(
   }
   if (args.category) {
     const category = args.category.trim().toLowerCase();
-    courses = courses.filter((course: any) =>
-      (course.categoryIds ?? []).some((entry: string) => entry.toLowerCase() === category),
+    courses = courses.filter((course) =>
+      (course.categoryIds ?? []).some((entry) => entry.toLowerCase() === category),
     );
   }
   if (args.tag) {
     const tag = args.tag.trim().toLowerCase();
-    courses = courses.filter((course: any) =>
-      (course.tagIds ?? []).some((entry: string) => entry.toLowerCase() === tag),
+    courses = courses.filter((course) =>
+      (course.tagIds ?? []).some((entry) => entry.toLowerCase() === tag),
     );
   }
   if (args.accessMode) {
     const accessMode = args.accessMode.trim().toLowerCase();
-    courses = courses.filter((course: any) => (course.accessMode ?? "members") === accessMode);
+    courses = courses.filter((course) => (course.accessMode ?? "members") === accessMode);
   }
   return courses;
 }
 
-async function sortCatalogCourses(ctx: any, courses: any[], sort: string) {
+async function sortCatalogCourses(
+  ctx: QueryCtx,
+  courses: Doc<"lms_courses">[],
+  sort: Infer<typeof catalogSortValidator>,
+): Promise<Doc<"lms_courses">[]> {
   const sorted = [...courses];
   if (sort === "title_asc") {
-    return sorted.sort((a: any, b: any) => a.title.localeCompare(b.title));
+    return sorted.sort((a, b) => a.title.localeCompare(b.title));
   }
   if (sort === "title_desc") {
-    return sorted.sort((a: any, b: any) => b.title.localeCompare(a.title));
+    return sorted.sort((a, b) => b.title.localeCompare(a.title));
   }
   if (sort === "popular") {
     const counts = new Map<string, number>();
-    const courseIds = new Set(sorted.map((course: any) => String(course._id)));
+    const courseIds = new Set(sorted.map((course) => String(course._id)));
     const activeEnrollments = await ctx.db
       .query("lms_enrollments")
-      .withIndex("by_status_expires", (q: any) => q.eq("status", "active"))
+      .withIndex("by_status_expires", (q) => q.eq("status", "active"))
       .take(5000);
     const now = Date.now();
     for (const row of activeEnrollments) {
@@ -234,20 +279,20 @@ async function sortCatalogCourses(ctx: any, courses: any[], sort: string) {
       if (row.expiresAt && row.expiresAt <= now) continue;
       counts.set(courseId, (counts.get(courseId) ?? 0) + 1);
     }
-    return sorted.sort((a: any, b: any) => {
+    return sorted.sort((a, b) => {
       const diff = (counts.get(String(b._id)) ?? 0) - (counts.get(String(a._id)) ?? 0);
       return diff || a.title.localeCompare(b.title);
     });
   }
   return sorted.sort(
-    (a: any, b: any) =>
+    (a, b) =>
       (b.publishedAt ?? b.updatedAt ?? b.createdAt ?? 0) -
         (a.publishedAt ?? a.updatedAt ?? a.createdAt ?? 0) ||
       b.title.localeCompare(a.title),
   );
 }
 
-async function catalogCoursePayload(ctx: any, course: any) {
+async function catalogCoursePayload(ctx: QueryCtx, course: Doc<"lms_courses">) {
   const access = await canUserAccessCourse(ctx, { courseId: course._id });
   return {
     _id: course._id,
@@ -397,7 +442,7 @@ export const getAccessRule = query({
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
     const rules = await ctx.db
       .query("membership_restriction_rules")
-      .withIndex("by_resource", (q: any) =>
+      .withIndex("by_resource", (q) =>
         q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
       )
       .collect();

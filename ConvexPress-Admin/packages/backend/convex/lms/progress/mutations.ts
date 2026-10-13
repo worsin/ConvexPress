@@ -9,7 +9,7 @@ import { summarizeCourseProgress } from "./summary";
 import { insertWithMediaReferences, patchWithMediaReferences , patchDynamicWithMediaReferences} from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { mutation } from "../../_generated/server";
+import { mutation, type MutationCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { requireAuth } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
@@ -17,19 +17,19 @@ import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { canUserAccessNode } from "../access";
 
-async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_courses">) {
+async function recompute(ctx: MutationCtx, userId: Id<"users">, courseId: Id<"lms_courses">) {
   const lessons = await ctx.db
     .query("lms_nodes")
-    .withIndex("by_course_kind", (q: any) => q.eq("courseId", courseId).eq("kind", "lesson"))
+    .withIndex("by_course_kind", (q) => q.eq("courseId", courseId).eq("kind", "lesson"))
     .collect();
   const progressRows = await ctx.db
     .query("lms_progress")
-    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
+    .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId))
     .collect();
   const summary = summarizeCourseProgress(courseId, userId, lessons, progressRows);
   const { percent, total, completedCount: completed } = summary;
   const rec = await ctx.db.query("lms_course_completions")
-    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
+    .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId))
     .first();
 
   if (completed === total && total > 0) {
@@ -52,7 +52,7 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
       if (!certificate?.isActive) return { percent, completed, total };
       const existingIssue = await ctx.db
         .query("lms_certificate_issues")
-        .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
+        .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId))
         .first();
       if (existingIssue?.status === "revoked") {
         if (!canResumeProgressRevocation(existingIssue)) return { percent, completed, total };
@@ -103,9 +103,9 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
     await patchDynamicWithMediaReferences(ctx, rec._id, { percent });
     const issues = await ctx.db
       .query("lms_certificate_issues")
-      .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
+      .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId))
       .collect();
-    for (const issue of issues.filter((i: any) => i.status === "issued")) {
+    for (const issue of issues.filter((i) => i.status === "issued")) {
       await patchWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", issue._id, {
         status: "revoked",
         revokedAt: Date.now(),
@@ -123,10 +123,10 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
   return { percent, completed, total };
 }
 
-async function scheduleCertificatePdfRender(ctx: any, issueId: string) {
+async function scheduleCertificatePdfRender(ctx: MutationCtx, issueId: Id<"lms_certificate_issues">) {
   await ctx.scheduler.runAfter(
     0,
-    (internal as any).lms.certificates.actions.renderCertificatePdf,
+    internal.lms.certificates.actions.renderCertificatePdf,
     { issueId },
   );
 }

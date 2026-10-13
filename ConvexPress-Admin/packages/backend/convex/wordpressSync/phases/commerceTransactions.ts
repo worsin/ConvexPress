@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {insertCountedReview, patchCountedReview} from "../../commerceReviews/ratingIndex";
 /**
  * WordPress Sync - WooCommerce Customers and Orders Import Phase
@@ -7,12 +6,12 @@ import {insertCountedReview, patchCountedReview} from "../../commerceReviews/rat
  * items into the ConvexPress commerce tables as a single resumable phase.
  */
 
-import { internalAction, internalMutation } from "../../_generated/server";
+import { internalAction, internalMutation, internalQuery, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
-import type { PhaseProgress, SyncError } from "../validators";
+import type { ImportConfig, PhaseProgress, SyncError } from "../validators";
 import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
@@ -40,7 +39,11 @@ import { insertWithMediaReferences } from "../../media/attachmentGuard";
 
 const TRANSACTION_BATCH_SIZE = 25;
 
-function getOrderDateWindow(importConfig: any, site: any, job: any) {
+function getOrderDateWindow(
+  importConfig: ImportConfig,
+  site: Pick<Doc<"wordpressSites">, "lastSyncAt">,
+  job: Pick<Doc<"wordpressSyncJobs">, "createdAt">,
+) {
   const afterMs =
     typeof importConfig.filters?.dateRangeStart === "number"
       ? importConfig.filters.dateRangeStart
@@ -216,7 +219,7 @@ export const importBatch = internalAction({
 });
 
 async function importCustomerBatch(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     jobId: Id<"wordpressSyncJobs">;
@@ -224,7 +227,7 @@ async function importCustomerBatch(
     progress: PhaseProgress;
     customerTotal: number;
     isDryRun: boolean;
-    importConfig: any;
+    importConfig: ImportConfig;
     orderDateWindow: { after?: string; before?: string };
   }
 ): Promise<PhaseResult> {
@@ -281,7 +284,7 @@ async function importCustomerBatch(
 
       // Email collision detection for customers
       const customerEmail = customer.email?.trim().toLowerCase();
-      let existingByEmail: any = null;
+      let existingByEmail: Doc<"commerce_customer_profiles"> | null = null;
       if (customerEmail && args.jobId) {
         existingByEmail = await ctx.runQuery(
           internal.wordpressSync.internals.findCustomerByEmail,
@@ -340,7 +343,7 @@ async function importCustomerBatch(
 }
 
 async function importOrderBatch(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     jobId: Id<"wordpressSyncJobs">;
@@ -349,7 +352,7 @@ async function importOrderBatch(
     orderTotal: number;
     customerTotal: number;
     isDryRun: boolean;
-    importConfig: any;
+    importConfig: ImportConfig;
     orderDateWindow: { after?: string; before?: string };
   }
 ): Promise<PhaseResult> {
@@ -466,7 +469,7 @@ async function importOrderBatch(
 }
 
 async function importCouponBatch(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     jobId: Id<"wordpressSyncJobs">;
@@ -476,7 +479,7 @@ async function importCouponBatch(
     orderTotal: number;
     couponTotal: number;
     isDryRun: boolean;
-    importConfig: any;
+    importConfig: ImportConfig;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -648,7 +651,7 @@ async function importCouponBatch(
 }
 
 async function importReviewBatch(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     jobId: Id<"wordpressSyncJobs">;
@@ -659,7 +662,7 @@ async function importReviewBatch(
     couponTotal: number;
     reviewTotal: number;
     isDryRun: boolean;
-    importConfig: any;
+    importConfig: ImportConfig;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -737,9 +740,11 @@ async function importReviewBatch(
           throw new Error("Could not resolve review author");
         }
 
-        const reviewerEmail = review.reviewer_email?.trim().toLowerCase() || undefined;
         const orderId = review.verified
-          ? await findVerifiedPurchaseOrder(ctx, productId, reviewerUserId, reviewerEmail)
+          ? (await ctx.runQuery(
+              internal.wordpressSync.phases.commerceTransactions.findVerifiedPurchaseOrder,
+              { productId, userId: reviewerUserId },
+            )) ?? undefined
           : undefined;
 
         const reviewId = await ctx.runMutation(
@@ -802,7 +807,7 @@ async function importReviewBatch(
 }
 
 async function importCustomerProfile(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   customer: WooCustomer,
   sourceHash?: string,
@@ -854,7 +859,7 @@ async function importCustomerProfile(
 }
 
 async function importSingleOrder(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
   order: WooOrder,
@@ -1022,7 +1027,7 @@ async function importSingleOrder(
 }
 
 async function importOrderPaymentTransaction(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   order: WooOrder,
   orderId: Id<"commerce_orders">,
@@ -1079,7 +1084,7 @@ async function importOrderPaymentTransaction(
 }
 
 async function importOrderRefunds(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
   order: WooOrder,
@@ -1158,7 +1163,7 @@ async function importOrderRefunds(
 }
 
 async function ensureOrderCustomer(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   order: WooOrder,
   jobId?: Id<"wordpressSyncJobs">,
@@ -1244,7 +1249,7 @@ async function ensureOrderCustomer(
 }
 
 async function importCustomerDefaultAddress(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   customerId: Id<"commerce_customer_profiles">,
   addressType: "billing" | "shipping",
   address: WooAddress | undefined,
@@ -1446,7 +1451,7 @@ function deriveReviewTitle(content: string | undefined) {
   return trimmed.slice(0, 80);
 }
 
-function resolveWooDate(primary: string | undefined, fallback: string | undefined) {
+function resolveWooDate(primary: string | null | undefined, fallback: string | null | undefined) {
   const value = primary || fallback;
   if (!value) return undefined;
   const timestamp = new Date(value).getTime();
@@ -1469,27 +1474,19 @@ function buildImportedTransactionId(siteId: Id<"wordpressSites">, order: WooOrde
 }
 
 async function resolveReviewUserId(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   review: WooProductReview,
 ) {
   const reviewerEmail = review.reviewer_email?.trim().toLowerCase();
   if (!reviewerEmail) return undefined;
 
-  const existingCustomer = await ctx.db
-    .query("commerce_customer_profiles")
-    .withIndex("by_email", (q) => q.eq("email", reviewerEmail))
-    .unique();
-  if (existingCustomer?.userId) {
-    return existingCustomer.userId;
-  }
-
-  const existingUser = await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", reviewerEmail))
-    .unique();
-  if (existingUser?._id) {
-    return existingUser._id;
+  const existingUserId = await ctx.runQuery(
+    internal.wordpressSync.phases.commerceTransactions.findReviewAuthor,
+    { email: reviewerEmail },
+  );
+  if (existingUserId) {
+    return existingUserId;
   }
 
   return await ctx.runMutation(
@@ -1502,35 +1499,50 @@ async function resolveReviewUserId(
   );
 }
 
-async function findVerifiedPurchaseOrder(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
-  productId: string,
-  userId?: Id<"users">,
-  reviewerEmail?: string,
-) {
-  const normalizedEmail = reviewerEmail?.trim().toLowerCase();
-  const orders = userId
-    ? await ctx.db
-        .query("commerce_orders")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect()
-    : await ctx.db.query("commerce_orders").collect();
-
-  for (const order of orders) {
-    if (!userId && normalizedEmail && order.email?.trim().toLowerCase() !== normalizedEmail) {
-      continue;
+/** The user behind a review email: the linked customer profile's user, else a user with that email. */
+export const findReviewAuthor = internalQuery({
+  args: { email: v.string() },
+  returns: v.union(v.null(), v.id("users")),
+  handler: async (ctx, { email }) => {
+    const existingCustomer = await ctx.db
+      .query("commerce_customer_profiles")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+    if (existingCustomer?.userId) {
+      return existingCustomer.userId;
     }
-    const items = await ctx.db
-      .query("commerce_order_items")
-      .withIndex("by_order", (q) => q.eq("orderId", order._id))
+
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+    return existingUser?._id ?? null;
+  },
+});
+
+/** An order of `userId` that contains `productId`, used to mark imported reviews as verified purchases. */
+export const findVerifiedPurchaseOrder = internalQuery({
+  args: { productId: v.string(), userId: v.id("users") },
+  returns: v.union(v.null(), v.id("commerce_orders")),
+  handler: async (ctx, { productId, userId }) => {
+    const orders = await ctx.db
+      .query("commerce_orders")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
-    if (items.some((item) => item.productId.toString() === productId.toString())) {
-      return order._id;
-    }
-  }
 
-  return undefined;
-}
+    for (const order of orders) {
+      const items = await ctx.db
+        .query("commerce_order_items")
+        .withIndex("by_order", (q) => q.eq("orderId", order._id))
+        .collect();
+      if (items.some((item) => item.productId.toString() === productId)) {
+        return order._id;
+      }
+    }
+
+    return null;
+  },
+});
 
 export const upsertCustomerProfile = internalMutation({
   args: {
@@ -1563,7 +1575,7 @@ export const upsertCustomerProfile = internalMutation({
     if (targetId) {
       // For updates, conditionally include only defined optional fields to
       // avoid clearing existing values when a later import passes undefined.
-      const patch: any = {
+      const patch: Partial<Omit<Doc<"commerce_customer_profiles">, "_id" | "_creationTime">> = {
         email: customer.email,
         phone: customer.phone,
         totalOrders: customer.totalOrders,
@@ -1995,7 +2007,16 @@ export const upsertDiscountCode = internalMutation({
       targetId = byCode?._id;
     }
 
-    const patch: Record<string, unknown> = {
+    const toProductIds = (ids: string[] | undefined) => {
+      if (!ids) return undefined;
+      const normalized: Id<"commerce_products">[] = [];
+      for (const id of ids) {
+        const productId = ctx.db.normalizeId("commerce_products", id);
+        if (productId) normalized.push(productId);
+      }
+      return normalized;
+    };
+    const patch = {
       code: discount.code,
       description: discount.description,
       status: discount.status,
@@ -2011,8 +2032,9 @@ export const upsertDiscountCode = internalMutation({
       individualUse: discount.individualUse,
       excludeSaleItems: discount.excludeSaleItems,
       perUserUsageLimit: discount.perUserUsageLimit,
-      productIds: discount.productIds as any,
-      excludedProductIds: discount.excludedProductIds as any,
+      // Only local product IDs can be stored; unmapped (e.g. raw WooCommerce) IDs are dropped.
+      productIds: toProductIds(discount.productIds),
+      excludedProductIds: toProductIds(discount.excludedProductIds),
       rawSourceMeta: discount.rawSourceMeta,
       updatedAt: now,
     };
@@ -2023,7 +2045,7 @@ export const upsertDiscountCode = internalMutation({
     }
 
     return await ctx.db.insert("commerce_discount_codes", {
-      ...(patch as any),
+      ...patch,
       createdAt: now,
     });
   },
@@ -2034,7 +2056,7 @@ export const upsertDiscountCode = internalMutation({
  * upsertDiscountCode args shape, preserving every Woo field. Pure —
  * unit-testable.
  */
-export function mapWooCouponToUpsertArgs(coupon: any): any {
+export function mapWooCouponToUpsertArgs(coupon: Partial<WooCoupon>) {
   const amount = Number(coupon.amount ?? 0);
   const discountType =
     coupon.discount_type === "free_shipping"
@@ -2076,10 +2098,10 @@ export function mapWooCouponToUpsertArgs(coupon: any): any {
         ? coupon.usage_limit_per_user
         : undefined,
     productIds: Array.isArray(coupon.product_ids)
-      ? coupon.product_ids.map((id: any) => String(id))
+      ? coupon.product_ids.map((id) => String(id))
       : undefined,
     excludedProductIds: Array.isArray(coupon.excluded_product_ids)
-      ? coupon.excluded_product_ids.map((id: any) => String(id))
+      ? coupon.excluded_product_ids.map((id) => String(id))
       : undefined,
     rawSourceMeta: JSON.stringify({
       wpId: coupon.id,

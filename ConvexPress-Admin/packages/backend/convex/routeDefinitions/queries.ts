@@ -9,7 +9,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { routeDefinitionsDocs } from "../schema/routeDefinitions.docs.generated";
 /**
  * List all route definitions with optional filtering.
  */
@@ -19,7 +19,7 @@ export const list = query({
     app: v.optional(v.string()),
     search: v.optional(v.string()),
   },
-  returns: v.array(tableDocs.routeDefinitions),
+  returns: v.array(routeDefinitionsDocs.routeDefinitions),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -61,7 +61,7 @@ export const list = query({
  */
 export const get = query({
   args: { id: v.id("routeDefinitions") },
-  returns: v.union(v.null(), tableDocs.routeDefinitions),
+  returns: v.union(v.null(), routeDefinitionsDocs.routeDefinitions),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

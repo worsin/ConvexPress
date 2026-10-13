@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 
 import { action } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import {
   allProviders,
@@ -21,6 +22,7 @@ import { calculateLocalDelivery } from "../methods/localDelivery";
 import { calculateTableRate } from "../methods/tableRate";
 import { rankQuotes } from "./ranking";
 import type { NormalizedShippingQuote, PipelineStageTiming } from "./types";
+import { withoutRawQuote, type PipelineQuote } from "./quoteOutput";
 import { computeCartKey } from "../../commerce/checkoutShippingGuards";
 import { computeAddressFingerprint } from "../helpers/addressFingerprint";
 import type { RuleContext } from "../rulesEngine/types";
@@ -30,6 +32,7 @@ import { snapshotShippingOrigin } from "../quoteProvenance";
 import { getEffectiveShipFrom, getShippingIntegrationSettings } from "../helpers/settings";
 import { SHIPPING_EVENTS } from "../../events/constants";
 
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 /**
  * PRD A7 Rate Calculation Pipeline.
  *
@@ -53,6 +56,81 @@ import { SHIPPING_EVENTS } from "../../events/constants";
 function now() {
   return Date.now();
 }
+
+const QUOTE_PROVIDERS: ReadonlyArray<NormalizedShippingQuote["provider"]> = [
+  "shipstation", "ups", "usps", "fedex", "dhl", "manual",
+];
+
+/** A persisted quote row, as a pipeline quote (rows from unknown providers are dropped). */
+function cachedQuote(row: Doc<"commerce_shipping_rate_quotes">): PipelineQuote | null {
+  const provider = QUOTE_PROVIDERS.find((candidate) => candidate === row.provider);
+  if (!provider) return null;
+  return {
+    quoteKey: row.quoteKey,
+    provider,
+    carrierCode: row.carrierCode,
+    carrierName: row.carrierName,
+    serviceCode: row.serviceCode,
+    serviceName: row.serviceName,
+    amount: row.amount,
+    currency: row.currency,
+    estimatedDaysMin: row.estimatedDaysMin,
+    estimatedDaysMax: row.estimatedDaysMax,
+    deliveryDateEstimated: row.deliveryDateEstimated,
+    isCheapest: row.isCheapest,
+    isFastest: row.isFastest,
+    isBestValue: row.isBestValue,
+    accountId: row.accountId,
+    origin: row.origin,
+    packages: row.packages,
+    addressKey: row.addressKey,
+    cartKey: row.cartKey,
+    expiresAt: row.expiresAt,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function optionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+function stringList(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : undefined;
+}
+
+/** Zone-method `serviceFilters` — { allow?: string[]; deny?: string[] } (stored untyped). */
+function serviceFiltersOf(value: unknown): { allow?: string[]; deny?: string[] } | undefined {
+  if (!isRecord(value)) return undefined;
+  return { allow: stringList(value.allow), deny: stringList(value.deny) };
+}
+
+/** Zone-method `pricingRules` — { markupPct?, markupFlatCents?, minCostCents?, maxCostCents?, roundToCents? }. */
+function pricingRulesOf(value: unknown) {
+  if (!isRecord(value)) return undefined;
+  return {
+    markupPct: optionalNumber(value.markupPct),
+    markupFlatCents: optionalNumber(value.markupFlatCents),
+    minCostCents: optionalNumber(value.minCostCents),
+    maxCostCents: optionalNumber(value.maxCostCents),
+    roundToCents: optionalNumber(value.roundToCents),
+  };
+}
+
+/** Zone-method `presentationRules` — { labelOverride?, carrierNameOverride? }. */
+function presentationRulesOf(value: unknown) {
+  if (!isRecord(value)) return undefined;
+  return {
+    labelOverride: optionalString(value.labelOverride),
+    carrierNameOverride: optionalString(value.carrierNameOverride),
+  };
+}
+
+/** Carrier calls give up after this long (ms); slow providers do not block the rest. */
+const PROVIDER_TIMEOUT_MS = 5000;
 
 export const calculateRates = action({
   args: {
@@ -81,6 +159,105 @@ export const calculateRates = action({
       phone: v.optional(v.string()),
     }),
   },
+  returns: v.union(v.object({
+    success: v.boolean(),
+    quotes: v.array(v.object({
+      expiresAt: v.number(),
+      provider: v.union(v.literal("manual"), v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+      origin: v.optional(v.object({
+        name: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        company: v.optional(v.string()),
+        line2: v.optional(v.string()),
+        state: v.optional(v.string()),
+        shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
+        line1: v.string(),
+        city: v.string(),
+        postalCode: v.string(),
+        countryCode: v.string(),
+      })),
+      amount: v.number(),
+      quoteKey: v.string(),
+      carrierCode: v.string(),
+      carrierName: v.string(),
+      serviceCode: v.string(),
+      serviceName: v.string(),
+      accountId: v.optional(v.id("shipping_provider_accounts")),
+      packages: v.optional(v.array(v.object({
+        lengthIn: v.optional(v.number()),
+        widthIn: v.optional(v.number()),
+        heightIn: v.optional(v.number()),
+        weightOz: v.number(),
+      }))),
+      addressKey: v.optional(v.string()),
+      cartKey: v.optional(v.string()),
+      currency: v.string(),
+      estimatedDaysMin: v.optional(v.number()),
+      estimatedDaysMax: v.optional(v.number()),
+      deliveryDateEstimated: v.optional(v.number()),
+      isCheapest: v.boolean(),
+      isFastest: v.boolean(),
+      isBestValue: v.boolean(),
+    })),
+    matchedZone: v.null(),
+    fellBackToManual: v.boolean(),
+    stages: v.array(v.object({
+      stage: v.string(),
+      startedAt: v.number(),
+      durationMs: v.number(),
+      success: v.boolean(),
+      detail: v.optional(v.string()),
+    })),
+  }), v.object({
+    success: v.boolean(),
+    quotes: v.array(v.object({
+      expiresAt: v.number(),
+      provider: v.union(v.literal("manual"), v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+      origin: v.optional(v.object({
+        name: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        company: v.optional(v.string()),
+        line2: v.optional(v.string()),
+        state: v.optional(v.string()),
+        shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
+        line1: v.string(),
+        city: v.string(),
+        postalCode: v.string(),
+        countryCode: v.string(),
+      })),
+      amount: v.number(),
+      quoteKey: v.string(),
+      carrierCode: v.string(),
+      carrierName: v.string(),
+      serviceCode: v.string(),
+      serviceName: v.string(),
+      accountId: v.optional(v.id("shipping_provider_accounts")),
+      packages: v.optional(v.array(v.object({
+        lengthIn: v.optional(v.number()),
+        widthIn: v.optional(v.number()),
+        heightIn: v.optional(v.number()),
+        weightOz: v.number(),
+      }))),
+      addressKey: v.optional(v.string()),
+      cartKey: v.optional(v.string()),
+      currency: v.string(),
+      estimatedDaysMin: v.optional(v.number()),
+      estimatedDaysMax: v.optional(v.number()),
+      deliveryDateEstimated: v.optional(v.number()),
+      isCheapest: v.boolean(),
+      isFastest: v.boolean(),
+      isBestValue: v.boolean(),
+    })),
+    matchedZone: shippingDocs.commerce_shipping_zones,
+    fellBackToManual: v.boolean(),
+    stages: v.array(v.object({
+      stage: v.string(),
+      startedAt: v.number(),
+      durationMs: v.number(),
+      success: v.boolean(),
+      detail: v.optional(v.string()),
+    })),
+  })),
   handler: async (ctx, args) => {
     const startedAt = now();
     const stages: PipelineStageTiming[] = [];
@@ -101,14 +278,14 @@ export const calculateRates = action({
     // trips when the user navigates back to the shipping step.
     const cacheStart = now();
     try {
-      const prefetchCtx: any = await ctx.runQuery(
+      const prefetchCtx = await ctx.runQuery(
         internal.shipping.internals.getRateContextForSession,
         { sessionToken: args.sessionToken },
       );
       if (prefetchCtx?.checkoutSession?._id && prefetchCtx.items) {
         const prefetchAddressKey = computeAddressFingerprint(args.shippingAddress);
         const prefetchCartKey = computeCartKey(prefetchCtx.items);
-        const cached: any[] | null = await ctx.runQuery(
+        const cached = await ctx.runQuery(
           internal.shipping.rates.internals.getCachedQuotesForSession,
           {
             checkoutSessionId: prefetchCtx.checkoutSession._id,
@@ -120,7 +297,7 @@ export const calculateRates = action({
           recordStage("cache_hit", cacheStart, true, `${cached.length} cached quotes`);
           return {
             success: true,
-            quotes: cached as NormalizedShippingQuote[],
+            quotes: cached.map(cachedQuote).filter((quote) => quote !== null),
             matchedZone: null,
             fellBackToManual: false,
             stages,
@@ -141,7 +318,7 @@ export const calculateRates = action({
     // fingerprint + normalized address; pipeline continues even on error.
     const addrStart = now();
     try {
-      const validateRes: any = await ctx.runAction(
+      const validateRes = await ctx.runAction(
         internal.shipping.addressValidation.actions.validateAddressInternal,
         { address: args.shippingAddress },
       );
@@ -149,7 +326,7 @@ export const calculateRates = action({
         "validate_address",
         addrStart,
         true,
-        `status=${validateRes?.status ?? "unknown"}`,
+        `status=${validateRes.status}`,
       );
     } catch (err) {
       recordStage(
@@ -194,9 +371,10 @@ export const calculateRates = action({
           postalCode: args.shippingAddress.postalCode,
         },
       });
+      const noQuotes: PipelineQuote[] = [];
       return {
         success: true,
-        quotes: [] as NormalizedShippingQuote[],
+        quotes: noQuotes,
         matchedZone: null,
         fellBackToManual: true,
         stages,
@@ -205,25 +383,19 @@ export const calculateRates = action({
 
     // Stage 2 preamble: settings + live-rate method filter setup.
     const integrationSettings = await getShippingIntegrationSettings(ctx);
-    const PROVIDER_TIMEOUT_MS = Math.max(
-      1000,
-      Number(
-        (integrationSettings as any).liveRateProviderTimeoutMs ?? 5000,
-      ),
-    );
     const QUOTE_TTL_MS = Math.max(
       30_000,
       Number(integrationSettings.quoteCacheTtlSeconds ?? 300) * 1000,
     );
 
-    const liveRateMethods: any[] = await ctx.runQuery(
+    const liveRateMethods = await ctx.runQuery(
       internal.shipping.rates.internals.listLiveRateZoneMethods,
       { zoneId: zoneMatch.zone._id },
     );
     const configuredProviders = new Set(
       liveRateMethods
         .map((m) => m.provider)
-        .filter((p): p is string => Boolean(p)),
+        .filter((p) => p !== undefined),
     );
 
     const providerResults: Array<{
@@ -241,12 +413,12 @@ export const calculateRates = action({
     // packed dimensions/weights and the selected warehouse origin. Without
     // this, provider rates are priced against a placeholder box from the
     // global ship-from — which is the architectural bug Codex flagged.
-    const rateContextForMethods: any = await ctx.runQuery(
+    const rateContextForMethods = await ctx.runQuery(
       internal.shipping.internals.getRateContextForSession,
       { sessionToken: args.sessionToken },
     );
-    const cartItems: any[] = (rateContextForMethods?.items ?? []) as any[];
-    const totalWeightOzAll = cartItems.reduce((s, i: any) => {
+    const cartItems = rateContextForMethods?.items ?? [];
+    const totalWeightOzAll = cartItems.reduce((s, i) => {
       const w = i.product?.shippingWeightOz ?? 16;
       return s + Math.max(1, w) * (i.quantity ?? 0);
     }, 0);
@@ -259,26 +431,23 @@ export const calculateRates = action({
     const pipelineOrigin = snapshotShippingOrigin(pipelineOriginSettings);
 
     const packStartPre = now();
-    const candidatePackagesPre: any[] = rateContextForMethods
-      ? ((await ctx.runQuery(
+    const candidatePackagesPre = rateContextForMethods
+      ? await ctx.runQuery(
           internal.shipping.packages.internals.listAvailablePackages,
           pipelineShipFromLocationId
-            ? { shipFromLocationId: pipelineShipFromLocationId as any }
+            ? { shipFromLocationId: pipelineShipFromLocationId }
             : {},
-        )) as any[])
+        )
       : [];
-    const packTemplatesPre: PackageTemplate[] = candidatePackagesPre
-      .filter((p) => p.innerDimensions || p.dimensions)
-      .map((p) => ({
-        _id: String(p._id),
-        label: p.label,
-        innerDimensions: p.innerDimensions ?? p.dimensions,
-        tareWeight: p.tareWeight ?? 0,
-        maxLoadWeight: p.maxLoadWeight,
-      }));
+    const packTemplatesPre: PackageTemplate[] = candidatePackagesPre.flatMap((p) => {
+      const innerDimensions = p.innerDimensions ?? p.dimensions;
+      return innerDimensions
+        ? [{ _id: String(p._id), label: p.label, innerDimensions, tareWeight: p.tareWeight ?? 0, maxLoadWeight: p.maxLoadWeight }]
+        : [];
+    });
     const defaultPkgPre = candidatePackagesPre.find((p) => p.isDefault);
     const defaultPkgIdPre = defaultPkgPre ? String(defaultPkgPre._id) : null;
-    const packInputsPre: PackedItemInput[] = cartItems.map((i: any) => ({
+    const packInputsPre: PackedItemInput[] = cartItems.map((i) => ({
       itemId: String(i._id ?? `${i.productId}:${i.variantId ?? ""}`),
       productId: String(i.productId),
       variantId: i.variantId ? String(i.variantId) : undefined,
@@ -347,10 +516,11 @@ export const calculateRates = action({
     const providerCalls: ProviderCall[] =
       integrationSettings.liveRatesEnabled !== false && liveRateMethods.length > 0
         ? liveRateMethods
-            .filter((m) => m.provider)
+            .flatMap((m) => (m.provider ? [{ ...m, provider: m.provider }] : []))
             .map((m) => {
-              const id = m.provider as ProviderId;
+              const id: ProviderId = m.provider;
               const p = resolveProvider(id);
+              const serviceFilters = serviceFiltersOf(m.serviceFilters);
               return {
                 name: id,
                 run: async () => {
@@ -359,13 +529,13 @@ export const calculateRates = action({
                     shippingAddress: args.shippingAddress,
                     packages: packedProviderPackages,
                     accountId: m.accountId ? String(m.accountId) : undefined,
-                    serviceFilters: m.serviceFilters ?? undefined,
+                    serviceFilters,
                     persistQuotes: false,
                   });
-                  let quotes = applyServiceFilters(res.quotes, m.serviceFilters);
+                  let quotes = applyServiceFilters(res.quotes, serviceFilters);
                   // Zone-method pricingRules — { markupPct?, markupFlatCents?, minCostCents?, maxCostCents?, roundToCents? }
-                  if (m.pricingRules && typeof m.pricingRules === "object") {
-                    const pr = m.pricingRules;
+                  const pr = pricingRulesOf(m.pricingRules);
+                  if (pr) {
                     quotes = quotes.map((q) => {
                       let amount = q.amount;
                       if (typeof pr.markupPct === "number")
@@ -386,8 +556,8 @@ export const calculateRates = action({
                     });
                   }
                   // Zone-method presentationRules — { labelOverride?, carrierNameOverride?, sortPriority? }
-                  if (m.presentationRules && typeof m.presentationRules === "object") {
-                    const pres = m.presentationRules;
+                  const pres = presentationRulesOf(m.presentationRules);
+                  if (pres) {
                     quotes = quotes.map((q) => ({
                       ...q,
                       serviceName: pres.labelOverride ?? q.serviceName,
@@ -472,8 +642,8 @@ export const calculateRates = action({
                 {
                   provider: name,
                   status: /timeout/i.test(message) ? "degraded" : "error",
-                  lastErrorCode: err instanceof Error && (err as any).code
-                    ? String((err as any).code)
+                  lastErrorCode: err instanceof Error && "code" in err && err.code
+                    ? String(err.code)
                     : "PROVIDER_RATE_ERROR",
                   lastErrorMessage: message.slice(0, 500),
                 },
@@ -496,7 +666,7 @@ export const calculateRates = action({
       // Use the same cart snapshot as the carriers. Edits while rating must
       // invalidate this result, never relabel an old price with a new cart key.
       if (rateContextForMethods) {
-        const items = (rateContextForMethods.items ?? []) as any[];
+        const items = rateContextForMethods.items;
         const itemCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
         const totalWeightOz = items.reduce((s, i) => {
           const w = i.product?.shippingWeightOz ?? 16;
@@ -518,22 +688,19 @@ export const calculateRates = action({
         // packages are configured, we fall back to a single-box placeholder
         // (merchant hasn't completed A3 setup yet).
         const packStart = now();
-        const candidatePackages = (await ctx.runQuery(
+        const candidatePackages = await ctx.runQuery(
           internal.shipping.packages.internals.listAvailablePackages,
           pipelineShipFromLocationId
-            ? { shipFromLocationId: pipelineShipFromLocationId as any }
+            ? { shipFromLocationId: pipelineShipFromLocationId }
             : {},
-        )) as any[];
+        );
 
-        const packTemplates: PackageTemplate[] = candidatePackages
-          .filter((p) => p.innerDimensions || p.dimensions)
-          .map((p) => ({
-            _id: String(p._id),
-            label: p.label,
-            innerDimensions: p.innerDimensions ?? p.dimensions,
-            tareWeight: p.tareWeight ?? 0,
-            maxLoadWeight: p.maxLoadWeight,
-          }));
+        const packTemplates: PackageTemplate[] = candidatePackages.flatMap((p) => {
+          const innerDimensions = p.innerDimensions ?? p.dimensions;
+          return innerDimensions
+            ? [{ _id: String(p._id), label: p.label, innerDimensions, tareWeight: p.tareWeight ?? 0, maxLoadWeight: p.maxLoadWeight }]
+            : [];
+        });
 
         const defaultPkg = candidatePackages.find((p) => p.isDefault);
         const defaultPkgId = defaultPkg ? String(defaultPkg._id) : null;
@@ -596,10 +763,10 @@ export const calculateRates = action({
         const classByLineKey: Record<string, string | null> = {};
         let resolvedClasses: string[] = [];
         try {
-          const batch: any = await ctx.runQuery(
+          const batch = await ctx.runQuery(
             internal.shipping.classes.internals.resolveBatch,
             {
-              lines: items.map((i: any) => ({
+              lines: items.map((i) => ({
                 productId: i.productId,
                 variantId: i.variantId ?? undefined,
               })),
@@ -607,11 +774,11 @@ export const calculateRates = action({
           );
           if (batch) {
             for (const [key, classId] of Object.entries(batch)) {
-              classByLineKey[key] = (classId as string | null) ?? null;
+              classByLineKey[key] = classId ?? null;
             }
             resolvedClasses = Array.from(
               new Set(
-                (Object.values(batch) as (string | null)[]).filter(
+                Object.values(batch).filter(
                   (c): c is string => Boolean(c),
                 ),
               ),
@@ -648,7 +815,7 @@ export const calculateRates = action({
         const locStart = now();
         let shipFromLocationId: string | null = null;
         try {
-          const loc: any = await ctx.runQuery(
+          const loc = await ctx.runQuery(
             internal.shipping.shipFromLocations.internals.getDefault,
             {},
           );
@@ -674,12 +841,7 @@ export const calculateRates = action({
         // session is authenticated.
         const productTagSet = new Set<string>();
         for (const item of items) {
-          const tags = Array.isArray(item.product?.tags)
-            ? item.product.tags
-            : Array.isArray(item.product?.productTags)
-              ? item.product.productTags
-              : [];
-          for (const t of tags) if (t) productTagSet.add(String(t));
+          for (const t of item.productTagSlugs) if (t) productTagSet.add(t);
         }
 
         const customerTagSet = new Set<string>();
@@ -719,7 +881,8 @@ export const calculateRates = action({
           },
         };
 
-        for (const { methodType, config } of methods) {
+        for (const method of methods) {
+          const { methodType, config } = method;
           try {
             // PRD A6 §4 — if the method references a shared rule, evaluate
             // it against the live rule context. Rule evaluation is already
@@ -727,19 +890,20 @@ export const calculateRates = action({
             // ruleId gating applies to every method type and must be
             // enforced at the pipeline level.
             if (config.ruleId) {
-              const rule: any = await ctx.runQuery(
+              const rule = await ctx.runQuery(
                 internal.shipping.rulesEngine.internals.getById,
                 { ruleId: config.ruleId },
               );
-              if (rule && rule.isActive !== false && rule.ruleAST) {
+              // Shipping rules carry no active flag; a referenced rule always gates.
+              if (rule && rule.ruleAST) {
                 const passes = evaluateRule(rule.ruleAST, ruleContext);
                 if (!passes) continue;
               }
             }
             let methodQuotes: NormalizedShippingQuote[] = [];
-            switch (methodType) {
+            switch (method.methodType) {
               case "flat_rate":
-                methodQuotes = calculateFlatRate(config, {
+                methodQuotes = calculateFlatRate(method.config, {
                   currencyCode,
                   itemCount,
                   classBreakdown,
@@ -750,12 +914,12 @@ export const calculateRates = action({
               case "weight_based":
                 // PRD B2 — calculator expects the weight in the method's
                 // configured unit. Pipeline accumulates in oz; convert.
-                methodQuotes = calculateWeightBased(config, {
+                methodQuotes = calculateWeightBased(method.config, {
                   currencyCode,
                   totalWeight: convertWeight(
                     totalWeightOz,
                     "oz",
-                    (config as any).weightUnit ?? "oz",
+                    method.config.weightUnit ?? "oz",
                   ),
                   classes: resolvedClasses,
                   addressKey,
@@ -763,7 +927,7 @@ export const calculateRates = action({
                 });
                 break;
               case "dimensional":
-                methodQuotes = calculateDimensional(config, {
+                methodQuotes = calculateDimensional(method.config, {
                   currencyCode,
                   packages: dimensionalPackages,
                   classes: resolvedClasses,
@@ -773,7 +937,7 @@ export const calculateRates = action({
                 });
                 break;
               case "price_based":
-                methodQuotes = calculatePriceBased(config, {
+                methodQuotes = calculatePriceBased(method.config, {
                   currencyCode,
                   subtotalBeforeDiscount,
                   subtotalAfterDiscount,
@@ -782,7 +946,7 @@ export const calculateRates = action({
                 });
                 break;
               case "quantity_based":
-                methodQuotes = calculateQuantityBased(config, {
+                methodQuotes = calculateQuantityBased(method.config, {
                   currencyCode,
                   totalItems: itemCount,
                   totalLineItems: items.length,
@@ -792,7 +956,7 @@ export const calculateRates = action({
                 });
                 break;
               case "free":
-                methodQuotes = calculateFree(config, {
+                methodQuotes = calculateFree(method.config, {
                   currencyCode,
                   subtotalAmount,
                   appliedDiscountCode:
@@ -807,12 +971,12 @@ export const calculateRates = action({
               case "local_pickup": {
                 // PRD B7 — only offer pickup when at least one of the
                 // method's allowed locations is still active + pickupEnabled.
-                const activeLocs: any[] = await ctx.runQuery(
+                const activeLocs = await ctx.runQuery(
                   internal.shipping.shipFromLocations.internals.listActivePickupLocations,
                   {},
                 );
                 const activeLocIds = activeLocs.map((l) => String(l._id));
-                methodQuotes = calculateLocalPickup(config, {
+                methodQuotes = calculateLocalPickup(method.config, {
                   currencyCode,
                   availablePickupLocationIds: activeLocIds,
                   addressKey,
@@ -831,9 +995,9 @@ export const calculateRates = action({
                   | undefined;
                 if (pipelineShipFromLocationId) {
                   try {
-                    const loc: any = await ctx.runQuery(
+                    const loc = await ctx.runQuery(
                       internal.shipping.shipFromLocations.internals.getById,
-                      { locationId: pipelineShipFromLocationId as any },
+                      { locationId: pipelineShipFromLocationId },
                     );
                     if (
                       typeof loc?.geocode?.lat === "number" &&
@@ -849,7 +1013,7 @@ export const calculateRates = action({
                   }
                 }
                 try {
-                  const cached: any = await ctx.runQuery(
+                  const cached = await ctx.runQuery(
                     internal.shipping.addressValidation.queries
                       .getValidationByFingerprintInternal,
                     { fingerprint: addressKey },
@@ -866,7 +1030,7 @@ export const calculateRates = action({
                 } catch {
                   // no cached validation — leave undefined
                 }
-                methodQuotes = calculateLocalDelivery(config, {
+                methodQuotes = calculateLocalDelivery(method.config, {
                   currencyCode,
                   subtotalAmount,
                   destinationPostalCode: args.shippingAddress.postalCode,
@@ -878,7 +1042,7 @@ export const calculateRates = action({
                 break;
               }
               case "table_rate":
-                methodQuotes = calculateTableRate(config, {
+                methodQuotes = calculateTableRate(method.config, {
                   currencyCode,
                   totalWeightOz,
                   itemCount,
@@ -914,7 +1078,7 @@ export const calculateRates = action({
     // this write, `listCheckoutQuotes` returns nothing and the selected
     // method is rejected as "not available" at finalize.
     const addressKey = computeAddressFingerprint(args.shippingAddress);
-    const rateContextForPersist: any = await ctx.runQuery(
+    const rateContextForPersist = await ctx.runQuery(
       internal.shipping.internals.getRateContextForSession,
       { sessionToken: args.sessionToken },
     );
@@ -968,7 +1132,7 @@ export const calculateRates = action({
       totalQuotes: ranked.length,
       cacheHit: false,
       shipFromLocationId:
-        (pipelineShipFromLocationId as any) ?? undefined,
+        pipelineShipFromLocationId ?? undefined,
       selectedPackageIds,
       warnings: warnings.length > 0 ? warnings : undefined,
       zeroQuoteReasons: zeroQuoteReasons.length > 0 ? zeroQuoteReasons : undefined,
@@ -1003,7 +1167,7 @@ export const calculateRates = action({
 
     return {
       success: true,
-      quotes: ranked,
+      quotes: ranked.map(withoutRawQuote),
       matchedZone: zoneMatch.zone,
       fellBackToManual: false,
       stages,

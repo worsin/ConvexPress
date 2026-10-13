@@ -1,8 +1,8 @@
-// @ts-nocheck
 import { v } from "convex/values";
 import { isOrderPaidForDigitalAccess } from "./downloadEntitlement";
 
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { isPluginEnabled } from "../helpers/plugins";
 import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
@@ -16,7 +16,13 @@ function generateRandomHex(bytes: number): string {
 
 export const isOrderEligibleForDigitalFulfillment = isOrderPaidForDigitalAccess;
 
-export function resolveDigitalPolicy(product: any, variant?: any) {
+type DigitalPolicySource = Partial<Pick<Doc<"commerce_products">,
+  "digitalDeliveryMode" | "isDownloadable" | "requiresLicense" | "downloadLimit" | "downloadExpiryDays" | "licenseKeyType" | "maxActivations" | "licenseExpiresAfterDays">>;
+
+export function resolveDigitalPolicy(
+  product: DigitalPolicySource | null | undefined,
+  variant?: (DigitalPolicySource & Partial<Pick<Doc<"commerce_product_variants">, "downloadExpiry">>) | null,
+) {
   const deliveryMode =
     variant?.digitalDeliveryMode ??
     product?.digitalDeliveryMode ??
@@ -59,7 +65,10 @@ function computeExpiresAt(days: unknown, now: number) {
   return normalized ? now + normalized * 24 * 60 * 60 * 1000 : undefined;
 }
 
-async function appendOrderHistory(ctx: any, args: any) {
+async function appendOrderHistory(
+  ctx: Pick<MutationCtx, "db">,
+  args: Pick<Doc<"commerce_order_history">, "orderId" | "eventType" | "message" | "actorUserId" | "metadata">,
+) {
   await ctx.db.insert("commerce_order_history", {
     orderId: args.orderId,
     eventType: args.eventType,
@@ -70,15 +79,15 @@ async function appendOrderHistory(ctx: any, args: any) {
   });
 }
 
-async function getLatestDigitalFiles(ctx: any, productId: any, variantId?: any) {
+async function getLatestDigitalFiles(ctx: Pick<MutationCtx, "db">, productId: Id<"commerce_products">, variantId?: Id<"commerce_product_variants">) {
   const files = await ctx.db
     .query("commerce_digital_files")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
+    .withIndex("by_product", (q) => q.eq("productId", productId))
     .collect();
 
   return files
-    .filter((file: any) => file.isLatest)
-    .filter((file: any) => {
+    .filter((file) => file.isLatest)
+    .filter((file) => {
       if (variantId) {
         return (
           file.variantId?.toString() === variantId.toString() ||
@@ -87,22 +96,35 @@ async function getLatestDigitalFiles(ctx: any, productId: any, variantId?: any) 
       }
       return file.variantId === undefined;
     })
-    .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 }
 
-async function tokenExists(ctx: any, args: any) {
+async function tokenExists(
+  ctx: Pick<MutationCtx, "db">,
+  args: { orderId: Id<"commerce_orders">; orderItemId: Id<"commerce_order_items">; digitalFileId: Id<"commerce_digital_files"> },
+) {
   const tokens = await ctx.db
     .query("commerce_download_tokens")
-    .withIndex("by_order_item", (q: any) => q.eq("orderItemId", args.orderItemId))
+    .withIndex("by_order_item", (q) => q.eq("orderItemId", args.orderItemId))
     .collect();
   return tokens.some(
-    (token: any) =>
+    (token) =>
       token.digitalFileId?.toString() === args.digitalFileId.toString() &&
       token.orderId?.toString() === args.orderId.toString(),
   );
 }
 
-async function createDownloadToken(ctx: any, args: any) {
+async function createDownloadToken(
+  ctx: Pick<MutationCtx, "db">,
+  args: {
+    digitalFileId: Id<"commerce_digital_files">;
+    orderId: Id<"commerce_orders">;
+    orderItemId: Id<"commerce_order_items">;
+    userId: Id<"users"> | undefined;
+    maxDownloads: unknown;
+    expiryDays: unknown;
+  },
+) {
   const now = Date.now();
   await ctx.db.insert("commerce_download_tokens", {
     digitalFileId: args.digitalFileId,
@@ -118,40 +140,50 @@ async function createDownloadToken(ctx: any, args: any) {
   });
 }
 
-async function countAssignedKeysForLine(ctx: any, args: any) {
+type LicenseLine = {
+  orderId: Id<"commerce_orders">;
+  userId: Id<"users"> | undefined;
+  productId: Id<"commerce_products">;
+  variantId: Id<"commerce_product_variants"> | undefined;
+  quantity: number;
+  label: string;
+  licenseExpiresAfterDays: unknown;
+};
+
+async function countAssignedKeysForLine(ctx: Pick<MutationCtx, "db">, args: Pick<LicenseLine, "orderId" | "productId" | "variantId">) {
   const keys = await ctx.db
     .query("commerce_license_keys")
-    .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
     .collect();
-  return keys.filter((key: any) => {
+  return keys.filter((key) => {
     if (key.status === "revoked") return false;
     if (key.productId?.toString() !== args.productId.toString()) return false;
     return (key.variantId?.toString() ?? null) === (args.variantId?.toString() ?? null);
   }).length;
 }
 
-async function findAvailableLicenseKey(ctx: any, productId: any, variantId?: any) {
+async function findAvailableLicenseKey(ctx: Pick<MutationCtx, "db">, productId: Id<"commerce_products">, variantId?: Id<"commerce_product_variants">) {
   const available = await ctx.db
     .query("commerce_license_keys")
-    .withIndex("by_product_status", (q: any) =>
+    .withIndex("by_product_status", (q) =>
       q.eq("productId", productId).eq("status", "available"),
     )
     .collect();
 
   if (variantId) {
     const exact = available.find(
-      (key: any) => key.variantId?.toString() === variantId.toString(),
+      (key) => key.variantId?.toString() === variantId.toString(),
     );
     if (exact) return exact;
   }
 
-  return available.find((key: any) => key.variantId === undefined) ?? null;
+  return available.find((key) => key.variantId === undefined) ?? null;
 }
 
-async function assignMissingLicenseKeys(ctx: any, args: any) {
+async function assignMissingLicenseKeys(ctx: Pick<MutationCtx, "db">, args: LicenseLine) {
   const existingCount = await countAssignedKeysForLine(ctx, args);
   const needed = Math.max(0, args.quantity - existingCount);
-  const assigned: any[] = [];
+  const assigned: Id<"commerce_license_keys">[] = [];
   const errors: string[] = [];
   const now = Date.now();
 
@@ -175,7 +207,10 @@ async function assignMissingLicenseKeys(ctx: any, args: any) {
   return { assigned, errors, existingCount };
 }
 
-export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any) {
+export async function fulfillOrderDigitalEntitlementsHandler(
+  ctx: MutationCtx,
+  args: { orderId: Id<"commerce_orders">; actorUserId?: Id<"users">; reason?: string },
+) {
     const order = await ctx.db.get(args.orderId);
     if (!order) return { status: "failed", reason: "Order not found" };
 
@@ -201,7 +236,7 @@ export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any
 
     const orderItems = await ctx.db
       .query("commerce_order_items")
-      .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
       .collect();
 
     let required = false;
@@ -339,5 +374,55 @@ export const fulfillOrderDigitalEntitlements = internalMutation({
     actorUserId: v.optional(v.id("users")),
     reason: v.optional(v.string()),
   },
+  returns: v.union(v.object({
+    status: v.string(),
+    reason: v.string(),
+    lmsEnrollments: v.optional(v.null()),
+    createdTokens: v.optional(v.null()),
+    existingTokens: v.optional(v.null()),
+    assignedKeys: v.optional(v.null()),
+    existingAssignedKeys: v.optional(v.null()),
+    reviewMessages: v.optional(v.null()),
+  }), v.object({
+    status: v.string(),
+    reason: v.string(),
+    lmsEnrollments: v.object({
+      created: v.number(),
+      reactivated: v.number(),
+      refreshed: v.number(),
+      revoked: v.number(),
+      keptByAlternateGrant: v.number(),
+      skippedExistingOtherSource: v.number(),
+      skippedMissingCourse: v.number(),
+      skippedSeatLimit: v.number(),
+      courseIds: v.array(v.string()),
+      skipped: v.optional(v.string()),
+    }),
+    createdTokens: v.optional(v.null()),
+    existingTokens: v.optional(v.null()),
+    assignedKeys: v.optional(v.null()),
+    existingAssignedKeys: v.optional(v.null()),
+    reviewMessages: v.optional(v.null()),
+  }), v.object({
+    status: v.string(),
+    createdTokens: v.number(),
+    existingTokens: v.number(),
+    assignedKeys: v.number(),
+    existingAssignedKeys: v.number(),
+    lmsEnrollments: v.object({
+      created: v.number(),
+      reactivated: v.number(),
+      refreshed: v.number(),
+      revoked: v.number(),
+      keptByAlternateGrant: v.number(),
+      skippedExistingOtherSource: v.number(),
+      skippedMissingCourse: v.number(),
+      skippedSeatLimit: v.number(),
+      courseIds: v.array(v.string()),
+      skipped: v.optional(v.string()),
+    }),
+    reviewMessages: v.array(v.string()),
+    reason: v.optional(v.null()),
+  })),
   handler: fulfillOrderDigitalEntitlementsHandler,
 });

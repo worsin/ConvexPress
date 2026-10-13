@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Payment System — Queries, Mutations, Internal Mutations
  *
@@ -25,7 +24,9 @@ import {
 	mutation,
 	internalMutation,
 	internalQuery,
+	type MutationCtx,
 } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
@@ -48,13 +49,19 @@ import {
 import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
 import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
-import { tableDocs } from "../schema/tableDocs.generated";
-async function getOrCreatePaymentCollectionForOrder(ctx: any, order: any) {
+import { commerceDocs } from "../schema/commerce.docs.generated";
+type OrderDoc = Doc<"commerce_orders">;
+type PaymentCollectionDoc = Doc<"commerce_payment_collections">;
+type PaymentTransactionDoc = Doc<"commerce_payment_transactions">;
+
+const COLLECTION_STATUSES: readonly PaymentCollectionDoc["status"][] = ["pending", "authorized", "partially_captured", "captured", "partially_refunded", "refunded", "canceled", "failed"];
+
+async function getOrCreatePaymentCollectionForOrder(ctx: MutationCtx, order: OrderDoc): Promise<PaymentCollectionDoc> {
 	const existing = await ctx.db
 		.query("commerce_payment_collections")
-		.withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+		.withIndex("by_order", (q) => q.eq("orderId", order._id))
 		.collect();
-	const active = existing.find((collection: any) =>
+	const active = existing.find((collection) =>
 		["pending", "authorized", "partially_captured"].includes(collection.status),
 	);
 	if (active) return active;
@@ -82,25 +89,27 @@ async function getOrCreatePaymentCollectionForOrder(ctx: any, order: any) {
 		updatedAt: now,
 	});
 
-	return await ctx.db.get(collectionId);
+	const created = await ctx.db.get("commerce_payment_collections", collectionId);
+	if (!created) throw new ConvexError({ code: "NOT_FOUND", message: "Payment collection could not be created." });
+	return created;
 }
 
 async function getOrCreatePaymentSessionForCollection(
-	ctx: any,
+	ctx: MutationCtx,
 	args: {
-		collection: any;
-		order: any;
+		collection: PaymentCollectionDoc;
+		order: OrderDoc;
 		provider: string;
 	},
-) {
+): Promise<Doc<"commerce_payment_sessions">> {
 	const existing = await ctx.db
 		.query("commerce_payment_sessions")
-		.withIndex("by_collection", (q: any) =>
+		.withIndex("by_collection", (q) =>
 			q.eq("collectionId", args.collection._id),
 		)
 		.collect();
 	const active = existing.find(
-		(session: any) =>
+		(session) =>
 			session.provider === args.provider &&
 			["pending", "processing", "authorized"].includes(session.status),
 	);
@@ -125,10 +134,12 @@ async function getOrCreatePaymentSessionForCollection(
 		updatedAt: now,
 	});
 
-	return await ctx.db.get(sessionId);
+	const created = await ctx.db.get("commerce_payment_sessions", sessionId);
+	if (!created) throw new ConvexError({ code: "NOT_FOUND", message: "Payment session could not be created." });
+	return created;
 }
 
-async function commitReservedInventoryForPaidOrder(ctx: any, order: any) {
+async function commitReservedInventoryForPaidOrder(ctx: MutationCtx, order: OrderDoc) {
   if (!order.checkoutSessionId) return false;
   const activeReservations = await readCheckoutReservations(ctx,order.checkoutSessionId);
   if (!activeReservations.length && order.inventoryReservationCount === undefined) return false;
@@ -196,16 +207,22 @@ export const listTransactions = query({
 		provider: v.optional(v.string()),
 		limit: v.optional(v.number()),
 	},
+	returns: v.array(v.object({
+		...commerceDocs.commerce_payment_transactions.fields,
+		orderNumber: v.union(v.null(), v.string()),
+		orderEmail: v.union(v.null(), v.string()),
+	})),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 
-		let results;
+		let results: PaymentTransactionDoc[];
 
-		if (args.provider && args.status) {
+		const { provider, status } = args;
+		if (provider && status) {
 			results = await ctx.db
 				.query("commerce_payment_transactions")
 				.withIndex("by_provider_status", (q) =>
-					q.eq("provider", args.provider).eq("status", args.status),
+					q.eq("provider", provider).eq("status", status),
 				)
 				.order("desc")
 				.take(args.limit ?? 50);
@@ -244,13 +261,23 @@ export const listCollections = query({
 		status: v.optional(v.string()),
 		limit: v.optional(v.number()),
 	},
+	returns: v.array(v.object({
+		...commerceDocs.commerce_payment_collections.fields,
+		orderNumber: v.optional(v.string()),
+		orderEmail: v.optional(v.string()),
+		sessions: v.array(commerceDocs.commerce_payment_sessions),
+		captures: v.array(commerceDocs.commerce_payment_captures),
+	})),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
-		const rows = args.status
+		const status = COLLECTION_STATUSES.find((candidate) => candidate === args.status);
+		const rows = args.status && !status
+			? []
+			: status
 			? await ctx.db
 					.query("commerce_payment_collections")
-					.withIndex("by_status", (q: any) => q.eq("status", args.status))
+					.withIndex("by_status", (q) => q.eq("status", status))
 					.order("desc")
 					.take(limit)
 			: await ctx.db
@@ -259,17 +286,17 @@ export const listCollections = query({
 					.take(limit);
 
 		return await Promise.all(
-			rows.map(async (collection: any) => {
+			rows.map(async (collection) => {
 				const order = collection.orderId ? await ctx.db.get(collection.orderId) : null;
 				const sessions = await ctx.db
 					.query("commerce_payment_sessions")
-					.withIndex("by_collection", (q: any) =>
+					.withIndex("by_collection", (q) =>
 						q.eq("collectionId", collection._id),
 					)
 					.collect();
 				const captures = await ctx.db
 					.query("commerce_payment_captures")
-					.withIndex("by_collection", (q: any) =>
+					.withIndex("by_collection", (q) =>
 						q.eq("collectionId", collection._id),
 					)
 					.collect();
@@ -290,14 +317,15 @@ export const listCaptures = query({
 		orderId: v.optional(v.id("commerce_orders")),
 		limit: v.optional(v.number()),
 	},
-	returns: v.array(tableDocs.commerce_payment_captures),
+	returns: v.array(commerceDocs.commerce_payment_captures),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
-		if (args.orderId) {
+		const orderId = args.orderId;
+		if (orderId) {
 			return await ctx.db
 				.query("commerce_payment_captures")
-				.withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+				.withIndex("by_order", (q) => q.eq("orderId", orderId))
 				.order("desc")
 				.take(limit);
 		}
@@ -312,6 +340,17 @@ export const getTransaction = query({
 	args: {
 		transactionId: v.id("commerce_payment_transactions"),
 	},
+	returns: v.union(v.null(), v.object({
+		...commerceDocs.commerce_payment_transactions.fields,
+		refunds: v.array(commerceDocs.commerce_payment_refunds),
+		order: v.union(v.null(), v.object({
+			_id: v.id("commerce_orders"),
+			orderNumber: v.string(),
+			email: v.string(),
+			status: commerceDocs.commerce_orders.fields.status,
+			totalAmount: v.number(),
+		})),
+	})),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 
@@ -319,10 +358,13 @@ export const getTransaction = query({
 		if (!transaction) return null;
 
 		// Get associated refunds
-		const refunds = await ctx.db
-			.query("commerce_payment_refunds")
-			.withIndex("by_order", (q) => q.eq("orderId", transaction.orderId))
-			.collect();
+		const transactionOrderId = transaction.orderId;
+		const refunds = transactionOrderId
+			? await ctx.db
+					.query("commerce_payment_refunds")
+					.withIndex("by_order", (q) => q.eq("orderId", transactionOrderId))
+					.collect()
+			: [];
 
 		// Get order info
 		const order = transaction.orderId
@@ -387,6 +429,11 @@ export const initiatePayment = mutation({
 	args: {
 		orderId: v.id("commerce_orders"),
 	},
+	returns: v.object({
+   transactionId: v.id("commerce_payment_transactions"),
+   collectionId: v.optional(v.id("commerce_payment_collections")),
+   sessionId: v.optional(v.id("commerce_payment_sessions")),
+ }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 
@@ -667,7 +714,7 @@ export const confirmPaymentSuccess = internalMutation({
 			});
 		}
 
-		let captureId: any = undefined;
+		let captureId: Id<"commerce_payment_captures"> | undefined = undefined;
 		if (transaction.collectionId) {
 			await ctx.db.patch("commerce_payment_collections", transaction.collectionId, {
 				status: "captured",
@@ -743,7 +790,7 @@ export const confirmPaymentSuccess = internalMutation({
 				// Commit inventory for paid order
 				const orderItems = await ctx.db
 					.query("commerce_order_items")
-					.withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+					.withIndex("by_order", (q) => q.eq("orderId", order._id))
 					.collect();
 
                 let reservedInventoryHandled = false;
@@ -806,6 +853,8 @@ export const confirmPaymentSuccess = internalMutation({
 							if (!selection.policy.tracked) continue;
 							const target = selection.policy.owner === "variant" ? variant : product;
 							try {
+								// A tracked variant that no longer exists is reviewed like a stock conflict.
+								if (!target) throw new ConvexError({ code: "INVENTORY_TARGET_MISSING", message: "Stock owner not found." });
 								const adjustment = resolveInventoryAdjustment({
 									mode: "decrement",
 									stockQuantity:
@@ -900,7 +949,7 @@ export const confirmPaymentSuccess = internalMutation({
 					},
 					createdAt: now,
 				});
-				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+				await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
 					orderId: order._id,
 					eventType: "payment_received",
 					metadata: {
@@ -917,7 +966,7 @@ export const confirmPaymentSuccess = internalMutation({
 /**
  * Confirm payment failed (called by Stripe webhook).
  */
-async function failPaymentTransaction(ctx: any, transaction: any, error?: string) {
+async function failPaymentTransaction(ctx: MutationCtx, transaction: PaymentTransactionDoc, error?: string) {
 		// Idempotency: already failed or succeeded
 		if (["failed", "succeeded", "partially_refunded", "refunded"].includes(transaction.status)) {
 			return;
@@ -983,7 +1032,7 @@ async function failPaymentTransaction(ctx: any, transaction: any, error?: string
 					},
 					createdAt: now,
 				});
-				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+				await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
 					orderId: order._id,
 					eventType: "payment_failed",
 					metadata: {
@@ -1040,7 +1089,18 @@ export const confirmPaymentFailure = internalMutation({
 /**
  * Complete refund processing (called by provider refund actions).
  */
-async function completeRefundHandler(ctx: any, args: any) {
+async function completeRefundHandler(
+	ctx: MutationCtx,
+	args: {
+		refundId: Id<"commerce_payment_refunds">;
+		transactionId: Id<"commerce_payment_transactions">;
+		providerRefundId: string;
+		amount: number;
+		success: boolean;
+		error?: string;
+		providerStatus?: string;
+	},
+): Promise<null> {
 		const now = Date.now();
 		const transaction = await ctx.db.get(args.transactionId);
 		if (!transaction) return null;
@@ -1120,7 +1180,7 @@ async function completeRefundHandler(ctx: any, args: any) {
 					},
 					createdAt: now,
 				});
-				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+				await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
 					orderId: transaction.orderId,
 					eventType: "refund_processed",
 					metadata: {
@@ -1175,7 +1235,7 @@ async function completeRefundHandler(ctx: any, args: any) {
 					},
 					createdAt: now,
 				});
-				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+				await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
 					orderId: transaction.orderId,
 					eventType: "refund_failed",
 					metadata: {
@@ -1638,7 +1698,7 @@ export const updateSettings = mutation({
 	},
 	returns: v.id("settings"),
 	handler: async (ctx, args) => {
-		await requireCan(ctx, "manage_options");
+		const actor = await requireCan(ctx, "manage_options");
 
 		// Read current commerce.payments section
 		const existing = await ctx.db
@@ -1646,7 +1706,9 @@ export const updateSettings = mutation({
 			.withIndex("by_section", (q) => q.eq("section", "commerce.payments"))
 			.unique();
 
-		const currentValues = (existing?.values ?? {}) as Record<string, unknown>;
+		const storedValues: unknown = existing?.values;
+		const currentValues: Record<string, unknown> =
+			typeof storedValues === "object" && storedValues !== null && !Array.isArray(storedValues) ? { ...storedValues } : {};
 
 		// Merge in new values (only provided fields)
 		const newValues: Record<string, unknown> = { ...currentValues };
@@ -1673,13 +1735,15 @@ export const updateSettings = mutation({
 			await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
 				values: newValues,
 				updatedAt: Date.now(),
+				updatedBy: actor._id,
 			});
 			return existing._id;
 		} else {
 			return await insertWithMediaReferences<"settings">(ctx, "settings", {
-				section: "commerce.payments" as any,
-				values: newValues as any,
+				section: "commerce.payments",
+				values: newValues,
 				updatedAt: Date.now(),
+				updatedBy: actor._id,
 			});
 		}
 	},
@@ -1693,6 +1757,11 @@ export const createPayPalOrder = mutation({
 	args: {
 		orderId: v.id("commerce_orders"),
 	},
+	returns: v.object({
+   transactionId: v.id("commerce_payment_transactions"),
+   collectionId: v.optional(v.id("commerce_payment_collections")),
+   sessionId: v.optional(v.id("commerce_payment_sessions")),
+ }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 
@@ -1834,7 +1903,7 @@ export const getTransactionInternal = internalQuery({
 	args: {
 		transactionId: v.id("commerce_payment_transactions"),
 	},
-	returns: v.union(v.null(), tableDocs.commerce_payment_transactions),
+	returns: v.union(v.null(), commerceDocs.commerce_payment_transactions),
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.transactionId);
 	},
@@ -1900,7 +1969,7 @@ export const getWebhookEvent = internalQuery({
 		provider: v.string(),
 		eventId: v.string(),
 	},
-	returns: v.union(v.null(), tableDocs.commerce_webhook_events),
+	returns: v.union(v.null(), commerceDocs.commerce_webhook_events),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("commerce_webhook_events")
@@ -1970,7 +2039,7 @@ export const reconcileProviderRefund = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const refund = args.refundId ? await ctx.db.get(args.refundId)
-      : await ctx.db.query("commerce_payment_refunds").withIndex("by_provider_refund", (q: any) => q.eq("providerRefundId", args.providerRefundId)).unique();
+      : await ctx.db.query("commerce_payment_refunds").withIndex("by_provider_refund", (q) => q.eq("providerRefundId", args.providerRefundId)).unique();
     if (!refund || !refund.transactionId) return null;
     const transaction = await ctx.db.get(refund.transactionId);
     if (!transaction || transaction.provider !== args.provider ||

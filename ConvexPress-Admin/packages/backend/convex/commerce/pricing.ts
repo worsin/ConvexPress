@@ -1,21 +1,22 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 const priceStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("inactive"));
 
 export const listPriceLists = query({
   args: { status: v.optional(priceStatus) },
-  returns: v.array(tableDocs.commerce_price_lists),
+  returns: v.array(commerceDocs.commerce_price_lists),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
-    if (args.status) {
+    const status = args.status;
+    if (status) {
       return await ctx.db
         .query("commerce_price_lists")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     }
     return await ctx.db.query("commerce_price_lists").collect();
@@ -84,23 +85,28 @@ export const listPricesForProduct = query({
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
   },
+  returns: v.array(v.object({
+    ...commerceDocs.commerce_price_sets.fields,
+    prices: v.array(commerceDocs.commerce_prices),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
-    const sets = args.variantId
+    const variantId = args.variantId;
+    const sets = variantId
       ? await ctx.db
           .query("commerce_price_sets")
-          .withIndex("by_variant", (q: any) => q.eq("variantId", args.variantId))
+          .withIndex("by_variant", (q) => q.eq("variantId", variantId))
           .collect()
       : await ctx.db
           .query("commerce_price_sets")
-          .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+          .withIndex("by_product", (q) => q.eq("productId", args.productId))
           .collect();
 
-    const rows = [];
+    const rows: Array<Doc<"commerce_price_sets"> & { prices: Doc<"commerce_prices">[] }> = [];
     for (const set of sets) {
       const prices = await ctx.db
         .query("commerce_prices")
-        .withIndex("by_price_set", (q: any) => q.eq("priceSetId", set._id))
+        .withIndex("by_price_set", (q) => q.eq("priceSetId", set._id))
         .collect();
       rows.push({ ...set, prices });
     }
@@ -168,15 +174,16 @@ export const setPriceRules = mutation({
       }),
     ),
   },
+  returns: v.array(v.id("commerce_price_rules")),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("commerce_price_rules")
-      .withIndex("by_price", (q: any) => q.eq("priceId", args.priceId))
+      .withIndex("by_price", (q) => q.eq("priceId", args.priceId))
       .collect();
     for (const rule of existing) await ctx.db.delete("commerce_price_rules", rule._id);
     const now = Date.now();
-    const ids = [];
+    const ids: Id<"commerce_price_rules">[] = [];
     for (const rule of args.rules) {
       ids.push(
         await ctx.db.insert("commerce_price_rules", {

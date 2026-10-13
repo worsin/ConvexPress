@@ -4,6 +4,11 @@ import {
 	postVisibilityValidator,
 	commentStatusValidator,
 } from "../schema/posts";
+import { migrationValidator } from "./validators";
+
+/** A canonical block tree, structurally: node names and attrs are refined by
+ * the canonical service, so this accepts every CanonicalTree and RuntimeCanonicalTree. */
+export const canonicalBlocksTransportValidator = migrationValidator.fields.candidate.fields.document.fields.blocks;
 /** Blocks are validated by the version-aware canonical service, not a second
  * handwritten block schema. HTTP callers cannot supply definition registries. */
 export const apiDocumentInput = {
@@ -30,7 +35,7 @@ export const apiDocumentRead = v.union(v.null(),v.object({
  _id:v.id("posts"),type:v.union(v.literal("post"),v.literal("page")),title:v.string(),slug:v.string(),status:postStatusValidator,
  excerpt:v.optional(v.string()),path:v.optional(v.string()),parentId:v.optional(v.id("posts")),depth:v.optional(v.number()),menuOrder:v.optional(v.number()),pageTemplate:v.optional(v.string()),
  visibility:postVisibilityValidator,commentStatus:commentStatusValidator,isPasswordProtected:v.boolean(),
- blocks:v.any(),blocksVersion:v.literal(2),blocksRevision:v.number(),createdAt:v.number(),updatedAt:v.number(),publishedAt:v.optional(v.number()),
+ blocks:canonicalBlocksTransportValidator,blocksVersion:v.literal(2),blocksRevision:v.number(),createdAt:v.number(),updatedAt:v.number(),publishedAt:v.optional(v.number()),
  author:v.optional(v.union(v.null(),v.object({_id:v.id("users"),displayName:v.string(),bio:v.optional(v.string()),avatarUrl:v.optional(v.string()),slug:v.optional(v.string())}))),
  parent:v.optional(v.union(v.null(),v.object(relatedPage))),children:v.optional(v.array(v.object({...relatedPage,status:v.string(),menuOrder:v.optional(v.number())}))),
 }));

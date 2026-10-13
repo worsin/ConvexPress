@@ -2,8 +2,9 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { emitEvent } from "../../helpers/events";
+import { listZoneMethods } from "../methods/tables";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 /**
  * Load the enabled live-rate zone methods for a zone. Returns the list of
  * providers (and optional account/service filters) that should fan out for
@@ -12,13 +13,13 @@ import { tableDocs } from "../../schema/tableDocs.generated";
  */
 export const listLiveRateZoneMethods = internalQuery({
   args: { zoneId: v.id("commerce_shipping_zones") },
-  returns: v.array(tableDocs.commerce_shipping_zone_methods),
+  returns: v.array(shippingDocs.commerce_shipping_zone_methods),
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("commerce_shipping_zone_methods")
-      .withIndex("by_zone_sort", (q: any) => q.eq("zoneId", args.zoneId))
+      .withIndex("by_zone_sort", (q) => q.eq("zoneId", args.zoneId))
       .collect();
-    return rows.filter((r: any) => r.enabled && r.methodType === "live_rate");
+    return rows.filter((r) => r.enabled && r.methodType === "live_rate");
   },
 });
 
@@ -32,26 +33,19 @@ export const getUserTags = internalQuery({
   returns: v.array(v.string()),
   handler: async (ctx, args) => {
     try {
-      const user: any = await ctx.db.get(args.userId as any);
-      const tags: string[] = Array.isArray(user?.tags) ? user.tags : [];
-      return tags;
+      const userId = ctx.db.normalizeId("users", args.userId);
+      const user = userId ? await ctx.db.get(userId) : null;
+      if (!user) return [];
+      // The users schema declares no `tags`; read it as an optional stored extra.
+      const stored: Record<string, unknown> = user;
+      const tags = stored.tags;
+      return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === "string") : [];
     } catch {
       return [];
     }
   },
 });
 
-const METHOD_TABLES = [
-  "commerce_shipping_method_flat_rate",
-  "commerce_shipping_method_weight_based",
-  "commerce_shipping_method_dimensional",
-  "commerce_shipping_method_price_based",
-  "commerce_shipping_method_quantity_based",
-  "commerce_shipping_method_free",
-  "commerce_shipping_method_local_pickup",
-  "commerce_shipping_method_local_delivery",
-  "commerce_shipping_method_table_rate",
-] as const;
 
 /**
  * Load every enabled method config across all method-type tables for a given
@@ -60,23 +54,34 @@ const METHOD_TABLES = [
  */
 export const listEnabledMethodsForZone = internalQuery({
   args: { zoneId: v.id("commerce_shipping_zones") },
+  returns: v.array(v.union(v.object({ methodType: v.literal("free"), config: shippingDocs.commerce_shipping_method_free }), v.object({
+    methodType: v.literal("flat_rate"),
+    config: shippingDocs.commerce_shipping_method_flat_rate,
+  }), v.object({
+    methodType: v.literal("local_pickup"),
+    config: shippingDocs.commerce_shipping_method_local_pickup,
+  }), v.object({
+    methodType: v.literal("weight_based"),
+    config: shippingDocs.commerce_shipping_method_weight_based,
+  }), v.object({
+    methodType: v.literal("dimensional"),
+    config: shippingDocs.commerce_shipping_method_dimensional,
+  }), v.object({
+    methodType: v.literal("price_based"),
+    config: shippingDocs.commerce_shipping_method_price_based,
+  }), v.object({
+    methodType: v.literal("quantity_based"),
+    config: shippingDocs.commerce_shipping_method_quantity_based,
+  }), v.object({
+    methodType: v.literal("local_delivery"),
+    config: shippingDocs.commerce_shipping_method_local_delivery,
+  }), v.object({
+    methodType: v.literal("table_rate"),
+    config: shippingDocs.commerce_shipping_method_table_rate,
+  }))),
   handler: async (ctx, args) => {
-    const allMethods: Array<{ methodType: string; config: any }> = [];
-    for (const table of METHOD_TABLES) {
-      const rows = await ctx.db
-        .query(table)
-        .withIndex("by_zone_sort", (q: any) => q.eq("zoneId", args.zoneId))
-        .collect();
-      for (const row of rows) {
-        if (row.enabled !== false) {
-          allMethods.push({
-            methodType: table.replace("commerce_shipping_method_", ""),
-            config: row,
-          });
-        }
-      }
-    }
-    return allMethods;
+    const methods = await listZoneMethods(ctx, args.zoneId);
+    return methods.filter((method) => method.config.enabled !== false);
   },
 });
 
@@ -148,24 +153,24 @@ export const getCachedQuotesForSession = internalQuery({
     addressKey: v.string(),
     cartKey: v.string(),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_shipping_rate_quotes)),
+  returns: v.union(v.null(), v.array(shippingDocs.commerce_shipping_rate_quotes)),
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("commerce_shipping_rate_quotes")
-      .withIndex("by_checkout", (q: any) =>
+      .withIndex("by_checkout", (q) =>
         q.eq("checkoutSessionId", args.checkoutSessionId),
       )
       .collect();
     if (rows.length === 0) return null;
     const now = Date.now();
     const valid = rows.filter(
-      (r: any) =>
+      (r) =>
         r.addressKey === args.addressKey &&
         r.cartKey === args.cartKey &&
         (r.expiresAt ?? 0) > now,
     );
     if (valid.length === 0) return null;
-    return valid.sort((a: any, b: any) => a.amount - b.amount);
+    return valid.sort((a, b) => a.amount - b.amount);
   },
 });
 

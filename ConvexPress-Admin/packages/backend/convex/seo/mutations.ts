@@ -31,7 +31,6 @@ import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { requireCan, getCurrentUser , getUserIdentifier } from "../helpers/permissions";
 import { checkPostCapability } from "../helpers/postAuth";
-import type { AuthUser, AuthPost } from "../helpers/postAuth";
 import { emitEvent } from "../helpers/events";
 import { SEO_EVENTS, SYSTEM } from "../events/constants";
 import {
@@ -89,8 +88,8 @@ export const updatePostSeo = mutation({
     //   - Published post by another user: same Editor+ requirement
     await checkPostCapability(
       ctx,
-      user as unknown as AuthUser,
-      post as unknown as AuthPost,
+      user,
+      post,
       "edit",
     );
 
@@ -365,10 +364,7 @@ export const updateRobots = mutation({
       .withIndex("by_key", (q) => q.eq("key", "robots"))
       .unique();
 
-    const current = parseSeoSettingsValue(
-      existing?.value,
-      DEFAULT_ROBOTS_SETTINGS,
-    );
+    const current = parseSeoSettingsValue(existing?.value, "robots");
 
     // 4. Merge provided fields
     const updated = { ...current };

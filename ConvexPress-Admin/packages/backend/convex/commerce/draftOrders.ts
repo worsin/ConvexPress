@@ -1,22 +1,22 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-import { tableDocs } from "../schema/tableDocs.generated";
-function totalItems(items: any[]) {
+import { commerceDocs } from "../schema/commerce.docs.generated";
+function totalItems(items: Doc<"commerce_draft_order_items">[]) {
   return items.reduce((sum, item) => sum + Number(item.lineTotalAmount ?? 0), 0);
 }
 
-async function recalculate(ctx: any, draftOrderId: any) {
+async function recalculate(ctx: Pick<MutationCtx, "db">, draftOrderId: Id<"commerce_draft_orders">) {
   const draft = await ctx.db.get(draftOrderId);
   if (!draft) return;
   const items = await ctx.db
     .query("commerce_draft_order_items")
-    .withIndex("by_draft_order", (q: any) => q.eq("draftOrderId", draftOrderId))
+    .withIndex("by_draft_order", (q) => q.eq("draftOrderId", draftOrderId))
     .collect();
   const subtotalAmount = totalItems(items);
   const totalAmount =
@@ -33,13 +33,14 @@ async function recalculate(ctx: any, draftOrderId: any) {
 
 export const list = query({
   args: { status: v.optional(v.union(v.literal("open"), v.literal("completed"), v.literal("canceled"))) },
-  returns: v.array(tableDocs.commerce_draft_orders),
+  returns: v.array(commerceDocs.commerce_draft_orders),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
-    if (args.status) {
+    const status = args.status;
+    if (status) {
       return await ctx.db
         .query("commerce_draft_orders")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .order("desc")
         .collect();
     }
@@ -49,13 +50,17 @@ export const list = query({
 
 export const get = query({
   args: { draftOrderId: v.id("commerce_draft_orders") },
+  returns: v.union(v.null(), v.object({
+    ...commerceDocs.commerce_draft_orders.fields,
+    items: v.array(commerceDocs.commerce_draft_order_items),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const draft = await ctx.db.get(args.draftOrderId);
     if (!draft) return null;
     const items = await ctx.db
       .query("commerce_draft_order_items")
-      .withIndex("by_draft_order", (q: any) => q.eq("draftOrderId", args.draftOrderId))
+      .withIndex("by_draft_order", (q) => q.eq("draftOrderId", args.draftOrderId))
       .collect();
     return { ...draft, items };
   },

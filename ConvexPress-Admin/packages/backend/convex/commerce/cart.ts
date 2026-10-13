@@ -4,8 +4,9 @@ import { activePriceAmount } from "./activePrice";
 import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
 import { readReservedStock } from "./stockTarget";
 import { ConvexError, v } from "convex/values";
-import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { RegisteredMutation, RegisteredQuery } from "convex/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 
 import { internalMutation, mutation, query } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
@@ -31,41 +32,57 @@ import {
 	updateCartItemArgs,
 } from "./validators";
 import { deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 
 
-async function findCartBySession(ctx: any, sessionToken: string) {
+type CartDoc = Doc<"commerce_carts">;
+type CartItemDoc = Doc<"commerce_cart_items">;
+type ProductDoc = Doc<"commerce_products">;
+type VariantDoc = Doc<"commerce_product_variants">;
+type CartItemWithProduct = CartItemDoc & { product: ProductDoc | null; variant: VariantDoc | null };
+
+async function findCartBySession(ctx: Pick<QueryCtx, "db">, sessionToken: string) {
 	return ctx.db
 		.query("commerce_carts")
-		.withIndex("by_session", (q: any) => q.eq("sessionToken", sessionToken))
+		.withIndex("by_session", (q) => q.eq("sessionToken", sessionToken))
 		.unique();
 }
 
-async function findActiveCartByUser(ctx: any, userId: any, includePending = false) {
-	const statuses = includePending ? ["pending_payment", "active", "abandoned"] : ["active", "abandoned"];
+async function findActiveCartByUser(ctx: Pick<QueryCtx, "db">, userId: Id<"users">, includePending = false) {
+	const statuses: CartDoc["status"][] = includePending ? ["pending_payment", "active", "abandoned"] : ["active", "abandoned"];
 	for (const status of statuses) {
 		const cart = await ctx.db.query("commerce_carts")
-			.withIndex("by_user_status", (q: any) => q.eq("userId", userId).eq("status", status)).first();
+			.withIndex("by_user_status", (q) => q.eq("userId", userId).eq("status", status)).first();
 		if (cart) return cart;
 	}
 	return null;
 }
 
-async function getCartItems(ctx: any, cartId: any) {
+async function getCartItems(ctx: Pick<QueryCtx, "db">, cartId: Id<"commerce_carts">) {
 	return ctx.db
 		.query("commerce_cart_items")
-		.withIndex("by_cart", (q: any) => q.eq("cartId", cartId))
+		.withIndex("by_cart", (q) => q.eq("cartId", cartId))
 		.collect();
 }
 
-function normalizeBundleSelections(metadata: any) {
-	if (metadata?.lineType !== "bundle") return [];
-	return [...(metadata.selections ?? [])]
-		.map((selection: any) => ({
-			componentId: String(selection.componentId ?? ""),
-			productId: selection.productId ? String(selection.productId) : "",
-			variantId: selection.variantId ? String(selection.variantId) : "",
-			quantity: Number(selection.quantity ?? 0),
-		}))
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Line metadata is stored untyped; bundle lines carry `lineType`, `bundleId` and `selections`. */
+function normalizeBundleSelections(metadata: unknown) {
+	if (!isRecord(metadata) || metadata.lineType !== "bundle") return [];
+	const selections: unknown[] = Array.isArray(metadata.selections) ? metadata.selections : [];
+	return selections
+		.map((entry) => {
+			const selection = isRecord(entry) ? entry : {};
+			return {
+				componentId: String(selection.componentId ?? ""),
+				productId: selection.productId ? String(selection.productId) : "",
+				variantId: selection.variantId ? String(selection.variantId) : "",
+				quantity: Number(selection.quantity ?? 0),
+			};
+		})
 		.sort((a, b) =>
 			`${a.componentId}:${a.productId}:${a.variantId}:${a.quantity}`.localeCompare(
 				`${b.componentId}:${b.productId}:${b.variantId}:${b.quantity}`,
@@ -74,15 +91,15 @@ function normalizeBundleSelections(metadata: any) {
 }
 
 function cartLineKey(input: {
-	productId: any;
-	variantId?: any;
-	metadata?: any;
+	productId: Id<"commerce_products">;
+	variantId?: Id<"commerce_product_variants">;
+	metadata?: unknown;
 }) {
-	const metadata = input.metadata;
+	const metadata = isRecord(input.metadata) ? input.metadata : undefined;
 	const base = [
 		String(input.productId),
 		input.variantId ? String(input.variantId) : "",
-		metadata?.lineType ?? "product",
+		String(metadata?.lineType ?? "product"),
 	];
 
 	if (metadata?.lineType === "bundle") {
@@ -100,18 +117,18 @@ function buildShareToken() {
 	return `cart_${random}`;
 }
 
-async function findDiscountByCode(ctx: any, code: string) {
+async function findDiscountByCode(ctx: Pick<QueryCtx, "db">, code: string) {
 	return ctx.db
 		.query("commerce_discount_codes")
-		.withIndex("by_code", (q: any) => q.eq("code", code))
+		.withIndex("by_code", (q) => q.eq("code", code))
 		.unique();
 }
 
-async function assertCanMutateCart(
-	cart: any,
+function assertCanMutateCart(
+	cart: CartDoc | null,
 	sessionToken?: string,
-	userId?: any,
-) {
+	userId?: Id<"users">,
+): asserts cart is CartDoc {
 	if (!cart || cart.status !== "active") {
 		throw new ConvexError({
 			code: "NOT_FOUND",
@@ -123,8 +140,8 @@ async function assertCanMutateCart(
 }
 
 async function resolveCartItemForMutation(
-	ctx: any,
-	cartItemId: any,
+	ctx: MutationCtx,
+	cartItemId: Id<"commerce_cart_items">,
 	sessionToken?: string,
 ) {
 	const user = await getCurrentUser(ctx);
@@ -132,18 +149,18 @@ async function resolveCartItemForMutation(
 	if (!item) return { item: null, cart: null, user };
 
 	const cart = await ctx.db.get("commerce_carts", item.cartId);
-	await assertCanMutateCart(cart, sessionToken, user?._id);
+	assertCanMutateCart(cart, sessionToken, user?._id);
 	return { item, cart, user };
 }
 
-function isVariantPublic(variant: any) {
+function isVariantPublic(variant: VariantDoc) {
 	return !variant.status || variant.status === "publish";
 }
 
 async function resolvePurchasableProductAndVariant(
-	ctx: any,
-	productId: any,
-	variantId?: any,
+	ctx: Pick<QueryCtx, "db">,
+	productId: Id<"commerce_products">,
+	variantId?: Id<"commerce_product_variants">,
 ) {
 	const product = await ctx.db.get("commerce_products", productId);
 
@@ -179,9 +196,9 @@ async function resolvePurchasableProductAndVariant(
 	return { product, variant };
 }
 
-async function assertSufficientStock(ctx: any, product: any, variant: any, quantity: number) {
+async function assertSufficientStock(ctx: Pick<QueryCtx, "db">, product: ProductDoc, variant: VariantDoc | null, quantity: number) {
 	const initial = resolveStockPolicy(product, variant);
-	const reserved = initial.tracked ? await readReservedStock(ctx, product._id, initial.owner === "variant" ? variant._id : undefined) : 0;
+	const reserved = initial.tracked ? await readReservedStock(ctx, product._id, initial.owner === "variant" ? variant?._id : undefined) : 0;
 	const stock = resolveStockPolicy(product, variant, reserved);
 	if (!canOrderQuantity(stock, quantity)) {
 		throw new ConvexError({
@@ -191,7 +208,7 @@ async function assertSufficientStock(ctx: any, product: any, variant: any, quant
 	}
 }
 
-async function resolveActiveDiscount(ctx: any, code?: string) {
+async function resolveActiveDiscount(ctx: Pick<QueryCtx, "db">, code?: string) {
 	const normalizedCode = code?.trim().toUpperCase();
 	if (!normalizedCode) return null;
 
@@ -211,14 +228,14 @@ async function resolveActiveDiscount(ctx: any, code?: string) {
 	return discount;
 }
 
-async function getCartItemsForDiscount(ctx: any, cartId: any) {
+async function getCartItemsForDiscount(ctx: Pick<QueryCtx, "db">, cartId: Id<"commerce_carts">): Promise<CartItemWithProduct[]> {
 	const items = await ctx.db
 		.query("commerce_cart_items")
-		.withIndex("by_cart", (q: any) => q.eq("cartId", cartId))
+		.withIndex("by_cart", (q) => q.eq("cartId", cartId))
 		.collect();
 
 	return Promise.all(
-		items.map(async (item: any) => {
+		items.map(async (item) => {
 			const product = await ctx.db.get("commerce_products", item.productId);
 			const variant = item.variantId
 				? await ctx.db.get("commerce_product_variants", item.variantId)
@@ -232,7 +249,7 @@ async function getCartItemsForDiscount(ctx: any, cartId: any) {
 	);
 }
 
-async function recalculateCart(ctx: any, cartId: any) {
+async function recalculateCart(ctx: MutationCtx, cartId: Id<"commerce_carts">) {
 	const cart = await ctx.db.get("commerce_carts", cartId);
 	if (!cart) return;
 
@@ -270,7 +287,7 @@ async function recalculateCart(ctx: any, cartId: any) {
 		});
 	}
 	const subtotalAmount = pricedItems.reduce(
-		(sum: number, item: any) => sum + item.lineTotalAmount,
+		(sum: number, item) => sum + item.lineTotalAmount,
 		0,
 	);
   const coupon = await evaluateCartCoupon(ctx, cart.appliedDiscountCode, pricedItems);
@@ -286,11 +303,11 @@ async function recalculateCart(ctx: any, cartId: any) {
 	// Tax is computed at checkout when the address is provided (see checkout.ts).
 	// If the cart ever gains an address field, calculate here using:
 	//   const rules = await ctx.db.query("commerce_tax_rules")
-	//     .withIndex("by_active", (q: any) => q.eq("isActive", true)).collect();
+	//     .withIndex("by_active", (q) => q.eq("isActive", true)).collect();
 	//   const { taxAmount } = calculateTaxFromRules(rules, address, taxableAmount);
 	const taxableAmount = Math.max(0, subtotalAmount - discountAmount);
 	const taxAmount = 0;
-	const itemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+	const itemCount = items.reduce((sum: number, item) => sum + item.quantity, 0);
 	const now = Date.now();
 
 	await ctx.db.patch("commerce_carts", cartId, {
@@ -335,14 +352,14 @@ async function recalculateCart(ctx: any, cartId: any) {
 }
 
 async function invalidateCheckoutShippingForCart(
-	ctx: any,
+	ctx: MutationCtx,
 	input: {
-		cartId: any;
-		items: any[];
+		cartId: Id<"commerce_carts">;
+		items: Array<{ lineTotalAmount: number; product: ProductDoc | null; variant: VariantDoc | null }>;
 		appliedDiscountCode?: string;
 		appliedDiscountDescription?: string;
 		dynamicPricingDiscountAmount?: number;
-		dynamicPricingRuleIds?: any[];
+		dynamicPricingRuleIds?: Id<"commerce_dynamic_pricing_rules">[];
 		dynamicPricingDescription?: string;
 		freeShippingByDynamicPricing?: boolean;
     freeShippingByCoupon?: boolean;
@@ -354,9 +371,9 @@ async function invalidateCheckoutShippingForCart(
 ) {
 	const sessions = await ctx.db
 		.query("commerce_checkout_sessions")
-		.withIndex("by_cart", (q: any) => q.eq("cartId", input.cartId))
+		.withIndex("by_cart", (q) => q.eq("cartId", input.cartId))
 		.collect();
-	const activeSessions = sessions.filter((session: any) =>
+	const activeSessions = sessions.filter((session) =>
 		[
 			"draft",
 			"collecting_shipping",
@@ -370,13 +387,13 @@ async function invalidateCheckoutShippingForCart(
 	const settings = await getCommerceSettings(ctx);
 	const rules = await ctx.db
 		.query("commerce_tax_rules")
-		.withIndex("by_active", (q: any) => q.eq("isActive", true))
+		.withIndex("by_active", (q) => q.eq("isActive", true))
 		.collect();
 
 	for (const session of activeSessions) {
 		const selectedShippingMethods = await ctx.db
 			.query("commerce_checkout_shipping_methods")
-			.withIndex("by_checkout_status", (q: any) =>
+			.withIndex("by_checkout_status", (q) =>
 				q.eq("checkoutSessionId", session._id).eq("status", "active"),
 			)
 			.collect();
@@ -390,7 +407,7 @@ async function invalidateCheckoutShippingForCart(
 
 		const quotes = await ctx.db
 			.query("commerce_shipping_rate_quotes")
-			.withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
+			.withIndex("by_checkout", (q) => q.eq("checkoutSessionId", session._id))
 			.collect();
 		for (const quote of quotes) {
 			await deleteDynamicWithMediaReferences(ctx, quote._id);
@@ -406,7 +423,7 @@ async function invalidateCheckoutShippingForCart(
 			const taxResult = calculateTaxForLinesFromRules(
 				rules,
 				taxAddress,
-				input.items.map((item: any) => ({
+				input.items.map((item) => ({
 					amount: Math.max(
 						0,
 						Math.round(Number(item.lineTotalAmount ?? 0) * (1 - discountRatio)),
@@ -445,41 +462,42 @@ async function invalidateCheckoutShippingForCart(
  * Resolve the active price for a variant, respecting scheduled sale dates.
  * Falls back to the regular price when no sale is active or dates are outside range.
  */
-function resolveVariantActivePrice(variant: any): number {
+function resolveVariantActivePrice(variant: VariantDoc): number {
 	return activePriceAmount(variant.price, variant.salePrice, variant);
 }
 
 /**
  * Resolve the active price for a product, respecting scheduled sale dates.
  */
-function resolveProductActivePrice(product: any): number {
+function resolveProductActivePrice(product: ProductDoc): number {
 	return activePriceAmount(product.basePrice, product.salePrice, product);
 }
 
 async function resolveContextualPrice(
-	ctx: any,
+	ctx: Pick<QueryCtx, "db">,
 	args: {
-		product: any;
-		variant?: any;
-		cart?: any;
+		product: ProductDoc;
+		variant?: VariantDoc | null;
+		cart?: CartDoc | null;
 		quantity: number;
 	},
-) {
+): Promise<number> {
 	const fallback = args.variant
 		? resolveVariantActivePrice(args.variant)
 		: resolveProductActivePrice(args.product);
 	const now = Date.now();
-	const priceSets = args.variant
+	const variant = args.variant;
+	const priceSets = variant
 		? await ctx.db
 				.query("commerce_price_sets")
-				.withIndex("by_variant", (q: any) => q.eq("variantId", args.variant._id))
+				.withIndex("by_variant", (q) => q.eq("variantId", variant._id))
 				.collect()
 		: await ctx.db
 				.query("commerce_price_sets")
-				.withIndex("by_product", (q: any) => q.eq("productId", args.product._id))
+				.withIndex("by_product", (q) => q.eq("productId", args.product._id))
 				.collect();
 
-	const context = {
+	const context: Record<string, string | number | undefined> & { currencyCode: string; quantity: number } = {
 		currencyCode: args.cart?.currencyCode ?? args.product.basePrice?.currencyCode ?? "USD",
 		regionId: args.cart?.regionId ? String(args.cart.regionId) : undefined,
 		salesChannelId: args.cart?.salesChannelId ? String(args.cart.salesChannelId) : undefined,
@@ -487,11 +505,11 @@ async function resolveContextualPrice(
 		quantity: args.quantity,
 	};
 
-	const candidates: any[] = [];
+	const candidates: Array<{ price: Doc<"commerce_prices">; ruleCount: number }> = [];
 	for (const priceSet of priceSets) {
 		const prices = await ctx.db
 			.query("commerce_prices")
-			.withIndex("by_price_set", (q: any) => q.eq("priceSetId", priceSet._id))
+			.withIndex("by_price_set", (q) => q.eq("priceSetId", priceSet._id))
 			.collect();
 		for (const price of prices) {
 			if (price.status !== "active") continue;
@@ -503,16 +521,18 @@ async function resolveContextualPrice(
 
 			const rules = await ctx.db
 				.query("commerce_price_rules")
-				.withIndex("by_price", (q: any) => q.eq("priceId", price._id))
+				.withIndex("by_price", (q) => q.eq("priceId", price._id))
 				.collect();
-			const matches = rules.every((rule: any) => {
-				const actual = (context as any)[rule.attribute];
-				if (rule.operator === "eq") return actual === rule.value;
-				if (rule.operator === "neq") return actual !== rule.value;
-				if (rule.operator === "in") return Array.isArray(rule.value) && rule.value.includes(actual);
-				if (rule.operator === "not_in") return Array.isArray(rule.value) && !rule.value.includes(actual);
-				if (rule.operator === "gte") return Number(actual) >= Number(rule.value);
-				if (rule.operator === "lte") return Number(actual) <= Number(rule.value);
+			const matches = rules.every((rule) => {
+				const actual = context[rule.attribute];
+				// Rule values are stored untyped (a scalar, or a list for in/not_in).
+				const value: unknown = rule.value;
+				if (rule.operator === "eq") return actual === value;
+				if (rule.operator === "neq") return actual !== value;
+				if (rule.operator === "in") return Array.isArray(value) && value.includes(actual);
+				if (rule.operator === "not_in") return Array.isArray(value) && !value.includes(actual);
+				if (rule.operator === "gte") return Number(actual) >= Number(value);
+				if (rule.operator === "lte") return Number(actual) <= Number(value);
 				return false;
 			});
 			if (matches) candidates.push({ price, ruleCount: rules.length });
@@ -520,18 +540,18 @@ async function resolveContextualPrice(
 	}
 
 	if (!candidates.length) return fallback;
-	candidates.sort((a: any, b: any) => {
+	candidates.sort((a, b) => {
 		if (b.ruleCount !== a.ruleCount) return b.ruleCount - a.ruleCount;
 		return a.price.amount - b.price.amount;
 	});
-	return candidates[0].price.amount;
+	return candidates[0]?.price.amount ?? fallback;
 }
 
-async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
+async function ensureCart(ctx: MutationCtx, sessionToken: string, userId?: Id<"users">): Promise<CartDoc | null> {
 	let sessionCart = await findCartBySession(ctx, sessionToken);
 	if (sessionCart) assertCartAccess(sessionCart, sessionToken, userId);
 	// Keep order history intact while releasing the browser token for its next cart.
-	if (isClosedCart(sessionCart)) {
+	if (sessionCart && isClosedCart(sessionCart)) {
 		await ctx.db.patch("commerce_carts", sessionCart._id, {
 			sessionToken: `retired:${sessionCart._id}`,
 			updatedAt: Date.now(),
@@ -586,11 +606,11 @@ async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
 	const settings = await getCommerceSettings(ctx);
 	const defaultRegion = await ctx.db
 		.query("commerce_regions")
-		.withIndex("by_default", (q: any) => q.eq("isDefault", true))
+		.withIndex("by_default", (q) => q.eq("isDefault", true))
 		.first();
 	const defaultChannel = await ctx.db
 		.query("commerce_sales_channels")
-		.withIndex("by_default", (q: any) => q.eq("isDefault", true))
+		.withIndex("by_default", (q) => q.eq("isDefault", true))
 		.first();
 
 	const now = Date.now();
@@ -617,8 +637,15 @@ async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
 	return ctx.db.get("commerce_carts", cartId);
 }
 
-export const getMine: import("convex/server").RegisteredQuery<"public", { sessionToken?: string }, (import("../_generated/dataModel").Doc<"commerce_carts"> & { items: Array<import("../_generated/dataModel").Doc<"commerce_cart_items"> & { product: import("../_generated/dataModel").Doc<"commerce_products"> | null; variant: import("../_generated/dataModel").Doc<"commerce_product_variants"> | null }> }) | null> = query({
+const cartItemWithProductValidator = v.object({
+	...commerceDocs.commerce_cart_items.fields,
+	product: v.union(v.null(), commerceDocs.commerce_products),
+	variant: v.union(v.null(), commerceDocs.commerce_product_variants),
+});
+
+export const getMine: RegisteredQuery<"public", { sessionToken?: string }, (CartDoc & { items: CartItemWithProduct[] }) | null> = query({
 	args: getCartArgs,
+	returns: v.union(v.null(), v.object({ ...commerceDocs.commerce_carts.fields, items: v.array(cartItemWithProductValidator) })),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const user = await getCurrentUser(ctx);
@@ -636,11 +663,11 @@ export const getMine: import("convex/server").RegisteredQuery<"public", { sessio
 
 		const items = await ctx.db
 			.query("commerce_cart_items")
-			.withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
+			.withIndex("by_cart", (q) => q.eq("cartId", cart._id))
 			.collect();
 
 		const enrichedItems = await Promise.all(
-			items.map(async (item: any) => {
+			items.map(async (item) => {
 				const product = await ctx.db.get("commerce_products", item.productId);
 				const variant = item.variantId
 					? await ctx.db.get("commerce_product_variants", item.variantId)
@@ -662,6 +689,7 @@ export const getMine: import("convex/server").RegisteredQuery<"public", { sessio
 
 export const addItem = mutation({
 	args: addCartItemArgs,
+	returns: v.id("commerce_carts"),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const user = await getCurrentUser(ctx);
@@ -686,7 +714,7 @@ export const addItem = mutation({
 		const quantity = args.quantity;
 		if (!Number.isSafeInteger(quantity) || quantity <= 0) throw new ConvexError({ code: "invalid_quantity", message: "Quantity must be a positive safe integer." });
 		const cart = await ensureCart(ctx, args.sessionToken, user?._id);
-		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+		assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		const resolvedBundle = await resolveCartBundle(ctx, { productId: args.productId, variantId: args.variantId, metadata: args.metadata, quantity, currencyCode: cart.currencyCode });
 		const metadata = resolvedBundle?.metadata ?? args.metadata;
@@ -698,12 +726,12 @@ export const addItem = mutation({
 		const existing = (
 			await ctx.db
 				.query("commerce_cart_items")
-				.withIndex("by_cart_product", (q: any) =>
+				.withIndex("by_cart_product", (q) =>
 					q.eq("cartId", cart._id).eq("productId", args.productId),
 				)
 				.collect()
 		).find(
-			(item: any) =>
+			(item) =>
 				(item.variantId?.toString() ?? null) ===
 					(args.variantId?.toString() ?? null) &&
 				cartLineKey(item) === nextLineKey,
@@ -795,7 +823,8 @@ export const updateItemQuantity = mutation({
 			item.variantId,
 		);
 
-		const cart = await ctx.db.get(item.cartId);
+		const cart = await ctx.db.get("commerce_carts", item.cartId);
+		if (!cart) throw new ConvexError({ code: "NOT_FOUND", message: "Active cart not found." });
 		if (!Number.isSafeInteger(args.quantity)) throw new ConvexError({ code: "invalid_quantity", message: "Quantity must be a safe integer." });
 		const bundle = await resolveCartBundle(ctx, { productId: item.productId, variantId: item.variantId, metadata: item.metadata, quantity: args.quantity, currencyCode: cart.currencyCode });
 		const refreshedPrice = bundle?.unitPriceAmount ?? await resolveContextualPrice(ctx, {
@@ -856,17 +885,18 @@ export const removeItem = mutation({
 
 export const clear = mutation({
 	args: clearCartArgs,
+	returns: v.union(v.null(), v.id("commerce_carts")),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const cart = await findCartBySession(ctx, args.sessionToken);
 		if (!cart) return null;
 
 		const user = await getCurrentUser(ctx);
-		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+		assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		const items = await ctx.db
 			.query("commerce_cart_items")
-			.withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
+			.withIndex("by_cart", (q) => q.eq("cartId", cart._id))
 			.collect();
 
 		for (const item of items) {
@@ -884,6 +914,7 @@ export const clear = mutation({
 
 export const applyDiscountCode = mutation({
 	args: applyCartDiscountCodeArgs,
+	returns: v.id("commerce_carts"),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const cart = await findCartBySession(ctx, args.sessionToken);
@@ -895,7 +926,7 @@ export const applyDiscountCode = mutation({
 		}
 
 		const user = await getCurrentUser(ctx);
-		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+		assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		const discount = await resolveActiveDiscount(ctx, args.code);
 		if (!discount) {
@@ -932,13 +963,14 @@ export const applyDiscountCode = mutation({
 
 export const removeDiscountCode = mutation({
 	args: removeCartDiscountCodeArgs,
+	returns: v.union(v.null(), v.id("commerce_carts")),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const cart = await findCartBySession(ctx, args.sessionToken);
 		if (!cart) return null;
 
 		const user = await getCurrentUser(ctx);
-		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+		assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		await ctx.db.patch("commerce_carts", cart._id, {
 			appliedDiscountCode: undefined,
@@ -1040,7 +1072,7 @@ export async function mergeCartForSession(ctx: MutationCtx, args: { sessionToken
 	for (const guestItem of guestItems) {
 		const guestLineKey = cartLineKey(guestItem);
 		const match = userItems.find(
-			(item: any) =>
+			(item) =>
 				item.productId.toString() === guestItem.productId.toString() &&
 				(item.variantId?.toString() ?? null) ===
 					(guestItem.variantId?.toString() ?? null) &&
@@ -1098,7 +1130,7 @@ export async function mergeCartForSession(ctx: MutationCtx, args: { sessionToken
 	return userCart._id;
 }
 
-export const merge: import("convex/server").RegisteredMutation<"public", { sessionToken: string }, Id<"commerce_carts"> | null> = mutation({
+export const merge: RegisteredMutation<"public", { sessionToken: string }, Id<"commerce_carts"> | null> = mutation({
 	args: mergeCartArgs,
 	returns: v.union(v.id("commerce_carts"), v.null()),
 	handler: (ctx: MutationCtx, args: { sessionToken: string }) => mergeCartForSession(ctx, args),
@@ -1106,11 +1138,12 @@ export const merge: import("convex/server").RegisteredMutation<"public", { sessi
 
 export const enableSharing = mutation({
 	args: shareCartArgs,
+	returns: v.object({ shareToken: v.string() }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const user = await getCurrentUser(ctx);
 		const cart = await findCartBySession(ctx, args.sessionToken);
-		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+		assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		const now = Date.now();
 		const shareToken = cart.shareToken ?? buildShareToken();
@@ -1132,11 +1165,12 @@ export const enableSharing = mutation({
 
 export const disableSharing = mutation({
 	args: shareCartArgs,
+	returns: v.id("commerce_carts"),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const user = await getCurrentUser(ctx);
 		const cart = await findCartBySession(ctx, args.sessionToken);
-		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+		assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		const now = Date.now();
 		await ctx.db.patch("commerce_carts", cart._id, {
@@ -1154,19 +1188,29 @@ export const disableSharing = mutation({
 
 export const getShared = query({
 	args: getSharedCartArgs,
+	returns: v.union(v.null(), v.object({
+		_id: v.id("commerce_carts"),
+		currencyCode: v.string(),
+		subtotalAmount: v.number(),
+		discountAmount: v.number(),
+		totalAmount: v.number(),
+		itemCount: v.number(),
+		sharedAt: v.optional(v.number()),
+		items: v.array(cartItemWithProductValidator),
+	})),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const cart = await ctx.db
 			.query("commerce_carts")
-			.withIndex("by_share_token", (q: any) => q.eq("shareToken", args.shareToken))
+			.withIndex("by_share_token", (q) => q.eq("shareToken", args.shareToken))
 			.unique();
 		if (!cart || cart.isShared !== true || cart.status !== "active") return null;
 
 		const items = await getCartItems(ctx, cart._id);
 		const enrichedItems = await Promise.all(
-			items.map(async (item: any) => ({
+			items.map(async (item) => ({
 				...item,
-				product: await ctx.db.get(item.productId),
+				product: await ctx.db.get("commerce_products", item.productId),
 				variant: item.variantId
 					? await ctx.db.get("commerce_product_variants", item.variantId)
 					: null,
@@ -1188,12 +1232,13 @@ export const getShared = query({
 
 export const copyShared = mutation({
 	args: copySharedCartArgs,
+	returns: v.id("commerce_carts"),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const user = await getCurrentUser(ctx);
 		const sourceCart = await ctx.db
 			.query("commerce_carts")
-			.withIndex("by_share_token", (q: any) => q.eq("shareToken", args.shareToken))
+			.withIndex("by_share_token", (q) => q.eq("shareToken", args.shareToken))
 			.unique();
 		if (!sourceCart || sourceCart.isShared !== true || sourceCart.status !== "active") {
 			throw new ConvexError({
@@ -1203,7 +1248,7 @@ export const copyShared = mutation({
 		}
 
 		const destinationCart = await ensureCart(ctx, args.sessionToken, user?._id);
-		await assertCanMutateCart(destinationCart, args.sessionToken, user?._id);
+		assertCanMutateCart(destinationCart, args.sessionToken, user?._id);
 
 		const sourceItems = await getCartItems(ctx, sourceCart._id);
 		const destinationItems = await getCartItems(ctx, destinationCart._id);
@@ -1217,7 +1262,7 @@ export const copyShared = mutation({
 			);
 			const lineKey = cartLineKey(sourceItem);
 			const existing = destinationItems.find(
-				(item: any) =>
+				(item) =>
 					item.productId.toString() === sourceItem.productId.toString() &&
 					(item.variantId?.toString() ?? null) ===
 						(sourceItem.variantId?.toString() ?? null) &&
@@ -1270,7 +1315,7 @@ export const markAbandonedCarts = internalMutation({
 		const cutoff = Date.now() - olderThanMs;
 		const carts = await ctx.db
 			.query("commerce_carts")
-			.withIndex("by_status", (q: any) => q.eq("status", "active"))
+			.withIndex("by_status", (q) => q.eq("status", "active"))
 			.take(limit);
 
 		let abandoned = 0;

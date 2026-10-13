@@ -1,7 +1,3 @@
-// @ts-nocheck — Convex generated API union types exceed TypeScript's instantiation
-// depth (TS2589) for every ctx.runQuery/runMutation/db call in this module, the
-// same limitation documented in auth/clerkManagement.ts. The pure logic lives in
-// clerkConnectionHelpers.ts and stays fully typed and unit-tested.
 /**
  * Clerk Connection — internal reads/writes used by the connection actions.
  *
@@ -11,16 +7,18 @@
 
 import { v } from "convex/values";
 
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { decryptSettingSecret, encryptSettingSecret, isSecretFieldName } from "../helpers/settingsSecret";
-import { CLERK_INTEGRATION_DEFAULTS, GENERAL_DEFAULTS } from "../settings/defaults";
+import { CLERK_INTEGRATION_DEFAULTS, GENERAL_DEFAULTS, type ClerkIntegrationSettings } from "../settings/defaults";
+import { readClerkIntegrationSettings } from "./clerkConnectionHelpers";
+import { clerkIntegrationSettingsPatchValidator } from "./clerkValidators";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 const SECTION = "integrations.clerk" as const;
 
 export interface ClerkConnectionSnapshot {
-  values: Record<string, unknown>;
+  values: ClerkIntegrationSettings;
   secretKey: string;
   webhookSecret: string;
   publishableKey: string;
@@ -41,10 +39,10 @@ export interface ClerkConnectionSnapshot {
   };
 }
 
-async function readSection(ctx: { db: any }, section: string) {
+async function readSection(ctx: Pick<QueryCtx, "db">, section: typeof SECTION | "general") {
   return ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", section))
+    .withIndex("by_section", (q) => q.eq("section", section))
     .unique();
 }
 
@@ -58,20 +56,150 @@ async function plain(value: unknown): Promise<string> {
 /** Everything the connection pipeline needs, secrets decrypted. Internal only. */
 export const readConnection = internalQuery({
   args: {},
+  returns: v.object({
+    values: v.object({
+      clerkSecretKey: v.string(),
+      clerkWebhookSecret: v.string(),
+      clerkJwtIssuerDomain: v.string(),
+      clerkPublishableKey: v.string(),
+      clerkFrontendApi: v.string(),
+      clerkEnvironmentType: v.union(v.literal(""), v.literal("production"), v.literal("development")),
+      clerkInstanceId: v.string(),
+      clerkConnectionMode: v.union(v.literal(""), v.literal("manual"), v.literal("secret_key"), v.literal("keyless")),
+      clerkClaimUrl: v.string(),
+      clerkDashboardUrl: v.string(),
+      clerkClaimedAt: v.union(v.null(), v.number()),
+      clerkConnectedAt: v.union(v.null(), v.number()),
+      clerkJwtTemplateId: v.string(),
+      clerkSvixConfigured: v.boolean(),
+      clerkSiteOrigins: v.array(v.string()),
+      clerkCapabilities: v.union(v.null(), v.object({
+        version: v.literal(1),
+        applicationName: v.union(v.null(), v.string()),
+        environmentType: v.union(v.null(), v.literal("production"), v.literal("development")),
+        attributes: v.object({
+          emailAddress: v.object({
+            enabled: v.boolean(),
+            required: v.boolean(),
+            verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+            usedForFirstFactor: v.boolean(),
+            usedForSecondFactor: v.boolean(),
+          }),
+          phoneNumber: v.object({
+            enabled: v.boolean(),
+            required: v.boolean(),
+            verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+            usedForFirstFactor: v.boolean(),
+            usedForSecondFactor: v.boolean(),
+          }),
+          username: v.object({
+            enabled: v.boolean(),
+            required: v.boolean(),
+            verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+            usedForFirstFactor: v.boolean(),
+            usedForSecondFactor: v.boolean(),
+          }),
+          firstName: v.object({
+            enabled: v.boolean(),
+            required: v.boolean(),
+            verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+            usedForFirstFactor: v.boolean(),
+            usedForSecondFactor: v.boolean(),
+          }),
+          lastName: v.object({
+            enabled: v.boolean(),
+            required: v.boolean(),
+            verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+            usedForFirstFactor: v.boolean(),
+            usedForSecondFactor: v.boolean(),
+          }),
+          password: v.object({
+            enabled: v.boolean(),
+            required: v.boolean(),
+            verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+            usedForFirstFactor: v.boolean(),
+            usedForSecondFactor: v.boolean(),
+          }),
+        }),
+        social: v.array(v.string()),
+        signUp: v.object({
+          mode: v.union(v.literal("public"), v.literal("restricted"), v.literal("waitlist")),
+          captchaEnabled: v.boolean(),
+          captchaWidgetType: v.union(v.null(), v.literal("smart"), v.literal("invisible")),
+          legalConsentEnabled: v.boolean(),
+          progressive: v.boolean(),
+        }),
+        signIn: v.object({
+          preferredStrategy: v.union(v.literal("password"), v.literal("otp")),
+          secondFactorRequired: v.boolean(),
+          firstFactors: v.array(v.string()),
+          secondFactors: v.array(v.string()),
+        }),
+        password: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          minLength: v.number(),
+          maxLength: v.number(),
+          requireSpecialChar: v.boolean(),
+          requireNumbers: v.boolean(),
+          requireUppercase: v.boolean(),
+          requireLowercase: v.boolean(),
+          allowedSpecialCharacters: v.string(),
+          showZxcvbn: v.boolean(),
+          minZxcvbnStrength: v.number(),
+        }),
+        passkeys: v.object({ enabled: v.boolean() }),
+        links: v.object({
+          termsUrl: v.union(v.null(), v.string()),
+          privacyPolicyUrl: v.union(v.null(), v.string()),
+          supportEmail: v.union(v.null(), v.string()),
+        }),
+      })),
+      clerkCapabilitiesSyncedAt: v.union(v.null(), v.number()),
+      clerkLastVerification: v.union(v.null(), v.object({
+        checkedAt: v.optional(v.number()),
+        secretKeyValid: v.optional(v.boolean()),
+        secretKeyError: v.optional(v.string()),
+        jwtTemplatePresent: v.optional(v.boolean()),
+        jwtTemplateAudienceOk: v.optional(v.boolean()),
+        jwksKeyCount: v.optional(v.union(v.null(), v.number())),
+        tokenProbeAt: v.optional(v.number()),
+        tokenProbeOk: v.optional(v.boolean()),
+      })),
+      clerkLastVerifiedAt: v.union(v.null(), v.number()),
+      clerkWebhookLastReceivedAt: v.union(v.null(), v.number()),
+    }),
+    secretKey: v.string(),
+    webhookSecret: v.string(),
+    publishableKey: v.string(),
+    site: v.object({
+      siteUrl: v.string(),
+      homeUrl: v.string(),
+      identitySiteOrigin: v.union(v.null(), v.string()),
+      identityDeploymentOrigin: v.union(v.null(), v.string()),
+      identityManagementOrigin: v.union(v.null(), v.string()),
+    }),
+    deployment: v.object({
+      cloudUrl: v.union(v.null(), v.string()),
+      siteUrl: v.union(v.null(), v.string()),
+      issuer: v.union(v.null(), v.string()),
+      hasSecretKeyEnv: v.boolean(),
+      hasWebhookSecretEnv: v.boolean(),
+      envSiteUrl: v.union(v.null(), v.string()),
+    }),
+  }),
   handler: async (ctx): Promise<ClerkConnectionSnapshot> => {
     const doc = await readSection(ctx, SECTION);
-    const values: Record<string, unknown> = {
-      ...CLERK_INTEGRATION_DEFAULTS,
-      ...((doc?.values as Record<string, unknown> | undefined) ?? {}),
-    };
+    const values = readClerkIntegrationSettings(doc?.values, CLERK_INTEGRATION_DEFAULTS);
     const generalDoc = await readSection(ctx, "general");
+    const generalValues: unknown = generalDoc?.values;
     const general: Record<string, unknown> = {
       ...GENERAL_DEFAULTS,
-      ...((generalDoc?.values as Record<string, unknown> | undefined) ?? {}),
+      ...(generalValues && typeof generalValues === "object" && !Array.isArray(generalValues) ? generalValues : {}),
     };
     const identity = await ctx.db
       .query("convexpress_siteIdentity")
-      .withIndex("by_identity_key", (q: any) => q.eq("identityKey", "site-identity"))
+      .withIndex("by_identity_key", (q) => q.eq("identityKey", "site-identity"))
       .unique();
 
     return {
@@ -106,12 +234,12 @@ export const readConnection = internalQuery({
  */
 export const saveConnection = internalMutation({
   args: {
-    values: v.any(),
+    values: clerkIntegrationSettingsPatchValidator,
     system: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const incoming = (args.values ?? {}) as Record<string, unknown>;
+    const incoming: Record<string, unknown> = args.values;
     const doc = await readSection(ctx, SECTION);
     const user = await getCurrentUser(ctx);
     if (!user && !args.system) throw new Error("Sign in to change the Clerk connection.");

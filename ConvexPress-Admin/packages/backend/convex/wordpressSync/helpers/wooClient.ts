@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * WooCommerce REST API Client
  *
@@ -49,6 +48,8 @@ export interface WooProduct {
   id: number;
   name: string;
   slug: string;
+  /** Not part of the core REST response; honoured when a store plugin adds it. */
+  currency?: string;
   type: string;
   status: string;
   description?: string;

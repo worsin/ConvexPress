@@ -19,6 +19,7 @@ import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getUpsAccessTokenV2 } from "./auth";
 import { getUpsServiceName, parseUpsTransitDays } from "./serviceCodes";
+import { at, isJsonObject, readJson } from "../../helpers/json";
 
 export type UpsRateInput = {
   sessionToken: string;
@@ -71,13 +72,13 @@ export async function fetchUpsRatesV2(
 
   const { accessToken, credentials } = await getUpsAccessTokenV2(ctx);
 
-  const shippableItems = (rateContext.items as any[]).filter(
-    (i: any) => i.product && i.product.isVirtual !== true,
+  const shippableItems = rateContext.items.filter(
+    (i) => i.product && i.product.isVirtual !== true,
   );
   const totalWeightOz =
     args.packages?.reduce((sum, pkg) => sum + pkg.weightOz, 0) ??
     shippableItems.reduce(
-      (sum: number, item: any) =>
+      (sum: number, item) =>
         sum + Math.max(1, item.product?.shippingWeightOz ?? 16) * item.quantity,
       0,
     );
@@ -209,29 +210,30 @@ export async function fetchUpsRatesV2(
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = await readJson(response);
+  const rateResponse = at(data, "RateResponse");
   const rates =
-    data?.RateResponse?.RatedShipment ??
-    (Array.isArray(data?.RateResponse) ? data.RateResponse : []);
-  const ratesArr: any[] = Array.isArray(rates) ? rates : [rates].filter(Boolean);
+    at(rateResponse, "RatedShipment") ??
+    (Array.isArray(rateResponse) ? rateResponse : []);
+  const ratesArr: unknown[] = Array.isArray(rates) ? rates : [rates].filter(Boolean);
 
   const addressKey = computeAddressFingerprint(args.shippingAddress);
-  const cartKey = (rateContext.items as any[])
-    .map((i: any) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
+  const cartKey = rateContext.items
+    .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
     .sort()
     .join(",");
 
   const quotes: Omit<
     NormalizedShippingQuote,
     "isCheapest" | "isFastest" | "isBestValue"
-  >[] = ratesArr.map((r: any) => {
-    const serviceCode = String(r?.Service?.Code ?? "");
-    const negotiated = r?.NegotiatedRateCharges?.TotalCharge?.MonetaryValue;
-    const standard = r?.TotalCharges?.MonetaryValue;
+  >[] = ratesArr.map((r) => {
+    const serviceCode = String(at(r, "Service", "Code") ?? "");
+    const negotiated = at(r, "NegotiatedRateCharges", "TotalCharge", "MonetaryValue");
+    const standard = at(r, "TotalCharges", "MonetaryValue");
     const amount = Number(negotiated ?? standard ?? 0);
     const currency = String(
-      r?.NegotiatedRateCharges?.TotalCharge?.CurrencyCode ??
-        r?.TotalCharges?.CurrencyCode ??
+      at(r, "NegotiatedRateCharges", "TotalCharge", "CurrencyCode") ??
+        at(r, "TotalCharges", "CurrencyCode") ??
         "USD",
     );
     const transitDays = parseUpsTransitDays(r);
@@ -252,7 +254,7 @@ export async function fetchUpsRatesV2(
       expiresAt: Date.now() + 30 * 60_000,
       origin: snapshotShippingOrigin(shippingSettings),
       packages: args.packages,
-      rawQuote: { ...r, addressKey, cartKey },
+      rawQuote: isJsonObject(r) ? { ...r, addressKey, cartKey } : { addressKey, cartKey },
     };
   });
 

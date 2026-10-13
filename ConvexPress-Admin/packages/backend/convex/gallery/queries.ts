@@ -5,11 +5,14 @@ import { getCurrentUser } from "../helpers/permissions";
 import {
   enrichAlbum,
   enrichCategories,
+  type EnrichedGalleryAlbum,
   getRoleLevel,
   isGalleryEnabled,
   slugify,
 } from "./helpers";
 import {
+  enrichedGalleryAlbumValidator,
+  galleryCategorySummaryValidator,
   getAlbumArgs,
   getAlbumBySlugArgs,
   getAlbumEmbedArgs,
@@ -17,11 +20,12 @@ import {
   listPublishedAlbumsArgs,
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { createMembershipAccessEvaluator } from "../membership/access";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { galleryDocs } from "../schema/gallery.docs.generated";
+import { galleryLayoutValidator } from "../schema/gallery";
 // Share one request-scoped evaluator across archive rows. The actual destination
 // remains authoritative for detail, embed, and archive entry points alike.
 async function isPublicAlbum(
@@ -38,7 +42,7 @@ async function isPublicAlbum(
 
 export const listCategories = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.gallery_categories)),
+  returns: v.union(v.null(), v.array(galleryDocs.gallery_categories)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     const categories = await ctx.db.query("gallery_categories").take(200);
@@ -49,6 +53,7 @@ export const listCategories = query({
 
 export const list = query({
   args: listAlbumsArgs,
+  returns: v.array(enrichedGalleryAlbumValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return [];
     const user = await getCurrentUser(ctx);
@@ -59,7 +64,7 @@ export const list = query({
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     const allAlbums = await ctx.db.query("gallery_albums").take(1000);
     const searchLower = args.search?.trim().toLowerCase();
 
@@ -108,7 +113,7 @@ export const counts = query({
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     const visibleAlbums = (await ctx.db.query("gallery_albums").take(1000)).filter(
       (album) =>
         roleLevel >= 80 || album.authorId.toString() === user._id.toString(),
@@ -126,8 +131,9 @@ export const counts = query({
   },
 });
 
-export const get: import("convex/server").RegisteredQuery<"public", { albumId: import("../_generated/dataModel").Id<"gallery_albums"> }, Awaited<ReturnType<typeof enrichAlbum>> | null> = query({
+export const get = query({
   args: getAlbumArgs,
+  returns: v.union(v.null(), enrichedGalleryAlbumValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     const user = await getCurrentUser(ctx);
@@ -141,7 +147,7 @@ export const get: import("convex/server").RegisteredQuery<"public", { albumId: i
     const album = await ctx.db.get("gallery_albums", args.albumId);
     if (!album) return null;
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && album.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -153,9 +159,26 @@ export const get: import("convex/server").RegisteredQuery<"public", { albumId: i
   },
 });
 
+interface PublishedAlbumPage {
+  albums: EnrichedGalleryAlbum[];
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+  category: Doc<"gallery_categories"> | null;
+}
+
 export const listPublished = query({
   args: listPublishedAlbumsArgs,
-  handler: async (ctx, args) => {
+  returns: v.union(v.null(), v.object({
+    albums: v.array(enrichedGalleryAlbumValidator),
+    page: v.number(),
+    perPage: v.number(),
+    total: v.number(),
+    totalPages: v.number(),
+    category: v.union(v.null(), galleryDocs.gallery_categories),
+  })),
+  handler: async (ctx, args): Promise<PublishedAlbumPage | null> => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
       return {
@@ -187,15 +210,13 @@ export const listPublished = query({
     if (args.categorySlug) {
       filtered = category
         ? filtered.filter((album) =>
-            album.categoryIds.some(
-              (categoryId: Id<"gallery_categories">) => categoryId.toString() === category._id.toString(),
-            ),
+            album.categoryIds.some((categoryId) => categoryId === category._id),
           )
         : [];
     }
 
     filtered.sort(
-      (a: Doc<"gallery_albums">, b: Doc<"gallery_albums">) => (b.publishedAt ?? b.updatedAt) - (a.publishedAt ?? a.updatedAt),
+      (a, b) => (b.publishedAt ?? b.updatedAt) - (a.publishedAt ?? a.updatedAt),
     );
 
     const total = filtered.length;
@@ -214,8 +235,9 @@ export const listPublished = query({
   },
 });
 
-export const getBySlug: import("convex/server").RegisteredQuery<"public", { slug: string }, Awaited<ReturnType<typeof enrichAlbum>> | null> = query({
+export const getBySlug = query({
   args: getAlbumBySlugArgs,
+  returns: v.union(v.null(), enrichedGalleryAlbumValidator),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -238,8 +260,16 @@ export const getBySlug: import("convex/server").RegisteredQuery<"public", { slug
   },
 });
 
-export const getEmbed: import("convex/server").RegisteredQuery<"public", { albumId?: import("../_generated/dataModel").Id<"gallery_albums">; slug?: string; limit?: number; layoutPreset?: import("../_generated/dataModel").Doc<"gallery_albums">["layoutPreset"]; columns?: number; showTitle?: boolean; showDescription?: boolean }, (Awaited<ReturnType<typeof enrichAlbum>> & { embedSettings: { layoutPreset: import("../_generated/dataModel").Doc<"gallery_albums">["layoutPreset"]; columns: number; showTitle: boolean; showDescription: boolean } }) | null> = query({
+export const getEmbed = query({
   args: getAlbumEmbedArgs,
+  returns: v.union(v.null(), enrichedGalleryAlbumValidator.extend({
+    embedSettings: v.object({
+      layoutPreset: galleryLayoutValidator,
+      columns: v.number(),
+      showTitle: v.boolean(),
+      showDescription: v.boolean(),
+    }),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -251,7 +281,7 @@ export const getEmbed: import("convex/server").RegisteredQuery<"public", { album
       : args.slug
         ? await ctx.db
             .query("gallery_albums")
-            .withIndex("by_slug", q => q.eq("slug", slugify(args.slug!)))
+            .withIndex("by_slug", q => q.eq("slug", slugify(args.slug ?? "")))
             .unique()
         : null;
 
@@ -280,13 +310,7 @@ export const getEmbed: import("convex/server").RegisteredQuery<"public", { album
 
 export const listPublicCategories = query({
   args: {},
-  returns: v.union(v.null(), v.array(v.union(v.null(), v.object({
-    _id: v.string(),
-    name: v.string(),
-    slug: v.string(),
-    description: v.optional(v.string()),
-    albumCount: v.number(),
-  })))),
+  returns: v.union(v.null(), v.array(galleryCategorySummaryValidator)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -297,7 +321,7 @@ export const listPublicCategories = query({
     categories.sort((a, b) => a.name.localeCompare(b.name));
     return enrichCategories(
       ctx,
-      categories.map((category) => category._id.toString()),
+      categories.map((category) => category._id),
     );
   },
 });

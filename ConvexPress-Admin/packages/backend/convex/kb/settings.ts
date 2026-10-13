@@ -24,12 +24,48 @@ import {
   KB_GENERAL_DEFAULTS,
   KB_FEATURES_DEFAULTS,
   KB_SEARCH_DEFAULTS,
+  type KbFeaturesSettings,
+  type KbGeneralSettings,
+  type KbSearchSettings,
 } from "../settings/defaults";
+import {
+  choiceSetting,
+  flagSetting,
+  numberSetting,
+  readSettingsGroup,
+  textSetting,
+  type SettingsSpec,
+} from "../helpers/settingsReader";
 import { computeChanges } from "../settings/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { SECRET_SENTINEL, encryptSettingSecret } from "../helpers/settingsSecret";
 
 // ─── getKbSettings ───────────────────────────────────────────────────────────
+
+const KB_GENERAL_SPEC: SettingsSpec<KbGeneralSettings> = {
+  siteName: textSetting,
+  siteDescription: textSetting,
+  homepageLayout: choiceSetting(["categories", "search", "featured"]),
+  articlesPerPage: numberSetting,
+};
+
+const KB_FEATURES_SPEC: SettingsSpec<KbFeaturesSettings> = {
+  commentsEnabled: flagSetting,
+  bookmarksEnabled: flagSetting,
+  progressTrackingEnabled: flagSetting,
+  ratingsEnabled: flagSetting,
+  relatedArticlesEnabled: flagSetting,
+};
+
+const KB_SEARCH_SPEC: SettingsSpec<KbSearchSettings> = {
+  meilisearchEnabled: flagSetting,
+  meilisearchUrl: textSetting,
+  meilisearchApiKey: textSetting,
+  ragEnabled: flagSetting,
+  ragProvider: choiceSetting(["openai", "anthropic"]),
+  ragApiKey: textSetting,
+  ragModel: textSetting,
+};
 
 /**
  * Get all KB settings, merged with defaults.
@@ -74,38 +110,23 @@ export const getKbSettings = query({
     const user = await currentUserCan(ctx, "manage_options");
     if (!user) return null;
 
-    // Load all three KB sections, merging stored values with defaults
-    const sections = ["kb.general", "kb.features", "kb.search"] as const;
-    const result: Record<string, Record<string, unknown>> = {};
-
-    for (const section of sections) {
-      const defaults = getDefaults(section);
-      const doc = await ctx.db
+    // Load all three KB sections, each read field by field over its defaults
+    const read = async (section: "kb.general" | "kb.features" | "kb.search") =>
+      (await ctx.db
         .query("settings")
         .withIndex("by_section", (q) => q.eq("section", section))
-        .unique();
+        .unique())?.values;
 
-      result[section] = doc
-        ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-        : { ...defaults };
-    }
-
-    const search = result["kb.search"] as Record<string, unknown>;
+    const general = readSettingsGroup(KB_GENERAL_SPEC, KB_GENERAL_DEFAULTS, await read("kb.general"));
+    const features = readSettingsGroup(KB_FEATURES_SPEC, KB_FEATURES_DEFAULTS, await read("kb.features"));
+    const search = readSettingsGroup(KB_SEARCH_SPEC, KB_SEARCH_DEFAULTS, await read("kb.search"));
 
     // Mask API keys before returning to the client. updateKbSettings treats
     // this sentinel as "keep the existing stored secret."
-    if (search.meilisearchApiKey && typeof search.meilisearchApiKey === "string") {
-      search.meilisearchApiKey = SECRET_SENTINEL;
-    }
-    if (search.ragApiKey && typeof search.ragApiKey === "string") {
-      search.ragApiKey = SECRET_SENTINEL;
-    }
+    if (search.meilisearchApiKey) search.meilisearchApiKey = SECRET_SENTINEL;
+    if (search.ragApiKey) search.ragApiKey = SECRET_SENTINEL;
 
-    return {
-      general: result["kb.general"] as unknown as typeof KB_GENERAL_DEFAULTS,
-      features: result["kb.features"] as unknown as typeof KB_FEATURES_DEFAULTS,
-      search: search as unknown as typeof KB_SEARCH_DEFAULTS,
-    };
+    return { general, features, search };
   },
 });
 

@@ -63,6 +63,8 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
+import { notificationsDocs } from "../schema/notifications.docs.generated";
+import { boundedJsonObjectValidator, parseBoundedJsonObject } from "../helpers/jsonValue";
 // ─── list ────────────────────────────────────────────────────────────────────
 
 /**
@@ -358,8 +360,14 @@ export const unreadCount = query({
  * Verifies ownership: only the notification recipient can view it.
  * Returns full notification detail including parsed metadata.
  */
+/** Metadata is a JSON object (the triggering event's payload); see helpers/jsonValue. */
+const NOTIFICATION_METADATA_DEPTH = 5;
+
 export const get = query({
   args: getArgs,
+  returns: notificationsDocs.siteNotifications
+    .omit("_creationTime", "metadata")
+    .extend({ metadata: v.optional(boundedJsonObjectValidator(NOTIFICATION_METADATA_DEPTH)) }),
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -387,15 +395,10 @@ export const get = query({
       });
     }
 
-    // 4. Parse metadata if present
-    let parsedMetadata: Record<string, unknown> | undefined;
-    if (notification.metadata) {
-      try {
-        parsedMetadata = JSON.parse(notification.metadata);
-      } catch {
-        // Keep undefined if parsing fails
-      }
-    }
+    // 4. Parse metadata if present (undefined when it is not a JSON object)
+    const parsedMetadata = notification.metadata
+      ? parseBoundedJsonObject(notification.metadata, NOTIFICATION_METADATA_DEPTH)
+      : undefined;
 
     return {
       _id: notification._id,

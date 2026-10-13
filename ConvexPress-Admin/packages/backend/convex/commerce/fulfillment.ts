@@ -1,4 +1,3 @@
-// @ts-nocheck
 // ============================================
 // FULFILLMENT OPERATIONS — Queue, assignments, status tracking,
 // manifests, shipping cost recording, stats
@@ -12,12 +11,15 @@ import {
   query,
   mutation,
   internalMutation,
+  type QueryCtx,
 } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { commerceDocs } from "../schema/commerce.docs.generated";
 // ============================================
 // HELPERS
 // ============================================
@@ -32,6 +34,8 @@ const FULFILLMENT_STATUSES = [
   "on_hold",
 ] as const;
 
+const SHIPMENT_STATUSES: readonly Doc<"commerce_shipments">["status"][] = ["label_created", "shipped", "delivered", "returned"];
+
 const PRIORITY_ORDER: Record<string, number> = {
   rush: 0,
   express: 1,
@@ -41,11 +45,36 @@ const PRIORITY_ORDER: Record<string, number> = {
 /**
  * Derive fulfillment priority from the shipping method on an order.
  */
-function derivePriority(order: any): string {
+function derivePriority(order: Pick<Doc<"commerce_orders">, "selectedShippingMethodCode">): string {
   const method = (order.selectedShippingMethodCode ?? "").toLowerCase();
   if (method.includes("overnight") || method.includes("rush")) return "rush";
   if (method.includes("express") || method.includes("expedited")) return "express";
   return "standard";
+}
+
+/**
+ * The current fulfilment assignee: the latest `fulfillment_assigned` history
+ * entry for the order (orders carry no assignee field of their own).
+ */
+async function currentAssignee(ctx: Pick<QueryCtx, "db">, orderId: Id<"commerce_orders">): Promise<Id<"users"> | undefined> {
+  const history = await ctx.db
+    .query("commerce_order_history")
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
+    .collect();
+  const latest = history
+    .filter((entry) => entry.eventType === "fulfillment_assigned")
+    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const assignee: unknown = latest?.metadata?.assigneeUserId;
+  return typeof assignee === "string" ? ctx.db.normalizeId("users", assignee) ?? undefined : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function numberField(record: unknown, key: string): number {
+  const value = isRecord(record) ? record[key] : undefined;
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 /**
@@ -73,7 +102,37 @@ export const listQueue = query({
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    items: v.array(v.object({
+      _id: v.id("commerce_orders"),
+      orderNumber: v.string(),
+      status: v.union(v.literal("pending"), v.literal("failed"), v.literal("processing"), v.literal("completed"), v.literal("cancelled"), v.literal("paid"), v.literal("refunded"), v.literal("fulfilled")),
+      fulfillmentStatus: v.string(),
+      priority: v.string(),
+      email: v.string(),
+      totalAmount: v.number(),
+      currencyCode: v.string(),
+      shippingAddress: v.optional(v.object({
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        company: v.optional(v.string()),
+        line2: v.optional(v.string()),
+        state: v.optional(v.string()),
+        line1: v.string(),
+        city: v.string(),
+        postalCode: v.string(),
+        countryCode: v.string(),
+      })),
+      selectedShippingMethodLabel: v.optional(v.string()),
+      createdAt: v.number(),
+      paidAt: v.optional(v.number()),
+      assignedTo: v.optional(v.id("users")),
+    })),
+    total: v.number(),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -84,7 +143,7 @@ export const listQueue = query({
       .collect();
 
     // Filter to orders that need fulfillment (paid, processing, or fulfilled statuses)
-    orders = orders.filter((o: any) => {
+    orders = orders.filter((o) => {
       const fulfillmentMatch = args.status
         ? o.fulfillmentStatus === args.status
         : ["unfulfilled", "processing", "packed", "ready_to_ship", "partially_shipped"].includes(
@@ -94,18 +153,18 @@ export const listQueue = query({
     });
 
     // Derive priority and optionally filter
-    const enriched = orders.map((o: any) => ({
+    const enriched = orders.map((o) => ({
       ...o,
       _priority: derivePriority(o),
     }));
 
     let filtered = enriched;
     if (args.priority) {
-      filtered = filtered.filter((o: any) => o._priority === args.priority);
+      filtered = filtered.filter((o) => o._priority === args.priority);
     }
 
     // Sort: rush first, then by creation date (oldest first)
-    filtered.sort((a: any, b: any) => {
+    filtered.sort((a, b) => {
       const pA = PRIORITY_ORDER[a._priority] ?? 2;
       const pB = PRIORITY_ORDER[b._priority] ?? 2;
       if (pA !== pB) return pA - pB;
@@ -116,8 +175,9 @@ export const listQueue = query({
     const limit = args.limit ?? 50;
     const page = filtered.slice(offset, offset + limit);
 
+    const assignees = await Promise.all(page.map((o) => currentAssignee(ctx, o._id)));
     return {
-      items: page.map((o: any) => ({
+      items: page.map((o, index) => ({
         _id: o._id,
         orderNumber: o.orderNumber,
         status: o.status,
@@ -130,7 +190,7 @@ export const listQueue = query({
         selectedShippingMethodLabel: o.selectedShippingMethodLabel,
         createdAt: o.createdAt,
         paidAt: o.paidAt,
-        assignedTo: o.assignedTo,
+        assignedTo: assignees[index],
       })),
       total: filtered.length,
       hasMore: offset + limit < filtered.length,
@@ -143,7 +203,14 @@ export const listQueue = query({
  */
 export const getOrderFulfillment = query({
   args: { orderId: v.id("commerce_orders") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    order: commerceDocs.commerce_orders,
+    items: v.array(commerceDocs.commerce_order_items),
+    shipments: v.array(commerceDocs.commerce_shipments),
+    history: v.array(commerceDocs.commerce_order_history),
+    priority: v.string(),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -153,26 +220,26 @@ export const getOrderFulfillment = query({
     // Get order items
     const items = await ctx.db
       .query("commerce_order_items")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
 
     // Get shipments
     const shipments = await ctx.db
       .query("commerce_shipments")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
 
     // Get history
     const history = await ctx.db
       .query("commerce_order_history")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
 
     return {
       order,
       items,
       shipments,
-      history: history.sort((a: any, b: any) => b.createdAt - a.createdAt),
+      history: history.sort((a, b) => b.createdAt - a.createdAt),
       priority: derivePriority(order),
     };
   },
@@ -183,7 +250,17 @@ export const getOrderFulfillment = query({
  */
 export const getStats = query({
   args: {},
-  handler: async (ctx: any) => {
+  returns: v.object({
+    pending: v.number(),
+    processing: v.number(),
+    readyToShip: v.number(),
+    shipped: v.number(),
+    onHold: v.number(),
+    rushOrders: v.number(),
+    totalOrders: v.number(),
+    todayPaid: v.number(),
+  }),
+  handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -191,7 +268,7 @@ export const getStats = query({
       .query("commerce_orders")
       .collect();
 
-    const fulfillable = orders.filter((o: any) =>
+    const fulfillable = orders.filter((o) =>
       ["paid", "processing", "fulfilled"].includes(o.status),
     );
 
@@ -200,21 +277,21 @@ export const getStats = query({
 
     return {
       pending: fulfillable.filter(
-        (o: any) => (o.fulfillmentStatus ?? "unfulfilled") === "unfulfilled",
+        (o) => (o.fulfillmentStatus ?? "unfulfilled") === "unfulfilled",
       ).length,
       processing: fulfillable.filter(
-        (o: any) => o.fulfillmentStatus === "processing",
+        (o) => o.fulfillmentStatus === "processing",
       ).length,
       readyToShip: fulfillable.filter(
-        (o: any) => o.fulfillmentStatus === "ready_to_ship" || o.fulfillmentStatus === "packed",
+        (o) => o.fulfillmentStatus === "ready_to_ship" || o.fulfillmentStatus === "packed",
       ).length,
       shipped: fulfillable.filter(
-        (o: any) => o.fulfillmentStatus === "shipped",
+        (o) => o.fulfillmentStatus === "shipped",
       ).length,
       onHold: fulfillable.filter(
-        (o: any) => o.fulfillmentStatus === "on_hold",
+        (o) => o.fulfillmentStatus === "on_hold",
       ).length,
-      rushOrders: fulfillable.filter((o: any) => {
+      rushOrders: fulfillable.filter((o) => {
         const p = derivePriority(o);
         return (
           p === "rush" &&
@@ -223,7 +300,7 @@ export const getStats = query({
       }).length,
       totalOrders: fulfillable.length,
       todayPaid: fulfillable.filter(
-        (o: any) => o.paidAt && o.paidAt >= todayStart,
+        (o) => o.paidAt && o.paidAt >= todayStart,
       ).length,
     };
   },
@@ -243,7 +320,7 @@ export const updateFulfillmentStatus = mutation({
     note: v.optional(v.string()),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
 
@@ -254,7 +331,7 @@ export const updateFulfillmentStatus = mutation({
     const previousStatus = order.fulfillmentStatus ?? "unfulfilled";
 
     // Update order
-    const patch: any = {
+    const patch: Partial<Doc<"commerce_orders">> = {
       fulfillmentStatus: args.fulfillmentStatus,
       updatedAt: now,
     };
@@ -292,7 +369,7 @@ export const assignOrder = mutation({
     assigneeUserId: v.optional(v.id("users")),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
 
@@ -301,8 +378,8 @@ export const assignOrder = mutation({
 
     const now = Date.now();
 
+    // The assignment lives in order history (see currentAssignee); orders have no assignee field.
     await patchDynamicWithMediaReferences(ctx, args.orderId, {
-      assignedTo: args.assigneeUserId,
       updatedAt: now,
     });
 
@@ -333,7 +410,7 @@ export const addFulfillmentNote = mutation({
     note: v.string(),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
 
@@ -373,7 +450,7 @@ export const recordShippingCost = internalMutation({
     weightOz: v.number(),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const totalCost =
       args.carrierCost + (args.insuranceCost ?? 0) + (args.packageMaterialCost ?? 0);
     const grossMargin = args.chargedToCustomer - totalCost;
@@ -411,15 +488,66 @@ export const listShipmentsByStatus = query({
   args: {
     status: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(v.object({
+    orderNumber: v.string(),
+    customerEmail: v.string(),
+    _id: v.id("commerce_shipments"),
+    _creationTime: v.number(),
+    createdBy: v.optional(v.id("users")),
+    note: v.optional(v.string()),
+    deliveredAt: v.optional(v.number()),
+    provider: v.optional(v.string()),
+    carrierCode: v.optional(v.string()),
+    serviceCode: v.optional(v.string()),
+    serviceName: v.optional(v.string()),
+    shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
+    carrier: v.optional(v.string()),
+    trackingNumber: v.optional(v.string()),
+    trackingUrl: v.optional(v.string()),
+    trackingStatus: v.optional(v.string()),
+    externalShipmentId: v.optional(v.string()),
+    externalLabelId: v.optional(v.string()),
+    externalManifestId: v.optional(v.string()),
+    labelUrl: v.optional(v.string()),
+    labelFormat: v.optional(v.string()),
+    labelPurchasedAt: v.optional(v.number()),
+    voidedAt: v.optional(v.number()),
+    originProof: v.optional(v.object({
+      source: v.union(v.literal("order_quote"), v.literal("matching_quote"), v.literal("legacy_configuration")),
+      origin: v.object({
+        name: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        company: v.optional(v.string()),
+        line2: v.optional(v.string()),
+        state: v.optional(v.string()),
+        shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
+        line1: v.string(),
+        city: v.string(),
+        postalCode: v.string(),
+        countryCode: v.string(),
+      }),
+    })),
+    shippedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("delivered"), v.literal("label_created"), v.literal("shipped"), v.literal("returned")),
+    items: v.array(v.object({ quantity: v.number(), orderItemId: v.id("commerce_order_items") })),
+    orderId: v.id("commerce_orders"),
+    shipmentNumber: v.string(),
+  })),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let shipments;
-    if (args.status) {
+    let shipments: Doc<"commerce_shipments">[];
+    const status = SHIPMENT_STATUSES.find((candidate) => candidate === args.status);
+    if (args.status && !status) {
+      // Not a shipment status: nothing can match.
+      shipments = [];
+    } else if (status) {
       shipments = await ctx.db
         .query("commerce_shipments")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     } else {
       shipments = await ctx.db
@@ -429,7 +557,7 @@ export const listShipmentsByStatus = query({
 
     // Enrich with order info
     const enriched = await Promise.all(
-      shipments.map(async (s: any) => {
+      shipments.map(async (s) => {
         const order = await ctx.db.get(s.orderId);
         return {
           ...s,
@@ -439,7 +567,7 @@ export const listShipmentsByStatus = query({
       }),
     );
 
-    return enriched.sort((a: any, b: any) => b.createdAt - a.createdAt);
+    return enriched.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -453,7 +581,8 @@ export const generateManifest = mutation({
     carrier: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({ manifestNumber: v.string(), shipmentCount: v.number() }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
 
@@ -478,7 +607,7 @@ export const generateManifest = mutation({
     }
 
     // Record in history for each order
-    const processedOrders = new Set<string>();
+    const processedOrders = new Set<Id<"commerce_orders">>();
     for (const shipmentId of args.shipmentIds) {
       const shipment = await ctx.db.get(shipmentId);
       if (!shipment || processedOrders.has(shipment.orderId)) continue;
@@ -516,7 +645,18 @@ export const listOverdue = query({
   args: {
     daysOld: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(v.object({
+    _id: v.id("commerce_orders"),
+    orderNumber: v.string(),
+    email: v.string(),
+    totalAmount: v.number(),
+    currencyCode: v.string(),
+    paidAt: v.number(),
+    daysSincePaid: v.number(),
+    fulfillmentStatus: v.string(),
+    priority: v.string(),
+  })),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -526,17 +666,18 @@ export const listOverdue = query({
       .query("commerce_orders")
       .collect();
 
-    const overdue = orders.filter(
-      (o: any) =>
-        ["paid", "processing"].includes(o.status) &&
-        ["unfulfilled", "processing"].includes(o.fulfillmentStatus ?? "unfulfilled") &&
-        o.paidAt &&
-        o.paidAt < cutoff,
+    const overdue = orders.flatMap((o) =>
+      ["paid", "processing"].includes(o.status) &&
+      ["unfulfilled", "processing"].includes(o.fulfillmentStatus ?? "unfulfilled") &&
+      o.paidAt &&
+      o.paidAt < cutoff
+        ? [{ ...o, paidAt: o.paidAt }]
+        : [],
     );
 
     return overdue
-      .sort((a: any, b: any) => a.paidAt - b.paidAt)
-      .map((o: any) => ({
+      .sort((a, b) => a.paidAt - b.paidAt)
+      .map((o) => ({
         _id: o._id,
         orderNumber: o.orderNumber,
         email: o.email,
@@ -558,7 +699,14 @@ export const getShippingAnalytics = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    totalShipments: v.number(),
+    totalChargedToCustomers: v.number(),
+    totalCarrierCost: v.number(),
+    totalGrossMargin: v.number(),
+    byCarrier: v.record(v.string(), v.object({ count: v.number(), charged: v.number(), cost: v.number(), margin: v.number() })),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -568,14 +716,15 @@ export const getShippingAnalytics = query({
       .collect();
 
     let costEvents = allHistory.filter(
-      (h: any) => h.eventType === "shipping_cost_recorded",
+      (h) => h.eventType === "shipping_cost_recorded",
     );
 
-    if (args.startDate) {
-      costEvents = costEvents.filter((h: any) => h.createdAt >= args.startDate);
+    const { startDate, endDate } = args;
+    if (startDate) {
+      costEvents = costEvents.filter((h) => h.createdAt >= startDate);
     }
-    if (args.endDate) {
-      costEvents = costEvents.filter((h: any) => h.createdAt <= args.endDate);
+    if (endDate) {
+      costEvents = costEvents.filter((h) => h.createdAt <= endDate);
     }
 
     if (costEvents.length === 0) {
@@ -594,19 +743,23 @@ export const getShippingAnalytics = query({
     const byCarrier: Record<string, { count: number; charged: number; cost: number; margin: number }> = {};
 
     for (const event of costEvents) {
-      const meta = event.metadata ?? {};
-      totalCharged += meta.chargedToCustomer ?? 0;
-      totalCost += meta.carrierCost ?? 0;
-      totalMargin += meta.grossMargin ?? 0;
+      // History metadata is stored untyped; shipping-cost events carry these numbers.
+      const meta: unknown = event.metadata;
+      const charged = numberField(meta, "chargedToCustomer");
+      const cost = numberField(meta, "carrierCost");
+      const margin = numberField(meta, "grossMargin");
+      totalCharged += charged;
+      totalCost += cost;
+      totalMargin += margin;
 
-      const carrier = meta.carrier ?? "unknown";
-      if (!byCarrier[carrier]) {
-        byCarrier[carrier] = { count: 0, charged: 0, cost: 0, margin: 0 };
-      }
-      byCarrier[carrier].count++;
-      byCarrier[carrier].charged += meta.chargedToCustomer ?? 0;
-      byCarrier[carrier].cost += meta.carrierCost ?? 0;
-      byCarrier[carrier].margin += meta.grossMargin ?? 0;
+      const carrierValue = isRecord(meta) ? meta.carrier : undefined;
+      const carrier = typeof carrierValue === "string" ? carrierValue : "unknown";
+      const bucket = byCarrier[carrier] ?? { count: 0, charged: 0, cost: 0, margin: 0 };
+      bucket.count++;
+      bucket.charged += charged;
+      bucket.cost += cost;
+      bucket.margin += margin;
+      byCarrier[carrier] = bucket;
     }
 
     return {

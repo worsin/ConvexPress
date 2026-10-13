@@ -1,5 +1,7 @@
+import type { AuthCapabilities, ClerkVerification } from "../auth/clerkConnectionHelpers";
 import type { ShippingPromise } from "../canonicalDocuments/foundation/shippingPolicyContracts";
 import { PLUGIN_SETTINGS_KEY, PLUGIN_DEFAULTS } from "../plugins/registry";
+import type { JsonValue } from "../helpers/jsonValue";
 /**
  * Settings System - Default Values
  *
@@ -152,6 +154,10 @@ export interface GeneralSettings {
   sendPasswordResetEmail: boolean;
   sendPasswordChangedEmail: boolean;
   notifyAdminOnPasswordReset: boolean;
+  /** Site logo media id (written by content promotion and site identity). */
+  siteLogo?: string;
+  /** Site logo URL (written by content promotion and site identity). */
+  logoUrl?: string;
 }
 
 export interface ReadingSettings {
@@ -300,8 +306,8 @@ export interface AppearanceTemplateSettings {
   overrides: Record<string, string>;
   /** Chosen variant per surface (e.g. "shop.product": "split"). */
   variants: Record<string, string>;
-  /** Customize values per pack: packId → module/group → values. */
-  settings: Record<string, Record<string, unknown>>;
+  /** Customize values per pack: packId → module/group → field → JSON value. */
+  settings: Record<string, Record<string, Record<string, JsonValue>>>;
 }
 
 export interface CommerceLayoutSettings {
@@ -445,6 +451,12 @@ export interface CommercePaymentsSettings {
    * class's rate. Default: null.
    */
   shippingTaxClass: string;
+  /** Written by commerce/payments.ts `updateSettings`. */
+  stripeEnabled?: boolean;
+  paypalEnabled?: boolean;
+  defaultCurrency?: string;
+  allowGuestCheckout?: boolean;
+  methodOrder?: string[];
 }
 
 export interface ClerkIntegrationSettings {
@@ -479,10 +491,10 @@ export interface ClerkIntegrationSettings {
   /** Site origins registered with Clerk (allowed origins / redirect URLs). */
   clerkSiteOrigins: string[];
   /** Normalised Clerk environment document (AuthCapabilities) for the website. */
-  clerkCapabilities: Record<string, unknown> | null;
+  clerkCapabilities: AuthCapabilities | null;
   clerkCapabilitiesSyncedAt: number | null;
   /** Last live verification results (see auth/clerkConnection.verify). */
-  clerkLastVerification: Record<string, unknown> | null;
+  clerkLastVerification: ClerkVerification | null;
   clerkLastVerifiedAt: number | null;
   /** Last time the Clerk webhook delivered a verified event. */
   clerkWebhookLastReceivedAt: number | null;
@@ -610,6 +622,12 @@ export interface AnalyticsSettings {
   respectDoNotTrack: boolean;
   /** Days to keep raw tracking events before purging */
   retentionDays: number;
+  /** GA4 connection state (written by ga4/mutations and ga4/internals). */
+  ga4PropertyId?: string | null;
+  ga4Connected?: boolean;
+  ga4ServiceAccountEmail?: string | null;
+  ga4LastSync?: number | null;
+  ga4Error?: string | null;
 }
 
 // ─── Knowledge Base Settings Types ───────────────────────────────────────────
@@ -1394,31 +1412,25 @@ export const FOOTER_DEFAULTS: FooterSettings = {
   bottomBar: { enabled: true, copyrightText: "", legalLinks: "privacy-terms", poweredBy: true },
 };
 
-// ─── Defaults Map ────────────────────────────────────────────────────────────
+export interface MembershipGeneralSettings {
+  logAccessChecks: boolean;
+  accessLogRetentionDays: number;
+}
 
-const DEFAULTS_MAP: Record<SettingsSection, object> = {
-  general: GENERAL_DEFAULTS,
-  reading: READING_DEFAULTS,
-  writing: WRITING_DEFAULTS,
-  discussion: DISCUSSION_DEFAULTS,
-  permalinks: PERMALINK_DEFAULTS,
-  privacy: PRIVACY_DEFAULTS,
-  email: EMAIL_DEFAULTS,
-  media: MEDIA_DEFAULTS,
-  analytics: ANALYTICS_DEFAULTS,
-  ai: AI_DEFAULTS,
-  blocks: BLOCK_DEFAULTS,
-  plugins: PLUGINS_DEFAULTS,
-  "membership.general": { logAccessChecks: true, accessLogRetentionDays: 30 },
-  search: SEARCH_DEFAULTS,
-  "commerce.general": COMMERCE_GENERAL_DEFAULTS,
-  "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
-  "commerce.assistant": COMMERCE_ASSISTANT_DEFAULTS,
-  "commerce.layout": COMMERCE_LAYOUT_DEFAULTS,
-  "appearance.template": APPEARANCE_TEMPLATE_DEFAULTS,
-  brand: BRAND_DEFAULTS,
-  "commerce.subscriptions.counters": COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS,
-  "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,
+export const MEMBERSHIP_GENERAL_DEFAULTS: MembershipGeneralSettings = {
+  logAccessChecks: true,
+  accessLogRetentionDays: 30,
+};
+
+export type ShippingProviderSection =
+  | "integrations.shipping.shipstation"
+  | "integrations.shipping.ups"
+  | "integrations.shipping.usps"
+  | "integrations.shipping.fedex"
+  | "integrations.shipping.dhl";
+
+/** Per-provider defaults: the shared provider defaults with each carrier's name and priority. */
+export const SHIPPING_PROVIDER_SECTION_DEFAULTS: Record<ShippingProviderSection, ShippingProviderSettings> = {
   "integrations.shipping.shipstation": {
     ...SHIPPING_PROVIDER_DEFAULTS,
     displayName: "ShipStation",
@@ -1446,6 +1458,76 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
     displayName: "DHL",
     rateShoppingPriority: 50,
   },
+};
+
+export interface SupportWidgetSectionSettings {
+  enabled: boolean;
+  widgetTitle: string;
+  widgetSubtitle: string;
+  widgetColor: string;
+  showKbSearch: boolean;
+  showTicketHistory: boolean;
+  aiEnabled: boolean;
+  escalationButtonLabel: string;
+}
+
+export const SUPPORT_WIDGET_SECTION_DEFAULTS: SupportWidgetSectionSettings = {
+  enabled: true,
+  widgetTitle: "Support",
+  widgetSubtitle: "How can we help you today?",
+  widgetColor: "#3b82f6",
+  showKbSearch: true,
+  showTicketHistory: true,
+  aiEnabled: false,
+  escalationButtonLabel: "Contact Support",
+};
+
+export interface SupportAiSectionSettings {
+  aiProvider: "openai" | "anthropic" | null;
+  aiApiKey: string;
+  aiModel: string;
+  meilisearchEnabled: boolean;
+  meilisearchUrl: string;
+  meilisearchApiKey: string;
+  ragEnabled: boolean;
+}
+
+export const SUPPORT_AI_SECTION_DEFAULTS: SupportAiSectionSettings = {
+  aiProvider: null,
+  aiApiKey: "",
+  aiModel: "",
+  meilisearchEnabled: false,
+  meilisearchUrl: "",
+  meilisearchApiKey: "",
+  ragEnabled: false,
+};
+
+// ─── Defaults Map ────────────────────────────────────────────────────────────
+
+const DEFAULTS_MAP: Record<SettingsSection, object> = {
+  general: GENERAL_DEFAULTS,
+  reading: READING_DEFAULTS,
+  writing: WRITING_DEFAULTS,
+  discussion: DISCUSSION_DEFAULTS,
+  permalinks: PERMALINK_DEFAULTS,
+  privacy: PRIVACY_DEFAULTS,
+  email: EMAIL_DEFAULTS,
+  media: MEDIA_DEFAULTS,
+  analytics: ANALYTICS_DEFAULTS,
+  ai: AI_DEFAULTS,
+  blocks: BLOCK_DEFAULTS,
+  plugins: PLUGINS_DEFAULTS,
+  "membership.general": MEMBERSHIP_GENERAL_DEFAULTS,
+  search: SEARCH_DEFAULTS,
+  "commerce.general": COMMERCE_GENERAL_DEFAULTS,
+  "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
+  "commerce.assistant": COMMERCE_ASSISTANT_DEFAULTS,
+  "commerce.layout": COMMERCE_LAYOUT_DEFAULTS,
+  "appearance.template": APPEARANCE_TEMPLATE_DEFAULTS,
+  brand: BRAND_DEFAULTS,
+  "commerce.subscriptions.counters": COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS,
+  "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,
+  ...SHIPPING_PROVIDER_SECTION_DEFAULTS,
   "integrations.clerk": CLERK_INTEGRATION_DEFAULTS,
   "integrations.google": GOOGLE_INTEGRATION_DEFAULTS,
   dashboard: DASHBOARD_DEFAULTS,
@@ -1462,25 +1544,8 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   header: HEADER_DEFAULTS,
   footer: FOOTER_DEFAULTS,
   // Support Bridge System sections
-  "support.widget": {
-    enabled: true,
-    widgetTitle: "Support",
-    widgetSubtitle: "How can we help you today?",
-    widgetColor: "#3b82f6",
-    showKbSearch: true,
-    showTicketHistory: true,
-    aiEnabled: false,
-    escalationButtonLabel: "Contact Support",
-  },
-  "support.ai": {
-    aiProvider: null,
-    aiApiKey: "",
-    aiModel: "",
-    meilisearchEnabled: false,
-    meilisearchUrl: "",
-    meilisearchApiKey: "",
-    ragEnabled: false,
-  },
+  "support.widget": SUPPORT_WIDGET_SECTION_DEFAULTS,
+  "support.ai": SUPPORT_AI_SECTION_DEFAULTS,
 };
 
 /**

@@ -26,6 +26,7 @@ import { v } from "convex/values";
 import { emitEvent } from "../helpers/events";
 import { POST_EVENTS, SYSTEM } from "../events/constants";
 
+import { postsDocs } from "../schema/posts.docs.generated";
 /** Valid post status values */
 
 
@@ -45,6 +46,70 @@ export const listPublishedInternal = internalQuery({
     page: v.optional(v.number()),
     perPage: v.optional(v.number()),
   },
+  returns: v.object({
+    posts: v.array(v.object({
+      author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string() })),
+      isPasswordProtected: v.boolean(),
+      passwordVerified: v.boolean(),
+      isMembershipRestricted: v.boolean(),
+      membershipAccess: v.object({
+        allowed: v.boolean(),
+        reason: v.string(),
+        teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+        customMessage: v.union(v.null(), v.string()),
+        matchingPlanIds: v.array(v.string()),
+      }),
+      _id: v.id("posts"),
+      _creationTime: v.number(),
+      type: v.union(v.literal("post"), v.literal("page")),
+      title: v.string(),
+      slug: v.string(),
+      status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+      visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+      authorId: v.id("users"),
+      featuredImageId: v.optional(v.id("media")),
+      commentStatus: v.union(v.literal("open"), v.literal("closed")),
+      commentCount: v.optional(v.number()),
+      isSticky: v.optional(v.boolean()),
+      publishedAt: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      parentId: v.optional(v.id("posts")),
+      menuOrder: v.optional(v.number()),
+      pageTemplate: v.optional(v.string()),
+      path: v.optional(v.string()),
+      depth: v.optional(v.number()),
+      hideHeader: v.optional(v.boolean()),
+      hideFooter: v.optional(v.boolean()),
+      layoutId: v.optional(v.string()),
+      excerpt: v.optional(v.string()),
+      blocks: postsDocs.posts.fields.blocks,
+      blocksVersion: v.optional(v.number()),
+      blocksRevision: v.optional(v.number()),
+      hero: v.optional(v.object({
+        title: v.optional(v.string()),
+        content: v.optional(v.string()),
+        subtitle: v.optional(v.string()),
+        imageId: v.optional(v.id("media")),
+        videoUrl: v.optional(v.string()),
+        ctaText: v.optional(v.string()),
+        ctaUrl: v.optional(v.string()),
+      })),
+      topics: v.optional(v.array(v.object({
+        title: v.optional(v.string()),
+        content: v.optional(v.string()),
+        subtitle: v.optional(v.string()),
+        imageId: v.optional(v.id("media")),
+        videoUrl: v.optional(v.string()),
+      }))),
+      summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+      sources: v.optional(v.string()),
+      tableOfContents: v.optional(v.string()),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+  }),
   handler: async (ctx, args) => {
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 10));

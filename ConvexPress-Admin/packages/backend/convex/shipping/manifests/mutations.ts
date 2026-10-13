@@ -21,12 +21,12 @@ export const createPendingManifest = internalMutation({
     // insert goes through.
     const existing = await ctx.db
       .query("commerce_shipment_manifests")
-      .withIndex("by_location_date", (q: any) =>
+      .withIndex("by_location_date", (q) =>
         q.eq("shipFromLocationId", args.shipFromLocationId).eq("manifestDate", args.manifestDate),
       )
       .collect();
     const match = existing.find(
-      (m: any) => m.carrierCode === args.carrierCode && m.status === "pending",
+      (m) => m.carrierCode === args.carrierCode && m.status === "pending",
     );
     if (match) return match._id;
 
@@ -149,7 +149,7 @@ export const closeManifest = mutation({
     // to run immediately after commit. markManifestSubmitted flips status.
     await ctx.scheduler.runAfter(
       0,
-      (internal as any).shipping.manifests.actions.submitOneManifest,
+      internal.shipping.manifests.actions.submitOneManifest,
       { manifestId: args.manifestId },
     );
     return args.manifestId;

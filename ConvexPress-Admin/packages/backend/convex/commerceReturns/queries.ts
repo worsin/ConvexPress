@@ -1,9 +1,3 @@
-// @ts-nocheck
-// Note: @ts-nocheck is retained because the generic Convex `db.query(table)`
-// type machinery instantiates too deeply across the project's large schema
-// (TS error 2589). Logic here is still reviewed; types are enforced at the
-// call sites that can narrow the schema. Remove this pragma once the
-// upstream Convex type depth issue is resolved for the whole repo.
 /**
  * Commerce Returns — Queries
  *
@@ -34,7 +28,8 @@ import { normalizeStoredReturnItems } from "./itemState";
 import { isPluginEnabled } from "../helpers/plugins";
 
 import { paginationResultValidator } from "convex/server";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
+import { commerceReturnsDocs } from "../schema/commerceReturns.docs.generated";
 type ReturnRequestDoc = Doc<"commerce_return_requests">;
 type ReturnItemDoc = Doc<"commerce_return_items">;
 type ReturnHistoryDoc = Doc<"commerce_return_history">;
@@ -149,7 +144,7 @@ export const getById = query({
   args: {
     returnId: v.id("commerce_return_requests"),
   },
-  returns: v.union(v.null(), tableDocs.commerce_return_requests),
+  returns: v.union(v.null(), commerceReturnsDocs.commerce_return_requests),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -166,7 +161,7 @@ export const getByReturnNumber = query({
   args: {
     returnNumber: v.string(),
   },
-  returns: v.union(v.null(), tableDocs.commerce_return_requests),
+  returns: v.union(v.null(), commerceReturnsDocs.commerce_return_requests),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -189,7 +184,7 @@ export const getWithDetails = query({
     returnId: v.id("commerce_return_requests"),
   },
   returns: v.union(v.null(), v.object({
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    order: v.union(v.null(), commerceDocs.commerce_orders),
     orderNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     returnItems: v.array(v.object({
@@ -204,7 +199,7 @@ export const getWithDetails = query({
       resolutionType: v.optional(v.string()),
     })),
     orderItems: v.array(v.object({
-      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItem: v.union(v.null(), commerceDocs.commerce_order_items),
       orderItemId: v.optional(v.string()),
       quantity: v.number(),
       quantityRequested: v.number(),
@@ -216,7 +211,7 @@ export const getWithDetails = query({
       resolutionType: v.optional(v.string()),
     })),
     itemCount: v.number(),
-    history: v.array(tableDocs.commerce_return_history),
+    history: v.array(commerceReturnsDocs.commerce_return_history),
     user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     _id: v.id("commerce_return_requests"),
@@ -264,7 +259,7 @@ export const getByOrder = query({
   args: {
     orderId: v.id("commerce_orders"),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_return_requests)),
+  returns: v.union(v.null(), v.array(commerceReturnsDocs.commerce_return_requests)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -285,7 +280,7 @@ export const getUserReturns = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_return_requests)),
+  returns: v.union(v.null(), v.array(commerceReturnsDocs.commerce_return_requests)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -309,7 +304,7 @@ export const getMineById = query({
     returnId: v.id("commerce_return_requests"),
   },
   returns: v.union(v.null(), v.object({
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    order: v.union(v.null(), commerceDocs.commerce_orders),
     orderNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     returnItems: v.array(v.object({
@@ -324,7 +319,7 @@ export const getMineById = query({
       resolutionType: v.optional(v.string()),
     })),
     orderItems: v.array(v.object({
-      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItem: v.union(v.null(), commerceDocs.commerce_order_items),
       orderItemId: v.optional(v.string()),
       quantity: v.number(),
       quantityRequested: v.number(),
@@ -336,7 +331,7 @@ export const getMineById = query({
       resolutionType: v.optional(v.string()),
     })),
     itemCount: v.number(),
-    history: v.array(tableDocs.commerce_return_history),
+    history: v.array(commerceReturnsDocs.commerce_return_history),
     user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     _id: v.id("commerce_return_requests"),
@@ -386,7 +381,7 @@ export const getMineByOrder = query({
     orderId: v.id("commerce_orders"),
   },
   returns: v.array(v.object({
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    order: v.union(v.null(), commerceDocs.commerce_orders),
     orderNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     returnItems: v.array(v.object({
@@ -401,7 +396,7 @@ export const getMineByOrder = query({
       resolutionType: v.optional(v.string()),
     })),
     orderItems: v.array(v.object({
-      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItem: v.union(v.null(), commerceDocs.commerce_order_items),
       orderItemId: v.optional(v.string()),
       quantity: v.number(),
       quantityRequested: v.number(),
@@ -413,7 +408,7 @@ export const getMineByOrder = query({
       resolutionType: v.optional(v.string()),
     })),
     itemCount: v.number(),
-    history: v.array(tableDocs.commerce_return_history),
+    history: v.array(commerceReturnsDocs.commerce_return_history),
     user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     _id: v.id("commerce_return_requests"),
@@ -466,6 +461,31 @@ export const getMyOrderEligibility = query({
   args: {
     orderId: v.id("commerce_orders"),
   },
+  returns: v.union(v.null(), v.object({
+    orderNumber: v.string(),
+    totalAmount: v.number(),
+    currencyCode: v.string(),
+    returnWindowDays: v.number(),
+    requireDeliveryBeforeReturn: v.boolean(),
+    order: commerceDocs.commerce_orders,
+    items: v.array(v.object({
+      orderItemId: v.string(),
+      productId: v.string(),
+      productTitle: v.string(),
+      sku: v.optional(v.string()),
+      quantityOrdered: v.number(),
+      quantityAlreadyRequested: v.number(),
+      quantityAvailableToReturn: v.number(),
+      lineTotalAmount: v.number(),
+      eligible: v.boolean(),
+    })),
+    existingReturns: v.array(commerceReturnsDocs.commerce_return_requests),
+    policy: v.object({ returnWindowDays: v.number(), requireDeliveryBeforeReturn: v.boolean() }),
+    deliveryTimestamp: v.number(),
+    returnWindowEndsAt: v.optional(v.number()),
+    isEligible: v.boolean(),
+    ineligibleReason: v.union(v.null(), v.string()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCommerceReturnsEnabled(ctx);
@@ -495,7 +515,7 @@ export const getMyReturns = query({
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(v.object({
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    order: v.union(v.null(), commerceDocs.commerce_orders),
     orderNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     returnItems: v.array(v.object({
@@ -510,7 +530,7 @@ export const getMyReturns = query({
       resolutionType: v.optional(v.string()),
     })),
     orderItems: v.array(v.object({
-      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItem: v.union(v.null(), commerceDocs.commerce_order_items),
       orderItemId: v.optional(v.string()),
       quantity: v.number(),
       quantityRequested: v.number(),
@@ -522,7 +542,7 @@ export const getMyReturns = query({
       resolutionType: v.optional(v.string()),
     })),
     itemCount: v.number(),
-    history: v.array(tableDocs.commerce_return_history),
+    history: v.array(commerceReturnsDocs.commerce_return_history),
     user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     _id: v.id("commerce_return_requests"),
@@ -586,7 +606,7 @@ export const list = query({
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(v.object({
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    order: v.union(v.null(), commerceDocs.commerce_orders),
     orderNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     returnItems: v.array(v.object({
@@ -601,7 +621,7 @@ export const list = query({
       resolutionType: v.optional(v.string()),
     })),
     orderItems: v.array(v.object({
-      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItem: v.union(v.null(), commerceDocs.commerce_order_items),
       orderItemId: v.optional(v.string()),
       quantity: v.number(),
       quantityRequested: v.number(),
@@ -613,7 +633,7 @@ export const list = query({
       resolutionType: v.optional(v.string()),
     })),
     itemCount: v.number(),
-    history: v.array(tableDocs.commerce_return_history),
+    history: v.array(commerceReturnsDocs.commerce_return_history),
     user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
     _id: v.id("commerce_return_requests"),
@@ -784,7 +804,7 @@ export const getStuckRefunds = query({
   args: {
     staleMinutes: v.optional(v.number()),
   },
-  returns: v.union(v.null(), v.array(tableDocs.commerce_return_requests)),
+  returns: v.union(v.null(), v.array(commerceReturnsDocs.commerce_return_requests)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");

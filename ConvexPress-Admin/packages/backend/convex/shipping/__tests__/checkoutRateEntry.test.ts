@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import { fetchCheckoutRates } from "../actions";
 import { commerceHarness } from "../../commerce/__tests__/handlerHarness.test-support";
-import { COMMERCE_GENERAL_DEFAULTS } from "../../settings/defaults";
+import { COMMERCE_GENERAL_DEFAULTS, SHIPPING_INTEGRATION_DEFAULTS } from "../../settings/defaults";
 
 const address={line1:"1 Demo Lane",city:"Denver",state:"CO",postalCode:"80202",countryCode:"US"};
 test("disabled live carriers still calculate configured zone shipping prices",async()=>{
  const ctx=commerceHarness();
- ctx.handlers["settings/httpInternals:getBySectionInternal"]=()=>({liveRatesEnabled:false});
+ ctx.handlers["shipping/settingsInternals:getShippingIntegrationSettings"]=()=>({...SHIPPING_INTEGRATION_DEFAULTS,liveRatesEnabled:false});
  ctx.handlers["shipping/rates/pipeline:calculateRates"]=()=>({success:true,quotes:[{quoteKey:"flat:configured",amount:650,provider:"manual"}],matchedZone:{name:"United States"},fellBackToManual:false,stages:[]});
  const result=await (fetchCheckoutRates as any)._handler(ctx,{sessionToken:"session",shippingAddress:address});
  expect(result.quotes).toHaveLength(1);expect(result.quotes[0].amount).toBe(650);
@@ -20,8 +20,8 @@ import { calculateRates } from "../rates/pipeline";
 
 test("real zone pipeline persists a $7 flat quote without contacting disabled carriers",async()=>{
  const ctx=commerceHarness();
- const rateContext={checkoutSession:{_id:"checkout"},cart:{subtotalAmount:3800,discountAmount:0,currencyCode:"USD"},items:[{_id:"line",productId:"mug",quantity:1,product:{shippingWeightOz:12}}]};
- ctx.handlers["settings/httpInternals:getBySectionInternal"]=()=>({liveRatesEnabled:false});
+ const rateContext={checkoutSession:{_id:"checkout"},cart:{subtotalAmount:3800,discountAmount:0,currencyCode:"USD"},items:[{_id:"line",productId:"mug",quantity:1,product:{shippingWeightOz:12},productTagSlugs:[]}]};
+ ctx.handlers["shipping/settingsInternals:getShippingIntegrationSettings"]=()=>({...SHIPPING_INTEGRATION_DEFAULTS,liveRatesEnabled:false});
  ctx.handlers["shipping/rates/pipeline:calculateRates"]=calculateRates;
  ctx.handlers["shipping/internals:getRateContextForSession"]=()=>rateContext;
  ctx.handlers["shipping/rates/internals:getCachedQuotesForSession"]=()=>[];
@@ -73,7 +73,7 @@ test("rate action persists an entered address and quotes remain listable and sel
  "shipping/internals:getRateContextForSession":getRateContextForSession,
  "shipping/internals:replaceCheckoutQuotes":replaceCheckoutQuotes,
  "shipping/rates/internals:getCachedQuotesForSession":getCachedQuotesForSession,
- "settings/httpInternals:getBySectionInternal":()=>({liveRatesEnabled:false}),
+ "shipping/settingsInternals:getShippingIntegrationSettings":()=>({...SHIPPING_INTEGRATION_DEFAULTS,liveRatesEnabled:false}),
  "shipping/zones/internals:matchZoneForAddressInternal":()=>({zone:{_id:"utah",name:"Utah"},matchedFallback:false}),
  "shipping/rates/internals:listLiveRateZoneMethods":()=>[],
  "shipping/packages/internals:listAvailablePackages":()=>[],

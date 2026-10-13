@@ -42,6 +42,7 @@ import {
 } from "../helpers/settingsSecret";
 
 import { v } from "convex/values";
+import { settingsRecord } from "../helpers/settingsReader";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const SETTINGS_DOCUMENT_METADATA_KEYS = new Set([
@@ -220,7 +221,7 @@ export const updateSection = mutation({
       if (!isSecretFieldName(k)) continue;
       if (v === SECRET_SENTINEL) {
         // Keep whatever was already stored.
-        newValues[k] = (existingDoc?.values as any)?.[k] ?? "";
+        newValues[k] = settingsRecord(existingDoc?.values)[k] ?? "";
       } else if (typeof v === "string" && v.length > 0) {
         newValues[k] = await encryptSettingSecret(v);
       }
@@ -385,7 +386,7 @@ export const importAll = mutation({
       for (const [k, v] of Object.entries(incoming)) {
         if (!isSecretFieldName(k)) continue;
         if (v === SECRET_SENTINEL) {
-          newValues[k] = (existingDoc?.values as any)?.[k] ?? "";
+          newValues[k] = settingsRecord(existingDoc?.values)[k] ?? "";
         } else if (typeof v === "string" && v.length > 0 && !v.startsWith("enc:") && !v.startsWith("b64:")) {
           newValues[k] = await encryptSettingSecret(v);
         }

@@ -44,6 +44,9 @@ export interface VariantSelection {
   sortOrder: number;
 }
 
+/** A selection as callers submit it; `sortOrder` defaults to its position. */
+export type VariantSelectionInput = Omit<VariantSelection, "sortOrder"> & { sortOrder?: number };
+
 export interface OptionValue {
   id: string;
   label: string;
@@ -57,6 +60,40 @@ export interface OptionType {
   values: OptionValue[];
   sortOrder: number;
   createdAt?: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Option types are stored untyped on the product (`optionTypes`). Read them
+ * back as OptionType[], keeping well-formed entries and their known fields.
+ */
+export function readOptionTypes(value: unknown): OptionType[] {
+  if (!Array.isArray(value)) return [];
+  const optionTypes: OptionType[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry) || typeof entry.id !== "string" || typeof entry.name !== "string") continue;
+    const values: OptionValue[] = [];
+    for (const raw of Array.isArray(entry.values) ? entry.values : []) {
+      if (!isRecord(raw) || typeof raw.id !== "string" || typeof raw.label !== "string") continue;
+      values.push({
+        id: raw.id,
+        label: raw.label,
+        sortOrder: typeof raw.sortOrder === "number" ? raw.sortOrder : values.length,
+        ...(typeof raw.active === "boolean" ? { active: raw.active } : {}),
+      });
+    }
+    optionTypes.push({
+      id: entry.id,
+      name: entry.name,
+      values,
+      sortOrder: typeof entry.sortOrder === "number" ? entry.sortOrder : optionTypes.length,
+      ...(typeof entry.createdAt === "number" ? { createdAt: entry.createdAt } : {}),
+    });
+  }
+  return optionTypes;
 }
 
 export interface Money {
@@ -86,7 +123,7 @@ export interface VariantRecord {
 // ────────────────────────────────────────────────────────────────────
 
 export function normalizeVariantSelections(
-  selections: VariantSelection[] | undefined,
+  selections: VariantSelectionInput[] | undefined,
 ): VariantSelection[] | undefined {
   if (!selections?.length) return undefined;
   return [...selections]
@@ -154,7 +191,7 @@ export type ValidationResult =
  */
 export function validateVariantSelectionsResult(
   optionTypes: OptionType[],
-  selections: VariantSelection[] | undefined,
+  selections: VariantSelectionInput[] | undefined,
 ): ValidationResult {
   if (!selections?.length) {
     return {

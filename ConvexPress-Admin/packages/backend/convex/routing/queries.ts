@@ -25,7 +25,7 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { routingDocs } from "../schema/routing.docs.generated";
 // ─── Get Redirects (Admin) ──────────────────────────────────────────────────
 
 /**
@@ -39,7 +39,7 @@ import { tableDocs } from "../schema/tableDocs.generated";
 export const getRedirects = query({
   args: getRedirectsArgs,
   returns: v.object({
-    redirects: v.array(tableDocs.redirects),
+    redirects: v.array(routingDocs.redirects),
     total: v.number(),
     page: v.number(),
     perPage: v.number(),
@@ -146,7 +146,7 @@ export const getRedirects = query({
  */
 export const getRedirectById = query({
   args: getRedirectByIdArgs,
-  returns: v.union(v.null(), tableDocs.redirects),
+  returns: v.union(v.null(), routingDocs.redirects),
   handler: async (ctx, args) => {
     await requireCan(ctx, "routing.view_redirects");
 
@@ -172,7 +172,7 @@ export const getRedirectById = query({
 export const get404Log = query({
   args: get404LogArgs,
   returns: v.object({
-    entries: v.array(tableDocs.notFound),
+    entries: v.array(routingDocs.notFound),
     total: v.number(),
     page: v.number(),
     perPage: v.number(),
@@ -270,7 +270,7 @@ export const getRedirectStats = query({
     totalHits: v.number(),
     total404s: v.number(),
     unresolved404s: v.number(),
-    topRedirects: v.array(tableDocs.redirects),
+    topRedirects: v.array(routingDocs.redirects),
   }),
   handler: async (ctx) => {
     await requireCan(ctx, "routing.view_redirects");

@@ -1,8 +1,9 @@
-// @ts-nocheck TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 import { v } from "convex/values";
+import type { WithoutSystemFields } from "convex/server";
 
 import { internal } from "../_generated/api";
-import { internalMutation } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
 import {
   EMAIL_TEMPLATES,
@@ -14,6 +15,74 @@ import { NOTIFICATION_KEYS } from "../notifications/validators";
 import { PURCHASE_EVENTS, SYSTEM } from "../events/constants";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
 
+
+type PurchaseOrderDoc = Doc<"purchase_orders">;
+type PurchaseOrderStatus = PurchaseOrderDoc["status"];
+type PurchasePaymentStatus = PurchaseOrderDoc["paymentStatus"];
+type PurchaseRefundStatus = Doc<"purchase_refunds">["status"];
+type PurchaseLineType = Doc<"purchase_order_lines">["lineType"];
+type FormOrderStatus = Doc<"form_orders">["status"];
+type JsonBag = Record<string, unknown>;
+
+/** Everything a sync writes onto a purchase_orders row, plus the row to update. */
+type PurchaseOrderSnapshot = Omit<
+  WithoutSystemFields<PurchaseOrderDoc>,
+  "createdAt" | "updatedAt"
+> & { purchaseOrderId?: Id<"purchase_orders"> };
+
+type PurchaseLineInput = {
+  sourceLineId?: string;
+  lineType?: PurchaseLineType;
+  title: string;
+  subtitle?: string;
+  sku?: string;
+  quantity?: number;
+  unitAmount: unknown;
+  lineSubtotalAmount?: unknown;
+  lineTotalAmount: unknown;
+  currencyCode?: unknown;
+  productId?: Id<"commerce_products">;
+  variantId?: Id<"commerce_product_variants">;
+  courseId?: Id<"lms_courses">;
+  formId?: Id<"forms">;
+  formSubmissionId?: Id<"form_submissions">;
+  subscriptionId?: Id<"commerce_subscriptions">;
+  subscriptionInvoiceId?: Id<"commerce_subscription_invoices">;
+  metadata?: unknown;
+};
+
+type PurchasePaymentInput = {
+  provider?: string;
+  providerTransactionId?: string;
+  providerSessionId?: string;
+  paymentIntentId?: string;
+  status?: unknown;
+  amount?: unknown;
+  currencyCode?: unknown;
+  failureCode?: string;
+  failureMessage?: string;
+  rawStatus?: string;
+  metadata?: unknown;
+  createdAt?: number;
+  completedAt?: number;
+};
+
+type PurchaseRefundInput = {
+  purchasePaymentId?: Id<"purchase_payments">;
+  provider?: string;
+  providerRefundId?: string;
+  status?: unknown;
+  amount?: unknown;
+  currencyCode?: unknown;
+  reason?: string;
+  failureCode?: string;
+  failureMessage?: string;
+  metadata?: unknown;
+  createdAt?: number;
+  completedAt?: number;
+};
+
+type AdminRecipient = Awaited<ReturnType<typeof resolveRecipients>>[number];
 
 type PurchaseEventCode =
   | typeof PURCHASE_EVENTS.CREATED
@@ -40,18 +109,25 @@ function money(value: unknown): number {
   return Number.isFinite(Number(value)) ? Math.max(0, Math.round(Number(value))) : 0;
 }
 
-function parseJsonBag(value: unknown): Record<string, any> {
+function isJsonBag(value: unknown): value is JsonBag {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseJsonBag(value: unknown): JsonBag {
   if (!value) return {};
-  if (typeof value === "object" && !Array.isArray(value)) return value as Record<string, any>;
+  if (isJsonBag(value)) return value;
   if (typeof value !== "string") return {};
   try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
-      : {};
+    const parsed: unknown = JSON.parse(value);
+    return isJsonBag(parsed) ? parsed : {};
   } catch {
     return {};
   }
+}
+
+function bagString(bag: JsonBag, key: string): string | undefined {
+  const value = bag[key];
+  return typeof value === "string" ? value : undefined;
 }
 
 function displayAmount(amount: number, currencyCode: string): string {
@@ -65,12 +141,12 @@ function displayAmount(amount: number, currencyCode: string): string {
   }
 }
 
-function purchaseCustomerUrl(purchase: any): string {
+function purchaseCustomerUrl(purchase: PurchaseOrderDoc): string {
   if (purchase.commerceOrderId) return `/dashboard/orders/${purchase.commerceOrderId}`;
   return `/dashboard/orders/${purchase._id}`;
 }
 
-function purchaseAdminUrl(purchase: any): string {
+function purchaseAdminUrl(purchase: PurchaseOrderDoc): string {
   if (purchase.commerceOrderId) return `/commerce/orders/${purchase.commerceOrderId}`;
   if (purchase.formId && purchase.formSubmissionId) {
     return `/forms/${purchase.formId}/entries/${purchase.formSubmissionId}`;
@@ -84,19 +160,22 @@ function purchaseAdminUrl(purchase: any): string {
   return `/commerce/orders?purchaseId=${purchase._id}`;
 }
 
-function mapCommerceOrderStatus(order: any): string {
-  if (order.status === "fulfilled" || order.status === "completed") return "fulfilled";
-  if (order.status === "refunded" || order.paymentStatus === "refunded") return "refunded";
+function mapCommerceOrderStatus(
+  order: Pick<Doc<"commerce_orders">, "status" | "paymentStatus">,
+): PurchaseOrderStatus {
+  const status: string = order.status;
+  if (status === "fulfilled" || status === "completed") return "fulfilled";
+  if (status === "refunded" || order.paymentStatus === "refunded") return "refunded";
   if (order.paymentStatus === "partially_refunded") return "partially_refunded";
-  if (order.status === "cancelled") return "cancelled";
-  if (order.status === "failed" || order.paymentStatus === "failed") return "payment_failed";
-  if (order.paymentStatus === "paid" || order.status === "paid" || order.status === "processing") {
+  if (status === "cancelled") return "cancelled";
+  if (status === "failed" || order.paymentStatus === "failed") return "payment_failed";
+  if (order.paymentStatus === "paid" || status === "paid" || status === "processing") {
     return "paid";
   }
   return "payment_pending";
 }
 
-function mapPurchasePaymentStatus(value: unknown): string {
+function mapPurchasePaymentStatus(value: unknown): PurchasePaymentStatus {
   const status = String(value ?? "pending").toLowerCase();
   if (status === "payment_pending") return "pending";
   if (status === "payment_failed") return "failed";
@@ -112,12 +191,12 @@ function mapPurchasePaymentStatus(value: unknown): string {
   return "pending";
 }
 
-function mapRefundStatus(value: unknown): string {
+function mapRefundStatus(value: unknown): PurchaseRefundStatus {
   const status = String(value ?? "pending").toLowerCase();
   if (["completed", "succeeded", "success"].includes(status)) return "succeeded";
   if (["failed", "declined"].includes(status)) return "failed";
   if (["canceled", "cancelled"].includes(status)) return "cancelled";
-  if (["processing", "pending"].includes(status)) return status;
+  if (status === "processing") return "processing";
   return "pending";
 }
 
@@ -178,16 +257,23 @@ function notificationTypeForEvent(code: PurchaseEventCode): "info" | "success" |
   return "info";
 }
 
-async function findPurchaseBySource(ctx: any, sourceType: string, sourceId: string) {
+async function findPurchaseBySource(
+  ctx: MutationCtx,
+  sourceType: PurchaseOrderDoc["sourceType"],
+  sourceId: string,
+) {
   return await ctx.db
     .query("purchase_orders")
-    .withIndex("by_source", (q: any) =>
+    .withIndex("by_source", (q) =>
       q.eq("sourceType", sourceType).eq("sourceId", sourceId),
     )
     .first();
 }
 
-async function upsertPurchaseOrder(ctx: any, snapshot: Record<string, any>) {
+async function upsertPurchaseOrder(
+  ctx: MutationCtx,
+  snapshot: PurchaseOrderSnapshot,
+): Promise<Id<"purchase_orders">> {
   const now = Date.now();
   const existing =
     (snapshot.purchaseOrderId ? await ctx.db.get(snapshot.purchaseOrderId) : null) ??
@@ -210,15 +296,23 @@ async function upsertPurchaseOrder(ctx: any, snapshot: Record<string, any>) {
   });
 }
 
-async function deletePurchaseChildren(ctx: any, table: string, purchaseOrderId: any) {
+async function deletePurchaseChildren(
+  ctx: MutationCtx,
+  table: "purchase_order_lines" | "purchase_payments" | "purchase_refunds",
+  purchaseOrderId: Id<"purchase_orders">,
+) {
   const rows = await ctx.db
     .query(table)
-    .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchaseOrderId))
+    .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchaseOrderId))
     .collect();
   for (const row of rows) await deleteDynamicWithMediaReferences(ctx, row._id);
 }
 
-async function replacePurchaseLines(ctx: any, purchaseOrderId: any, lines: any[]) {
+async function replacePurchaseLines(
+  ctx: MutationCtx,
+  purchaseOrderId: Id<"purchase_orders">,
+  lines: PurchaseLineInput[],
+) {
   await deletePurchaseChildren(ctx, "purchase_order_lines", purchaseOrderId);
   const now = Date.now();
   for (const line of lines) {
@@ -247,7 +341,11 @@ async function replacePurchaseLines(ctx: any, purchaseOrderId: any, lines: any[]
   }
 }
 
-async function replacePurchasePayments(ctx: any, purchaseOrderId: any, payments: any[]) {
+async function replacePurchasePayments(
+  ctx: MutationCtx,
+  purchaseOrderId: Id<"purchase_orders">,
+  payments: PurchasePaymentInput[],
+) {
   await deletePurchaseChildren(ctx, "purchase_payments", purchaseOrderId);
   const now = Date.now();
   for (const payment of payments) {
@@ -262,7 +360,9 @@ async function replacePurchasePayments(ctx: any, purchaseOrderId: any, payments:
       currencyCode: normalizeCurrency(payment.currencyCode),
       failureCode: payment.failureCode,
       failureMessage: payment.failureMessage,
-      rawStatus: payment.rawStatus ?? payment.status,
+      rawStatus:
+        payment.rawStatus ??
+        (typeof payment.status === "string" ? payment.status : undefined),
       metadata: payment.metadata,
       createdAt: payment.createdAt ?? now,
       updatedAt: now,
@@ -271,7 +371,11 @@ async function replacePurchasePayments(ctx: any, purchaseOrderId: any, payments:
   }
 }
 
-async function replacePurchaseRefunds(ctx: any, purchaseOrderId: any, refunds: any[]) {
+async function replacePurchaseRefunds(
+  ctx: MutationCtx,
+  purchaseOrderId: Id<"purchase_orders">,
+  refunds: PurchaseRefundInput[],
+) {
   await deletePurchaseChildren(ctx, "purchase_refunds", purchaseOrderId);
   const now = Date.now();
   for (const refund of refunds) {
@@ -294,20 +398,30 @@ async function replacePurchaseRefunds(ctx: any, purchaseOrderId: any, refunds: a
   }
 }
 
-async function getUserIdentifierForPurchase(ctx: any, purchase: any): Promise<string | null> {
+async function getUserIdentifierForPurchase(
+  ctx: MutationCtx,
+  purchase: PurchaseOrderDoc,
+): Promise<string | null> {
   if (!purchase.userId) return null;
   const user = await ctx.db.get(purchase.userId);
   return user ? getUserIdentifier(user) : String(purchase.userId);
 }
 
-async function emitPurchaseLifecycle(ctx: any, purchaseOrderId: any, eventType?: string, message?: string, metadata?: any) {
+async function emitPurchaseLifecycle(
+  ctx: MutationCtx,
+  purchaseOrderId: Id<"purchase_orders">,
+  eventType?: string,
+  message?: string,
+  metadata?: unknown,
+) {
+  const extra = isJsonBag(metadata) ? metadata : {};
   if (!eventType) return;
 
   const existingEvents = await ctx.db
     .query("purchase_order_events")
-    .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchaseOrderId))
+    .withIndex("by_purchase_order", (q) => q.eq("purchaseOrderId", purchaseOrderId))
     .collect();
-  const duplicate = existingEvents.some((entry: any) => entry.eventType === eventType);
+  const duplicate = existingEvents.some((entry) => entry.eventType === eventType);
   if (duplicate) return;
 
   const purchase = await ctx.db.get(purchaseOrderId);
@@ -330,7 +444,7 @@ async function emitPurchaseLifecycle(ctx: any, purchaseOrderId: any, eventType?:
     formSubmissionId: purchase.formSubmissionId,
     subscriptionId: purchase.subscriptionId,
     subscriptionInvoiceId: purchase.subscriptionInvoiceId,
-    ...metadata,
+    ...extra,
   };
 
   const eventId = await emitEvent(ctx, code, SYSTEM.PURCHASE, payload);
@@ -341,7 +455,7 @@ async function emitPurchaseLifecycle(ctx: any, purchaseOrderId: any, eventType?:
     metadata: {
       eventCode: code,
       eventId,
-      ...metadata,
+      ...extra,
     },
     createdAt: Date.now(),
   });
@@ -349,7 +463,10 @@ async function emitPurchaseLifecycle(ctx: any, purchaseOrderId: any, eventType?:
   await queuePurchaseNotifications(ctx, purchase, code, eventId);
 }
 
-function defaultMessageForPurchaseEvent(code: PurchaseEventCode, purchase: any): string {
+function defaultMessageForPurchaseEvent(
+  code: PurchaseEventCode,
+  purchase: PurchaseOrderDoc,
+): string {
   if (code === PURCHASE_EVENTS.CREATED) return `Purchase ${purchase.orderNumber} was created.`;
   if (code === PURCHASE_EVENTS.PAYMENT_SUCCEEDED) return `Payment received for ${purchase.orderNumber}.`;
   if (code === PURCHASE_EVENTS.PAYMENT_FAILED) return `Payment failed for ${purchase.orderNumber}.`;
@@ -358,7 +475,12 @@ function defaultMessageForPurchaseEvent(code: PurchaseEventCode, purchase: any):
   return `Purchase ${purchase.orderNumber} was updated.`;
 }
 
-async function queuePurchaseNotifications(ctx: any, purchase: any, code: PurchaseEventCode, eventId: any) {
+async function queuePurchaseNotifications(
+  ctx: MutationCtx,
+  purchase: PurchaseOrderDoc,
+  code: PurchaseEventCode,
+  eventId: Id<"events">,
+) {
   const notificationKey = notificationKeyForEvent(code);
   if (!notificationKey) return;
 
@@ -427,7 +549,13 @@ async function queuePurchaseNotifications(ctx: any, purchase: any, code: Purchas
   await queuePurchaseEmails(ctx, purchase, code, eventId, admins);
 }
 
-async function queuePurchaseEmails(ctx: any, purchase: any, code: PurchaseEventCode, eventId: any, admins: any[]) {
+async function queuePurchaseEmails(
+  ctx: MutationCtx,
+  purchase: PurchaseOrderDoc,
+  code: PurchaseEventCode,
+  eventId: Id<"events">,
+  admins: AdminRecipient[],
+) {
   const customerUserIdentifier = await getUserIdentifierForPurchase(ctx, purchase);
   const variables = {
     orderNumber: purchase.orderNumber,
@@ -468,7 +596,7 @@ async function queuePurchaseEmails(ctx: any, purchase: any, code: PurchaseEventC
   }
 }
 
-function commerceLineType(item: any): string {
+function commerceLineType(item: Doc<"commerce_order_items">): PurchaseLineType {
   const metadata = parseJsonBag(item.metadata);
   if (metadata.lineType === "bundle" || metadata.bundleId) return "bundle";
   if (metadata.courseId) return "course";
@@ -476,20 +604,27 @@ function commerceLineType(item: any): string {
   return "product";
 }
 
-function extractCourseId(item: any): any {
-  const metadata = parseJsonBag(item.metadata);
-  return metadata.courseId;
+function extractCourseId(
+  ctx: MutationCtx,
+  item: Doc<"commerce_order_items">,
+): Id<"lms_courses"> | undefined {
+  const courseId = bagString(parseJsonBag(item.metadata), "courseId");
+  return courseId ? ctx.db.normalizeId("lms_courses", courseId) ?? undefined : undefined;
 }
 
-async function syncCommerceChildren(ctx: any, purchaseOrderId: any, order: any) {
+async function syncCommerceChildren(
+  ctx: MutationCtx,
+  purchaseOrderId: Id<"purchase_orders">,
+  order: Doc<"commerce_orders">,
+) {
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   await replacePurchaseLines(
     ctx,
     purchaseOrderId,
-    items.map((item: any) => ({
+    items.map((item) => ({
       sourceLineId: String(item._id),
       lineType: commerceLineType(item),
       title: item.productTitle,
@@ -501,26 +636,26 @@ async function syncCommerceChildren(ctx: any, purchaseOrderId: any, order: any) 
       currencyCode: order.currencyCode,
       productId: item.productId,
       variantId: item.variantId,
-      courseId: extractCourseId(item),
+      courseId: extractCourseId(ctx, item),
       metadata: item.metadata,
     })),
   );
 
   const transactions = await ctx.db
     .query("commerce_payment_transactions")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   await replacePurchasePayments(
     ctx,
     purchaseOrderId,
-    transactions.map((transaction: any) => ({
+    transactions.map((transaction) => ({
       provider: transaction.provider,
       providerTransactionId: transaction.providerTransactionId,
       providerSessionId: transaction.sessionId ? String(transaction.sessionId) : undefined,
       paymentIntentId: transaction.providerTransactionId,
       status: transaction.status,
-      amount: transaction.amount?.amount,
-      currencyCode: transaction.amount?.currencyCode ?? order.currencyCode,
+      amount: transaction.amount.amount,
+      currencyCode: transaction.amount.currencyCode ?? order.currencyCode,
       failureCode: transaction.failureCode,
       failureMessage: transaction.failureMessage,
       metadata: {
@@ -536,17 +671,17 @@ async function syncCommerceChildren(ctx: any, purchaseOrderId: any, order: any) 
 
   const refunds = await ctx.db
     .query("commerce_payment_refunds")
-    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .withIndex("by_order", (q) => q.eq("orderId", order._id))
     .collect();
   await replacePurchaseRefunds(
     ctx,
     purchaseOrderId,
-    refunds.map((refund: any) => ({
+    refunds.map((refund) => ({
       provider: refund.providerRefundId ? "stripe" : "manual",
       providerRefundId: refund.providerRefundId,
       status: refund.status,
-      amount: refund.amount?.amount,
-      currencyCode: refund.amount?.currencyCode ?? order.currencyCode,
+      amount: refund.amount.amount,
+      currencyCode: refund.amount.currencyCode ?? order.currencyCode,
       reason: refund.reason,
       failureCode: refund.failureCode,
       failureMessage: refund.failureMessage,
@@ -562,14 +697,17 @@ async function syncCommerceChildren(ctx: any, purchaseOrderId: any, order: any) 
   );
 }
 
-function paidAmountFromCommerce(order: any, transactions: any[]) {
+function paidAmountFromCommerce(
+  order: Doc<"commerce_orders">,
+  transactions: Doc<"commerce_payment_transactions">[],
+) {
   const transactionTotal = transactions
-    .filter((transaction: any) =>
+    .filter((transaction) =>
       ["succeeded", "captured", "paid", "partially_refunded", "refunded"].includes(
-        String(transaction.status ?? "").toLowerCase(),
+        transaction.status.toLowerCase(),
       ),
     )
-    .reduce((sum: number, transaction: any) => sum + money(transaction.amount?.amount), 0);
+    .reduce((sum, transaction) => sum + money(transaction.amount.amount), 0);
 
   if (transactionTotal > 0) return transactionTotal;
   if (["paid", "refunded", "partially_refunded"].includes(order.paymentStatus)) {
@@ -578,10 +716,10 @@ function paidAmountFromCommerce(order: any, transactions: any[]) {
   return 0;
 }
 
-function refundedAmountFromCommerce(refunds: any[]) {
+function refundedAmountFromCommerce(refunds: Doc<"commerce_payment_refunds">[]) {
   return refunds
-    .filter((refund: any) => ["completed", "succeeded"].includes(String(refund.status ?? "").toLowerCase()))
-    .reduce((sum: number, refund: any) => sum + money(refund.amount?.amount), 0);
+    .filter((refund) => ["completed", "succeeded"].includes(refund.status.toLowerCase()))
+    .reduce((sum, refund) => sum + money(refund.amount.amount), 0);
 }
 
 export const syncCommerceOrder = internalMutation({
@@ -591,6 +729,7 @@ export const syncCommerceOrder = internalMutation({
     message: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.union(v.null(), v.id("purchase_orders")),
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (!order) return null;
@@ -598,11 +737,11 @@ export const syncCommerceOrder = internalMutation({
     const [transactions, refunds, customer] = await Promise.all([
       ctx.db
         .query("commerce_payment_transactions")
-        .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+        .withIndex("by_order", (q) => q.eq("orderId", order._id))
         .collect(),
       ctx.db
         .query("commerce_payment_refunds")
-        .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+        .withIndex("by_order", (q) => q.eq("orderId", order._id))
         .collect(),
       order.customerId ? ctx.db.get(order.customerId) : Promise.resolve(null),
     ]);
@@ -659,7 +798,7 @@ export const syncCommerceOrder = internalMutation({
   },
 });
 
-function formOrderStatusFromPayment(status: string): string {
+function formOrderStatusFromPayment(status: string): FormOrderStatus {
   const normalized = String(status ?? "").toLowerCase();
   if (["succeeded", "paid", "captured"].includes(normalized)) return "paid";
   if (["failed", "declined"].includes(normalized)) return "payment_failed";
@@ -669,7 +808,7 @@ function formOrderStatusFromPayment(status: string): string {
   return "pending_payment";
 }
 
-function purchaseStatusFromFormOrder(status: string): string {
+function purchaseStatusFromFormOrder(status: FormOrderStatus): PurchaseOrderStatus {
   if (status === "paid") return "paid";
   if (status === "payment_failed") return "payment_failed";
   if (status === "refunded") return "refunded";
@@ -678,32 +817,43 @@ function purchaseStatusFromFormOrder(status: string): string {
   return "payment_pending";
 }
 
-function normalizeFormLines(lineItems: any[], context: any) {
-  return lineItems
-    .map((line: any, index: number) => {
-      const amount = money(line?.amount ?? line?.lineTotalAmount ?? line?.totalAmount);
-      if (amount <= 0) return null;
-      return {
-        sourceLineId: line?.fieldKey
-          ? `${line.fieldKey}:${line.choiceValue ?? index}`
-          : `form-line:${index}`,
-        lineType: "form_choice",
-        title: String(line?.label ?? line?.fieldLabel ?? "Form selection"),
-        subtitle: typeof line?.choiceValue === "string" ? line.choiceValue : undefined,
-        quantity: Number.isFinite(Number(line?.quantity)) ? Number(line.quantity) : 1,
-        unitAmount: amount,
-        lineSubtotalAmount: amount,
-        lineTotalAmount: amount,
-        currencyCode: context.currencyCode,
-        formId: context.formId,
-        formSubmissionId: context.submissionId,
-        metadata: line,
-      };
-    })
-    .filter(Boolean);
+function normalizeFormLines(
+  lineItems: unknown[],
+  context: {
+    currencyCode: string;
+    formId: Id<"forms">;
+    submissionId: Id<"form_submissions">;
+  },
+): PurchaseLineInput[] {
+  const lines: PurchaseLineInput[] = [];
+  lineItems.forEach((item, index) => {
+    const line = parseJsonBag(item);
+    const amount = money(line.amount ?? line.lineTotalAmount ?? line.totalAmount);
+    if (amount <= 0) return;
+    lines.push({
+      sourceLineId: line.fieldKey
+        ? `${String(line.fieldKey)}:${String(line.choiceValue ?? index)}`
+        : `form-line:${index}`,
+      lineType: "form_choice",
+      title: String(line.label ?? line.fieldLabel ?? "Form selection"),
+      subtitle: bagString(line, "choiceValue"),
+      quantity: Number.isFinite(Number(line.quantity)) ? Number(line.quantity) : 1,
+      unitAmount: amount,
+      lineSubtotalAmount: amount,
+      lineTotalAmount: amount,
+      currencyCode: context.currencyCode,
+      formId: context.formId,
+      formSubmissionId: context.submissionId,
+      metadata: item,
+    });
+  });
+  return lines;
 }
 
-function findEmailInValues(fields: any[], values: Record<string, string>): string | undefined {
+function findEmailInValues(
+  fields: Pick<Doc<"fieldDefinitions">, "type" | "key">[],
+  values: Record<string, string>,
+): string | undefined {
   for (const field of fields) {
     if (field.type !== "email") continue;
     const email = normalizeEmail(values[field.key]);
@@ -716,21 +866,27 @@ function findEmailInValues(fields: any[], values: Record<string, string>): strin
   return undefined;
 }
 
-async function resolveFormCustomerEmail(ctx: any, submission: any, form: any, orderPayment: any) {
+async function resolveFormCustomerEmail(
+  ctx: MutationCtx,
+  submission: Doc<"form_submissions">,
+  form: Doc<"forms">,
+  orderPayment: JsonBag,
+) {
   const fromPayment = normalizeEmail(orderPayment.customerEmail);
   if (fromPayment) return fromPayment;
   const values: Record<string, string> = {};
   const rows = await ctx.db
     .query("fieldValues")
-    .withIndex("by_entity", (q: any) =>
-      q.eq("entityType", "form_submission").eq("entityId", submission._id as string),
+    .withIndex("by_entity", (q) =>
+      q.eq("entityType", "form_submission").eq("entityId", submission._id),
     )
     .collect();
   for (const row of rows) values[row.fieldKey] = row.value;
-  const fields = form.fieldGroupId
+  const fieldGroupId = form.fieldGroupId;
+  const fields = fieldGroupId
     ? await ctx.db
         .query("fieldDefinitions")
-        .withIndex("by_group", (q: any) => q.eq("groupId", form.fieldGroupId))
+        .withIndex("by_group", (q) => q.eq("groupId", fieldGroupId))
         .collect()
     : [];
   return findEmailInValues(fields, values);
@@ -745,6 +901,7 @@ export const syncFormOrder = internalMutation({
     error: v.optional(v.string()),
     eventType: v.optional(v.string()),
   },
+  returns: v.union(v.null(), v.id("purchase_orders")),
   handler: async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) return null;
@@ -758,15 +915,15 @@ export const syncFormOrder = internalMutation({
     if (amount <= 0) return null;
 
     const currencyCode = normalizeCurrency(pricing.currency ?? orderPayment.currency);
-    const paymentIntentId = args.paymentIntentId ?? orderPayment.paymentIntentId;
-    const paymentStatus = args.status ?? orderPayment.status ?? "pending";
+    const paymentIntentId = args.paymentIntentId ?? bagString(orderPayment, "paymentIntentId");
+    const paymentStatus = args.status ?? bagString(orderPayment, "status") ?? "pending";
     const status = formOrderStatusFromPayment(paymentStatus);
     const customerEmail = await resolveFormCustomerEmail(ctx, submission, form, orderPayment);
     const now = Date.now();
 
     const existingFormOrder = await ctx.db
       .query("form_orders")
-      .withIndex("by_submission", (q: any) => q.eq("submissionId", submission._id))
+      .withIndex("by_submission", (q) => q.eq("submissionId", submission._id))
       .first();
     const formOrderPatch = {
       formId: form._id,
@@ -839,7 +996,8 @@ export const syncFormOrder = internalMutation({
       await ctx.db.patch("form_orders", formOrderId, { purchaseOrderId, updatedAt: now });
     }
 
-    const lines = normalizeFormLines(Array.isArray(pricing.lineItems) ? pricing.lineItems : [], {
+    const pricingLineItems: unknown[] = Array.isArray(pricing.lineItems) ? pricing.lineItems : [];
+    const lines = normalizeFormLines(pricingLineItems, {
       currencyCode,
       formId: form._id,
       submissionId: submission._id,
@@ -884,8 +1042,10 @@ export const syncFormOrder = internalMutation({
   },
 });
 
-function intentOrderStatus(intent: any): string {
-  if (intent.status === "failed" || intent.status === "cancelled") return "payment_failed";
+function intentOrderStatus(
+  intent: Doc<"commerce_subscription_checkout_intents">,
+): PurchaseOrderStatus {
+  if (intent.status === "failed") return "payment_failed";
   if (intent.status === "activated") return "paid";
   return "payment_pending";
 }
@@ -897,6 +1057,7 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
     message: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.union(v.null(), v.id("purchase_orders")),
   handler: async (ctx, args) => {
     const intent = await ctx.db.get(args.intentId);
     if (!intent) return null;
@@ -912,14 +1073,15 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
     const status = intentOrderStatus(intent);
     const now = Date.now();
 
-    const lines = [];
+    const lines: PurchaseLineInput[] = [];
+    const offerTitle = bagString(pricing, "offerTitle");
     const setupFeeAmount = money(intent.setupFeeAmount ?? pricing.setupFeeAmount);
     const recurringCharged = Math.max(0, amount - setupFeeAmount);
     if (setupFeeAmount > 0) {
       lines.push({
         sourceLineId: "setup-fee",
         lineType: "setup_fee",
-        title: `${pricing.offerTitle ?? "Subscription"} setup fee`,
+        title: `${offerTitle ?? "Subscription"} setup fee`,
         quantity: 1,
         unitAmount: setupFeeAmount,
         lineSubtotalAmount: setupFeeAmount,
@@ -933,7 +1095,7 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
       lines.push({
         sourceLineId: "initial-subscription",
         lineType: "subscription",
-        title: pricing.offerTitle ?? "Initial subscription charge",
+        title: offerTitle ?? "Initial subscription charge",
         quantity: 1,
         unitAmount: recurringCharged || amount,
         lineSubtotalAmount: recurringCharged || amount,
@@ -949,7 +1111,7 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
       orderNumber: `SUB-${String(intent._id).slice(-8).toUpperCase()}`,
       sourceType: "subscription_signup",
       sourceId: String(intent._id),
-      sourceLabel: pricing.offerTitle ?? "Subscription signup",
+      sourceLabel: offerTitle ?? "Subscription signup",
       sourceUrl: subscription
         ? `/commerce/subscriptions/contracts/${subscription._id}`
         : `/commerce/subscriptions`,
@@ -1008,10 +1170,11 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
   },
 });
 
-function invoiceOrderStatus(invoice: any): string {
+function invoiceOrderStatus(
+  invoice: Doc<"commerce_subscription_invoices">,
+): PurchaseOrderStatus {
   if (invoice.status === "paid") return "paid";
   if (invoice.status === "failed" || invoice.status === "void") return "payment_failed";
-  if (invoice.status === "cancelled" || invoice.status === "canceled") return "cancelled";
   return "payment_pending";
 }
 
@@ -1022,6 +1185,7 @@ export const syncSubscriptionInvoice = internalMutation({
     message: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.union(v.null(), v.id("purchase_orders")),
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.invoiceId);
     if (!invoice) return null;
@@ -1031,7 +1195,7 @@ export const syncSubscriptionInvoice = internalMutation({
 
     const items = await ctx.db
       .query("commerce_subscription_invoice_items")
-      .withIndex("by_invoice", (q: any) => q.eq("invoiceId", invoice._id))
+      .withIndex("by_invoice", (q) => q.eq("invoiceId", invoice._id))
       .collect();
     const status = invoiceOrderStatus(invoice);
     const currencyCode = normalizeCurrency(invoice.currencyCode);
@@ -1084,7 +1248,7 @@ export const syncSubscriptionInvoice = internalMutation({
     await replacePurchaseLines(
       ctx,
       purchaseOrderId,
-      items.map((item: any) => ({
+      items.map((item) => ({
         sourceLineId: String(item._id),
         lineType: item.lineType === "setup_fee" ? "setup_fee" : "subscription",
         title: item.description,

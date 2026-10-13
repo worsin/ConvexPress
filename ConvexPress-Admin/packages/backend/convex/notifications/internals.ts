@@ -1,6 +1,6 @@
 import type { RegisteredMutation } from "convex/server";
 import type { ObjectType } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id, TableNames } from "../_generated/dataModel";
 /**
  * Site Notification System - Internal Functions
  *
@@ -22,7 +22,7 @@ import type { Id } from "../_generated/dataModel";
  * dispatches to `send` for each recipient.
  */
 
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
 import { interpolateTemplate } from "../helpers/notification";
@@ -65,17 +65,28 @@ const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
 function getNotificationTypeConfig(
   notificationKey: string,
 ): NotificationTypeConfig | undefined {
-  return (NOTIFICATION_TYPES as any)[notificationKey] as
-    | NotificationTypeConfig
-    | undefined;
+  return Object.prototype.hasOwnProperty.call(NOTIFICATION_TYPES, notificationKey)
+    ? NOTIFICATION_TYPES[notificationKey]
+    : undefined;
 }
 
 function toPayloadValue(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+/** Load a document from an untrusted event-payload id, only if it belongs to `table`. */
+async function getPayloadDoc<T extends TableNames>(
+  ctx: Pick<QueryCtx, "db">,
+  table: T,
+  raw: unknown,
+): Promise<Doc<T> | null> {
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  const id = ctx.db.normalizeId(table, raw);
+  return id ? await ctx.db.get(table, id) : null;
+}
+
 async function hydrateNotificationPayload(
-  ctx: any,
+  ctx: Pick<MutationCtx, "db">,
   eventCode: string,
   payload: Record<string, unknown>,
 ) {
@@ -85,7 +96,7 @@ async function hydrateNotificationPayload(
     (eventCode.startsWith("post.") || eventCode === "seo.meta_updated") &&
     payload.postId
   ) {
-    const post = await ctx.db.get(payload.postId as any);
+    const post = await getPayloadDoc(ctx, "posts", payload.postId);
     if (post) {
       hydrated.postTitle ??= post.title;
       hydrated.title ??= post.title;
@@ -95,7 +106,7 @@ async function hydrateNotificationPayload(
   }
 
   if (eventCode.startsWith("comment.") && payload.commentId) {
-    const comment = await ctx.db.get(payload.commentId as any);
+    const comment = await getPayloadDoc(ctx, "comments", payload.commentId);
     if (comment) {
       hydrated.commentAuthorId ??= comment.authorId;
       hydrated.parentCommentId ??= comment.parentId;
@@ -120,7 +131,7 @@ async function hydrateNotificationPayload(
   }
 
   if (eventCode === "registration.user_registered" && payload.userId) {
-    const user = await ctx.db.get(payload.userId as any);
+    const user = await getPayloadDoc(ctx, "users", payload.userId);
     if (user) {
       hydrated.userName ??=
         user.displayName ??
@@ -130,7 +141,7 @@ async function hydrateNotificationPayload(
   }
 
   if (eventCode.startsWith("lms.")) {
-    const course = payload.courseId ? await ctx.db.get(payload.courseId as any) : null;
+    const course = await getPayloadDoc(ctx, "lms_courses", payload.courseId);
     if (course) {
       hydrated.courseTitle ??= course.title;
       hydrated.courseSlug ??= course.slug;
@@ -138,7 +149,7 @@ async function hydrateNotificationPayload(
       hydrated.accessMode ??= course.accessMode;
     }
 
-    const node = payload.nodeId ? await ctx.db.get(payload.nodeId as any) : null;
+    const node = await getPayloadDoc(ctx, "lms_nodes", payload.nodeId);
     if (node) {
       hydrated.nodeId ??= node._id;
       hydrated.lessonTitle ??= node.title;
@@ -154,9 +165,7 @@ async function hydrateNotificationPayload(
       hydrated.lessonTitle ??= firstLesson?.title ?? "";
     }
 
-    const issue = payload.certificateIssueId
-      ? await ctx.db.get(payload.certificateIssueId as any)
-      : null;
+    const issue = await getPayloadDoc(ctx, "lms_certificate_issues", payload.certificateIssueId);
     if (issue) {
       hydrated.serial ??= issue.serial;
       hydrated.certificateIssueId ??= issue._id;
@@ -166,7 +175,7 @@ async function hydrateNotificationPayload(
     }
 
     if (payload.userId) {
-      const user = await ctx.db.get(payload.userId as any);
+      const user = await getPayloadDoc(ctx, "users", payload.userId);
       if (user) {
         hydrated.learnerName ??=
           user.displayName ??
@@ -537,20 +546,8 @@ export const onEvent = internalMutation({
         .unique();
 
       if (!actorUser) {
-        // Try as a direct Convex document ID
-        try {
-          actorUser = await ctx.db.get(event.actorId! as any);
-        } catch {
-          // Invalid ID format
-        }
-      }
-
-      if (!actorUser) {
-        try {
-          actorUser = await ctx.db.get(event.actorId as any);
-        } catch {
-          // Invalid ID format
-        }
+        // Try as a direct Convex users document ID
+        actorUser = await getPayloadDoc(ctx, "users", event.actorId);
       }
 
       if (actorUser) {

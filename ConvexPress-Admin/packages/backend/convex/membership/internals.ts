@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Membership — Internal Functions
@@ -20,7 +19,9 @@ import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { v, getDocumentSize } from "convex/values";
 import { expireMembershipGrants } from "./expiry";
 
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { membershipDocs } from "../schema/membership.docs.generated";
 import { internal } from "../_generated/api";
 import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
 import {
@@ -37,7 +38,7 @@ import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } fro
 // ─── Settings-reader helper (local to internals) ──────────────────────────
 // Returns the membership.general settings object with Wave-2 defaults.
 // Defaults: logAccessChecks=true, accessLogRetentionDays=30.
-async function getMembershipSettings(ctx: any): Promise<{
+async function getMembershipSettings(ctx: { db: QueryCtx["db"] }): Promise<{
   logAccessChecks: boolean;
   accessLogRetentionDays: number;
 }> {
@@ -48,13 +49,22 @@ async function getMembershipSettings(ctx: any): Promise<{
   try {
     const row = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: any) =>
+      .withIndex("by_section", (q) =>
         q.eq("section", "membership.general"),
       )
       .unique();
+    const stored: unknown = row?.values;
+    const values: Record<string, unknown> =
+      typeof stored === "object" && stored !== null ? { ...stored } : {};
     return {
-      ...defaults,
-      ...row?.values,
+      logAccessChecks:
+        typeof values.logAccessChecks === "boolean"
+          ? values.logAccessChecks
+          : defaults.logAccessChecks,
+      accessLogRetentionDays:
+        typeof values.accessLogRetentionDays === "number"
+          ? values.accessLogRetentionDays
+          : defaults.accessLogRetentionDays,
     };
   } catch {
     return defaults;
@@ -66,11 +76,11 @@ async function getMembershipSettings(ctx: any): Promise<{
 // (grant_created / grant_refreshed / grant_revoked / grant_moved_to_grace).
 // Honors the `logAccessChecks` setting just like `recordAccessCheck` does.
 async function writeBridgeAccessLog(
-  ctx: any,
+  ctx: MutationCtx,
   input: {
-    userId: any;
-    planId: any;
-    grantId: any;
+    userId: Id<"users">;
+    planId: Id<"membership_plans">;
+    grantId: Id<"membership_grants">;
     reason:
       | "bridge_grant_created"
       | "bridge_grant_refreshed"
@@ -139,9 +149,9 @@ export const expireGrants = internalMutation({
  * `grantFromSubscription` internalMutation below.
  */
 export async function _grantFromSubscriptionHandler(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    userId: any;
+    userId: Id<"users">;
     entitlementCode: string;
     subscriptionId: string;
     endsAt?: number;
@@ -165,7 +175,7 @@ export async function _grantFromSubscriptionHandler(
   // Find plans linked to this entitlement code (active-only index).
   const allPlans = await ctx.db
     .query("membership_plans")
-    .withIndex("by_status", (q: any) => q.eq("status", "active"))
+    .withIndex("by_status", (q) => q.eq("status", "active"))
     .collect();
 
   const matchingPlans = selectBridgeablePlans(allPlans, args.entitlementCode);
@@ -177,7 +187,7 @@ export async function _grantFromSubscriptionHandler(
   // Fetch active grants once per call; we'll filter per plan in memory.
   const existingActiveGrants = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user_status", (q: any) =>
+    .withIndex("by_user_status", (q) =>
       q.eq("userId", args.userId).eq("status", "active"),
     )
     .collect();
@@ -256,7 +266,7 @@ export const grantFromSubscription = internalMutation({
     skipped: v.optional(v.string()),
     reason: v.optional(v.string()),
   }),
-  handler: async (ctx: any, args: any) =>
+  handler: async (ctx, args) =>
     _grantFromSubscriptionHandler(ctx, args),
 });
 
@@ -290,8 +300,8 @@ export const grantFromSubscription = internalMutation({
  * `_grantFromSubscriptionHandler`.
  */
 export async function _revokeFromSubscriptionHandler(
-  ctx: any,
-  args: { userId: any; subscriptionId: string; gracePeriodDays?: number },
+  ctx: MutationCtx,
+  args: { userId: Id<"users">; subscriptionId: string; gracePeriodDays?: number },
 ): Promise<{
   revokedCount: number;
   movedToGraceCount?: number;
@@ -310,14 +320,14 @@ export async function _revokeFromSubscriptionHandler(
   // excluded by the index predicate — that IS the idempotency guard.)
   const activeGrants = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user_status", (q: any) =>
+    .withIndex("by_user_status", (q) =>
       q.eq("userId", args.userId).eq("status", "active"),
     )
     .collect();
 
   const graceGrants = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user_status", (q: any) =>
+    .withIndex("by_user_status", (q) =>
       q.eq("userId", args.userId).eq("status", "grace"),
     )
     .collect();
@@ -341,7 +351,7 @@ export async function _revokeFromSubscriptionHandler(
       userId: args.userId,
       planId: grant.planId,
       status: decision.kind === "grace" ? "grace" : "revoked",
-      expiresAt: decision.patch.graceEndsAt,
+      expiresAt: decision.kind === "grace" ? decision.patch.graceEndsAt : undefined,
       sourceRef: grant.sourceRef,
     });
     await writeBridgeAccessLog(ctx, {
@@ -372,7 +382,7 @@ export const revokeFromSubscription = internalMutation({
     skipped: v.optional(v.string()),
     processedAt: v.optional(v.number()),
   }),
-  handler: async (ctx: any, args: any) =>
+  handler: async (ctx, args) =>
     _revokeFromSubscriptionHandler(ctx, args),
 });
 
@@ -404,8 +414,8 @@ export const revokeFromSubscription = internalMutation({
  * `_grantFromSubscriptionHandler`.
  */
 export async function _moveGrantToGraceHandler(
-  ctx: any,
-  args: { userId: any; subscriptionId: string; gracePeriodDays?: number },
+  ctx: MutationCtx,
+  args: { userId: Id<"users">; subscriptionId: string; gracePeriodDays?: number },
 ): Promise<{
   movedCount: number;
   skipped?: string;
@@ -420,7 +430,7 @@ export async function _moveGrantToGraceHandler(
 
   const activeGrants = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user_status", (q: any) =>
+    .withIndex("by_user_status", (q) =>
       q.eq("userId", args.userId).eq("status", "active"),
     )
     .collect();
@@ -470,7 +480,7 @@ export const moveGrantToGrace = internalMutation({
     skipped: v.optional(v.string()),
     processedAt: v.optional(v.number()),
   }),
-  handler: async (ctx: any, args: any) =>
+  handler: async (ctx, args) =>
     _moveGrantToGraceHandler(ctx, args),
 });
 
@@ -498,8 +508,8 @@ export const recordAccessCheck = internalMutation({
     reason: v.optional(v.string()),
     matchingPlanIds: v.optional(v.array(v.id("membership_plans"))),
   },
-  returns: v.union(v.object({ logged: v.boolean(), at: v.optional(v.null()) }), v.object({ logged: v.boolean(), at: v.number() })),
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({ logged: v.boolean(), at: v.optional(v.number()) }),
+  handler: async (ctx, args) => {
     // Soft no-op when plugin is off.
     if (!(await isPluginEnabled(ctx, "membership"))) return { logged: false };
 
@@ -540,8 +550,11 @@ export const recordAccessCheck = internalMutation({
  */
 export const trimAccessLog = internalMutation({
   args: {},
-  returns: v.union(v.object({ deleted: v.number(), skipped: v.string(), cutoff: v.optional(v.null()) }), v.object({ deleted: v.number(), cutoff: v.number(), skipped: v.optional(v.null()) })),
-  handler: async (ctx: any) => {
+  returns: v.union(
+    v.object({ deleted: v.number(), skipped: v.string() }),
+    v.object({ deleted: v.number(), cutoff: v.number() }),
+  ),
+  handler: async (ctx) => {
     // Soft no-op when plugin is off.
     if (!(await isPluginEnabled(ctx, "membership"))) {
       return { deleted: 0, skipped: "plugin_disabled" };
@@ -560,7 +573,7 @@ export const trimAccessLog = internalMutation({
 
     if (!Number.isFinite(cutoff)) return { deleted: 0, skipped: "keep_forever" };
     let deleted = 0, bytes = 0;
-    const oldRows = ctx.db.query("membership_access_log").withIndex("by_created", (q: any) => q.lt("createdAt", cutoff));
+    const oldRows = ctx.db.query("membership_access_log").withIndex("by_created", (q) => q.lt("createdAt", cutoff));
     for await (const row of oldRows) {
       deleted++; bytes += getDocumentSize(row);
       await deleteDynamicWithMediaReferences(ctx, row._id);
@@ -596,26 +609,26 @@ export const getCapabilitiesForUser = internalQuery({
     userId: v.id("users"),
   },
   returns: v.array(v.string()),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "membership"))) return [];
 
     const now = Date.now();
 
     const activeGrants = await ctx.db
       .query("membership_grants")
-      .withIndex("by_user_status", (q: any) =>
+      .withIndex("by_user_status", (q) =>
         q.eq("userId", args.userId).eq("status", "active"),
       )
       .collect();
 
     const graceGrants = await ctx.db
       .query("membership_grants")
-      .withIndex("by_user_status", (q: any) =>
+      .withIndex("by_user_status", (q) =>
         q.eq("userId", args.userId).eq("status", "grace"),
       )
       .collect();
 
-    const validGrants = [...activeGrants, ...graceGrants].filter((g: any) => {
+    const validGrants = [...activeGrants, ...graceGrants].filter((g) => {
       if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now)
         return false;
       if (g.endsAt && g.endsAt < now && g.status !== "grace") return false;
@@ -627,9 +640,7 @@ export const getCapabilitiesForUser = internalQuery({
       const plan = await ctx.db.get(grant.planId);
       if (!plan) continue;
       if (plan.status !== "active") continue;
-      const caps: string[] = Array.isArray(plan.linkedCapabilities)
-        ? plan.linkedCapabilities
-        : [];
+      const caps: string[] = plan.linkedCapabilities ?? [];
       for (const cap of caps) {
         if (typeof cap === "string" && cap.length > 0) capSet.add(cap);
       }
@@ -661,7 +672,8 @@ export const getPlansByLinkedSubscriptionCode = internalQuery({
   args: {
     code: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(membershipDocs.membership_plans),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "membership"))) return [];
 
     // No dedicated index on linkedSubscriptionCode — the string is optional
@@ -669,7 +681,7 @@ export const getPlansByLinkedSubscriptionCode = internalQuery({
     // if this ever grows hot, add .index("by_linkedSubscriptionCode").
     const allPlans = await ctx.db.query("membership_plans").collect();
     return allPlans.filter(
-      (plan: any) => plan.linkedSubscriptionCode === args.code,
+      (plan) => plan.linkedSubscriptionCode === args.code,
     );
   },
 });

@@ -13,19 +13,12 @@
  */
 
 import { ConvexError } from "convex/values";
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
-type UserDoc = {
-  _id: Id<"users">;
-  roleId?: Id<"roles">;
-  clerkUserId?: string;
-};
+type UserDoc = Pick<Doc<"users">, "_id" | "roleId" | "clerkUserId">;
 
-type MediaDoc = {
-  _id: Id<"media">;
-  uploadedBy: Id<"users">;
-};
+type MediaDoc = Pick<Doc<"media">, "_id" | "uploadedBy">;
 
 /**
  * Check media-specific capabilities based on ownership and action type.
@@ -75,9 +68,5 @@ export async function getUserRoleLevel(
 ): Promise<number> {
   if (!user.roleId) return 0;
   const role = await ctx.db.get("roles", user.roleId);
-  if (!role) return 0;
-  // The roles table has a 'level' field (number). Use safe property access.
-  return typeof (role as Record<string, unknown>).level === "number"
-    ? (role as Record<string, unknown>).level as number
-    : 0;
+  return role?.level ?? 0;
 }

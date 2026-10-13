@@ -3,13 +3,8 @@
 import { ConvexError, v } from "convex/values";
 import { action } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { getServiceKeyFromAction } from "../../helpers/serviceKeys";
+import { resolveServiceKeyAsync } from "../../helpers/serviceKeys";
 import { normalizeFormReturnUrl } from "./redirects";
-
-function publicKeyFromSettings(settings: Record<string, unknown> | null): string {
-  const value = settings?.stripePublishableKey;
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function intentMatchesSource(
   intent: { amount?: number; currency?: string; status?: string } | null,
@@ -28,10 +23,19 @@ export const beginOrderPayment = action({
     submissionId: v.id("form_submissions"),
     returnUrl: v.optional(v.string()),
   },
+  returns: v.object({
+    clientSecret: v.string(),
+    publishableKey: v.string(),
+    mode: v.literal("payment"),
+    returnUrl: v.string(),
+    paymentIntentId: v.string(),
+    amount: v.number(),
+    currency: v.string(),
+  }),
   handler: async (ctx, args) => {
     const returnUrl = normalizeFormReturnUrl(args.returnUrl) ?? "/";
     const source = await ctx.runQuery(
-      (internal as any).extensions.forms.orderPayments.getOrderPaymentSource,
+      internal.extensions.forms.orderPayments.getOrderPaymentSource,
       { submissionId: args.submissionId },
     );
     if (!source) {
@@ -41,14 +45,13 @@ export const beginOrderPayment = action({
       });
     }
 
-    const paymentSettings = (await ctx.runQuery(
-      (internal as any).settings.httpInternals.getBySectionInternal,
-      { section: "commerce.payments" },
-    )) as Record<string, unknown> | null;
-    const publishableKey = publicKeyFromSettings(paymentSettings);
-    const stripeSecretKey = await getServiceKeyFromAction(
-      ctx,
-      "commerce.payments",
+    const paymentSettings = await ctx.runQuery(
+      internal.extensions.forms.orderPayments.getOrderPaymentStripeSettings,
+      {},
+    );
+    const publishableKey = paymentSettings.publishableKey;
+    const stripeSecretKey = await resolveServiceKeyAsync(
+      { stripeSecretKey: paymentSettings.stripeSecretKey },
       "stripeSecretKey",
       "STRIPE_SECRET_KEY",
     );
@@ -116,7 +119,7 @@ export const beginOrderPayment = action({
     }
 
     await ctx.runMutation(
-      (internal as any).extensions.forms.orderPayments.attachOrderPaymentIntent,
+      internal.extensions.forms.orderPayments.attachOrderPaymentIntent,
       {
         submissionId: args.submissionId,
         paymentIntentId: paymentIntent.id,

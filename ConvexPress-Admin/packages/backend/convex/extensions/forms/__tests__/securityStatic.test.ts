@@ -170,8 +170,12 @@ describe("Forms static production security/design guards", () => {
       publicSettingsQuery.includes("formsEnabled: plugins.formsEnabled") ||
         publicSettingsQuery.includes("Enabled$/u.test(key)"),
     ).toBe(true);
+    // The HTTP projection may coerce the stored flag through a runtime type
+    // check (`publicBoolean(...)`); either form exposes the same flag.
     expect(
-      publicSettingsHttpInternal.includes("formsEnabled: plugins.formsEnabled"),
+      /formsEnabled: (?:publicBoolean\()?plugins\.formsEnabled/.test(
+        publicSettingsHttpInternal,
+      ),
     ).toBe(true);
     expect(publicPluginGate.includes('extensionEnabled(WEBSITE_EXTENSIONS, pluginId, settings.plugins ?? {})')).toBe(true);
     expect(publicPluginGate.includes("formsEnabled !== false")).toBe(false);

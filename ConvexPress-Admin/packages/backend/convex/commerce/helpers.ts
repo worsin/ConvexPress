@@ -11,7 +11,7 @@ import {
   type PluginsSettings,
 } from "../settings/defaults";
 
-type CommerceCtx = QueryCtx | MutationCtx;
+type CommerceCtx = Pick<QueryCtx, "db">;
 const IMPLEMENTED_CHECKOUT_PAYMENT_METHOD_CODES = new Set([
   "card",
   "manual_invoice",
@@ -20,44 +20,39 @@ const IMPLEMENTED_CHECKOUT_PAYMENT_METHOD_CODES = new Set([
 
 async function getPluginSettings(ctx: CommerceCtx, budget?: RequestReadLedger): Promise<PluginsSettings> {
   budget?.beforeRead();
-  const doc = await (ctx.db as any)
+  const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
+    .withIndex("by_section", (q) => q.eq("section", "plugins"))
     .unique();
 
   budget?.record(doc);
-  return {
-    ...PLUGINS_DEFAULTS,
-    ...(doc?.values ?? {}),
-  } as PluginsSettings;
+  // Stored settings values are untyped; the section's defaults define the shape.
+  const stored: Partial<PluginsSettings> = doc?.values ?? {};
+  return { ...PLUGINS_DEFAULTS, ...stored };
 }
 
 export async function getCommerceSettings(
   ctx: CommerceCtx,
 ): Promise<CommerceGeneralSettings> {
-  const doc = await (ctx.db as any)
+  const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "commerce.general"))
+    .withIndex("by_section", (q) => q.eq("section", "commerce.general"))
     .unique();
 
-  return {
-    ...COMMERCE_GENERAL_DEFAULTS,
-    ...(doc?.values ?? {}),
-  } as CommerceGeneralSettings;
+  const stored: Partial<CommerceGeneralSettings> = doc?.values ?? {};
+  return { ...COMMERCE_GENERAL_DEFAULTS, ...stored };
 }
 
 export async function getCommercePaymentsSettings(
   ctx: CommerceCtx,
 ): Promise<CommercePaymentsSettings> {
-  const doc = await (ctx.db as any)
+  const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "commerce.payments"))
+    .withIndex("by_section", (q) => q.eq("section", "commerce.payments"))
     .unique();
 
-  return {
-    ...COMMERCE_PAYMENTS_DEFAULTS,
-    ...(doc?.values ?? {}),
-  } as CommercePaymentsSettings;
+  const stored: Partial<CommercePaymentsSettings> = doc?.values ?? {};
+  return { ...COMMERCE_PAYMENTS_DEFAULTS, ...stored };
 }
 
 export function getEnabledShippingMethods(
@@ -104,17 +99,14 @@ export async function isCommerceReturnsEnabled(
   ctx: CommerceCtx,
 ): Promise<boolean> {
   const settings = await getPluginSettings(ctx);
-  return Boolean(
-    (settings as any).commerceEnabled &&
-      (settings as any).commerceReturnsEnabled,
-  );
+  return settings.commerceEnabled && settings.commerceReturnsEnabled;
 }
 
 export async function isCommerceDigitalEnabled(
   ctx: CommerceCtx,
 ): Promise<boolean> {
   const settings = await getPluginSettings(ctx);
-  return settings.commerceEnabled && (settings as any).commerceDigitalEnabled;
+  return settings.commerceEnabled && settings.commerceDigitalEnabled;
 }
 
 export async function requireCommerceDigitalEnabled(
@@ -151,14 +143,14 @@ export async function isCommerceReviewsEnabled(
   budget?: RequestReadLedger,
 ): Promise<boolean> {
   const settings = await getPluginSettings(ctx, budget);
-  return settings.commerceEnabled && (settings as any).commerceReviewsEnabled;
+  return settings.commerceEnabled && settings.commerceReviewsEnabled;
 }
 
 export async function isCommerceWishlistsEnabled(
   ctx: CommerceCtx,
 ): Promise<boolean> {
   const settings = await getPluginSettings(ctx);
-  return settings.commerceEnabled && (settings as any).commerceWishlistsEnabled;
+  return settings.commerceEnabled && settings.commerceWishlistsEnabled;
 }
 
 export async function isMembershipPluginEnabled(

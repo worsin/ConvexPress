@@ -13,11 +13,16 @@ function assertValidEmail(recipientEmail: string) {
   }
 }
 
-const sendTestEmailConfig: any = {
+const testEmailResult = v.object({ success: v.boolean(), queueId: v.id("emailQueue") });
+
+export const sendTestEmail = action({
   args: {
     recipientEmail: v.string(),
   },
-  handler: async (ctx: any, args: { recipientEmail: string }) => {
+  returns: testEmailResult,
+  handler: async (ctx, args) => {
+    // Sending mail to arbitrary addresses is an Email-settings operation.
+    await ctx.runQuery(internal.emails.internals.assertEmailSettingsAccess, {});
     const recipientEmail = args.recipientEmail.trim().toLowerCase();
     assertValidEmail(recipientEmail);
 
@@ -57,11 +62,9 @@ const sendTestEmailConfig: any = {
 
     return { success: true, queueId };
   },
-};
+});
 
-export const sendTestEmail = action(sendTestEmailConfig);
-
-const sendTemplateTestEmailConfig: any = {
+export const sendTemplateTestEmail = action({
   args: {
     templateSlug: v.string(),
     recipientEmail: v.string(),
@@ -69,16 +72,9 @@ const sendTemplateTestEmailConfig: any = {
     samplePreset: v.optional(v.string()),
     variableOverridesJson: v.optional(v.string()),
   },
-  handler: async (
-    ctx: any,
-    args: {
-      templateSlug: string;
-      recipientEmail: string;
-      recipientName?: string;
-      samplePreset?: string;
-      variableOverridesJson?: string;
-    },
-  ) => {
+  returns: testEmailResult,
+  handler: async (ctx, args) => {
+    await ctx.runQuery(internal.emails.internals.assertEmailSettingsAccess, {});
     const recipientEmail = args.recipientEmail.trim().toLowerCase();
     assertValidEmail(recipientEmail);
 
@@ -116,6 +112,4 @@ const sendTemplateTestEmailConfig: any = {
 
     return { success: true, queueId };
   },
-};
-
-export const sendTemplateTestEmail = action(sendTemplateTestEmailConfig);
+});

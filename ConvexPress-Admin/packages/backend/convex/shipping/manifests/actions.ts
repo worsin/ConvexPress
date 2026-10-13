@@ -20,11 +20,16 @@
 
 import { v } from "convex/values";
 
-import { internalAction } from "../../_generated/server";
+import { internalAction, type ActionCtx } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { getDecryptedProviderPayload } from "../providers/_shared/credentials";
 import { getUpsAccessTokenV2 } from "../providers/ups/auth";
 import { getFedexAccessTokenV2 } from "../providers/fedex/auth";
+import { at, str } from "../helpers/json";
+
+type Manifest = Doc<"commerce_shipment_manifests">;
+type ManifestSubmission = { success: boolean; externalManifestId?: string; errorMessage?: string };
 
 /**
  * PRD D3 §2 — submit a single manifest to the carrier. Invoked by
@@ -75,6 +80,7 @@ export const submitOneManifest = internalAction({
 
 export const autoCloseDueManifests = internalAction({
   args: {},
+  returns: v.object({ closed: v.number(), failed: v.number(), total: v.number() }),
   handler: async (ctx) => {
     const manifests = await ctx.runQuery(
       internal.shipping.manifests.internals.listManifestsDueForAutoClose,
@@ -117,9 +123,9 @@ export const autoCloseDueManifests = internalAction({
 });
 
 async function submitManifestToCarrier(
-  ctx: any,
-  manifest: any,
-): Promise<{ success: boolean; externalManifestId?: string; errorMessage?: string }> {
+  ctx: ActionCtx,
+  manifest: Manifest,
+): Promise<ManifestSubmission> {
   const carrierCode = (manifest.carrierCode ?? "").toLowerCase();
 
   if (manifest.provider === "shipstation" || carrierCode === "usps") {
@@ -140,15 +146,15 @@ async function submitManifestToCarrier(
 }
 
 async function submitUpsManifest(
-  ctx: any,
-  manifest: any,
-): Promise<{ success: boolean; externalManifestId?: string; errorMessage?: string }> {
+  ctx: ActionCtx,
+  manifest: Manifest,
+): Promise<ManifestSubmission> {
   try {
     const { accessToken, credentials } = await getUpsAccessTokenV2(ctx);
     // Pull the ship-from location so UPS knows where to pick up. UPS
     // Pickup API requires a populated PickupAddress — sending an empty
     // object caused prior requests to fail silently with 400s.
-    const location: any = await ctx.runQuery(
+    const location = await ctx.runQuery(
       internal.shipping.shipFromLocations.internals.getById,
       { locationId: manifest.shipFromLocationId },
     );
@@ -184,21 +190,21 @@ async function submitUpsManifest(
               CloseTime: "1700",
             },
             PickupAddress: {
-              CompanyName: location.companyName ?? location.name ?? "Shipper",
-              ContactName: location.contactName ?? location.name ?? "Shipper",
+              CompanyName: location.address.companyName || location.name || "Shipper",
+              ContactName: location.address.contactName || location.name || "Shipper",
               AddressLine: [location.address.line1, location.address.line2].filter(Boolean),
               City: location.address.city,
               StateProvince: location.address.state,
               PostalCode: location.address.postalCode,
               CountryCode: location.address.countryCode,
-              Phone: { Number: location.phone ?? "0000000000" },
+              Phone: { Number: location.address.phone || "0000000000" },
             },
             PickupPiece: [
               {
                 ServiceCode: String(manifest.carrierCode).toUpperCase() === "UPS"
                   ? "003"
                   : String(manifest.carrierCode),
-                Quantity: String(manifest.totalPackages || manifest.labelIds?.length || 1),
+                Quantity: String(manifest.totalPackages || manifest.labelIds.length || 1),
                 DestinationCountryCode:
                   location.address.countryCode ?? "US",
                 ContainerCode: "01",
@@ -214,11 +220,11 @@ async function submitUpsManifest(
       const body = await response.text();
       return { success: false, errorMessage: body.slice(0, 500) };
     }
-    const data = (await response.json()) as any;
-    const prn = data?.PickupCreationResponse?.PRN;
+    const data: unknown = await response.json();
+    const prn = str(at(data, "PickupCreationResponse", "PRN"));
     return {
       success: Boolean(prn),
-      externalManifestId: prn ? String(prn) : undefined,
+      externalManifestId: prn || undefined,
     };
   } catch (err) {
     return {
@@ -229,12 +235,12 @@ async function submitUpsManifest(
 }
 
 async function submitFedexManifest(
-  ctx: any,
-  manifest: any,
-): Promise<{ success: boolean; externalManifestId?: string; errorMessage?: string }> {
+  ctx: ActionCtx,
+  manifest: Manifest,
+): Promise<ManifestSubmission> {
   try {
     const { accessToken, credentials } = await getFedexAccessTokenV2(ctx);
-    const location: any = await ctx.runQuery(
+    const location = await ctx.runQuery(
       internal.shipping.shipFromLocations.internals.getById,
       { locationId: manifest.shipFromLocationId },
     );
@@ -269,9 +275,9 @@ async function submitFedexManifest(
               countryCode: location.address.countryCode,
             },
             shipperContact: {
-              personName: location.contactName ?? location.name ?? "Shipper",
-              companyName: location.companyName ?? location.name ?? "Shipper",
-              phoneNumber: location.phone ?? "0000000000",
+              personName: location.address.contactName || location.name || "Shipper",
+              companyName: location.address.companyName || location.name || "Shipper",
+              phoneNumber: location.address.phone || "0000000000",
             },
           },
         }),
@@ -281,13 +287,13 @@ async function submitFedexManifest(
       const body = await response.text();
       return { success: false, errorMessage: body.slice(0, 500) };
     }
-    const data = (await response.json()) as any;
+    const data: unknown = await response.json();
     const manifestId =
-      data?.output?.manifestData?.[0]?.manifestId ??
-      data?.output?.transactionId;
+      str(at(data, "output", "manifestData", 0, "manifestId")) ??
+      str(at(data, "output", "transactionId"));
     return {
       success: true,
-      externalManifestId: manifestId ? String(manifestId) : undefined,
+      externalManifestId: manifestId || undefined,
     };
   } catch (err) {
     return {
@@ -298,9 +304,9 @@ async function submitFedexManifest(
 }
 
 async function submitShipStationManifest(
-  ctx: any,
-  manifest: any,
-): Promise<{ success: boolean; externalManifestId?: string; errorMessage?: string }> {
+  ctx: ActionCtx,
+  manifest: Manifest,
+): Promise<ManifestSubmission> {
   let apiKey: string | undefined;
   let apiBaseUrl = "https://api.shipengine.com";
   try {
@@ -320,8 +326,8 @@ async function submitShipStationManifest(
   // ShipEngine accepts label_ids OR shipment_ids. We use externalLabelId
   // from each label record.
   const labelIds: string[] = [];
-  for (const labelId of manifest.labelIds ?? []) {
-    const label: any = await ctx.runQuery(
+  for (const labelId of manifest.labelIds) {
+    const label = await ctx.runQuery(
       internal.shipping.labels.internals.getLabelById,
       { labelId },
     );
@@ -349,10 +355,10 @@ async function submitShipStationManifest(
     return { success: false, errorMessage: body.slice(0, 500) };
   }
 
-  const data = (await response.json()) as any;
-  const externalManifestId = data?.manifest_id ?? data?.[0]?.manifest_id;
+  const data: unknown = await response.json();
+  const externalManifestId = str(at(data, "manifest_id")) ?? str(at(data, 0, "manifest_id"));
   return {
     success: true,
-    externalManifestId: externalManifestId ? String(externalManifestId) : undefined,
+    externalManifestId: externalManifestId || undefined,
   };
 }

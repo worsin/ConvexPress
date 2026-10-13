@@ -95,7 +95,7 @@ test("network exceptions and malformed function arguments become safe failures",
 test("provider failure preserves a prepared cart action without mutating the cart", async () => {
   const mutations: { name: string; args: any }[] = [];
   const bundle = {
-    assistant: { enabled: true, memoryEnabled: false }, recentUserTurns: 0,
+    assistant: { enabled: true, memoryEnabled: false, model: "", tone: "warm, expert, concise", disclosureText: "", maxPicks: 5, cardsPerGroup: 2, groups: { accessory: false, consumable: false, maintenance: false, upgrade: false, similar: false } }, recentUserTurns: 0,
     store: { storeName: "Test shop", tagline: "", currencyCode: "USD", currencySymbol: "$" },
     cart: { itemCount: 1, subtotalAmount: 2400, lines: [{ productId: "notebook", title: "Notebook", quantity: 1, unitPriceAmount: 2400 }] },
     recent: [], categories: [], related: [], memory: [], cartCards: [],
@@ -104,7 +104,7 @@ test("provider failure preserves a prepared cart action without mutating the car
     runQuery: async (fn: any) => {
       const name = getFunctionName(fn);
       if (name.endsWith(":contextBundle")) return bundle;
-      if (name.endsWith(":getBySectionInternal")) return { provider: "anthropic", apiKey: "synthetic-only" };
+      if (name.endsWith(":getAssistantAiSettings")) return { provider: "anthropic", apiKey: "synthetic-only", defaultModel: "" };
       if (name.endsWith(":productCards")) return [{ productId: "notebook", title: "Notebook" }];
       throw new Error(`Unexpected query ${name}`);
     },
@@ -152,12 +152,12 @@ test("memory switched off during a provider turn preserves the answer without sa
     runQuery: async (fn: any) => {
       const name = getFunctionName(fn);
       if (name.endsWith(":contextBundle")) return {
-        assistant: { enabled: true, memoryEnabled: true },
+        assistant: { enabled: true, memoryEnabled: true, model: "", tone: "warm, expert, concise", disclosureText: "", maxPicks: 5, cardsPerGroup: 2, groups: { accessory: false, consumable: false, maintenance: false, upgrade: false, similar: false } },
         store: { storeName: "Test shop", tagline: "", currencyCode: "USD", currencySymbol: "$" },
         cart: { itemCount: 0, subtotalAmount: 0, lines: [] },
         recent: [], categories: [], related: [], memory: [], cartCards: [],
       };
-      if (name.endsWith(":getBySectionInternal")) return { provider: "anthropic", apiKey: "synthetic-only" };
+      if (name.endsWith(":getAssistantAiSettings")) return { provider: "anthropic", apiKey: "synthetic-only", defaultModel: "" };
       throw new Error(`Unexpected query ${name}`);
     },
     runMutation: async (fn: any, args: any) => {

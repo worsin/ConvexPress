@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { CATEGORY_EVENTS, SYSTEM } from "../events/constants";
 import { emitEvent } from "../helpers/events";
 import { requireCan } from "../helpers/permissions";
@@ -16,6 +16,7 @@ import {
 } from "./validators";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { commerceDocs } from "../schema/commerce.docs.generated";
 const MAX_CATEGORY_DEPTH = 5;
 const DEFAULT_PRODUCT_CATEGORY_NAME = "Uncategorized";
 const DEFAULT_PRODUCT_CATEGORY_SLUG = "uncategorized";
@@ -40,7 +41,10 @@ function sameId(left: unknown, right: unknown) {
   return left?.toString() === right?.toString();
 }
 
-function normalizeCategory(category: any) {
+type Category = Doc<"commerce_product_categories">;
+type CategoryId = Id<"commerce_product_categories">;
+
+function normalizeCategory(category: Category) {
   const depth = category.depth ?? category.path?.length ?? 0;
   const productCount = category.productCount ?? 0;
   return {
@@ -55,28 +59,37 @@ function normalizeCategory(category: any) {
   };
 }
 
-function sortCategories(categories: any[]) {
+type NormalizedCategory = ReturnType<typeof normalizeCategory>;
+
+function sortCategories<T extends Pick<Category, "sortOrder" | "name">>(categories: T[]): T[] {
   return [...categories].sort((a, b) => {
     const order = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
     return order !== 0 ? order : a.name.localeCompare(b.name);
   });
 }
 
-function buildTree(categories: any[], parentId?: unknown): any[] {
+/**
+ * The category tree to MAX_CATEGORY_DEPTH levels. Categories cannot be nested
+ * deeper (create/move enforce it), so last-level nodes carry no `children`;
+ * any deeper legacy rows are left out instead of recursing without bound.
+ */
+function buildTree(categories: Category[]) {
   const normalized = categories.map(normalizeCategory);
-  const children = normalized.filter((category) =>
-    parentId === undefined
-      ? category.parentId === undefined
-      : sameId(category.parentId, parentId),
-  );
-
-  return sortCategories(children).map((category) => ({
-    ...category,
-    children: buildTree(normalized, category._id),
-  }));
+  const childrenOf = (parentId: CategoryId | undefined): NormalizedCategory[] =>
+    sortCategories(
+      normalized.filter((category) =>
+        parentId === undefined ? category.parentId === undefined : sameId(category.parentId, parentId),
+      ),
+    );
+  const level5 = (parentId: CategoryId) => childrenOf(parentId);
+  const level4 = (parentId: CategoryId) => childrenOf(parentId).map((category) => ({ ...category, children: level5(category._id) }));
+  const level3 = (parentId: CategoryId) => childrenOf(parentId).map((category) => ({ ...category, children: level4(category._id) }));
+  const level2 = (parentId: CategoryId) => childrenOf(parentId).map((category) => ({ ...category, children: level3(category._id) }));
+  const level1 = (parentId: CategoryId) => childrenOf(parentId).map((category) => ({ ...category, children: level2(category._id) }));
+  return childrenOf(undefined).map((category) => ({ ...category, children: level1(category._id) }));
 }
 
-function collectDescendantIds(categories: any[], categoryId: unknown): Set<string> {
+function collectDescendantIds(categories: Category[], categoryId: unknown): Set<string> {
   const descendants = new Set<string>();
   const visit = (parentId: unknown) => {
     for (const category of categories) {
@@ -91,7 +104,7 @@ function collectDescendantIds(categories: any[], categoryId: unknown): Set<strin
 }
 
 async function getUniqueCategorySlug(
-  ctx: any,
+  ctx: Pick<QueryCtx, "db">,
   value: string,
   excludeId?: string,
 ): Promise<string> {
@@ -102,7 +115,7 @@ async function getUniqueCategorySlug(
   while (true) {
     const existing = await ctx.db
       .query("commerce_product_categories")
-      .withIndex("by_slug", (q: any) => q.eq("slug", candidate))
+      .withIndex("by_slug", (q) => q.eq("slug", candidate))
       .unique();
 
     if (!existing || existing._id.toString() === excludeId) {
@@ -113,7 +126,10 @@ async function getUniqueCategorySlug(
   }
 }
 
-async function getParentState(ctx: any, parentId: any) {
+async function getParentState(
+  ctx: Pick<QueryCtx, "db">,
+  parentId: CategoryId | undefined,
+): Promise<{ path: CategoryId[]; depth: number }> {
   if (!parentId) {
     return { path: [], depth: 0 };
   }
@@ -138,7 +154,7 @@ async function getParentState(ctx: any, parentId: any) {
   return { path: [...parentPath, parent._id], depth };
 }
 
-async function validateParentMove(ctx: any, categoryId: any, parentId: any) {
+async function validateParentMove(ctx: Pick<QueryCtx, "db">, categoryId: CategoryId, parentId: CategoryId | undefined) {
   if (sameId(categoryId, parentId)) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
@@ -155,7 +171,7 @@ async function validateParentMove(ctx: any, categoryId: any, parentId: any) {
       });
     }
 
-    if ((parent.path ?? []).some((id: any) => sameId(id, categoryId))) {
+    if ((parent.path ?? []).some((id) => sameId(id, categoryId))) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "A category cannot be moved under one of its descendants.",
@@ -166,7 +182,7 @@ async function validateParentMove(ctx: any, categoryId: any, parentId: any) {
   const categories = await ctx.db
     .query("commerce_product_categories")
     .take(10000);
-  const category = categories.find((candidate: any) =>
+  const category = categories.find((candidate) =>
     sameId(candidate._id, categoryId),
   );
   if (!category) {
@@ -178,7 +194,7 @@ async function validateParentMove(ctx: any, categoryId: any, parentId: any) {
 
   const parentState = await getParentState(ctx, parentId);
   let maxRelativeDepth = 0;
-  const visit = (currentId: any, relativeDepth: number) => {
+  const visit = (currentId: CategoryId, relativeDepth: number) => {
     maxRelativeDepth = Math.max(maxRelativeDepth, relativeDepth);
     for (const child of categories) {
       if (sameId(child.parentId, currentId)) {
@@ -197,13 +213,13 @@ async function validateParentMove(ctx: any, categoryId: any, parentId: any) {
   }
 }
 
-async function updateDescendantPaths(ctx: any, categoryId: any) {
+async function updateDescendantPaths(ctx: MutationCtx, categoryId: CategoryId) {
   const parent = await ctx.db.get("commerce_product_categories", categoryId);
   if (!parent) return;
 
   const children = await ctx.db
     .query("commerce_product_categories")
-    .withIndex("by_parent", (q: any) => q.eq("parentId", categoryId))
+    .withIndex("by_parent", (q) => q.eq("parentId", categoryId))
     .collect();
 
   for (const child of children) {
@@ -217,7 +233,7 @@ async function updateDescendantPaths(ctx: any, categoryId: any) {
   }
 }
 
-export async function recomputeAllProductCategoryCounts(ctx: any) {
+export async function recomputeAllProductCategoryCounts(ctx: MutationCtx) {
   const [categories, products] = await Promise.all([
     ctx.db.query("commerce_product_categories").take(10000),
     ctx.db.query("commerce_products").take(10000),
@@ -265,16 +281,16 @@ export async function recomputeAllProductCategoryCounts(ctx: any) {
   }
 }
 
-export async function ensureDefaultProductCategory(ctx: any) {
+export async function ensureDefaultProductCategory(ctx: MutationCtx): Promise<Category | null> {
   const existing = await ctx.db
     .query("commerce_product_categories")
-    .withIndex("by_slug", (q: any) =>
+    .withIndex("by_slug", (q) =>
       q.eq("slug", DEFAULT_PRODUCT_CATEGORY_SLUG),
     )
     .unique();
 
   if (existing) {
-    const patch: Record<string, unknown> = {};
+    const patch: Partial<Category> = {};
     if (!existing.name?.trim()) patch.name = DEFAULT_PRODUCT_CATEGORY_NAME;
     if (existing.parentId !== undefined) patch.parentId = undefined;
     if ((existing.path ?? []).length > 0) patch.path = [];
@@ -296,7 +312,7 @@ export async function ensureDefaultProductCategory(ctx: any) {
   }
 
   const now = Date.now();
-  const categoryId: import("../_generated/dataModel").Id<"commerce_product_categories"> = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
+  const categoryId: CategoryId = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
     name: DEFAULT_PRODUCT_CATEGORY_NAME,
     slug: DEFAULT_PRODUCT_CATEGORY_SLUG,
     depth: 0,
@@ -316,6 +332,7 @@ export async function ensureDefaultProductCategory(ctx: any) {
 
 export const list = query({
   args: { includeHidden: v.optional(v.boolean()) },
+  returns: v.array(commerceDocs.commerce_product_categories),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     if (args.includeHidden === true) await requireCan(ctx, "manage_options");
@@ -327,6 +344,117 @@ export const list = query({
 
 export const getTree = query({
   args: { includeHidden: v.optional(v.boolean()) },
+  returns: v.array(v.object({
+    children: v.array(v.object({
+      children: v.array(v.object({
+        children: v.array(v.object({
+          children: v.array(v.object({
+            children: v.array(commerceDocs.commerce_product_categories),
+            depth: v.number(),
+            path: v.array(v.id("commerce_product_categories")),
+            sortOrder: v.number(),
+            totalProductCount: v.number(),
+            isVisible: v.boolean(),
+            isFeatured: v.boolean(),
+            showInNav: v.boolean(),
+            _id: v.id("commerce_product_categories"),
+            _creationTime: v.number(),
+            description: v.optional(v.string()),
+            parentId: v.optional(v.id("commerce_product_categories")),
+            icon: v.optional(v.string()),
+            metaTitle: v.optional(v.string()),
+            metaDescription: v.optional(v.string()),
+            thumbnailMediaId: v.optional(v.id("media")),
+            name: v.string(),
+            updatedAt: v.number(),
+            createdAt: v.number(),
+            slug: v.string(),
+            productCount: v.number(),
+          })),
+          depth: v.number(),
+          path: v.array(v.id("commerce_product_categories")),
+          sortOrder: v.number(),
+          totalProductCount: v.number(),
+          isVisible: v.boolean(),
+          isFeatured: v.boolean(),
+          showInNav: v.boolean(),
+          _id: v.id("commerce_product_categories"),
+          _creationTime: v.number(),
+          description: v.optional(v.string()),
+          parentId: v.optional(v.id("commerce_product_categories")),
+          icon: v.optional(v.string()),
+          metaTitle: v.optional(v.string()),
+          metaDescription: v.optional(v.string()),
+          thumbnailMediaId: v.optional(v.id("media")),
+          name: v.string(),
+          updatedAt: v.number(),
+          createdAt: v.number(),
+          slug: v.string(),
+          productCount: v.number(),
+        })),
+        depth: v.number(),
+        path: v.array(v.id("commerce_product_categories")),
+        sortOrder: v.number(),
+        totalProductCount: v.number(),
+        isVisible: v.boolean(),
+        isFeatured: v.boolean(),
+        showInNav: v.boolean(),
+        _id: v.id("commerce_product_categories"),
+        _creationTime: v.number(),
+        description: v.optional(v.string()),
+        parentId: v.optional(v.id("commerce_product_categories")),
+        icon: v.optional(v.string()),
+        metaTitle: v.optional(v.string()),
+        metaDescription: v.optional(v.string()),
+        thumbnailMediaId: v.optional(v.id("media")),
+        name: v.string(),
+        updatedAt: v.number(),
+        createdAt: v.number(),
+        slug: v.string(),
+        productCount: v.number(),
+      })),
+      depth: v.number(),
+      path: v.array(v.id("commerce_product_categories")),
+      sortOrder: v.number(),
+      totalProductCount: v.number(),
+      isVisible: v.boolean(),
+      isFeatured: v.boolean(),
+      showInNav: v.boolean(),
+      _id: v.id("commerce_product_categories"),
+      _creationTime: v.number(),
+      description: v.optional(v.string()),
+      parentId: v.optional(v.id("commerce_product_categories")),
+      icon: v.optional(v.string()),
+      metaTitle: v.optional(v.string()),
+      metaDescription: v.optional(v.string()),
+      thumbnailMediaId: v.optional(v.id("media")),
+      name: v.string(),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      slug: v.string(),
+      productCount: v.number(),
+    })),
+    depth: v.number(),
+    path: v.array(v.id("commerce_product_categories")),
+    sortOrder: v.number(),
+    totalProductCount: v.number(),
+    isVisible: v.boolean(),
+    isFeatured: v.boolean(),
+    showInNav: v.boolean(),
+    _id: v.id("commerce_product_categories"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    parentId: v.optional(v.id("commerce_product_categories")),
+    icon: v.optional(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    thumbnailMediaId: v.optional(v.id("media")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    productCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     if (args.includeHidden === true) await requireCan(ctx, "manage_options");
@@ -338,6 +466,7 @@ export const getTree = query({
 
 export const listPublic = query({
   args: {},
+  returns: v.array(commerceDocs.commerce_product_categories),
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     const categories = await ctx.db.query("commerce_product_categories").take(1000);
@@ -350,6 +479,30 @@ export const listPublic = query({
 
 export const getBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(v.null(), v.object({
+    ancestors: v.array(commerceDocs.commerce_product_categories),
+    children: v.array(commerceDocs.commerce_product_categories),
+    depth: v.number(),
+    path: v.array(v.id("commerce_product_categories")),
+    sortOrder: v.number(),
+    totalProductCount: v.number(),
+    isVisible: v.boolean(),
+    isFeatured: v.boolean(),
+    showInNav: v.boolean(),
+    _id: v.id("commerce_product_categories"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    parentId: v.optional(v.id("commerce_product_categories")),
+    icon: v.optional(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    thumbnailMediaId: v.optional(v.id("media")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    productCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const category = await ctx.db.query("commerce_product_categories")
@@ -372,6 +525,7 @@ export const getBySlug = query({
 
 export const getFeatured = query({
   args: { limit: v.optional(v.number()) },
+  returns: v.array(commerceDocs.commerce_product_categories),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const limit = Math.min(24, Math.max(1, args.limit ?? 8));
@@ -386,6 +540,117 @@ export const getFeatured = query({
 
 export const getNavCategories = query({
   args: {},
+  returns: v.array(v.object({
+    children: v.array(v.object({
+      children: v.array(v.object({
+        children: v.array(v.object({
+          children: v.array(v.object({
+            children: v.array(commerceDocs.commerce_product_categories),
+            depth: v.number(),
+            path: v.array(v.id("commerce_product_categories")),
+            sortOrder: v.number(),
+            totalProductCount: v.number(),
+            isVisible: v.boolean(),
+            isFeatured: v.boolean(),
+            showInNav: v.boolean(),
+            _id: v.id("commerce_product_categories"),
+            _creationTime: v.number(),
+            description: v.optional(v.string()),
+            parentId: v.optional(v.id("commerce_product_categories")),
+            icon: v.optional(v.string()),
+            metaTitle: v.optional(v.string()),
+            metaDescription: v.optional(v.string()),
+            thumbnailMediaId: v.optional(v.id("media")),
+            name: v.string(),
+            updatedAt: v.number(),
+            createdAt: v.number(),
+            slug: v.string(),
+            productCount: v.number(),
+          })),
+          depth: v.number(),
+          path: v.array(v.id("commerce_product_categories")),
+          sortOrder: v.number(),
+          totalProductCount: v.number(),
+          isVisible: v.boolean(),
+          isFeatured: v.boolean(),
+          showInNav: v.boolean(),
+          _id: v.id("commerce_product_categories"),
+          _creationTime: v.number(),
+          description: v.optional(v.string()),
+          parentId: v.optional(v.id("commerce_product_categories")),
+          icon: v.optional(v.string()),
+          metaTitle: v.optional(v.string()),
+          metaDescription: v.optional(v.string()),
+          thumbnailMediaId: v.optional(v.id("media")),
+          name: v.string(),
+          updatedAt: v.number(),
+          createdAt: v.number(),
+          slug: v.string(),
+          productCount: v.number(),
+        })),
+        depth: v.number(),
+        path: v.array(v.id("commerce_product_categories")),
+        sortOrder: v.number(),
+        totalProductCount: v.number(),
+        isVisible: v.boolean(),
+        isFeatured: v.boolean(),
+        showInNav: v.boolean(),
+        _id: v.id("commerce_product_categories"),
+        _creationTime: v.number(),
+        description: v.optional(v.string()),
+        parentId: v.optional(v.id("commerce_product_categories")),
+        icon: v.optional(v.string()),
+        metaTitle: v.optional(v.string()),
+        metaDescription: v.optional(v.string()),
+        thumbnailMediaId: v.optional(v.id("media")),
+        name: v.string(),
+        updatedAt: v.number(),
+        createdAt: v.number(),
+        slug: v.string(),
+        productCount: v.number(),
+      })),
+      depth: v.number(),
+      path: v.array(v.id("commerce_product_categories")),
+      sortOrder: v.number(),
+      totalProductCount: v.number(),
+      isVisible: v.boolean(),
+      isFeatured: v.boolean(),
+      showInNav: v.boolean(),
+      _id: v.id("commerce_product_categories"),
+      _creationTime: v.number(),
+      description: v.optional(v.string()),
+      parentId: v.optional(v.id("commerce_product_categories")),
+      icon: v.optional(v.string()),
+      metaTitle: v.optional(v.string()),
+      metaDescription: v.optional(v.string()),
+      thumbnailMediaId: v.optional(v.id("media")),
+      name: v.string(),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      slug: v.string(),
+      productCount: v.number(),
+    })),
+    depth: v.number(),
+    path: v.array(v.id("commerce_product_categories")),
+    sortOrder: v.number(),
+    totalProductCount: v.number(),
+    isVisible: v.boolean(),
+    isFeatured: v.boolean(),
+    showInNav: v.boolean(),
+    _id: v.id("commerce_product_categories"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    parentId: v.optional(v.id("commerce_product_categories")),
+    icon: v.optional(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    thumbnailMediaId: v.optional(v.id("media")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    productCount: v.number(),
+  })),
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     const categories = await ctx.db.query("commerce_product_categories")
@@ -415,7 +680,7 @@ export const create = mutation({
     const parentId = args.parentId ?? undefined;
     const parentState = await getParentState(ctx, parentId);
     const now = Date.now();
-    const categoryId: import("../_generated/dataModel").Id<"commerce_product_categories"> = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
+    const categoryId: CategoryId = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
       name,
       slug: await getUniqueCategorySlug(ctx, args.slug?.trim() || name),
       description: cleanText(args.description),
@@ -663,17 +928,17 @@ export const rebuildMetadata = mutation({
       .query("commerce_product_categories")
       .take(10000);
     const byId = new Map(
-      categories.map((category: any) => [category._id.toString(), category]),
+      categories.map((category) => [category._id.toString(), category]),
     );
     const visited = new Set<string>();
     let repaired = 0;
 
-    const visit = async (category: any, path: any[], index: number) => {
+    const visit = async (category: Category, path: CategoryId[], index: number) => {
       const key = category._id.toString();
       if (visited.has(key)) return;
       visited.add(key);
 
-      const nextPatch: Record<string, unknown> = {
+      const nextPatch: Partial<Category> = {
         depth: path.length,
         path,
         sortOrder: category.sortOrder ?? index,
@@ -698,7 +963,7 @@ export const rebuildMetadata = mutation({
       repaired++;
 
       const children = sortCategories(
-        categories.filter((candidate: any) =>
+        categories.filter((candidate) =>
           sameId(candidate.parentId, category._id),
         ),
       );
@@ -709,7 +974,7 @@ export const rebuildMetadata = mutation({
 
     const roots = sortCategories(
       categories.filter(
-        (category: any) =>
+        (category) =>
           !category.parentId || !byId.has(category.parentId.toString()),
       ),
     );
@@ -744,7 +1009,7 @@ export const remove = mutation({
 
     const children = await ctx.db
       .query("commerce_product_categories")
-      .withIndex("by_parent", (q: any) => q.eq("parentId", args.categoryId))
+      .withIndex("by_parent", (q) => q.eq("parentId", args.categoryId))
       .take(1);
     if (children.length > 0) {
       throw new ConvexError({
@@ -777,7 +1042,7 @@ export const remove = mutation({
     let productsMoved = 0;
     for (const product of products) {
       if (
-        !(product.categoryIds ?? []).some((id: any) =>
+        !(product.categoryIds ?? []).some((id) =>
           sameId(id, args.categoryId),
         )
       ) {
@@ -794,11 +1059,11 @@ export const remove = mutation({
 
       const nextCategoryIds = [
         ...product.categoryIds.filter(
-          (id: any) => !sameId(id, args.categoryId),
+          (id) => !sameId(id, args.categoryId),
         ),
         args.moveProductsTo,
       ].filter(
-        (value: any, index: number, array: any[]) =>
+        (value, index, array) =>
           array.findIndex((candidate) => sameId(candidate, value)) === index,
       );
 

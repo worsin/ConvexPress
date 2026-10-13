@@ -35,6 +35,7 @@ import {
   internalQuery,
   query,
   mutation,
+  type QueryCtx,
 } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
@@ -46,7 +47,7 @@ import { emitEvent } from "../../helpers/events";
 import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import type { Capability } from "../../types/capabilities";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { formsExtensionDocs } from "./schema.docs.generated";
 // ─── Verdict types (PRD §10.1) ──────────────────────────────────────────────
 
 /** Why the guard blocked an attempt. Kept internal — never surfaced to the bot. */
@@ -104,11 +105,7 @@ const SECURITY_DEFAULTS = {
 
 export type EffectiveSecuritySettings = typeof SECURITY_DEFAULTS;
 
-type ReadCtx = {
-  db: {
-    query: (table: any) => any;
-  };
-};
+type ReadCtx = { db: QueryCtx["db"] };
 
 /**
  * Load the `key:"global"` singleton and spread the defaults over it, so every
@@ -123,7 +120,7 @@ export async function loadSecuritySettings(
   budget?.beforeRead();
   const row = await ctx.db
     .query("form_security_settings")
-    .withIndex("by_key", (q: any) => q.eq("key", "global"))
+    .withIndex("by_key", (q) => q.eq("key", "global"))
     .first();
 
   budget?.record(row);
@@ -463,23 +460,23 @@ export const guardSubmission = internalMutation({
       // ip+form bucket and match the current window in memory, else upsert one.
       const buckets = await ctx.db
         .query("form_submission_attempts")
-        .withIndex("by_ip_form", (q: any) =>
+        .withIndex("by_ip_form", (q) =>
           q.eq("ip", ip).eq("formId", args.formId),
         )
         .collect();
-      const bucket = buckets.find((b: any) => b.windowStart === windowStart);
+      const bucket = buckets.find((b) => b.windowStart === windowStart);
 
       // Optional per-form ceiling (across all IPs) for the current window.
       let priorFormTotal = bucket?.count ?? 0;
       if (settings.perFormLimit != null) {
         const formBuckets = await ctx.db
           .query("form_submission_attempts")
-          .withIndex("by_form_window", (q: any) =>
+          .withIndex("by_form_window", (q) =>
             q.eq("formId", args.formId).eq("windowStart", windowStart),
           )
           .collect();
         priorFormTotal = formBuckets.reduce(
-          (sum: number, b: any) => sum + b.count,
+          (sum: number, b) => sum + b.count,
           0,
         );
       }
@@ -690,7 +687,7 @@ export const sweepAttempts = internalMutation({
 
     const stale = await ctx.db
       .query("form_submission_attempts")
-      .withIndex("by_windowStart", (q: any) => q.lt("windowStart", cutoff))
+      .withIndex("by_windowStart", (q) => q.lt("windowStart", cutoff))
       .take(500);
 
     for (const row of stale) {
@@ -823,7 +820,7 @@ export const updateSecuritySettings = mutation({
     failClosed: v.optional(v.boolean()),
     skipForLoggedIn: v.optional(v.boolean()),
   },
-  returns: v.union(v.null(), tableDocs.form_security_settings),
+  returns: v.union(v.null(), formsExtensionDocs.form_security_settings),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.manage_security"));
     await requirePluginEnabled(ctx, "forms");
@@ -841,7 +838,7 @@ export const updateSecuritySettings = mutation({
 
     const existing = await ctx.db
       .query("form_security_settings")
-      .withIndex("by_key", (q: any) => q.eq("key", "global"))
+      .withIndex("by_key", (q) => q.eq("key", "global"))
       .first();
 
     const now = Date.now();

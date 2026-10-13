@@ -11,28 +11,17 @@ import type { Doc, Id } from "../_generated/dataModel";
 
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { hasActiveAdmin } from "./adminPresence";
+import { canUseAdminLocalAuth, hasActiveAdmin } from "./adminPresence";
 import { credentialBelongsToEnvironment, requireCredentialEnvironmentBinding } from "./environmentBinding";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { authDocs } from "../schema/auth.docs.generated";
 const FIRST_ADMIN_SETUP_TOKEN_STATE_KEY = "first_admin_setup_token_consumed";
 
 function roleIdsDiffer(left: unknown, right: unknown): boolean {
   return left !== undefined && String(left) !== String(right);
 }
 
-async function canUseAdminLocalAuth(
-  ctx: { db: any },
-  user: { isInternal?: boolean; roleId?: unknown },
-): Promise<boolean> {
-  if (user.roleId) {
-    const role = await ctx.db.get("roles", user.roleId);
-    return !!role && role.status === "active" && role.type === "internal";
-  }
-
-  return user.isInternal === true;
-}
 
 // ─── User Lookups ─────────────────────────────────────────────────────────────
 
@@ -367,7 +356,7 @@ export const rotateRefreshToken = internalMutation({
  */
 export const findRefreshToken: RegisteredQuery<"internal", {tokenHash:string}, Doc<"refreshTokens"> | null> = internalQuery({
   args: { tokenHash: v.string() },
-  returns: v.union(v.null(), tableDocs.refreshTokens),
+  returns: v.union(v.null(), authDocs.refreshTokens),
   handler: async (ctx, args) => {
     const token = await ctx.db
       .query("refreshTokens")

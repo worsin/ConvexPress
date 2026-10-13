@@ -83,7 +83,7 @@ export const updateCategory = mutation({
       patch.slug = await getUniqueCategorySlug(
         ctx,
         trimmedName,
-        args.categoryId.toString(),
+        args.categoryId,
       );
     }
 
@@ -144,7 +144,7 @@ export const createAlbum = mutation({
     }
 
     if (args.coverMediaId) {
-      await requireImageMedia(ctx, args.coverMediaId.toString());
+      await requireImageMedia(ctx, args.coverMediaId);
     }
 
     const categoryIds = args.categoryIds ?? [];
@@ -178,9 +178,9 @@ export const createAlbum = mutation({
     if (args.items?.length) {
       await replaceAlbumItems(
         ctx,
-        albumId.toString(),
+        albumId,
         args.items.map((item) => ({
-          mediaId: item.mediaId.toString(),
+          mediaId: item.mediaId,
           caption: item.caption,
           altText: item.altText,
           linkUrl: item.linkUrl,
@@ -188,10 +188,7 @@ export const createAlbum = mutation({
       );
     }
 
-    await recomputeCategoryCounts(
-      ctx,
-      categoryIds.map((id) => id.toString()),
-    );
+    await recomputeCategoryCounts(ctx, categoryIds);
 
     return albumId;
   },
@@ -211,7 +208,7 @@ export const updateAlbum = mutation({
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && album.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -220,7 +217,7 @@ export const updateAlbum = mutation({
     }
 
     if (args.coverMediaId) {
-      await requireImageMedia(ctx, args.coverMediaId.toString());
+      await requireImageMedia(ctx, args.coverMediaId);
     }
 
     const patch: Record<string, unknown> = {
@@ -239,13 +236,13 @@ export const updateAlbum = mutation({
       patch.slug = await getUniqueAlbumSlug(
         ctx,
         args.slug ?? title,
-        args.albumId.toString(),
+        args.albumId,
       );
     } else if (args.slug !== undefined) {
       patch.slug = await getUniqueAlbumSlug(
         ctx,
         args.slug,
-        args.albumId.toString(),
+        args.albumId,
       );
     }
 
@@ -273,8 +270,8 @@ export const updateAlbum = mutation({
     await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", args.albumId, patch);
 
     const touchedCategoryIds = new Set([
-      ...album.categoryIds.map((id) => id.toString()),
-      ...((args.categoryIds ?? []).map((id) => id.toString())),
+      ...album.categoryIds,
+      ...(args.categoryIds ?? []),
     ]);
     await recomputeCategoryCounts(ctx, [...touchedCategoryIds]);
 
@@ -296,7 +293,7 @@ export const setAlbumItems = mutation({
       });
     }
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && album.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -306,9 +303,9 @@ export const setAlbumItems = mutation({
 
     await replaceAlbumItems(
       ctx,
-      args.albumId.toString(),
+      args.albumId,
       args.items.map((item) => ({
-        mediaId: item.mediaId.toString(),
+        mediaId: item.mediaId,
         caption: item.caption,
         altText: item.altText,
         linkUrl: item.linkUrl,
@@ -328,7 +325,7 @@ export const trashAlbum = mutation({
     const album = await ctx.db.get("gallery_albums", args.albumId);
     if (!album) return null;
 
-    const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
+    const roleLevel = await getRoleLevel(ctx, user.roleId);
     if (roleLevel < 80 && album.authorId.toString() !== user._id.toString()) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -341,10 +338,7 @@ export const trashAlbum = mutation({
       updatedAt: Date.now(),
     });
 
-    await recomputeCategoryCounts(
-      ctx,
-      album.categoryIds.map((id) => id.toString()),
-    );
+    await recomputeCategoryCounts(ctx, album.categoryIds);
 
     return args.albumId;
   },

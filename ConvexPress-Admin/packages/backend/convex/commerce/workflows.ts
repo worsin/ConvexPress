@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
-import { internalMutation, mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 const workflowStatus = v.union(
   v.literal("running"),
   v.literal("completed"),
@@ -12,10 +12,31 @@ const workflowStatus = v.union(
   v.literal("canceled"),
 );
 
-async function beginRun(ctx: any, args: any) {
+type BeginRunArgs = {
+  workflowKey: string;
+  idempotencyKey: string;
+  entityType?: string;
+  entityId?: string;
+  input?: unknown;
+  lockedUntil?: number;
+};
+
+/**
+ * `resultJson` is the stored result of an earlier run, serialized: results are
+ * stored untyped, so callers parse and validate the value they expect.
+ */
+type BeginRunResult = {
+  runId: Id<"commerce_workflow_runs">;
+  status: Doc<"commerce_workflow_runs">["status"];
+  existing: boolean;
+  resultJson?: string;
+  error?: string;
+};
+
+async function beginRun(ctx: Pick<MutationCtx, "db">, args: BeginRunArgs): Promise<BeginRunResult> {
   const existing = await ctx.db
     .query("commerce_workflow_runs")
-    .withIndex("by_idempotency", (q: any) =>
+    .withIndex("by_idempotency", (q) =>
       q.eq("workflowKey", args.workflowKey).eq("idempotencyKey", args.idempotencyKey),
     )
     .unique();
@@ -25,7 +46,7 @@ async function beginRun(ctx: any, args: any) {
       runId: existing._id,
       status: existing.status,
       existing: true,
-      result: existing.result,
+      resultJson: existing.result === undefined ? undefined : JSON.stringify(existing.result),
       error: existing.error,
     };
   }
@@ -54,22 +75,24 @@ export const list = query({
     entityId: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  returns: v.array(tableDocs.commerce_workflow_runs),
+  returns: v.array(commerceDocs.commerce_workflow_runs),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
-    if (args.status) {
+    const status = args.status;
+    if (status) {
       return await ctx.db
         .query("commerce_workflow_runs")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .order("desc")
         .take(limit);
     }
-    if (args.entityType && args.entityId) {
+    const { entityType, entityId } = args;
+    if (entityType && entityId) {
       return await ctx.db
         .query("commerce_workflow_runs")
-        .withIndex("by_entity", (q: any) =>
-          q.eq("entityType", args.entityType).eq("entityId", args.entityId),
+        .withIndex("by_entity", (q) =>
+          q.eq("entityType", entityType).eq("entityId", entityId),
         )
         .order("desc")
         .take(limit);
@@ -87,6 +110,13 @@ export const begin = mutation({
     input: v.optional(v.any()),
     lockedUntil: v.optional(v.number()),
   },
+  returns: v.object({
+    runId: v.id("commerce_workflow_runs"),
+    status: v.union(v.literal("failed"), v.literal("completed"), v.literal("running"), v.literal("canceled")),
+    existing: v.boolean(),
+    resultJson: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     return await beginRun(ctx, args);
@@ -144,6 +174,13 @@ export const beginInternal = internalMutation({
     input: v.optional(v.any()),
     lockedUntil: v.optional(v.number()),
   },
+  returns: v.object({
+    runId: v.id("commerce_workflow_runs"),
+    status: v.union(v.literal("failed"), v.literal("completed"), v.literal("running"), v.literal("canceled")),
+    existing: v.boolean(),
+    resultJson: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
   handler: beginRun,
 });
 

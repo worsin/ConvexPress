@@ -6,31 +6,52 @@
  * it so the UI never sees an unknown shape or a product id we did not load.
  */
 
-export type AssistantBlock =
-  | { type: "cart_proposal"; id: string; productId: string; variantId?: string; quantity: number; title: string; added: boolean }
-  | { type: "text"; markdown: string }
-  | {
-      type: "product_group";
-      title: string;
-      reason?: string;
-      items: Array<{ productId: string; rationale?: string }>;
-      seeMoreQuery?: string;
-    }
-  | {
-      type: "compare_table";
-      columns: string[];
-      rows: Array<{ productId: string; values: string[] }>;
-    }
-  | { type: "callout"; tone: "tip" | "note" | "warning"; markdown: string }
-  | {
-      type: "action_result";
-      action: "cart_add" | "remember" | "forget";
-      ok: boolean;
-      summary: string;
-      productId?: string;
-    }
-  | { type: "chips"; items: string[] }
-  | { type: "facets"; items: Array<{ label: string; query?: string; categorySlug?: string }> };
+import { v, type Infer } from "convex/values";
+
+/** The exact shape of one assistant block, for return validators. */
+export const assistantBlockShapeValidator = v.union(
+  v.object({
+    type: v.literal("cart_proposal"),
+    id: v.string(),
+    productId: v.string(),
+    variantId: v.optional(v.string()),
+    quantity: v.number(),
+    title: v.string(),
+    added: v.boolean(),
+  }),
+  v.object({ type: v.literal("text"), markdown: v.string() }),
+  v.object({
+    type: v.literal("product_group"),
+    title: v.string(),
+    reason: v.optional(v.string()),
+    items: v.array(v.object({ productId: v.string(), rationale: v.optional(v.string()) })),
+    seeMoreQuery: v.optional(v.string()),
+  }),
+  v.object({
+    type: v.literal("compare_table"),
+    columns: v.array(v.string()),
+    rows: v.array(v.object({ productId: v.string(), values: v.array(v.string()) })),
+  }),
+  v.object({
+    type: v.literal("callout"),
+    tone: v.union(v.literal("tip"), v.literal("note"), v.literal("warning")),
+    markdown: v.string(),
+  }),
+  v.object({
+    type: v.literal("action_result"),
+    action: v.union(v.literal("cart_add"), v.literal("remember"), v.literal("forget")),
+    ok: v.boolean(),
+    summary: v.string(),
+    productId: v.optional(v.string()),
+  }),
+  v.object({ type: v.literal("chips"), items: v.array(v.string()) }),
+  v.object({
+    type: v.literal("facets"),
+    items: v.array(v.object({ label: v.string(), query: v.optional(v.string()), categorySlug: v.optional(v.string()) })),
+  }),
+);
+
+export type AssistantBlock = Infer<typeof assistantBlockShapeValidator>;
 
 export interface AssistantTurnPayload {
   blocks: AssistantBlock[];
@@ -42,6 +63,15 @@ export interface AssistantTurnPayload {
 const MAX_TEXT = 4000;
 const MAX_ITEMS = 12;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** A field of an untyped object, or undefined. */
+function field(value: unknown, key: string): unknown {
+  return isRecord(value) ? value[key] : undefined;
+}
+
 function str(value: unknown, max = MAX_TEXT): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
 }
@@ -51,10 +81,10 @@ function idList(raw: unknown, known: Set<string> | null): Array<{ productId: str
   const out: Array<{ productId: string; rationale?: string }> = [];
   for (const entry of raw) {
     const productId =
-      typeof entry === "string" ? entry : str((entry as any)?.productId ?? (entry as any)?.product_id, 64);
+      typeof entry === "string" ? entry : str(field(entry, "productId") ?? field(entry, "product_id"), 64);
     if (!productId) continue;
     if (known && !known.has(productId)) continue;
-    const rationale = str((entry as any)?.rationale ?? (entry as any)?.reason, 240) ?? undefined;
+    const rationale = str(field(entry, "rationale") ?? field(entry, "reason"), 240) ?? undefined;
     if (!out.some((existing) => existing.productId === productId)) {
       out.push(rationale ? { productId, rationale } : { productId });
     }
@@ -71,8 +101,8 @@ export function normalizeBlocks(raw: unknown, known: Set<string> | null): Assist
   const list = Array.isArray(raw) ? raw : [];
   const blocks: AssistantBlock[] = [];
   for (const entry of list) {
-    if (!entry || typeof entry !== "object") continue;
-    const block = entry as Record<string, unknown>;
+    if (!isRecord(entry)) continue;
+    const block = entry;
     switch (block.type) {
       case "text": {
         const markdown = str(block.markdown ?? block.text);
@@ -99,10 +129,11 @@ export function normalizeBlocks(raw: unknown, known: Set<string> | null): Assist
         const rows = Array.isArray(block.rows)
           ? block.rows
               .map((row) => {
-                const productId = str((row as any)?.productId ?? (row as any)?.product_id, 64);
+                const productId = str(field(row, "productId") ?? field(row, "product_id"), 64);
                 if (!productId || (known && !known.has(productId))) return null;
-                const values = Array.isArray((row as any).values)
-                  ? (row as any).values.map((v: unknown) => str(v, 80) ?? "—").slice(0, columns.length)
+                const rawValues = field(row, "values");
+                const values = Array.isArray(rawValues)
+                  ? rawValues.map((v: unknown) => str(v, 80) ?? "—").slice(0, columns.length)
                   : [];
                 return { productId, values };
               })
@@ -131,11 +162,11 @@ export function normalizeBlocks(raw: unknown, known: Set<string> | null): Assist
         const items = Array.isArray(block.items)
           ? block.items
               .map((item) => {
-                const label = str((item as any)?.label, 40);
+                const label = str(field(item, "label"), 40);
                 if (!label) return null;
                 const out: { label: string; query?: string; categorySlug?: string } = { label };
-                const query = str((item as any)?.query, 120);
-                const categorySlug = str((item as any)?.categorySlug ?? (item as any)?.category_slug, 80);
+                const query = str(field(item, "query"), 120);
+                const categorySlug = str(field(item, "categorySlug") ?? field(item, "category_slug"), 80);
                 if (query) out.query = query;
                 if (categorySlug) out.categorySlug = categorySlug;
                 return out;
@@ -152,6 +183,99 @@ export function normalizeBlocks(raw: unknown, known: Set<string> | null): Assist
     if (blocks.length >= 16) break;
   }
   return blocks;
+}
+
+function storedString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+function storedStrings(value: unknown): string[] | null {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string") ? value : null;
+}
+
+/** One stored block, re-read field by field; anything malformed reads as null. */
+function storedBlock(value: unknown): AssistantBlock | null {
+  if (!isRecord(value)) return null;
+  switch (value.type) {
+    case "cart_proposal": {
+      const { id, productId, quantity, title, added } = value;
+      if (typeof id !== "string" || typeof productId !== "string" || typeof quantity !== "number" || typeof title !== "string" || typeof added !== "boolean") return null;
+      const variantId = storedString(value.variantId);
+      return { type: "cart_proposal", id, productId, ...(variantId === undefined ? {} : { variantId }), quantity, title, added };
+    }
+    case "text":
+      return typeof value.markdown === "string" ? { type: "text", markdown: value.markdown } : null;
+    case "product_group": {
+      if (typeof value.title !== "string" || !Array.isArray(value.items)) return null;
+      const items: Array<{ productId: string; rationale?: string }> = [];
+      for (const item of value.items) {
+        const productId = field(item, "productId");
+        if (typeof productId !== "string") return null;
+        const rationale = storedString(field(item, "rationale"));
+        items.push(rationale === undefined ? { productId } : { productId, rationale });
+      }
+      const reason = storedString(value.reason);
+      const seeMoreQuery = storedString(value.seeMoreQuery);
+      return {
+        type: "product_group",
+        title: value.title,
+        ...(reason === undefined ? {} : { reason }),
+        items,
+        ...(seeMoreQuery === undefined ? {} : { seeMoreQuery }),
+      };
+    }
+    case "compare_table": {
+      const columns = storedStrings(value.columns);
+      if (!columns || !Array.isArray(value.rows)) return null;
+      const rows: Array<{ productId: string; values: string[] }> = [];
+      for (const row of value.rows) {
+        const productId = field(row, "productId");
+        const values = storedStrings(field(row, "values"));
+        if (typeof productId !== "string" || !values) return null;
+        rows.push({ productId, values });
+      }
+      return { type: "compare_table", columns, rows };
+    }
+    case "callout": {
+      const tone = value.tone === "tip" || value.tone === "note" || value.tone === "warning" ? value.tone : null;
+      return tone && typeof value.markdown === "string" ? { type: "callout", tone, markdown: value.markdown } : null;
+    }
+    case "action_result": {
+      const action = value.action === "cart_add" || value.action === "remember" || value.action === "forget" ? value.action : null;
+      if (!action || typeof value.ok !== "boolean" || typeof value.summary !== "string") return null;
+      const productId = storedString(value.productId);
+      return { type: "action_result", action, ok: value.ok, summary: value.summary, ...(productId === undefined ? {} : { productId }) };
+    }
+    case "chips": {
+      const items = storedStrings(value.items);
+      return items ? { type: "chips", items } : null;
+    }
+    case "facets": {
+      if (!Array.isArray(value.items)) return null;
+      const items: Array<{ label: string; query?: string; categorySlug?: string }> = [];
+      for (const item of value.items) {
+        const label = field(item, "label");
+        if (typeof label !== "string") return null;
+        const query = storedString(field(item, "query"));
+        const categorySlug = storedString(field(item, "categorySlug"));
+        items.push({ label, ...(query === undefined ? {} : { query }), ...(categorySlug === undefined ? {} : { categorySlug }) });
+      }
+      return { type: "facets", items };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Read blocks back from storage. Stored blocks were produced by
+ * normalizeBlocks or by server tools; malformed entries are skipped.
+ */
+export function storedBlocks(raw: unknown): AssistantBlock[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    const block = storedBlock(entry);
+    return block ? [block] : [];
+  });
 }
 
 /** Pull the first JSON object out of a model reply that may include prose or fences. */

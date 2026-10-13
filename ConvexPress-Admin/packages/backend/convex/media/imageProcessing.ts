@@ -79,9 +79,9 @@ let sharpModule: Sharp | null = null;
 async function getSharp(): Promise<Sharp> {
   if (!sharpModule) {
     const module = await import("sharp");
-    sharpModule =
-      (module as unknown as { default?: Sharp }).default ??
-      (module as unknown as Sharp);
+    // CommonJS interop: the callable is the namespace's `default`; a loader
+    // that hands back the callable itself is used as-is.
+    sharpModule = typeof module === "function" ? module : module.default;
   }
   return sharpModule;
 }
@@ -142,21 +142,11 @@ function shouldSkipVariants(mimeType: string, isAnimated: boolean): boolean {
   return false;
 }
 
-type RegenerationItem = {
-  _id: Id<"media">;
-};
-
-type RegenerationListResult = {
-  page: RegenerationItem[];
-  isDone: boolean;
-  continueCursor?: string | null;
-};
-
 type RegenerationBatchResult = {
   processed: number;
   failed: number;
   done: boolean;
-  continueCursor?: string | null;
+  continueCursor: string;
 };
 
 // Scale-down threshold for originals. Matches WP's big-image threshold.
@@ -193,17 +183,17 @@ export const regenerateBatch = internalAction({
     processed: v.number(),
     failed: v.number(),
     done: v.boolean(),
-    continueCursor: v.optional(v.union(v.null(), v.string())),
+    continueCursor: v.string(),
   }),
   handler: async (ctx, args): Promise<RegenerationBatchResult> => {
     const limit = Math.min(Math.max(args.limit ?? 10, 1), 25);
-    const result = (await ctx.runQuery(
+    const result = await ctx.runQuery(
       internal.media.internals.listImagesForRegeneration,
       {
         cursor: args.cursor ?? null,
         numItems: limit,
       },
-    )) as RegenerationListResult;
+    );
 
     let processed = 0;
     let failed = 0;
@@ -259,8 +249,9 @@ export const processImageWithSharp = internalAction({
     if (media.status !== "processing") return;
 
     try {
-      const blob = await ctx.storage.get(media.storageId);
-      if (!blob) {
+      // URL-only imports have no Convex blob to process.
+      const blob = media.storageId ? await ctx.storage.get(media.storageId) : null;
+      if (!blob || !media.storageId) {
         await ctx.runMutation(internal.media.mutations.updateStatus, {
           mediaId: args.mediaId,
           status: "failed",

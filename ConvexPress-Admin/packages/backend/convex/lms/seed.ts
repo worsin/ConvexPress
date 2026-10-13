@@ -5,17 +5,16 @@
  * below, leaving real customer/admin-authored courses alone.
  */
 
-// @ts-nocheck TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 import { insertCountedProgress } from "./progress/counts";
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences , deleteDynamicWithMediaReferences, patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { detectVideoProvider, textToDoc } from "./lessons/helpers";
 
-type AnyCtx = any;
+type SeedCtx = MutationCtx;
 
 const SEED_COURSE_SLUGS = [
   "seed-lms-free-orientation",
@@ -26,7 +25,7 @@ const SEED_COURSE_SLUGS = [
 
 const SEED_CERT_SERIAL = "CERT-LMS-SEED-2026";
 
-async function getSeedUserId(ctx: AnyCtx): Promise<Id<"users">> {
+async function getSeedUserId(ctx: SeedCtx): Promise<Id<"users">> {
   const users = await ctx.db.query("users").collect();
   const activeUser =
     users.find((user: { status?: string; roleId?: Id<"roles"> }) => user.status === "active") ??
@@ -37,10 +36,10 @@ async function getSeedUserId(ctx: AnyCtx): Promise<Id<"users">> {
   return activeUser._id;
 }
 
-async function upsertPluginSettings(ctx: AnyCtx, userId: Id<"users">) {
+async function upsertPluginSettings(ctx: SeedCtx, userId: Id<"users">) {
   const existing = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: AnyCtx) => q.eq("section", "plugins"))
+    .withIndex("by_section", (q) => q.eq("section", "plugins"))
     .unique();
   const values = {
     ...existing?.values,
@@ -63,20 +62,29 @@ async function upsertPluginSettings(ctx: AnyCtx, userId: Id<"users">) {
   });
 }
 
-async function deleteRowsByCourse(ctx: AnyCtx, table: string, courseId: Id<"lms_courses">) {
+type CourseScopedTable =
+  | "lms_nodes"
+  | "lms_progress"
+  | "lms_enrollments"
+  | "lms_course_completions"
+  | "lms_certificate_issues"
+  | "lms_ai_generations"
+  | "lms_jobs";
+
+async function deleteRowsByCourse(ctx: SeedCtx, table: CourseScopedTable, courseId: Id<"lms_courses">) {
   const rows = await ctx.db
     .query(table)
-    .withIndex("by_course", (q: AnyCtx) => q.eq("courseId", courseId))
+    .withIndex("by_course", (q) => q.eq("courseId", courseId))
     .collect();
   for (const row of rows) {
     await deleteDynamicWithMediaReferences(ctx, row._id);
   }
 }
 
-async function deleteSeedCourse(ctx: AnyCtx, slug: string) {
+async function deleteSeedCourse(ctx: SeedCtx, slug: string) {
   const course = await ctx.db
     .query("lms_courses")
-    .withIndex("by_slug", (q: AnyCtx) => q.eq("slug", slug))
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
     .first();
   if (!course) return;
 
@@ -90,19 +98,19 @@ async function deleteSeedCourse(ctx: AnyCtx, slug: string) {
 
   const prereqs = await ctx.db
     .query("lms_course_prerequisites")
-    .withIndex("by_course", (q: AnyCtx) => q.eq("courseId", course._id))
+    .withIndex("by_course", (q) => q.eq("courseId", course._id))
     .collect();
   for (const prereq of prereqs) await deleteDynamicWithMediaReferences(ctx, prereq._id);
 
   const inversePrereqs = await ctx.db
     .query("lms_course_prerequisites")
-    .withIndex("by_prereq", (q: AnyCtx) => q.eq("prereqCourseId", course._id))
+    .withIndex("by_prereq", (q) => q.eq("prereqCourseId", course._id))
     .collect();
   for (const prereq of inversePrereqs) await deleteDynamicWithMediaReferences(ctx, prereq._id);
 
   const rules = await ctx.db
     .query("membership_restriction_rules")
-    .withIndex("by_resource", (q: AnyCtx) =>
+    .withIndex("by_resource", (q) =>
       q.eq("resourceType", "course").eq("resourceIdOrKey", String(course._id)),
     )
     .collect();
@@ -111,11 +119,11 @@ async function deleteSeedCourse(ctx: AnyCtx, slug: string) {
   await deleteWithMediaReferences<"lms_courses">(ctx, "lms_courses", course._id);
 }
 
-async function ensurePlan(ctx: AnyCtx) {
+async function ensurePlan(ctx: SeedCtx) {
   const now = Date.now();
   const existing = await ctx.db
     .query("membership_plans")
-    .withIndex("by_slug", (q: AnyCtx) => q.eq("slug", "lms-paid-tester"))
+    .withIndex("by_slug", (q) => q.eq("slug", "lms-paid-tester"))
     .first();
 
   const planId = existing
@@ -141,7 +149,7 @@ async function ensurePlan(ctx: AnyCtx) {
 
   const benefits = await ctx.db
     .query("membership_plan_benefits")
-    .withIndex("by_plan", (q: AnyCtx) => q.eq("planId", planId))
+    .withIndex("by_plan", (q) => q.eq("planId", planId))
     .collect();
   if (!benefits.some((benefit: { code: string }) => benefit.code === "lms.seed.access")) {
     await ctx.db.insert("membership_plan_benefits", {
@@ -159,14 +167,14 @@ async function ensurePlan(ctx: AnyCtx) {
 }
 
 async function ensureGrant(
-  ctx: AnyCtx,
+  ctx: SeedCtx,
   userId: Id<"users">,
   planId: Id<"membership_plans">,
 ) {
   const now = Date.now();
   const grants = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user", (q: AnyCtx) => q.eq("userId", userId))
+    .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
   const existing = grants.find((grant: { planId: Id<"membership_plans"> }) => grant.planId === planId);
   if (existing) {
@@ -193,7 +201,7 @@ async function ensureGrant(
   });
 }
 
-async function ensureCertificate(ctx: AnyCtx, userId: Id<"users">) {
+async function ensureCertificate(ctx: SeedCtx, userId: Id<"users">) {
   const now = Date.now();
   const existing = (await ctx.db.query("lms_certificates").collect()).find(
     (certificate: { title: string }) => certificate.title === "LMS Paid Tester Certificate",
@@ -223,7 +231,7 @@ async function ensureCertificate(ctx: AnyCtx, userId: Id<"users">) {
 }
 
 async function createCourse(
-  ctx: AnyCtx,
+  ctx: SeedCtx,
   userId: Id<"users">,
   input: {
     title: string;
@@ -261,7 +269,7 @@ async function createCourse(
 }
 
 async function addTopic(
-  ctx: AnyCtx,
+  ctx: SeedCtx,
   courseId: Id<"lms_courses">,
   position: number,
   title: string,
@@ -288,7 +296,7 @@ async function addTopic(
 }
 
 async function addLesson(
-  ctx: AnyCtx,
+  ctx: SeedCtx,
   courseId: Id<"lms_courses">,
   parentId: Id<"lms_nodes">,
   position: number,
@@ -333,10 +341,10 @@ async function addLesson(
   })) as Id<"lms_nodes">;
 }
 
-async function recountCourse(ctx: AnyCtx, courseId: Id<"lms_courses">) {
+async function recountCourse(ctx: SeedCtx, courseId: Id<"lms_courses">) {
   const nodes = await ctx.db
     .query("lms_nodes")
-    .withIndex("by_course", (q: AnyCtx) => q.eq("courseId", courseId))
+    .withIndex("by_course", (q) => q.eq("courseId", courseId))
     .collect();
   await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", courseId, {
     topicCount: nodes.filter((node: { kind: string }) => node.kind === "topic").length,
@@ -346,7 +354,7 @@ async function recountCourse(ctx: AnyCtx, courseId: Id<"lms_courses">) {
 }
 
 async function enrollUser(
-  ctx: AnyCtx,
+  ctx: SeedCtx,
   userId: Id<"users">,
   courseId: Id<"lms_courses">,
   source: "manual" | "membership_plan" = "manual",
@@ -366,7 +374,7 @@ async function enrollUser(
 }
 
 async function completeCourse(
-  ctx: AnyCtx,
+  ctx: SeedCtx,
   userId: Id<"users">,
   courseId: Id<"lms_courses">,
   certificateId: Id<"lms_certificates">,
@@ -374,7 +382,7 @@ async function completeCourse(
   const now = Date.now();
   const lessons = await ctx.db
     .query("lms_nodes")
-    .withIndex("by_course_kind", (q: AnyCtx) => q.eq("courseId", courseId).eq("kind", "lesson"))
+    .withIndex("by_course_kind", (q) => q.eq("courseId", courseId).eq("kind", "lesson"))
     .collect();
   for (const lesson of lessons) {
     await insertCountedProgress(ctx, {
@@ -404,7 +412,7 @@ async function completeCourse(
     issuedAt: now,
     status: "issued",
   });
-  await ctx.scheduler.runAfter(0, (internal as any).lms.certificates.actions.renderCertificatePdf, {
+  await ctx.scheduler.runAfter(0, internal.lms.certificates.actions.renderCertificatePdf, {
     issueId,
   });
 }
@@ -548,4 +556,3 @@ export const run = internalMutation({
     };
   },
 });
-// @ts-nocheck

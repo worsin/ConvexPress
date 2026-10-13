@@ -12,37 +12,117 @@ import { requireCan } from "../helpers/permissions";
 import { isSecretFieldName } from "../helpers/settingsSecret";
 import { getDefaults, type SettingsSection } from "../settings/defaults";
 import { SHIPPING_PROVIDERS } from "../shipping/helpers";
-import { getShippingProviderDescriptor } from "../shipping/providers";
+import { getShippingProviderDescriptor, type ShippingProviderDescriptor } from "../shipping/providers";
+import type { Doc } from "../_generated/dataModel";
 import { fingerprintConfiguration } from "./fingerprint";
-import { envPresence } from "./internals";
+import { envPresence, settingsValues } from "./internals";
 import { collectLegacySecrets } from "../helpers/settingsSecretUpgrade";
 import { INTEGRATIONS, RUNTIME_ENVIRONMENT, type IntegrationField } from "./registry";
 
 import { v } from "convex/values";
-/** Overview shapes (kept as types; validators here blow the TS instantiation budget). */
+/** Overview shapes. */
 export type OverviewFieldState = "set" | "env" | "empty";
+
+export interface OverviewField {
+  key: string;
+  state: OverviewFieldState;
+  value: string | boolean | null;
+  envName: string | null;
+}
+
+export interface OverviewCheck {
+  status: Doc<"integration_checks">["status"];
+  checkedAt: number;
+  latencyMs: number | null;
+  summary: string;
+  details: Array<{ label: string; ok: boolean; note: string | null }>;
+  stale: boolean;
+}
+
+export interface OverviewShipping {
+  connectionStatus: Doc<"shipping_provider_connections">["status"] | null;
+  mode: Doc<"shipping_provider_connections">["mode"] | null;
+  secretStored: boolean;
+  lastVerifiedAt: number | null;
+  lastErrorMessage: string | null;
+  implementationStatus: ShippingProviderDescriptor["implementationStatus"];
+  credentialFields: Array<{
+    key: string;
+    label: string;
+    type: ShippingProviderDescriptor["credentialFields"][number]["type"];
+    required: boolean;
+    placeholder: string | null;
+  }>;
+}
+
+export interface OverviewProvider {
+  id: string;
+  fields: OverviewField[];
+  configured: boolean;
+  missing: string[];
+  check: OverviewCheck | null;
+  shipping: OverviewShipping | null;
+}
 
 export const overview = query({
   args: {},
+  returns: v.object({
+    encryption: v.union(v.literal("aes-gcm"), v.literal("base64")),
+    legacySecrets: v.number(),
+    providers: v.array(v.object({
+      id: v.string(),
+      fields: v.array(v.object({
+        key: v.string(),
+        state: v.union(v.literal("set"), v.literal("env"), v.literal("empty")),
+        value: v.union(v.boolean(), v.null(), v.string()),
+        envName: v.union(v.null(), v.string()),
+      })),
+      configured: v.boolean(),
+      missing: v.array(v.string()),
+      check: v.union(v.null(), v.object({
+        status: v.union(v.literal("verified"), v.literal("skipped"), v.literal("failed")),
+        checkedAt: v.number(),
+        latencyMs: v.union(v.null(), v.number()),
+        summary: v.string(),
+        details: v.array(v.object({ label: v.string(), ok: v.boolean(), note: v.union(v.null(), v.string()) })),
+        stale: v.boolean(),
+      })),
+      shipping: v.union(v.null(), v.object({
+        connectionStatus: v.union(v.null(), v.literal("error"), v.literal("disconnected"), v.literal("connected"), v.literal("degraded")),
+        mode: v.union(v.null(), v.literal("sandbox"), v.literal("production")),
+        secretStored: v.boolean(),
+        lastVerifiedAt: v.union(v.null(), v.number()),
+        lastErrorMessage: v.union(v.null(), v.string()),
+        implementationStatus: v.union(v.literal("active"), v.literal("foundation"), v.literal("planned")),
+        credentialFields: v.array(v.object({
+          key: v.string(),
+          label: v.string(),
+          type: v.union(v.literal("url"), v.literal("password"), v.literal("text")),
+          required: v.boolean(),
+          placeholder: v.union(v.null(), v.string()),
+        })),
+      })),
+    })),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
 
     const checks = await ctx.db.query("integration_checks").collect();
-    const checkFor = new Map(checks.map((row: any) => [row.providerId as string, row]));
+    const checkFor = new Map(checks.map((row) => [row.providerId, row] as const));
 
     const shippingConnections = await ctx.db.query("shipping_provider_connections").collect();
     const shippingSecrets = await ctx.db.query("shipping_provider_secrets").collect();
 
-    const providers: Array<Record<string, unknown>> = [];
+    const providers: OverviewProvider[] = [];
     for (const definition of INTEGRATIONS) {
       let values: Record<string, unknown> = {};
       if (definition.storage.kind === "settings") {
         const section = definition.storage.section as SettingsSection;
         const doc = await ctx.db
           .query("settings")
-          .withIndex("by_section", (q: any) => q.eq("section", section))
+          .withIndex("by_section", (q) => q.eq("section", section))
           .unique();
-        values = { ...getDefaults(section), ...((doc?.values as Record<string, unknown>) ?? {}) };
+        values = { ...getDefaults(section), ...settingsValues(doc?.values) };
       }
 
       const aiEnv =
@@ -55,7 +135,7 @@ export const overview = query({
           : null;
 
       const fingerprintInput: Record<string, unknown> = {};
-      const fields = definition.fields.map((field: IntegrationField) => {
+      const fields = definition.fields.map((field: IntegrationField): OverviewField => {
         const envName = field.key === "apiKey" && aiEnv ? aiEnv : (field.env ?? null);
         const stored =
           definition.storage.kind === "env" ? undefined : values[field.key];
@@ -85,14 +165,14 @@ export const overview = query({
         };
       });
 
-      let shipping = null;
+      let shipping: OverviewShipping | null = null;
       let configured: boolean;
       let missing: string[];
       if (definition.storage.kind === "shipping") {
         const provider = definition.storage.provider;
-        const connection = shippingConnections.find((entry: any) => entry.provider === provider) ?? null;
+        const connection = shippingConnections.find((entry) => entry.provider === provider) ?? null;
         const secretRow = connection
-          ? shippingSecrets.find((secret: any) => secret.connectionId === connection._id) ?? null
+          ? shippingSecrets.find((secret) => secret.connectionId === connection._id) ?? null
           : null;
         const secretStored = Boolean(secretRow);
         const descriptor = getShippingProviderDescriptor(provider);
@@ -138,13 +218,13 @@ export const overview = query({
       }
 
       const row = checkFor.get(definition.id);
-      const check = row
+      const check: OverviewCheck | null = row
         ? {
             status: row.status,
             checkedAt: row.checkedAt,
             latencyMs: row.latencyMs ?? null,
             summary: row.summary,
-            details: row.details.map((detail: any) => ({
+            details: row.details.map((detail) => ({
               label: detail.label,
               ok: detail.ok,
               note: detail.note ?? null,
@@ -162,7 +242,7 @@ export const overview = query({
     // Secrets saved before the key existed are still reversible until re-sealed.
     const settingsDocs = await ctx.db.query("settings").collect();
     const legacySecrets = settingsDocs.reduce(
-      (count: number, doc: any) => count + collectLegacySecrets(doc.values).length,
+      (count, doc) => count + collectLegacySecrets(doc.values).length,
       0,
     );
     return { encryption, legacySecrets, providers };

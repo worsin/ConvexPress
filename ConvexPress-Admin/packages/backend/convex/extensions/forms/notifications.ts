@@ -37,7 +37,8 @@ import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
 import { resolveMergeTags, isValidEmail, type MergeContext } from "./mergeTags";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { formsExtensionDocs } from "./schema.docs.generated";
+import { readMergedSettingsSection } from "../../settings/read";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 /**
@@ -240,7 +241,7 @@ export function markProgressNotificationSentMeta(
 
 export const listForForm = query({
   args: { formId: v.id("forms") },
-  returns: v.array(tableDocs.form_notifications),
+  returns: v.array(formsExtensionDocs.form_notifications),
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -267,7 +268,7 @@ export const create = mutation({
     conditionalLogic: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
-  returns: v.union(v.null(), tableDocs.form_notifications),
+  returns: v.union(v.null(), formsExtensionDocs.form_notifications),
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -320,7 +321,7 @@ export const update = mutation({
       enabled: v.optional(v.boolean()),
     }),
   },
-  returns: v.union(v.null(), tableDocs.form_notifications),
+  returns: v.union(v.null(), formsExtensionDocs.form_notifications),
   handler: async (ctx, { notificationId, patch }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -410,6 +411,21 @@ export const remove = mutation({
 // ─── Internal reads used by dispatch (NOT client-callable) ───────────────────
 
 /** Read an event row by id (an action cannot touch ctx.db directly). */
+/** Site-level values notification merge tags need (the `general` section). */
+export const _getNotificationSiteSettings = internalQuery({
+  args: {},
+  returns: v.object({ adminEmail: v.string(), siteUrl: v.string() }),
+  handler: async (ctx) => {
+    const values = await readMergedSettingsSection(ctx, "general");
+    const adminEmail = values.adminEmail;
+    const siteUrl = values.siteUrl;
+    return {
+      adminEmail: typeof adminEmail === "string" ? adminEmail : "",
+      siteUrl: typeof siteUrl === "string" ? siteUrl : "",
+    };
+  },
+});
+
 export const _getEvent = internalQuery({
   args: { eventId: v.id("events") },
   returns: v.union(v.null(), v.object({ code: v.string(), payload: v.string(), actorId: v.optional(v.string()) })),
@@ -427,7 +443,7 @@ export const _getEvent = internalQuery({
 /** Read a form by id (returns null for the deleted-form edge case). */
 export const _getForm = internalQuery({
   args: { formId: v.id("forms") },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, { formId }) => {
     return await ctx.db.get(formId);
   },
@@ -464,7 +480,7 @@ export const _enabledRowsForEvent = internalQuery({
     formId: v.id("forms"),
     triggerEventCode: v.string(),
   },
-  returns: v.array(tableDocs.form_notifications),
+  returns: v.array(formsExtensionDocs.form_notifications),
   handler: async (ctx, { formId, triggerEventCode }) => {
     const rows = await ctx.db
       .query("form_notifications")
@@ -629,12 +645,11 @@ export const dispatch = internalAction({
 
     // ── Resolve settings (adminEmail + siteUrl live in the `general` section).
     const generalSettings = await ctx.runQuery(
-      internal.settings.internals.getInternal,
-      { section: "general" },
+      internal.extensions.forms.notifications._getNotificationSiteSettings,
+      {},
     );
-    const settingsAdminEmail =
-      (generalSettings?.adminEmail as string | undefined) ?? "";
-    const siteUrl = (generalSettings?.siteUrl as string | undefined) ?? "";
+    const settingsAdminEmail = generalSettings.adminEmail;
+    const siteUrl = generalSettings.siteUrl;
 
     // Per-form override: form.settings.adminNotificationEmail wins if present.
     let adminEmail = settingsAdminEmail;

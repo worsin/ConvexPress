@@ -10,10 +10,10 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../_generated/server";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 export const getById = internalQuery({
   args: { discountId: v.id("commerce_discount_codes") },
-  returns: v.union(v.null(), tableDocs.commerce_discount_codes),
+  returns: v.union(v.null(), commerceDocs.commerce_discount_codes),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.discountId);
   },

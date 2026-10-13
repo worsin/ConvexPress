@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 
-import { mutation } from "../../_generated/server";
+import { mutation, type MutationCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
@@ -14,10 +15,10 @@ import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
 
 import { v } from "convex/values";
-async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
+async function ensureUniqueCode(ctx: Pick<MutationCtx, "db">, code: string, ignoreId?: Id<"commerce_shipping_packages">) {
   const existing = await ctx.db
     .query("commerce_shipping_packages")
-    .withIndex("by_code", (q: any) => q.eq("code", code))
+    .withIndex("by_code", (q) => q.eq("code", code))
     .unique();
   if (existing && existing._id !== ignoreId) {
     throw new ConvexError({
@@ -28,13 +29,13 @@ async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
 }
 
 async function clearDefaultInScope(
-  ctx: any,
-  shipFromLocationId: any,
-  ignoreId?: any,
+  ctx: Pick<MutationCtx, "db">,
+  shipFromLocationId: Id<"commerce_ship_from_locations"> | undefined,
+  ignoreId?: Id<"commerce_shipping_packages">,
 ) {
   const scope = await ctx.db
     .query("commerce_shipping_packages")
-    .withIndex("by_default_scope", (q: any) =>
+    .withIndex("by_default_scope", (q) =>
       q.eq("shipFromLocationId", shipFromLocationId).eq("isDefault", true),
     )
     .collect();

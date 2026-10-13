@@ -1,6 +1,8 @@
 import { requireCustomerInvitationRole } from "../../lib/auth/invitationRole";
-import { mutation } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { mutation, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
+import { canUseAdminLocalAuth } from "./adminPresence";
 import {
   MAX_CLERK_NAME_LENGTH,
   MAX_CLERK_URL_LENGTH,
@@ -72,7 +74,7 @@ type ProvisionDecline =
   | "registration_closed";
 
 async function provisionClerkIdentity(
-  ctx: any,
+  ctx: MutationCtx,
   decline: { reason: ProvisionDecline } = { reason: "unknown" },
 ): Promise<Id<"users"> | null> {
   {
@@ -127,7 +129,11 @@ async function provisionClerkIdentity(
           }
           // Never absorb a local admin/operator account into a customer
           // identity: that would lock the admin out of the control panel.
-          if (byEmail.passwordHash || byEmail.authSource === "management" || byEmail.adminLoginAllowed) {
+          if (
+            byEmail.passwordHash ||
+            byEmail.authSource === "management" ||
+            (await canUseAdminLocalAuth(ctx, byEmail))
+          ) {
             console.warn(
               `[ClerkProvisioning] Email ${normalizedEmail} belongs to a local account; not linking to Clerk user ${clerkUserId}.`,
             );
@@ -136,7 +142,7 @@ async function provisionClerkIdentity(
           }
 
           // Link the imported user to this Clerk identity
-          const patch: Record<string, unknown> = {
+          const patch: Partial<WithoutSystemFields<Doc<"users">>> = {
             clerkUserId,
             authSource: "clerk",
             emailVerified: true,
@@ -185,7 +191,7 @@ async function provisionClerkIdentity(
       roleId = (await requireCustomerInvitationRole(ctx, invitation.role))._id;
     }
 
-    const userId: import("../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
+    const userId: Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       authSource: "clerk",
       clerkUserId,
       email: normalizedEmail,

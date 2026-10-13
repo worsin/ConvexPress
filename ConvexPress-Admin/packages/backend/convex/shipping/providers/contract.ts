@@ -11,6 +11,7 @@
  */
 
 import type { ActionCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import type { NormalizedShippingQuote } from "../rates/types";
 
 import { fetchShipStationRatesV2 } from "./shipstation/rates";
@@ -32,21 +33,17 @@ async function purchaseLabelViaLegacy(
   ctx: ActionCtx,
   args: LabelPurchaseArgs,
 ): Promise<LabelPurchaseResult> {
-  const r: any = await ctx.runAction(
-    (api as any).shipping.actions.createShippingLabelForOrder,
+  const r = await ctx.runAction(
+    api.shipping.actions.createShippingLabelForOrder,
     { orderId: args.orderId, rateId: args.rateId },
   );
+  // The legacy dispatcher reports the shipment it recorded; cost, carrier and
+  // service live on that shipment row, not in this result.
   return {
-    success: Boolean(r?.success ?? true),
-    labelUrl: r?.labelUrl ?? r?.label_download?.pdf,
-    trackingNumber: r?.trackingNumber ?? r?.tracking_number,
-    externalLabelId: r?.externalLabelId ?? r?.label_id,
-    shipmentId: r?.shipmentId,
-    labelCost: r?.labelCost ?? r?.shipment_cost?.amount,
-    labelCurrency: r?.labelCurrency ?? r?.shipment_cost?.currency,
-    carrierCode: r?.carrierCode ?? r?.carrier_code,
-    serviceCode: r?.serviceCode ?? r?.service_code,
-    packages: Array.isArray(r?.packages) ? r.packages : undefined,
+    success: r.success,
+    labelUrl: r.labelUrl,
+    trackingNumber: r.trackingNumber,
+    shipmentId: r.shipmentId,
   };
 }
 
@@ -97,7 +94,7 @@ export type ProviderFetchResult = {
 };
 
 export type LabelPurchaseArgs = {
-  orderId: string;
+  orderId: Id<"commerce_orders">;
   /** Optional: which rated quote to purchase when the order carries one. */
   rateId?: string;
 };
@@ -107,15 +104,24 @@ export type LabelPurchaseResult = {
   labelUrl?: string;
   trackingNumber?: string;
   externalLabelId?: string;
-  shipmentId?: any;
+  shipmentId?: Id<"commerce_shipments">;
   labelCost?: number;
   labelCurrency?: string;
   carrierCode?: string;
   serviceCode?: string;
   /** When carriers return per-package results, the full list. */
-  packages?: any[];
+  packages?: LabelPackageResult[];
   errorCode?: string;
   errorMessage?: string;
+};
+
+/** One package of a multi-package label purchase, normalized by the provider. */
+export type LabelPackageResult = {
+  trackingNumber?: string;
+  externalLabelId?: string;
+  labelUrl?: string;
+  /** Carrier cost of this package in major units (e.g. dollars). */
+  labelCost?: number;
 };
 
 export type LiveRateProvider = {

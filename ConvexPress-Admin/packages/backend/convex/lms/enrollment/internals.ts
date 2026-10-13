@@ -6,7 +6,8 @@
  */
 
 import { v } from "convex/values";
-import { internalMutation } from "../../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
@@ -36,10 +37,10 @@ const emptyResult = (): SyncResult => ({
 });
 
 export async function syncMembershipPlanCourseEnrollmentsHandler(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    userId: any;
-    planId: any;
+    userId: Id<"users">;
+    planId: Id<"membership_plans">;
     status: "active" | "grace" | "revoked" | "expired";
     expiresAt?: number;
     sourceRef?: string;
@@ -112,14 +113,25 @@ export const syncMembershipPlanCourseEnrollments = internalMutation({
     expiresAt: v.optional(v.number()),
     sourceRef: v.optional(v.string()),
   },
+  returns: v.object({
+    created: v.number(),
+    reactivated: v.number(),
+    refreshed: v.number(),
+    revoked: v.number(),
+    keptByAlternateGrant: v.number(),
+    skippedExistingOtherSource: v.number(),
+    skippedMissingCourse: v.number(),
+    skippedSeatLimit: v.number(),
+    skipped: v.optional(v.string()),
+  }),
   handler: syncMembershipPlanCourseEnrollmentsHandler,
 });
 
 export async function syncPurchasedCourseEnrollmentsHandler(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    orderId: any;
-    userId?: any;
+    orderId: Id<"commerce_orders">;
+    userId?: Id<"users">;
     action: "grant" | "revoke";
   },
 ): Promise<SyncResult & { courseIds: string[]; skipped?: string }> {
@@ -167,11 +179,23 @@ export const syncPurchasedCourseEnrollments = internalMutation({
     userId: v.optional(v.id("users")),
     action: v.union(v.literal("grant"), v.literal("revoke")),
   },
+  returns: v.object({
+    created: v.number(),
+    reactivated: v.number(),
+    refreshed: v.number(),
+    revoked: v.number(),
+    keptByAlternateGrant: v.number(),
+    skippedExistingOtherSource: v.number(),
+    skippedMissingCourse: v.number(),
+    skippedSeatLimit: v.number(),
+    courseIds: v.array(v.string()),
+    skipped: v.optional(v.string()),
+  }),
   handler: syncPurchasedCourseEnrollmentsHandler,
 });
 
 export async function expireExpiredEnrollmentsHandler(
-  ctx: any,
+  ctx: MutationCtx,
   args: { limit?: number } = {},
 ): Promise<{ expired: number; skipped?: string }> {
   if (!(await isPluginEnabled(ctx, "lms"))) return { expired: 0, skipped: "lms_disabled" };
@@ -179,7 +203,7 @@ export async function expireExpiredEnrollmentsHandler(
   const limit = Math.min(Math.max(args.limit ?? 200, 1), 500);
   const enrollments = await ctx.db
     .query("lms_enrollments")
-    .withIndex("by_status_expires", (q: any) =>
+    .withIndex("by_status_expires", (q) =>
       q.eq("status", "active").lt("expiresAt", now),
     )
     .take(limit);
@@ -206,60 +230,69 @@ export const expireExpiredEnrollments = internalMutation({
   handler: expireExpiredEnrollmentsHandler,
 });
 
-async function findCourseIdsForPlan(ctx: any, planId: any) {
+/** Course IDs restricted to `planId`; rule keys that are not course IDs are dropped. */
+async function findCourseIdsForPlan(ctx: QueryCtx, planId: Id<"membership_plans">) {
   const rules = await ctx.db.query("membership_restriction_rules").collect();
-  return Array.from(
-    new Set(
-      rules
-        .filter((rule: any) => rule.resourceType === "course")
-        .filter((rule: any) => (rule.planIds ?? []).some((id: any) => String(id) === String(planId)))
-        .map((rule: any) => rule.resourceIdOrKey),
-    ),
+  const keys = new Set(
+    rules
+      .filter((rule) => rule.resourceType === "course")
+      .filter((rule) => (rule.planIds ?? []).some((id) => String(id) === String(planId)))
+      .map((rule) => rule.resourceIdOrKey),
   );
+  return normalizeCourseIds(ctx, keys);
+}
+
+function normalizeCourseIds(ctx: QueryCtx, keys: Iterable<string>): Id<"lms_courses">[] {
+  const ids: Id<"lms_courses">[] = [];
+  for (const key of keys) {
+    const courseId = ctx.db.normalizeId("lms_courses", key);
+    if (courseId) ids.push(courseId);
+  }
+  return ids;
 }
 
 async function findAlternateActivePlanForCourse(
-  ctx: any,
-  args: { userId: any; courseId: any; excludePlanId: any },
+  ctx: QueryCtx,
+  args: { userId: Id<"users">; courseId: Id<"lms_courses">; excludePlanId: Id<"membership_plans"> },
 ) {
   const rules = await ctx.db
     .query("membership_restriction_rules")
-    .withIndex("by_resource", (q: any) =>
+    .withIndex("by_resource", (q) =>
       q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
     )
     .collect();
   const allowedPlanIds = new Set(
-    rules.flatMap((rule: any) => rule.planIds ?? []).map((id: any) => String(id)),
+    rules.flatMap((rule) => rule.planIds ?? []).map((id) => String(id)),
   );
   allowedPlanIds.delete(String(args.excludePlanId));
   if (allowedPlanIds.size === 0) return null;
 
   const active = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user_status", (q: any) => q.eq("userId", args.userId).eq("status", "active"))
+    .withIndex("by_user_status", (q) => q.eq("userId", args.userId).eq("status", "active"))
     .collect();
   const grace = await ctx.db
     .query("membership_grants")
-    .withIndex("by_user_status", (q: any) => q.eq("userId", args.userId).eq("status", "grace"))
+    .withIndex("by_user_status", (q) => q.eq("userId", args.userId).eq("status", "grace"))
     .collect();
-  const grant = [...active, ...grace].find((row: any) => allowedPlanIds.has(String(row.planId)));
+  const grant = [...active, ...grace].find((row) => allowedPlanIds.has(String(row.planId)));
   return grant?.planId ?? null;
 }
 
-async function findEnrollment(ctx: any, userId: any, courseId: any) {
+async function findEnrollment(ctx: QueryCtx, userId: Id<"users">, courseId: Id<"lms_courses">) {
   return await ctx.db
     .query("lms_enrollments")
-    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
+    .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", courseId))
     .first();
 }
 
 async function upsertEnrollment(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    userId: any;
-    course: any;
+    userId: Id<"users">;
+    course: Doc<"lms_courses">;
     source: "membership_plan" | "purchase";
-    membershipPlanId?: any;
+    membershipPlanId?: Id<"membership_plans">;
     sourceRef?: string;
     expiresAt?: number;
   },
@@ -334,27 +367,27 @@ async function upsertEnrollment(
   return "created";
 }
 
-function isCurrentlyActiveEnrollment(enrollment: any, now: number) {
+function isCurrentlyActiveEnrollment(enrollment: Doc<"lms_enrollments"> | null, now: number) {
   return enrollment?.status === "active" && (!enrollment.expiresAt || enrollment.expiresAt > now);
 }
 
-async function courseSeatAvailable(ctx: any, course: any, now: number) {
+async function courseSeatAvailable(ctx: QueryCtx, course: Doc<"lms_courses">, now: number) {
   if (!course.seatLimit || course.seatLimit <= 0) return true;
   const active = await ctx.db
     .query("lms_enrollments")
-    .withIndex("by_course", (q: any) => q.eq("courseId", course._id).eq("status", "active"))
+    .withIndex("by_course", (q) => q.eq("courseId", course._id).eq("status", "active"))
     .collect();
-  const activeCount = active.filter((row: any) => isCurrentlyActiveEnrollment(row, now)).length;
+  const activeCount = active.filter((row) => isCurrentlyActiveEnrollment(row, now)).length;
   return activeCount < course.seatLimit;
 }
 
 async function revokeEnrollment(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    userId: any;
-    courseId: any;
+    userId: Id<"users">;
+    courseId: Id<"lms_courses">;
     source: "membership_plan" | "purchase";
-    membershipPlanId?: any;
+    membershipPlanId?: Id<"membership_plans">;
     sourceRef?: string;
   },
 ) {
@@ -386,24 +419,23 @@ async function revokeEnrollment(
   return true;
 }
 
-async function findPurchasedCourseIds(ctx: any, orderId: any) {
+async function findPurchasedCourseIds(ctx: QueryCtx, orderId: Id<"commerce_orders">) {
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
     .collect();
   const ids: string[] = [];
   for (const item of items) {
     ids.push(...extractCourseIds(item.metadata));
+    // Products and variants have no metadata column; WooCommerce-imported
+    // course links live in the product's preserved raw source meta.
     const product = await ctx.db.get(item.productId);
-    ids.push(...extractCourseIds(product?.metadata));
     ids.push(...extractCourseIds(parseJsonObject(product?.rawSourceMeta)));
-    const variant = item.variantId ? await ctx.db.get(item.variantId) : null;
-    ids.push(...extractCourseIds(variant?.metadata));
   }
-  return Array.from(new Set(ids));
+  return normalizeCourseIds(ctx, new Set(ids));
 }
 
-function parseJsonObject(value: unknown) {
+function parseJsonObject(value: unknown): unknown {
   if (typeof value !== "string" || !value.trim().startsWith("{")) return null;
   try {
     return JSON.parse(value);

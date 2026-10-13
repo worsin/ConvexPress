@@ -45,6 +45,8 @@ import {
 } from "../schema/commerceBundles";
 import { isPluginEnabled } from "../helpers/plugins";
 
+import { commerceDocs } from "../schema/commerce.docs.generated";
+import { commerceBundlesDocs } from "../schema/commerceBundles.docs.generated";
 // ============================================
 // ADMIN QUERIES
 // ============================================
@@ -57,15 +59,48 @@ export const list: RegisteredQuery<"public", { status?: BundleStatus; limit?: nu
     status: v.optional(commerceBundleStatusValidator),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), v.array(v.object({
+    componentCount: v.number(),
+    _id: v.id("commerce_bundles"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    publishedAt: v.optional(v.number()),
+    tags: v.optional(v.array(v.string())),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    categoryIds: v.optional(v.array(v.id("commerce_product_categories"))),
+    discountAmount: v.optional(v.number()),
+    productId: v.optional(v.id("commerce_products")),
+    trackInventory: v.optional(v.boolean()),
+    shortDescription: v.optional(v.string()),
+    minItems: v.optional(v.number()),
+    maxItems: v.optional(v.number()),
+    fixedPrice: v.optional(v.number()),
+    discountPercent: v.optional(v.number()),
+    regularPrice: v.optional(v.number()),
+    bundlePrice: v.optional(v.number()),
+    stockCount: v.optional(v.number()),
+    allowPartialStock: v.optional(v.boolean()),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
+    slug: v.string(),
+    bundleType: v.union(v.literal("fixed"), v.literal("mix_and_match"), v.literal("bogo")),
+    pricingType: v.union(v.literal("fixed"), v.literal("percent_off"), v.literal("amount_off"), v.literal("component_sum")),
+    images: v.array(v.string()),
+    purchaseCount: v.number(),
+  }))),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
 
-    const bundlesQuery = args.status
+    const status = args.status;
+    const bundlesQuery = status
       ? ctx.db
           .query("commerce_bundles")
-          .withIndex("by_status", (q: any) => q.eq("status", args.status))
+          .withIndex("by_status", (q) => q.eq("status", status))
       : ctx.db.query("commerce_bundles");
 
     const bundles = await bundlesQuery.order("desc").collect();
@@ -75,10 +110,10 @@ export const list: RegisteredQuery<"public", { status?: BundleStatus; limit?: nu
 
     // Enrich with component count
     const enriched = await Promise.all(
-      limited.map(async (bundle: any) => {
+      limited.map(async (bundle) => {
         const components = await ctx.db
           .query("commerce_bundle_components")
-          .withIndex("by_bundle", (q: any) => q.eq("bundleId", bundle._id))
+          .withIndex("by_bundle", (q) => q.eq("bundleId", bundle._id))
           .collect();
 
         return {
@@ -97,7 +132,8 @@ export const list: RegisteredQuery<"public", { status?: BundleStatus; limit?: nu
  */
 export const get: RegisteredQuery<"public", { id: Id<"commerce_bundles"> }, Doc<"commerce_bundles"> | null> = query({
   args: { id: v.id("commerce_bundles") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), commerceBundlesDocs.commerce_bundles),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
@@ -111,19 +147,40 @@ export const get: RegisteredQuery<"public", { id: Id<"commerce_bundles"> }, Doc<
  */
 export const getComponents: RegisteredQuery<"public", { bundleId: Id<"commerce_bundles"> }, AdminComponent[] | null> = query({
   args: { bundleId: v.id("commerce_bundles") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), v.array(v.object({
+    product: v.union(v.null(), commerceDocs.commerce_products),
+    variant: v.union(v.null(), commerceDocs.commerce_product_variants),
+    _id: v.id("commerce_bundle_components"),
+    _creationTime: v.number(),
+    label: v.optional(v.string()),
+    isDefault: v.optional(v.boolean()),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    minQuantity: v.optional(v.number()),
+    maxQuantity: v.optional(v.number()),
+    discountPercent: v.optional(v.number()),
+    priceOverride: v.optional(v.number()),
+    allowVariantChange: v.optional(v.boolean()),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    sortOrder: v.number(),
+    quantity: v.number(),
+    productId: v.id("commerce_products"),
+    bundleId: v.id("commerce_bundles"),
+    isRequired: v.boolean(),
+  }))),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
 
     const components = await ctx.db
       .query("commerce_bundle_components")
-      .withIndex("by_bundle", (q: any) => q.eq("bundleId", args.bundleId))
+      .withIndex("by_bundle", (q) => q.eq("bundleId", args.bundleId))
       .collect();
 
     // Enrich with product data
     const enriched = await Promise.all(
-      components.map(async (comp: any) => {
+      components.map(async (comp) => {
         const product = await ctx.db.get(comp.productId);
         const variant = comp.variantId
           ? await ctx.db.get(comp.variantId)
@@ -138,8 +195,8 @@ export const getComponents: RegisteredQuery<"public", { bundleId: Id<"commerce_b
     );
 
     return enriched
-      .filter((c: any) => c.product)
-      .sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+      .filter((c) => c.product)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
   },
 });
 
@@ -400,22 +457,28 @@ export const checkAvailability: RegisteredQuery<"public", PriceArgs & { quantity
  */
 export const getBundlesForProduct: RegisteredQuery<"public", { productId: Id<"commerce_products"> }, { _id: Id<"commerce_bundles">; name: string; slug: string; status: BundleStatus }[] | null> = query({
   args: { productId: v.id("commerce_products") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), v.array(v.union(v.null(), v.object({
+    _id: v.id("commerce_bundles"),
+    name: v.string(),
+    slug: v.string(),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
+  })))),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
 
     const components = await ctx.db
       .query("commerce_bundle_components")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect();
 
     if (components.length === 0) return [];
 
     // Resolve bundle details for each component
-    const bundleIds = [...new Set(components.map((c: any) => c.bundleId))];
+    const bundleIds = [...new Set(components.map((c) => c.bundleId))];
     const bundles = await Promise.all(
-      bundleIds.map(async (id: any) => {
+      bundleIds.map(async (id) => {
         const bundle = await ctx.db.get(id);
         if (!bundle) return null;
         return {
@@ -448,26 +511,34 @@ export const getBundlesForProduct: RegisteredQuery<"public", { productId: Id<"co
  */
 export const getStats: RegisteredQuery<"public", {}, { total: number; active: number; draft: number; archived: number; unlinked: number; draftsBlocked: number }> = query({
   args: {},
-  handler: async (ctx: any) => {
+  returns: v.object({
+    total: v.number(),
+    active: v.number(),
+    draft: v.number(),
+    archived: v.number(),
+    unlinked: v.number(),
+    draftsBlocked: v.number(),
+  }),
+  handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return { total: 0, active: 0, draft: 0, archived: 0, unlinked: 0, draftsBlocked: 0 };
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const bundles = await ctx.db.query("commerce_bundles").collect();
-    const active = bundles.filter((b: any) => b.status === "active");
-    const draft = bundles.filter((b: any) => b.status === "draft");
-    const archived = bundles.filter((b: any) => b.status === "archived");
+    const active = bundles.filter((b) => b.status === "active");
+    const draft = bundles.filter((b) => b.status === "draft");
+    const archived = bundles.filter((b) => b.status === "archived");
 
     // Count bundles missing productId (need backfill if productId linkage is adopted)
-    const unlinked = bundles.filter((b: any) => !b.productId);
+    const unlinked = bundles.filter((b) => !b.productId);
 
     // Count drafts that can't publish (no components)
     const components = await ctx.db
       .query("commerce_bundle_components")
       .collect();
-    const draftsBlocked = draft.filter((b: any) => {
+    const draftsBlocked = draft.filter((b) => {
       const bComponents = components.filter(
-        (c: any) => c.bundleId === b._id,
+        (c) => c.bundleId === b._id,
       );
       return bComponents.length === 0;
     });
@@ -496,7 +567,14 @@ export const getStats: RegisteredQuery<"public", {}, { total: number; active: nu
  */
 export const getLowStock: RegisteredQuery<"public", { threshold?: number }, { _id: Id<"commerce_bundles">; name: string; slug: string; stockCount?: number; status: BundleStatus }[] | null> = query({
   args: { threshold: v.optional(v.number()) },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), v.array(v.object({
+    _id: v.id("commerce_bundles"),
+    name: v.string(),
+    slug: v.string(),
+    stockCount: v.optional(v.number()),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
+  }))),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -506,13 +584,13 @@ export const getLowStock: RegisteredQuery<"public", { threshold?: number }, { _i
 
     return bundles
       .filter(
-        (b: any) =>
+        (b) =>
           b.trackInventory &&
           typeof b.stockCount === "number" &&
           b.stockCount <= threshold &&
           b.status === "active",
       )
-      .map((b: any) => ({
+      .map((b) => ({
         _id: b._id,
         name: b.name,
         slug: b.slug,
@@ -531,7 +609,8 @@ export const getLowStock: RegisteredQuery<"public", { threshold?: number }, { _i
  */
 export const getSelectionByCartItem: RegisteredQuery<"public", { cartItemId: Id<"commerce_cart_items">; sessionToken?: string }, Doc<"commerce_bundle_selections"> | null> = query({
   args: { cartItemId: v.id("commerce_cart_items"), sessionToken: v.optional(v.string()) },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), commerceBundlesDocs.commerce_bundle_selections),
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     const item = await ctx.db.get(args.cartItemId);
@@ -543,7 +622,7 @@ export const getSelectionByCartItem: RegisteredQuery<"public", { cartItemId: Id<
 
     return await ctx.db
       .query("commerce_bundle_selections")
-      .withIndex("by_cart_item", (q: any) =>
+      .withIndex("by_cart_item", (q) =>
         q.eq("cartItemId", args.cartItemId),
       )
       .unique();

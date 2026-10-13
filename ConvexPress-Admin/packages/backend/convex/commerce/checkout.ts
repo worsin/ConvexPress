@@ -2,12 +2,13 @@ import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
 import { prepareReservationCommit } from "./reservationCommit";
 import { readStockTarget, readReservedStock, readCheckoutReservations } from "./stockTarget";
 import type { RegisteredMutation } from "convex/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { CommerceGeneralSettings } from "../settings/defaults";
 import { isActiveCheckoutSession, isClosedCart } from "./cartLifecycle";
 import { evaluateCartCoupon, reserveOrderCoupon, settleOrderCoupon } from "./couponLifecycle";
 import { ConvexError } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
 import { requireCan } from "../helpers/permissions";
@@ -31,7 +32,9 @@ import {
   computeCartKey,
   isQuoteUsableForCheckout,
   shippingQuoteLabel,
+  type CartFingerprintItem,
 } from "./checkoutShippingGuards";
+import { computeAddressFingerprint } from "../shipping/helpers/addressFingerprint";
 import {
   completeCheckoutArgs,
   abandonCheckoutSessionArgs,
@@ -45,24 +48,31 @@ import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
-async function getCartBySession(ctx: any, sessionToken: string) {
+import { commerceDocs } from "../schema/commerce.docs.generated";
+type CheckoutSessionDoc = Doc<"commerce_checkout_sessions">;
+type CheckoutCartItem = Doc<"commerce_cart_items"> & {
+  product: Doc<"commerce_products"> | null;
+  variant: Doc<"commerce_product_variants"> | null;
+};
+type TaxAddressInput = { countryCode: string; state?: string; postalCode?: string };
+
+async function getCartBySession(ctx: QueryCtx, sessionToken: string) {
   const cart = await ctx.db
     .query("commerce_carts")
-    .withIndex("by_session", (q: any) => q.eq("sessionToken", sessionToken))
+    .withIndex("by_session", (q) => q.eq("sessionToken", sessionToken))
     .unique();
   if (cart) assertCartAccess(cart, sessionToken, (await getCurrentUser(ctx))?._id);
   return cart;
 }
 
-async function getCheckoutBySession(ctx: any, sessionToken: string) {
+async function getCheckoutBySession(ctx: QueryCtx, sessionToken: string) {
   const sessions = await ctx.db
     .query("commerce_checkout_sessions")
-    .withIndex("by_session", (q: any) => q.eq("sessionToken", sessionToken))
+    .withIndex("by_session", (q) => q.eq("sessionToken", sessionToken))
     .collect();
   const session = (
-    sessions.find((session: any) => isActiveCheckoutSession(session)) ??
-    sessions.find((session: any) => session.status === "abandoned") ??
+    sessions.find((session) => isActiveCheckoutSession(session)) ??
+    sessions.find((session) => session.status === "abandoned") ??
     sessions[0] ??
     null
   );
@@ -74,7 +84,7 @@ function checkoutExpiresAt(now = Date.now()) {
   return now + 2 * 60 * 60 * 1000;
 }
 
-async function markCheckoutFailed(ctx: any, session: any, message: string) {
+async function markCheckoutFailed(ctx: MutationCtx, session: CheckoutSessionDoc | null, message: string) {
   if (!session || session.status === "completed") return;
   const now = Date.now();
   await ctx.db.patch("commerce_checkout_sessions", session._id, {
@@ -92,9 +102,9 @@ async function markCheckoutFailed(ctx: any, session: any, message: string) {
 }
 
 async function computeTaxForAddress(
-  ctx: any,
-  address: { countryCode: string; state?: string; postalCode?: string },
-  items: any[],
+  ctx: Pick<QueryCtx, "db">,
+  address: TaxAddressInput,
+  items: Array<Pick<CheckoutCartItem, "lineTotalAmount" | "product" | "variant">>,
   discountAmount: number,
   pricesIncludeTax: boolean,
   shippingAmount = 0,
@@ -102,17 +112,17 @@ async function computeTaxForAddress(
 ) {
   const rules = await ctx.db
     .query("commerce_tax_rules")
-    .withIndex("by_active", (q: any) => q.eq("isActive", true))
+    .withIndex("by_active", (q) => q.eq("isActive", true))
     .collect();
 
   const subtotalAmount = items.reduce(
-    (sum: number, item: any) => sum + Math.max(0, Number(item.lineTotalAmount ?? 0)),
+    (sum: number, item) => sum + Math.max(0, Number(item.lineTotalAmount ?? 0)),
     0,
   );
   const discountRatio =
     subtotalAmount > 0 ? Math.min(1, Math.max(0, discountAmount / subtotalAmount)) : 0;
 
-  const itemTaxLines = items.map((item: any) => ({
+  const itemTaxLines = items.map((item) => ({
     amount: Math.max(
       0,
       Math.round(Number(item.lineTotalAmount ?? 0) * (1 - discountRatio)),
@@ -128,16 +138,10 @@ async function computeTaxForAddress(
     { pricesIncludeTax },
   );
 
-  let shippingTaxResult = {
+  let shippingTaxResult: ReturnType<typeof calculateTaxForLinesFromRules> = {
     taxAmount: 0,
     taxableAmount: 0,
-    breakdown: [] as Array<{
-      taxClass: string;
-      taxableAmount: number;
-      taxAmount: number;
-      taxRate: number;
-      rules: Array<Record<string, unknown>>;
-    }>,
+    breakdown: [],
   };
   const normalizedShippingTaxClass = shippingTaxClass?.trim();
   if (normalizedShippingTaxClass && shippingAmount > 0) {
@@ -171,20 +175,20 @@ async function computeTaxForAddress(
   };
 }
 
-async function getActiveCheckoutShippingMethod(ctx: any, checkoutSessionId: any) {
+async function getActiveCheckoutShippingMethod(ctx: Pick<QueryCtx, "db">, checkoutSessionId: Id<"commerce_checkout_sessions">) {
   return ctx.db
     .query("commerce_checkout_shipping_methods")
-    .withIndex("by_checkout_status", (q: any) =>
+    .withIndex("by_checkout_status", (q) =>
       q.eq("checkoutSessionId", checkoutSessionId).eq("status", "active"),
     )
     .first();
 }
 
-async function staleCheckoutShippingMethods(ctx: any, checkoutSessionId: any) {
+async function staleCheckoutShippingMethods(ctx: Pick<MutationCtx, "db">, checkoutSessionId: Id<"commerce_checkout_sessions">) {
   const now = Date.now();
   const activeMethods = await ctx.db
     .query("commerce_checkout_shipping_methods")
-    .withIndex("by_checkout_status", (q: any) =>
+    .withIndex("by_checkout_status", (q) =>
       q.eq("checkoutSessionId", checkoutSessionId).eq("status", "active"),
     )
     .collect();
@@ -198,20 +202,20 @@ async function staleCheckoutShippingMethods(ctx: any, checkoutSessionId: any) {
 }
 
 async function selectCheckoutShippingMethod(
-  ctx: any,
+  ctx: MutationCtx,
   input: {
-    session: any;
-    cartItems: any[];
+    session: CheckoutSessionDoc;
+    cartItems: CartFingerprintItem[];
     selectedCode: string;
-    settings: any;
-    shippingAddress?: any;
+    settings: CommerceGeneralSettings;
+    shippingAddress?: CheckoutSessionDoc["shippingAddress"];
   },
 ) {
   const now = Date.now();
 
   const shippingQuotes = await getCheckoutQuotes(ctx, input.session._id);
   const selectedQuote = shippingQuotes.find(
-    (quote: any) => quote.quoteKey === input.selectedCode,
+    (quote) => quote.quoteKey === input.selectedCode,
   );
 
   if (selectedQuote) {
@@ -301,12 +305,14 @@ async function selectCheckoutShippingMethod(
   };
 }
 
-function resolveTaxAddress(settings: any, session: any, patch: Record<string, unknown>) {
+function resolveTaxAddress(
+  settings: CommerceGeneralSettings,
+  session: CheckoutSessionDoc,
+  patch: Pick<Partial<CheckoutSessionDoc>, "shippingAddress" | "billingAddress">,
+): TaxAddressInput | undefined {
   const basis = settings.taxRateBasis ?? "shipping";
   if (basis === "billing") {
-    return (patch.billingAddress ?? session.billingAddress) as
-      | { countryCode: string; state?: string; postalCode?: string }
-      | undefined;
+    return patch.billingAddress ?? session.billingAddress;
   }
   if (basis === "store") {
     return {
@@ -315,62 +321,69 @@ function resolveTaxAddress(settings: any, session: any, patch: Record<string, un
       postalCode: undefined,
     };
   }
-  return (patch.shippingAddress ??
+  return patch.shippingAddress ??
     session.shippingAddress ??
     patch.billingAddress ??
-    session.billingAddress) as
-    | { countryCode: string; state?: string; postalCode?: string }
-    | undefined;
+    session.billingAddress;
 }
 
-async function getCheckoutQuotes(ctx: any, checkoutSessionId: any) {
+async function getCheckoutQuotes(ctx: Pick<QueryCtx, "db">, checkoutSessionId: Id<"commerce_checkout_sessions">) {
   const now = Date.now();
   const quotes = await ctx.db
     .query("commerce_shipping_rate_quotes")
-    .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", checkoutSessionId))
+    .withIndex("by_checkout", (q) => q.eq("checkoutSessionId", checkoutSessionId))
     .collect();
 
-  return quotes.filter((quote: any) => Number(quote.expiresAt ?? 0) > now);
+  return quotes.filter((quote) => Number(quote.expiresAt ?? 0) > now);
 }
 
-async function getCartItemsWithProducts(ctx: any, cartId: any) {
+async function getCartItemsWithProducts(ctx: Pick<QueryCtx, "db">, cartId: Id<"commerce_carts">): Promise<CheckoutCartItem[]> {
   const items = await ctx.db
     .query("commerce_cart_items")
-    .withIndex("by_cart", (q: any) => q.eq("cartId", cartId))
+    .withIndex("by_cart", (q) => q.eq("cartId", cartId))
     .collect();
 
   const enrichedItems = await Promise.all(
-    items.map(async (item: any) => ({
+    items.map(async (item) => ({
       ...item,
-      product: await ctx.db.get(item.productId),
-      variant: item.variantId ? await ctx.db.get(item.variantId) : null,
+      product: await ctx.db.get("commerce_products", item.productId),
+      variant: item.variantId ? await ctx.db.get("commerce_product_variants", item.variantId) : null,
     })),
   );
 
   return enrichedItems;
 }
 
-function itemInventoryTarget(item: any) {
+type InventoryItem = { product: Doc<"commerce_products">; variant: Doc<"commerce_product_variants"> | null; quantity: number };
+type InventoryTarget = {
+  productId: Id<"commerce_products">;
+  variantId: Id<"commerce_product_variants"> | undefined;
+  patchId: Id<"commerce_products"> | Id<"commerce_product_variants">;
+  stockQuantity: number;
+  allowBackorders: boolean;
+};
+
+function itemInventoryTarget(item: InventoryItem): InventoryTarget | null {
   if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) throw new ConvexError({code:"VALIDATION_ERROR",message:"Quantity must be a positive whole number."});
   const policy = resolveStockPolicy(item.product, item.variant);
   if (!policy.tracked) {
     if (!canOrderQuantity(policy,item.quantity)) throw new ConvexError({code:"INSUFFICIENT_STOCK",message:"This item is out of stock."});
     return null;
   }
-  const variantId = policy.owner === "variant" ? item.variant._id : undefined;
+  const variantId = policy.owner === "variant" ? item.variant?._id : undefined;
   return {productId:item.product._id,variantId,patchId:variantId??item.product._id,stockQuantity:policy.stockQuantity,allowBackorders:policy.allowBackorders};
 }
 
-async function getReservedInventoryCount(ctx:any,args:{productId:any;variantId?:any;locationId?:any}) {
+async function getReservedInventoryCount(ctx:Pick<QueryCtx,"db">,args:{productId:Id<"commerce_products">;variantId?:Id<"commerce_product_variants">;locationId?:Id<"commerce_ship_from_locations">}) {
   return readReservedStock(ctx,args.productId,args.variantId,args.locationId);
 }
 
-async function selectInventoryAllocation(ctx: any, target: any, quantity: number, quotedLocationId?: any) {
+async function selectInventoryAllocation(ctx: Pick<QueryCtx, "db">, target: InventoryTarget, quantity: number, quotedLocationId?: Id<"commerce_ship_from_locations">) {
   const ownerLevels = await ctx.db.query("commerce_inventory_levels")
-    .withIndex("by_product_variant", (q:any)=>q.eq("productId",target.productId).eq("variantId",target.variantId))
+    .withIndex("by_product_variant", (q)=>q.eq("productId",target.productId).eq("variantId",target.variantId))
     .take(201);
   if(ownerLevels.length>200)throw new ConvexError({code:"INVENTORY_CAPACITY",message:"Inventory locations exceed the supported checkout budget."});
-  const candidateLevels = ownerLevels.filter((level:any)=>level.isActive && (!quotedLocationId || level.locationId===quotedLocationId));
+  const candidateLevels = ownerLevels.filter((level)=>level.isActive && (!quotedLocationId || level.locationId===quotedLocationId));
   if(ownerLevels.length && !candidateLevels.length)throw new ConvexError({code:"INSUFFICIENT_STOCK",message:"No active stock is available at the quoted shipping origin."});
   const locationIds = new Set<string>();
   for(const level of candidateLevels){
@@ -378,7 +391,7 @@ async function selectInventoryAllocation(ctx: any, target: any, quantity: number
     locationIds.add(String(level.locationId));
   }
   const levels = candidateLevels
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       const aSafety = Number(a.safetyStockQuantity ?? 0);
       const bSafety = Number(b.safetyStockQuantity ?? 0);
       const aAvailable = Number(a.stockQuantity ?? 0) - aSafety;
@@ -419,13 +432,18 @@ async function selectInventoryAllocation(ctx: any, target: any, quantity: number
   };
 }
 
-async function reserveCheckoutInventory(ctx: any, session: any, items: any[], quotedLocationId?: any) {
+async function reserveCheckoutInventory(
+  ctx: MutationCtx,
+  session: CheckoutSessionDoc,
+  items: Array<{ metadata?: unknown; quantity: number; productId: Id<"commerce_products">; variantId?: Id<"commerce_product_variants"> }>,
+  quotedLocationId?: Id<"commerce_ship_from_locations">,
+) {
   const existingReservations = await readCheckoutReservations(ctx,session._id);
   // Rebuild this checkout's holds atomically from its current selections.
   for(const reservation of existingReservations) await ctx.db.patch("commerce_stock_reservations",reservation._id,{status:"released",updatedAt:Date.now()});
 
   const now = Date.now();
-  const inventoryItems = [];
+  const inventoryItems: InventoryItem[] = [];
   let reservedCount = 0;
   for (const item of items) for (const allocation of getOrderItemInventoryAllocations(item)) {
     const selected = await readStockTarget(ctx, allocation.productId, allocation.variantId);
@@ -462,7 +480,7 @@ async function reserveCheckoutInventory(ctx: any, session: any, items: any[], qu
   return reservedCount;
 }
 
-async function commitCheckoutInventory(ctx: any, session: any, orderId: any) {
+async function commitCheckoutInventory(ctx: MutationCtx, session: CheckoutSessionDoc, orderId: Id<"commerce_orders">) {
   const now = Date.now();
   const plan = await prepareReservationCommit(ctx,session._id,orderId,now);
   if (plan.alreadyCommitted) return;
@@ -478,9 +496,9 @@ async function commitCheckoutInventory(ctx: any, session: any, orderId: any) {
 }
 
 async function upsertCustomerProfile(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    userId?: any;
+    userId?: Id<"users">;
     email: string;
     phone?: string;
     currencyCode: string;
@@ -490,11 +508,11 @@ async function upsertCustomerProfile(
   let profile = args.userId
     ? await ctx.db
         .query("commerce_customer_profiles")
-        .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
         .unique()
     : await ctx.db
         .query("commerce_customer_profiles")
-        .withIndex("by_email", (q: any) => q.eq("email", args.email))
+        .withIndex("by_email", (q) => q.eq("email", args.email))
         .unique();
 
   const now = Date.now();
@@ -529,6 +547,7 @@ function buildTrackingToken() {
 
 export const getSession = query({
   args: getCheckoutSessionArgs,
+  returns: v.union(v.null(), commerceDocs.commerce_checkout_sessions),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -540,7 +559,7 @@ export const getSession = query({
     ) {
       return {
         ...session,
-        status: "abandoned",
+        status: "abandoned" as const,
       };
     }
     return session;
@@ -549,6 +568,7 @@ export const getSession = query({
 
 export const createSession = mutation({
   args: createCheckoutSessionArgs,
+  returns: v.id("commerce_checkout_sessions"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -629,6 +649,7 @@ export const createSession = mutation({
 
 export const updateSession = mutation({
   args: updateCheckoutSessionArgs,
+  returns: v.id("commerce_checkout_sessions"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -668,7 +689,7 @@ export const updateSession = mutation({
         quotesInvalidated = true;
         const staleQuotes = await ctx.db
           .query("commerce_shipping_rate_quotes")
-          .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
+          .withIndex("by_checkout", (q) => q.eq("checkoutSessionId", session._id))
           .collect();
         for (const quote of staleQuotes) {
           await ctx.db.delete("commerce_shipping_rate_quotes", quote._id);
@@ -721,7 +742,7 @@ export const updateSession = mutation({
 
     const requiresShipping =
       settings.shippingEnabled &&
-      cartItems.some((item: any) => item.product && item.product.isVirtual !== true);
+      cartItems.some((item) => item.product && item.product.isVirtual !== true);
     const hasShippingAddress =
       !requiresShipping || Boolean(args.shippingAddress ?? session.shippingAddress);
     // If quotes were invalidated (address changed) and no new rate was selected,
@@ -801,6 +822,7 @@ export const updateSession = mutation({
 
 export const complete: RegisteredMutation<"public", { sessionToken: string }, Id<"commerce_orders">> = mutation({
   args: completeCheckoutArgs,
+  returns: v.id("commerce_orders"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -817,13 +839,13 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
     }
 
     if (session.orderId) {
-      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
         orderId: session.orderId,
       });
       return session.orderId;
     }
     if (cart.orderId) {
-      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
         orderId: cart.orderId,
       });
       return cart.orderId;
@@ -831,7 +853,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
 
     const existingOrder = await ctx.db
       .query("commerce_orders")
-      .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
+      .withIndex("by_checkout", (q) => q.eq("checkoutSessionId", session._id))
       .first();
     if (existingOrder) {
       await ctx.db.patch("commerce_checkout_sessions", session._id, {
@@ -842,7 +864,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
         orderId: existingOrder._id,
         updatedAt: Date.now(),
       });
-      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
         orderId: existingOrder._id,
       });
       return existingOrder._id;
@@ -898,7 +920,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
     session.freeShippingByCoupon = cart.freeShippingByCoupon;
 
     // Revalidate bundle items before order creation
-    const createdOrderItems: Array<{ orderItemId: any; cartItemId?: any; lineTotalAmount: number }> = [];
+    const createdOrderItems: Array<{ orderItemId: Id<"commerce_order_items">; cartItemId?: Id<"commerce_cart_items">; lineTotalAmount: number }> = [];
     for (const item of items) {
       const bundle = await resolveCartBundle(ctx, { productId: item.productId, variantId: item.variantId, metadata: item.metadata, quantity: item.quantity, currencyCode: cart.currencyCode });
       if (bundle) assertCurrentBundlePrice(item, bundle);
@@ -907,7 +929,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
 
     const requiresShipping =
       settings.shippingEnabled &&
-      items.some((item: any) => item.product && item.product.isVirtual !== true);
+      items.some((item) => item.product && item.product.isVirtual !== true);
     const paymentMethods = getEnabledCheckoutPaymentMethods(settings);
     const selectedPaymentMethod = paymentMethods.find(
       (method) => method.code === session.selectedPaymentMethodCode,
@@ -922,13 +944,31 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
 
     let selectedShippingMethod:
       | {
-          _id?: any;
+          _id?: Id<"commerce_checkout_shipping_methods">;
           code: string;
           label: string;
           amount: number;
         }
       | undefined;
-    let selectedShippingQuote: any | undefined;
+    type CheckoutShippingMethod = Doc<"commerce_checkout_shipping_methods">;
+    let selectedShippingQuote:
+      | {
+          _id: CheckoutShippingMethod["quoteId"];
+          quoteKey: string;
+          amount: number;
+          currency: string;
+          provider: CheckoutShippingMethod["provider"];
+          carrierCode: CheckoutShippingMethod["carrierCode"];
+          carrierName: CheckoutShippingMethod["carrierName"];
+          serviceCode: CheckoutShippingMethod["serviceCode"];
+          serviceName: CheckoutShippingMethod["serviceName"];
+          accountId: CheckoutShippingMethod["accountId"];
+          packages: CheckoutShippingMethod["packages"];
+          origin: CheckoutShippingMethod["origin"];
+          rawQuote: CheckoutShippingMethod["rawQuote"];
+          expiresAt: CheckoutShippingMethod["expiresAt"];
+        }
+      | undefined;
 
     if (requiresShipping) {
       if (!session.shippingAddress) {
@@ -1008,14 +1048,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
     let finalTaxAmount = Number(cart.taxAmount ?? 0);
     // Wave 12.1: capture the per-class tax breakdown for per-line writes
     // into `commerce_order_tax_lines` after the order is created.
-    let finalTaxBreakdown: Array<{
-      source: "item" | "shipping";
-      taxClass: string;
-      taxableAmount: number;
-      taxAmount: number;
-      taxRate: number;
-      rules: Array<Record<string, unknown>>;
-    }> = [];
+    let finalTaxBreakdown: Awaited<ReturnType<typeof computeTaxForAddress>>["breakdown"] = [];
     const completionTaxAddress = resolveTaxAddress(settings, session, {});
     if (completionTaxAddress) {
       const taxResult = await computeTaxForAddress(
@@ -1054,6 +1087,15 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
       totalAmount: finalTotalAmount,
     });
 
+    // PRD A5 §4.3 — the cached validation for this exact address, if still fresh.
+    const shippingAddressForValidation = session.shippingAddress;
+    const cachedValidation = shippingAddressForValidation
+      ? await ctx.db
+          .query("commerce_address_validations")
+          .withIndex("by_fingerprint", (q) => q.eq("fingerprint", computeAddressFingerprint(shippingAddressForValidation)))
+          .unique()
+      : null;
+    const addressValidation = cachedValidation && cachedValidation.expiresAt >= Date.now() ? cachedValidation : null;
     const orderId = await ctx.db.insert("commerce_orders", {
       inventoryPolicyVersion:1,
       inventoryReservationCount,
@@ -1079,15 +1121,12 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
       shippingQuoteRaw: selectedShippingQuote?.rawQuote,
       // PRD A5 §4.3 — snapshot the latest validation outcome so the order
       // preserves the address classification at purchase time.
-      shippingAddressValidatedAt: (() => {
-        const cached = (session as any).shippingAddressValidation;
-        return typeof cached?.validatedAt === "number" ? cached.validatedAt : undefined;
-      })(),
-      shippingAddressValidationProvider: (session as any).shippingAddressValidation?.provider,
-      shippingAddressValidationStatus: (session as any).shippingAddressValidation?.status,
-      shippingAddressValidationFingerprint: (session as any).shippingAddressValidation?.fingerprint,
-      shippingAddressIsResidential: (session as any).shippingAddressValidation?.isResidential,
-      shippingAddressNormalized: (session as any).shippingAddressValidation?.normalizedAddress,
+      shippingAddressValidatedAt: addressValidation?.validatedAt,
+      shippingAddressValidationProvider: addressValidation?.provider,
+      shippingAddressValidationStatus: addressValidation?.status,
+      shippingAddressValidationFingerprint: addressValidation?.fingerprint,
+      shippingAddressIsResidential: addressValidation?.isResidential,
+      shippingAddressNormalized: addressValidation?.normalizedAddress,
       // PRD D1 §6.10 — snapshot fingerprints so label purchase can
       // detect stale rates when address/cart change post-order.
       shippingQuoteAddressKey: selectedShippingQuote
@@ -1107,12 +1146,12 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
             provider: selectedShippingQuote.provider,
             carrierCode: selectedShippingQuote.carrierCode,
             serviceCode: selectedShippingQuote.serviceCode,
-            accountId: (selectedShippingQuote as any).accountId,
-            packages: (selectedShippingQuote as any).packages,
+            accountId: selectedShippingQuote.accountId,
+            packages: selectedShippingQuote.packages,
             fingerprintAddressKey: computeAddressKey(session.shippingAddress),
             fingerprintCartKey: computeCartKey(items),
             expiresAt: selectedShippingQuote.expiresAt,
-            origin: (selectedShippingQuote as any).origin,
+            origin: selectedShippingQuote.origin,
             rateSource: selectedShippingQuote.provider === "manual"
               ? "manual"
               : "live",
@@ -1182,7 +1221,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
         .join(" / ") || completionTaxAddress.countryCode;
       for (const group of finalTaxBreakdown) {
         if (group.taxAmount <= 0) continue;
-        const firstRule: any = group.rules?.[0];
+        const firstRule = group.rules[0];
         await ctx.db.insert("commerce_order_tax_lines", {
           orderId,
           checkoutShippingMethodId:
@@ -1200,11 +1239,12 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
       }
     }
 
-    if (Number(cart.discountAmount ?? 0) > 0 || cart.appliedDiscountCode) {
-      const discount = cart.appliedDiscountCode
+    const appliedDiscountCode = cart.appliedDiscountCode;
+    if (Number(cart.discountAmount ?? 0) > 0 || appliedDiscountCode) {
+      const discount = appliedDiscountCode
         ? await ctx.db
             .query("commerce_discount_codes")
-            .withIndex("by_code", (q: any) => q.eq("code", cart.appliedDiscountCode))
+            .withIndex("by_code", (q) => q.eq("code", appliedDiscountCode))
             .unique()
         : null;
       await ctx.db.insert("commerce_applied_adjustments", {
@@ -1270,7 +1310,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
         currencyCode: session.currencyCode,
         metadata: {
           description: cart.dynamicPricingDescription,
-          ruleIds: cart.dynamicPricingRuleIds?.map((id: any) => String(id)) ?? [],
+          ruleIds: cart.dynamicPricingRuleIds?.map((id) => String(id)) ?? [],
           freeShipping: Boolean(cart.freeShippingByDynamicPricing),
         },
         createdAt: now,
@@ -1342,7 +1382,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
       });
     }
 
-    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+    await ctx.runMutation(internal.purchases.internals.syncCommerceOrder, {
       orderId,
       eventType: "order_created",
     });
@@ -1353,6 +1393,7 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
 
 export const abandonSession = mutation({
   args: abandonCheckoutSessionArgs,
+  returns: v.id("commerce_checkout_sessions"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -1379,7 +1420,7 @@ export const abandonSession = mutation({
 
 export const listSessions: import("convex/server").RegisteredQuery<"public", { limit?: number; olderThanMs?: number }, import("../_generated/dataModel").Doc<"commerce_checkout_sessions">[]> = query({
   args: listAbandonedCheckoutSessionsArgs,
-  returns: v.array(tableDocs.commerce_checkout_sessions),
+  returns: v.array(commerceDocs.commerce_checkout_sessions),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(args.limit ?? 100, 500);
@@ -1391,7 +1432,7 @@ export const listSessions: import("convex/server").RegisteredQuery<"public", { l
       .take(limit);
 
     return sessions.filter(
-      (session: any) =>
+      (session) =>
         session.status === "abandoned" ||
         session.status === "failed" ||
         (!["completed", "payment_pending"].includes(session.status) &&

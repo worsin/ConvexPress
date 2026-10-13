@@ -6,6 +6,7 @@ import type { RequestReadLedger } from "../helpers/requestReadLedger";
 
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { convexErrorCode } from "../commerce/errorCode";
 
 type BundleCtx = Pick<QueryCtx, "db">;
 type BundleDoc = Doc<"commerce_bundles">;
@@ -387,7 +388,8 @@ export async function resolveBundleAvailability(
       const stock=resolveStockPolicy(product,target.variant,reserved);
       if(!canOrderQuantity(stock,selection.quantity*lineQuantity))unavailableComponents.push(target.label);
     } catch (error) {
-      if (!(error instanceof ConvexError) || !["NOT_FOUND","VALIDATION_ERROR"].includes((error.data as {code:string}).code)) throw error;
+      const code = convexErrorCode(error);
+      if (code !== "NOT_FOUND" && code !== "VALIDATION_ERROR") throw error;
       unavailableComponents.push(selection.variantTitle ? `${product.title} - ${selection.variantTitle}` : product.title);
     }
   }

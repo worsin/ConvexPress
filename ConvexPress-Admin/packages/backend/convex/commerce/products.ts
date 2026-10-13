@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { validateSaleSchedule } from "./saleSchedule";
 import { resolveProductTags, readProductTagAssignments } from "./productTags";
 import { activePriceAmount } from "./activePrice";
 import { publicProductDetail, publicProductSummary } from "./publicProduct";
 import { createPublicProductAccessReader } from "./publicProductAccess";
 import { filterPublicCategoryHierarchy } from "./categoryVisibility";
-import type { Doc } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 // ============================================
 // ADVANCED PRODUCT FEATURES — Option types, option values,
 // product variants, bulk actions, archive / restore
@@ -39,6 +39,10 @@ import {
   validateVariantSelectionsResult,
   getVariantDisplayPrice,
   validateOptionTypesShape,
+  readOptionTypes,
+  type OptionType,
+  type OptionValue,
+  type VariantSelectionInput,
 } from "./variantHelpers";
 import {
   createCommerceProductArgs,
@@ -53,6 +57,7 @@ import {
 } from "./validators";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { commerceDocs } from "../schema/commerce.docs.generated";
 function slugifyCommerceProduct(value: string) {
   return (
     (sanitizeSlug(value) ??
@@ -66,10 +71,16 @@ function slugifyCommerceProduct(value: string) {
   );
 }
 
-async function listVariantsByProduct(ctx: any, productId: any) {
+type ReadCtx = Pick<QueryCtx, "db">;
+type ProductId = Id<"commerce_products">;
+type VariantId = Id<"commerce_product_variants">;
+type CategoryId = Id<"commerce_product_categories">;
+type ProductDoc = Doc<"commerce_products">;
+
+async function listVariantsByProduct(ctx: ReadCtx, productId: ProductId) {
   return ctx.db
     .query("commerce_product_variants")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
+    .withIndex("by_product", (q) => q.eq("productId", productId))
     .collect();
 }
 
@@ -84,12 +95,29 @@ function getProductStatusEvent(previousStatus: string | undefined, nextStatus: s
   return PRODUCT_EVENTS.UPDATED;
 }
 
-async function getProductSlugForEvent(ctx: any, productId: any) {
+async function getProductSlugForEvent(ctx: ReadCtx, productId: ProductId) {
   const product = await ctx.db.get(productId);
   return product?.slug;
 }
 
-function validateVariantSelections(optionTypes: any[], selections: any[] | undefined) {
+/**
+ * Variant `shippingClassId` arrives as a string; the column holds an Id. An
+ * empty string clears it; anything that is not a shipping class id is rejected
+ * (the write used to fail schema validation instead).
+ */
+function resolveShippingClassId(
+  ctx: ReadCtx,
+  value: string | undefined,
+): Id<"commerce_shipping_classes"> | undefined {
+  if (value === undefined || value === "") return undefined;
+  const id = ctx.db.normalizeId("commerce_shipping_classes", value);
+  if (!id) {
+    throw new ConvexError({ code: "VALIDATION_ERROR", message: "Unknown shipping class." });
+  }
+  return id;
+}
+
+function validateVariantSelections(optionTypes: OptionType[], selections: VariantSelectionInput[] | undefined) {
   const result = validateVariantSelectionsResult(optionTypes, selections);
   if (!result.ok) {
     throw new ConvexError({ ...result.error });
@@ -97,25 +125,26 @@ function validateVariantSelections(optionTypes: any[], selections: any[] | undef
   return result.selections;
 }
 
-async function getVariantReferenceSummary(ctx: any, variantId: any) {
-  const tables = [
-    { table: "commerce_cart_items", label: "cart items" },
-    { table: "commerce_order_items", label: "order items" },
-    { table: "commerce_wishlist_items", label: "wishlist items" },
-    { table: "commerce_digital_files", label: "digital files" },
-    { table: "commerce_license_keys", label: "license keys" },
-    { table: "commerce_bundle_components", label: "bundle components" },
-    { table: "commerce_subscription_items", label: "subscription items" },
-    { table: "commerce_return_items", label: "return items" },
-    { table: "commerce_stock_reservations", label: "stock reservations" },
-    { table: "commerce_inventory_adjustments", label: "inventory adjustments" },
+async function getVariantReferenceSummary(ctx: ReadCtx, variantId: VariantId) {
+  const { db } = ctx;
+  const tables: Array<{ label: string; rows: () => Promise<Array<{ variantId?: VariantId }>> }> = [
+    { label: "cart items", rows: () => db.query("commerce_cart_items").collect() },
+    { label: "order items", rows: () => db.query("commerce_order_items").collect() },
+    { label: "wishlist items", rows: () => db.query("commerce_wishlist_items").collect() },
+    { label: "digital files", rows: () => db.query("commerce_digital_files").collect() },
+    { label: "license keys", rows: () => db.query("commerce_license_keys").collect() },
+    { label: "bundle components", rows: () => db.query("commerce_bundle_components").collect() },
+    { label: "subscription items", rows: () => db.query("commerce_subscription_items").collect() },
+    { label: "return items", rows: () => db.query("commerce_return_items").collect() },
+    { label: "stock reservations", rows: () => db.query("commerce_stock_reservations").collect() },
+    { label: "inventory adjustments", rows: () => db.query("commerce_inventory_adjustments").collect() },
   ];
 
   const references: Array<{ label: string; count: number }> = [];
 
   for (const table of tables) {
-    const rows = (await ctx.db.query(table.table).collect()).filter(
-      (row: any) => row.variantId?.toString() === variantId.toString(),
+    const rows = (await table.rows()).filter(
+      (row) => row.variantId?.toString() === variantId.toString(),
     );
     if (rows.length > 0) {
       references.push({ label: table.label, count: rows.length });
@@ -123,9 +152,9 @@ async function getVariantReferenceSummary(ctx: any, variantId: any) {
   }
 
   const bundleSelections = await ctx.db.query("commerce_bundle_selections").collect();
-  const bundleSelectionCount = bundleSelections.filter((row: any) =>
+  const bundleSelectionCount = bundleSelections.filter((row) =>
     (row.selections ?? []).some(
-      (selection: any) => selection.variantId?.toString() === variantId.toString(),
+      (selection) => selection.variantId?.toString() === variantId.toString(),
     ),
   ).length;
   if (bundleSelectionCount > 0) {
@@ -135,12 +164,12 @@ async function getVariantReferenceSummary(ctx: any, variantId: any) {
   return references;
 }
 
-async function getBundleProductReferenceSummary(ctx: any, productId: any) {
+async function getBundleProductReferenceSummary(ctx: ReadCtx, productId: ProductId) {
   const references: Array<{ label: string; count: number }> = [];
 
   const owningBundle = await ctx.db
     .query("commerce_bundles")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
+    .withIndex("by_product", (q) => q.eq("productId", productId))
     .unique();
   if (owningBundle) {
     references.push({
@@ -154,7 +183,7 @@ async function getBundleProductReferenceSummary(ctx: any, productId: any) {
 
   const bundleComponents = await ctx.db
     .query("commerce_bundle_components")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
+    .withIndex("by_product", (q) => q.eq("productId", productId))
     .collect();
   if (bundleComponents.length > 0) {
     const activeBundleIds = new Set<string>();
@@ -178,8 +207,8 @@ async function getBundleProductReferenceSummary(ctx: any, productId: any) {
 }
 
 async function assertProductBundleLifecycleAllowed(
-  ctx: any,
-  productId: any,
+  ctx: ReadCtx,
+  productId: ProductId,
   action: "unpublish" | "delete",
 ) {
   const references = await getBundleProductReferenceSummary(ctx, productId);
@@ -198,7 +227,7 @@ async function assertProductBundleLifecycleAllowed(
 }
 
 async function getUniqueProductSlug(
-  ctx: any,
+  ctx: ReadCtx,
   value: string,
   excludeId?: string,
 ): Promise<string> {
@@ -209,7 +238,7 @@ async function getUniqueProductSlug(
   while (true) {
     const existing = await ctx.db
       .query("commerce_products")
-      .withIndex("by_slug", (q: any) => q.eq("slug", candidate))
+      .withIndex("by_slug", (q) => q.eq("slug", candidate))
       .unique();
 
     if (!existing || existing._id.toString() === excludeId) {
@@ -220,7 +249,7 @@ async function getUniqueProductSlug(
   }
 }
 
-async function assertCategoriesExist(ctx: any, categoryIds: any[]) {
+async function assertCategoriesExist(ctx: ReadCtx, categoryIds: CategoryId[]) {
   for (const categoryId of categoryIds) {
     const category = await ctx.db.get(
       "commerce_product_categories",
@@ -235,15 +264,15 @@ async function assertCategoriesExist(ctx: any, categoryIds: any[]) {
   }
 }
 
-function dedupeIds(ids: any[]) {
+function dedupeIds<T extends string>(ids: T[]): T[] {
   return ids.filter(
-    (value: any, index: number, array: any[]) =>
+    (value, index, array) =>
       array.findIndex((candidate) => candidate.toString() === value.toString()) ===
       index,
   );
 }
 
-async function resolveProductCategoryIds(ctx: any, categoryIds: any[] | undefined) {
+async function resolveProductCategoryIds(ctx: MutationCtx, categoryIds: CategoryId[] | undefined): Promise<CategoryId[]> {
   const nextCategoryIds = dedupeIds(categoryIds ?? []);
   if (nextCategoryIds.length > 0) {
     await assertCategoriesExist(ctx, nextCategoryIds);
@@ -260,26 +289,26 @@ async function resolveProductCategoryIds(ctx: any, categoryIds: any[] | undefine
   return [defaultCategory._id];
 }
 
-async function recomputeCategoryCounts(ctx: any, categoryIds: any[]) {
+async function recomputeCategoryCounts(ctx: MutationCtx, categoryIds: CategoryId[]) {
   void categoryIds;
   await recomputeAllProductCategoryCounts(ctx);
 }
 
-async function loadCategoriesByIds(ctx: any, categoryIds: any[]) {
+async function loadCategoriesByIds(ctx: ReadCtx, categoryIds: CategoryId[]) {
   const categories = await Promise.all(
-    categoryIds.map((categoryId: any) =>
+    categoryIds.map((categoryId) =>
       ctx.db.get("commerce_product_categories", categoryId),
     ),
   );
 
   return categories
-    .filter(Boolean)
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    .filter((category): category is Doc<"commerce_product_categories"> => category !== null)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function collectCategoryDescendants(categories: any[], categoryId: any) {
+function collectCategoryDescendants(categories: Doc<"commerce_product_categories">[], categoryId: CategoryId) {
   const ids = new Set<string>([categoryId.toString()]);
-  const visit = (parentId: any) => {
+  const visit = (parentId: CategoryId) => {
     for (const category of categories) {
       if (category.parentId?.toString() === parentId.toString() && !ids.has(category._id.toString())) {
         ids.add(category._id.toString());
@@ -291,28 +320,28 @@ function collectCategoryDescendants(categories: any[], categoryId: any) {
   return ids;
 }
 
-async function computeDisplayPrice(ctx: any, product: any) {
+async function computeDisplayPrice(ctx: ReadCtx, product: ProductDoc) {
   if (product.productType !== "variable") {
     return activePriceAmount(product.basePrice, product.salePrice, product);
   }
 
   const allVariants = await ctx.db
     .query("commerce_product_variants")
-    .withIndex("by_product", (q: any) => q.eq("productId", product._id))
+    .withIndex("by_product", (q) => q.eq("productId", product._id))
     .collect();
-  const variants = allVariants.filter((variant: any) => !variant.status || variant.status === "publish");
+  const variants = allVariants.filter((variant) => !variant.status || variant.status === "publish");
 
   if (variants.length === 0) {
     return activePriceAmount(product.basePrice, product.salePrice, product);
   }
 
-  const defaultVariant = variants.find((variant: any) => variant.isDefault);
+  const defaultVariant = variants.find((variant) => variant.isDefault);
   if (defaultVariant) {
     return getVariantDisplayPrice(defaultVariant);
   }
 
   return variants.reduce(
-    (lowest: number, variant: any) =>
+    (lowest: number, variant) =>
       Math.min(lowest, getVariantDisplayPrice(variant)),
     Number.POSITIVE_INFINITY,
   );
@@ -338,12 +367,12 @@ async function serializeProductDetail(ctx: QueryCtx, product: Doc<"commerce_prod
     computeDisplayPrice(ctx, product),
     ctx.db
       .query("commerce_inventory_adjustments")
-      .withIndex("by_product", (q: any) => q.eq("productId", product._id))
+      .withIndex("by_product", (q) => q.eq("productId", product._id))
       .order("desc")
       .take(10),
     ctx.db
       .query("commerce_product_variants")
-      .withIndex("by_product", (q: any) => q.eq("productId", product._id))
+      .withIndex("by_product", (q) => q.eq("productId", product._id))
       .collect(),
   ]);
 
@@ -352,7 +381,7 @@ async function serializeProductDetail(ctx: QueryCtx, product: Doc<"commerce_prod
     categories,
     displayPrice: Number.isFinite(displayPrice) ? displayPrice : undefined,
     inventoryAdjustments,
-    variants: variants.sort((a: any, b: any) => {
+    variants: variants.sort((a, b) => {
       if (a.isDefault && !b.isDefault) return -1;
       if (!a.isDefault && b.isDefault) return 1;
       return a.title.localeCompare(b.title);
@@ -360,23 +389,50 @@ async function serializeProductDetail(ctx: QueryCtx, product: Doc<"commerce_prod
   };
 }
 
+const PRODUCT_STATUSES = ["draft", "publish", "private", "trash"] as const;
+
+/** A product row as the admin lists show it: the document plus its categories and display price. */
+const productSummaryFields = {
+  ...commerceDocs.commerce_products.fields,
+  categories: v.array(commerceDocs.commerce_product_categories),
+  displayPrice: v.optional(v.number()),
+};
+
+const optionValueValidator = v.object({
+  id: v.string(),
+  label: v.string(),
+  sortOrder: v.number(),
+  active: v.optional(v.boolean()),
+});
+
+const optionTypeValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  values: v.array(optionValueValidator),
+  sortOrder: v.number(),
+  createdAt: v.optional(v.number()),
+});
 const PRODUCTS_DEFAULT_PER_PAGE = 20;
 const PRODUCTS_MAX_PER_PAGE = 100;
 
-function applyProductFilters(products: any[], args: any) {
+function applyProductFilters(
+  products: ProductDoc[],
+  args: { status?: string; productType?: string; authorId?: string },
+): ProductDoc[] {
   let out = products;
-  if (args.status) out = out.filter((p: any) => p.status === args.status);
-  if (args.productType) out = out.filter((p: any) => p.productType === args.productType);
-  if (args.authorId) out = out.filter((p: any) => p.authorId?.toString() === args.authorId.toString());
+  const { status, productType, authorId } = args;
+  if (status) out = out.filter((p) => p.status === status);
+  if (productType) out = out.filter((p) => p.productType === productType);
+  if (authorId) out = out.filter((p) => p.authorId?.toString() === authorId.toString());
   return out;
 }
 
-function sortProducts(products: any[], orderBy?: string, orderDir?: "asc" | "desc") {
+function sortProducts(products: ProductDoc[], orderBy?: string, orderDir?: "asc" | "desc") {
   const dir = orderDir === "asc" ? 1 : -1;
   const key = orderBy ?? "updatedAt";
-  products.sort((a: any, b: any) => {
-    let av: any;
-    let bv: any;
+  products.sort((a, b) => {
+    let av: string | number;
+    let bv: string | number;
     switch (key) {
       case "title":
         av = (a.title ?? "").toLowerCase();
@@ -418,24 +474,37 @@ export const listAll = query({
     status: v.optional(v.string()),
     isDownloadable: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(v.object({
+    _id: v.id("commerce_products"),
+    title: v.string(),
+    slug: v.string(),
+    status: v.union(v.literal("draft"), v.literal("trash"), v.literal("publish"), v.literal("private")),
+    sku: v.optional(v.string()),
+    productType: v.union(v.literal("simple"), v.literal("variable"), v.literal("external")),
+    isDownloadable: v.boolean(),
+  })),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let products: any[];
+    let products: ProductDoc[];
     if (args.status) {
-      products = await ctx.db
-        .query("commerce_products")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
-        .take(5000);
+      // Unknown statuses match no rows, as the index lookup did before.
+      const status = PRODUCT_STATUSES.find((candidate) => candidate === args.status);
+      products = status
+        ? await ctx.db
+            .query("commerce_products")
+            .withIndex("by_status", (q) => q.eq("status", status))
+            .take(5000)
+        : [];
     } else {
       products = await ctx.db.query("commerce_products").take(5000);
     }
     if (args.isDownloadable !== undefined) {
-      products = products.filter((p: any) => Boolean(p.isDownloadable) === args.isDownloadable);
+      products = products.filter((p) => Boolean(p.isDownloadable) === args.isDownloadable);
     }
-    products.sort((a: any, b: any) => (a.title ?? "").localeCompare(b.title ?? ""));
-    return products.map((p: any) => ({
+    products.sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
+    return products.map((p) => ({
       _id: p._id,
       title: p.title,
       slug: p.slug,
@@ -449,31 +518,39 @@ export const listAll = query({
 
 export const list = query({
   args: listCommerceProductsArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    items: v.array(v.object(productSummaryFields)),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(PRODUCTS_MAX_PER_PAGE, Math.max(1, args.perPage ?? PRODUCTS_DEFAULT_PER_PAGE));
 
-    let scoped: any[];
+    let scoped: ProductDoc[];
+    const { status, authorId } = args;
 
     // ── Search path ──────────────────────────────────────────────────────
     if (args.search && args.search.trim()) {
       const term = args.search.trim();
       scoped = await ctx.db
         .query("commerce_products")
-        .withSearchIndex("search_commerce_products", (q: any) => {
+        .withSearchIndex("search_commerce_products", (q) => {
           let sq = q.search("title", term);
-          if (args.status) sq = sq.eq("status", args.status);
-          if (args.authorId) sq = sq.eq("authorId", args.authorId);
+          if (status) sq = sq.eq("status", status);
+          if (authorId) sq = sq.eq("authorId", authorId);
           return sq;
         })
         .take(2000);
-    } else if (args.status) {
+    } else if (status) {
       scoped = await ctx.db
         .query("commerce_products")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .take(20000);
     } else {
       scoped = await ctx.db.query("commerce_products").take(20000);
@@ -485,7 +562,7 @@ export const list = query({
     const total = filtered.length;
     const totalPages = Math.ceil(total / perPage);
     const slice = filtered.slice((page - 1) * perPage, page * perPage);
-    const items = await Promise.all(slice.map((p: any) => serializeProductSummary(ctx, p)));
+    const items = await Promise.all(slice.map((p) => serializeProductSummary(ctx, p)));
 
     return { items, total, page, perPage, totalPages };
   },
@@ -494,16 +571,17 @@ export const list = query({
 export const counts = query({
   args: productCountsArgs,
   returns: v.record(v.string(), v.number()),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let products: any[];
-    if (args.search && args.search.trim()) {
+    let products: ProductDoc[];
+    const term = args.search?.trim();
+    if (term) {
       products = await ctx.db
         .query("commerce_products")
-        .withSearchIndex("search_commerce_products", (q: any) =>
-          q.search("title", args.search.trim()),
+        .withSearchIndex("search_commerce_products", (q) =>
+          q.search("title", term),
         )
         .take(2000);
     } else {
@@ -536,7 +614,7 @@ export const counts = query({
 export const bulkTrash = mutation({
   args: productBulkArgs,
   returns: v.object({ count: v.number() }),
-  handler: async (ctx: any, args: any): Promise<{ count: number }> => {
+  handler: async (ctx, args): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -544,7 +622,7 @@ export const bulkTrash = mutation({
     for (const id of args.productIds) {
       const product = await ctx.db.get(id);
       if (!product) continue;
-      if ((product as any).status === "trash") continue;
+      if (product.status === "trash") continue;
       await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", id, { status: "trash", updatedAt: now });
       await emitEvent(ctx, PRODUCT_EVENTS.TRASHED, SYSTEM.PRODUCT, {
         productId: id,
@@ -560,7 +638,7 @@ export const bulkTrash = mutation({
 export const bulkRestore = mutation({
   args: productBulkArgs,
   returns: v.object({ count: v.number() }),
-  handler: async (ctx: any, args: any): Promise<{ count: number }> => {
+  handler: async (ctx, args): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -568,7 +646,7 @@ export const bulkRestore = mutation({
     for (const id of args.productIds) {
       const product = await ctx.db.get(id);
       if (!product) continue;
-      if ((product as any).status !== "trash") continue;
+      if (product.status !== "trash") continue;
       await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", id, { status: "draft", updatedAt: now });
       await emitEvent(ctx, PRODUCT_EVENTS.RESTORED, SYSTEM.PRODUCT, {
         productId: id,
@@ -583,7 +661,17 @@ export const bulkRestore = mutation({
 
 export const get = query({
   args: getCommerceProductArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(
+    v.null(),
+    v.object({
+      ...productSummaryFields,
+      inventoryAdjustments: v.array(commerceDocs.commerce_inventory_adjustments),
+      variants: v.array(commerceDocs.commerce_product_variants),
+      tagNames: v.array(v.string()),
+      missingTagIds: v.array(v.id("commerce_product_tags")),
+    }),
+  ),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -596,25 +684,124 @@ export const get = query({
 
 export const getBySlug = query({
   args: getCommerceProductBySlugArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.null(), v.object({
+    title: v.string(),
+    slug: v.string(),
+    excerpt: v.optional(v.string()),
+    sku: v.optional(v.string()),
+    productType: v.string(),
+    basePrice: v.object({ amount: v.number(), currencyCode: v.optional(v.string()) }),
+    featuredMediaId: v.optional(v.id("media")),
+    galleryMediaIds: v.array(v.id("media")),
+    salePrice: v.optional(v.object({ amount: v.number(), currencyCode: v.optional(v.string()) })),
+    trackInventory: v.boolean(),
+    stockQuantity: v.optional(v.number()),
+    allowBackorders: v.boolean(),
+    isVirtual: v.boolean(),
+    salePriceFrom: v.optional(v.number()),
+    salePriceTo: v.optional(v.number()),
+    isDownloadable: v.boolean(),
+    _id: v.id("commerce_products"),
+    displayPrice: v.optional(v.number()),
+    categories: v.array(v.object({ _id: v.id("commerce_product_categories"), name: v.string(), slug: v.string() })),
+    compareAtPrice: v.optional(v.number()),
+    pricedAt: v.number(),
+    description: v.optional(v.string()),
+    variants: v.array(v.object({
+      salePriceFrom: v.optional(v.number()),
+      salePriceTo: v.optional(v.number()),
+      _id: v.id("commerce_product_variants"),
+      title: v.string(),
+      sku: v.optional(v.string()),
+      optionSummary: v.string(),
+      price: v.object({ amount: v.number(), currencyCode: v.optional(v.string()) }),
+      salePrice: v.optional(v.object({ amount: v.number(), currencyCode: v.optional(v.string()) })),
+      selections: v.optional(v.array(v.object({ optionTypeId: v.string(), optionValueId: v.string(), optionValueLabel: v.string() }))),
+      featuredMediaId: v.optional(v.id("media")),
+      galleryMediaIds: v.optional(v.array(v.id("media"))),
+      stockQuantity: v.optional(v.number()),
+      stockStatus: v.optional(v.union(v.literal("instock"), v.literal("outofstock"), v.literal("onbackorder"))),
+      backorders: v.optional(v.union(v.literal("yes"), v.literal("no"), v.literal("notify"))),
+      manageStock: v.optional(v.union(v.literal("yes"), v.literal("no"), v.literal("parent"))),
+      description: v.optional(v.string()),
+      isDefault: v.boolean(),
+      status: v.optional(v.union(v.literal("draft"), v.literal("publish"), v.literal("private"))),
+    })),
+    optionTypes: v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      values: v.array(v.object({ id: v.string(), label: v.string() })),
+    })),
+  }), v.object({
+    isBundleProduct: v.boolean(),
+    bundleSlug: v.string(),
+    title: v.string(),
+    slug: v.string(),
+    excerpt: v.optional(v.string()),
+    sku: v.optional(v.string()),
+    productType: v.string(),
+    basePrice: v.object({ amount: v.number(), currencyCode: v.optional(v.string()) }),
+    featuredMediaId: v.optional(v.id("media")),
+    galleryMediaIds: v.array(v.id("media")),
+    salePrice: v.optional(v.object({ amount: v.number(), currencyCode: v.optional(v.string()) })),
+    trackInventory: v.boolean(),
+    stockQuantity: v.optional(v.number()),
+    allowBackorders: v.boolean(),
+    isVirtual: v.boolean(),
+    salePriceFrom: v.optional(v.number()),
+    salePriceTo: v.optional(v.number()),
+    isDownloadable: v.boolean(),
+    _id: v.id("commerce_products"),
+    displayPrice: v.optional(v.number()),
+    categories: v.array(v.object({ _id: v.id("commerce_product_categories"), name: v.string(), slug: v.string() })),
+    compareAtPrice: v.optional(v.number()),
+    pricedAt: v.number(),
+    description: v.optional(v.string()),
+    variants: v.array(v.object({
+      salePriceFrom: v.optional(v.number()),
+      salePriceTo: v.optional(v.number()),
+      _id: v.id("commerce_product_variants"),
+      title: v.string(),
+      sku: v.optional(v.string()),
+      optionSummary: v.string(),
+      price: v.object({ amount: v.number(), currencyCode: v.optional(v.string()) }),
+      salePrice: v.optional(v.object({ amount: v.number(), currencyCode: v.optional(v.string()) })),
+      selections: v.optional(v.array(v.object({ optionTypeId: v.string(), optionValueId: v.string(), optionValueLabel: v.string() }))),
+      featuredMediaId: v.optional(v.id("media")),
+      galleryMediaIds: v.optional(v.array(v.id("media"))),
+      stockQuantity: v.optional(v.number()),
+      stockStatus: v.optional(v.union(v.literal("instock"), v.literal("outofstock"), v.literal("onbackorder"))),
+      backorders: v.optional(v.union(v.literal("yes"), v.literal("no"), v.literal("notify"))),
+      manageStock: v.optional(v.union(v.literal("yes"), v.literal("no"), v.literal("parent"))),
+      description: v.optional(v.string()),
+      isDefault: v.boolean(),
+      status: v.optional(v.union(v.literal("draft"), v.literal("publish"), v.literal("private"))),
+    })),
+    optionTypes: v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      values: v.array(v.object({ id: v.string(), label: v.string() })),
+    })),
+  })),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
 
     const requestedSlug = args.slug.trim().toLowerCase();
     const normalizedSlug = slugifyCommerceProduct(args.slug);
     const exactProduct = await ctx.db
       .query("commerce_products")
-      .withIndex("by_slug", (q: any) => q.eq("slug", requestedSlug))
+      .withIndex("by_slug", (q) => q.eq("slug", requestedSlug))
       .unique();
     const product =
       exactProduct ??
       (normalizedSlug !== requestedSlug
         ? await ctx.db
             .query("commerce_products")
-            .withIndex("by_slug", (q: any) => q.eq("slug", normalizedSlug))
+            .withIndex("by_slug", (q) => q.eq("slug", normalizedSlug))
             .unique()
         : null);
 
-    if (!(await createPublicProductAccessReader(ctx)(product))) {
+    if (!product || !(await createPublicProductAccessReader(ctx)(product))) {
       return null;
     }
 
@@ -625,7 +812,7 @@ export const getBySlug = query({
     // Check if this product is owned by a bundle — if so, include a redirect hint
     const owningBundle = await ctx.db
       .query("commerce_bundles")
-      .withIndex("by_product", (q: any) => q.eq("productId", product._id))
+      .withIndex("by_product", (q) => q.eq("productId", product._id))
       .first();
     if (owningBundle) {
       return { ...detail, isBundleProduct: true, bundleSlug: owningBundle.slug };
@@ -637,7 +824,36 @@ export const getBySlug = query({
 
 export const listPublished = query({
   args: listPublishedCommerceProductsArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    products: v.array(v.object({
+      title: v.string(),
+      slug: v.string(),
+      excerpt: v.optional(v.string()),
+      sku: v.optional(v.string()),
+      productType: v.string(),
+      basePrice: v.object({ amount: v.number(), currencyCode: v.optional(v.string()) }),
+      featuredMediaId: v.optional(v.id("media")),
+      galleryMediaIds: v.array(v.id("media")),
+      salePrice: v.optional(v.object({ amount: v.number(), currencyCode: v.optional(v.string()) })),
+      trackInventory: v.boolean(),
+      stockQuantity: v.optional(v.number()),
+      allowBackorders: v.boolean(),
+      isVirtual: v.boolean(),
+      salePriceFrom: v.optional(v.number()),
+      salePriceTo: v.optional(v.number()),
+      isDownloadable: v.boolean(),
+      _id: v.id("commerce_products"),
+      displayPrice: v.optional(v.number()),
+      categories: v.array(v.object({ _id: v.id("commerce_product_categories"), name: v.string(), slug: v.string() })),
+      compareAtPrice: v.optional(v.number()),
+      pricedAt: v.number(),
+    })),
+    page: v.number(),
+    perPage: v.number(),
+    total: v.number(),
+    totalPages: v.number(),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
 
     const page = Math.max(1, args.page ?? 1);
@@ -648,7 +864,7 @@ export const listPublished = query({
     const [products, categories] = await Promise.all([
       ctx.db
         .query("commerce_products")
-        .withIndex("by_status", (q: any) => q.eq("status", "publish"))
+        .withIndex("by_status", (q) => q.eq("status", "publish"))
         .collect(),
       categorySlug
         ? ctx.db.query("commerce_product_categories").collect()
@@ -657,7 +873,7 @@ export const listPublished = query({
 
     const visibleCategories = await filterPublicCategoryHierarchy(ctx, categories);
     const category = categorySlug
-      ? visibleCategories.find((entry: any) => entry.slug === categorySlug) ?? null
+      ? visibleCategories.find((entry) => entry.slug === categorySlug) ?? null
       : null;
 
     const categoryIds = category
@@ -667,12 +883,12 @@ export const listPublished = query({
       categorySlug && !category
         ? []
         : categoryIds
-          ? products.filter((product: any) =>
-              product.categoryIds.some((id: any) => categoryIds.has(id.toString())),
+          ? products.filter((product) =>
+              product.categoryIds.some((id) => categoryIds.has(id.toString())),
             )
           : products;
     const filtered = search
-      ? categoryFiltered.filter((product: any) => {
+      ? categoryFiltered.filter((product) => {
           const haystack = [
             product.title,
             product.slug,
@@ -700,7 +916,7 @@ export const listPublished = query({
         catalogProducts.push(product);
     }
 
-    catalogProducts.sort((a: any, b: any) => {
+    catalogProducts.sort((a, b) => {
       const aTime = a.publishedAt ?? a.updatedAt ?? a.createdAt;
       const bTime = b.publishedAt ?? b.updatedAt ?? b.createdAt;
       return bTime - aTime;
@@ -713,7 +929,7 @@ export const listPublished = query({
 
     return {
       products: await Promise.all(
-        pageItems.map(async (product: any) => {
+        pageItems.map(async (product) => {
           const serialized = await serializeProductSummary(ctx, product);
           serialized.categories = await filterPublicCategoryHierarchy(ctx, serialized.categories);
           return publicProductSummary(serialized);
@@ -730,7 +946,7 @@ export const listPublished = query({
 export const create = mutation({
   args: createCommerceProductArgs,
   returns: v.id("commerce_products"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
 
@@ -749,7 +965,7 @@ export const create = mutation({
     const tagIds = await resolveProductTags(ctx,args.tagNames ?? []);
     const now = Date.now();
     const status = args.status ?? "draft";
-    const productId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
+    const productId: ProductId = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
       title,
       slug: await getUniqueProductSlug(ctx, args.slug?.trim() || title),
       description: args.description?.trim() || undefined,
@@ -783,6 +999,7 @@ export const create = mutation({
 	      maxActivations: args.maxActivations,
 	      licenseExpiresAfterDays: args.licenseExpiresAfterDays,
 	      taxClass: args.taxClass?.trim() || undefined,
+      isNonReturnable: args.isNonReturnable,
       publishedAt: status === "publish" ? now : undefined,
       createdAt: now,
       updatedAt: now,
@@ -802,7 +1019,8 @@ export const create = mutation({
 
 export const update = mutation({
   args: updateCommerceProductArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_products"),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -817,14 +1035,16 @@ export const update = mutation({
     // Check if this product is owned by a bundle
     const owningBundle = await ctx.db
       .query("commerce_bundles")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .first();
 
     if (owningBundle) {
       // Only allow safe fields to be updated on bundle-owned products
       const SAFE_BUNDLE_PRODUCT_FIELDS = new Set(["description", "seoTitle", "seoDescription", "featuredMediaId"]);
-      const attemptedFields = Object.keys(args).filter((k: string) => k !== "productId" && args[k] !== undefined);
-      const unsafeFields = attemptedFields.filter((f: string) => !SAFE_BUNDLE_PRODUCT_FIELDS.has(f));
+      const attemptedFields = Object.entries(args)
+        .filter(([key, value]) => key !== "productId" && value !== undefined)
+        .map(([key]) => key);
+      const unsafeFields = attemptedFields.filter((f) => !SAFE_BUNDLE_PRODUCT_FIELDS.has(f));
       if (unsafeFields.length > 0) {
         throw new ConvexError({
           code: "BUNDLE_OWNED",
@@ -833,7 +1053,7 @@ export const update = mutation({
       }
     }
 
-    const patch: Record<string, unknown> = {
+    const patch: Partial<WithoutSystemFields<ProductDoc>> = {
       updatedAt: Date.now(),
     };
 
@@ -888,6 +1108,7 @@ export const update = mutation({
 	    if (args.maxActivations !== undefined) patch.maxActivations = args.maxActivations ?? undefined;
 	    if (args.licenseExpiresAfterDays !== undefined) patch.licenseExpiresAfterDays = args.licenseExpiresAfterDays ?? undefined;
 	    if (args.taxClass !== undefined) patch.taxClass = args.taxClass?.trim() || undefined;
+    if (args.isNonReturnable !== undefined) patch.isNonReturnable = args.isNonReturnable;
 
     if (args.categoryIds !== undefined) {
       patch.categoryIds = await resolveProductCategoryIds(ctx, args.categoryIds);
@@ -919,7 +1140,7 @@ export const update = mutation({
     }
 
     await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, patch);
-    const nextStatus = (patch.status as string | undefined) ?? product.status;
+    const nextStatus = patch.status ?? product.status;
     await emitEvent(
       ctx,
       getProductStatusEvent(product.status, nextStatus),
@@ -932,7 +1153,7 @@ export const update = mutation({
       },
     );
 
-    const nextCategoryIds = (patch.categoryIds as any[] | undefined) ?? product.categoryIds;
+    const nextCategoryIds = patch.categoryIds ?? product.categoryIds;
     const affectedCategoryIds = dedupeIds([
       ...product.categoryIds,
       ...nextCategoryIds,
@@ -956,12 +1177,13 @@ export const update = mutation({
  */
 export const listOptionTypes = query({
   args: { productId: v.id("commerce_products") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(optionTypeValidator),
+  handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     await requireCommerceEnabled(ctx);
     const product = await ctx.db.get(args.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
-    return (product as any).optionTypes ?? [];
+    return readOptionTypes(product.optionTypes);
   },
 });
 
@@ -975,15 +1197,22 @@ export const createOptionType = mutation({
     name: v.string(),
     values: v.array(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    id: v.string(),
+    name: v.string(),
+    values: v.array(v.object({ id: v.string(), label: v.string(), sortOrder: v.number(), active: v.boolean() })),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
-    const existing: any[] = (product as any).optionTypes ?? [];
-    if (existing.some((o: any) => normalizeName(o.name) === normalizeName(args.name))) {
+    const existing = readOptionTypes(product.optionTypes);
+    if (existing.some((o) => normalizeName(o.name) === normalizeName(args.name))) {
       throw new ConvexError({ code: "duplicate", message: `Option type "${args.name}" already exists` });
     }
 
@@ -1028,15 +1257,16 @@ export const updateOptionType = mutation({
     name: v.optional(v.string()),
     sortOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: optionTypeValidator,
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
-    const optionTypes: any[] = [...((product as any).optionTypes ?? [])];
-    const idx = optionTypes.findIndex((o: any) => o.id === args.optionTypeId);
+    const optionTypes = readOptionTypes(product.optionTypes);
+    const idx = optionTypes.findIndex((o) => o.id === args.optionTypeId);
     if (idx === -1) throw new ConvexError({ code: "not_found", message: "Option type not found" });
 
     const variants = await listVariantsByProduct(ctx, args.productId);
@@ -1044,7 +1274,7 @@ export const updateOptionType = mutation({
     if (
       args.name !== undefined &&
       optionTypes.some(
-        (optionType: any, optionTypeIndex: number) =>
+        (optionType, optionTypeIndex) =>
           optionTypeIndex !== idx && normalizeName(optionType.name) === normalizeName(args.name),
       )
     ) {
@@ -1057,7 +1287,7 @@ export const updateOptionType = mutation({
     if (args.name !== undefined || args.sortOrder !== undefined) {
       for (const variant of variants) {
         if (!variant.selections?.length) continue;
-        const nextSelections = variant.selections.map((selection: any) =>
+        const nextSelections = variant.selections.map((selection) =>
           selection.optionTypeId === args.optionTypeId
             ? {
                 ...selection,
@@ -1089,7 +1319,7 @@ export const deleteOptionType = mutation({
     optionTypeId: v.string(),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1097,9 +1327,9 @@ export const deleteOptionType = mutation({
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
     const variants = await listVariantsByProduct(ctx, args.productId);
-    const variantsUsingOptionType = variants.filter((variant: any) =>
+    const variantsUsingOptionType = variants.filter((variant) =>
       (variant.selections ?? []).some(
-        (selection: any) => selection.optionTypeId === args.optionTypeId,
+        (selection) => selection.optionTypeId === args.optionTypeId,
       ),
     );
     if (variantsUsingOptionType.length > 0) {
@@ -1109,8 +1339,8 @@ export const deleteOptionType = mutation({
       });
     }
 
-    const optionTypes: any[] = ((product as any).optionTypes ?? []).filter(
-      (o: any) => o.id !== args.optionTypeId,
+    const optionTypes = readOptionTypes(product.optionTypes).filter(
+      (o) => o.id !== args.optionTypeId,
     );
 
     await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
@@ -1131,23 +1361,24 @@ export const createOptionValue = mutation({
     optionTypeId: v.string(),
     label: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: optionValueValidator,
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
-    const optionTypes: any[] = [...((product as any).optionTypes ?? [])];
-    const typeIdx = optionTypes.findIndex((o: any) => o.id === args.optionTypeId);
+    const optionTypes = readOptionTypes(product.optionTypes);
+    const typeIdx = optionTypes.findIndex((o) => o.id === args.optionTypeId);
     if (typeIdx === -1) throw new ConvexError({ code: "not_found", message: "Option type not found" });
 
-    const existing = optionTypes[typeIdx].values ?? [];
-    if (existing.some((v: any) => normalizeName(v.label) === normalizeName(args.label))) {
+    const existing = optionTypes[typeIdx].values;
+    if (existing.some((v) => normalizeName(v.label) === normalizeName(args.label))) {
       throw new ConvexError({ code: "duplicate", message: `Value "${args.label}" already exists` });
     }
 
-    const newValue = {
+    const newValue: OptionValue = {
       id: `val_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       label: args.label,
       sortOrder: existing.length,
@@ -1175,25 +1406,26 @@ export const updateOptionValue = mutation({
     label: v.optional(v.string()),
     sortOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: optionValueValidator,
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
-    const optionTypes: any[] = [...((product as any).optionTypes ?? [])];
-    const typeIdx = optionTypes.findIndex((o: any) => o.id === args.optionTypeId);
+    const optionTypes = readOptionTypes(product.optionTypes);
+    const typeIdx = optionTypes.findIndex((o) => o.id === args.optionTypeId);
     if (typeIdx === -1) throw new ConvexError({ code: "not_found", message: "Option type not found" });
 
-    const values = [...(optionTypes[typeIdx].values ?? [])];
-    const valIdx = values.findIndex((v: any) => v.id === args.valueId);
+    const values = [...optionTypes[typeIdx].values];
+    const valIdx = values.findIndex((v) => v.id === args.valueId);
     if (valIdx === -1) throw new ConvexError({ code: "not_found", message: "Option value not found" });
 
     if (
       args.label !== undefined &&
       values.some(
-        (value: any, valueIndex: number) =>
+        (value, valueIndex) =>
           valueIndex !== valIdx && normalizeName(value.label) === normalizeName(args.label),
       )
     ) {
@@ -1207,7 +1439,7 @@ export const updateOptionValue = mutation({
     if (args.label !== undefined || args.sortOrder !== undefined) {
       for (const variant of variants) {
         if (!variant.selections?.length) continue;
-        const nextSelections = variant.selections.map((selection: any) =>
+        const nextSelections = variant.selections.map((selection) =>
           selection.optionValueId === args.valueId
             ? {
                 ...selection,
@@ -1241,7 +1473,7 @@ export const deleteOptionValue = mutation({
     valueId: v.string(),
   },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1249,9 +1481,9 @@ export const deleteOptionValue = mutation({
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
     const variants = await listVariantsByProduct(ctx, args.productId);
-    const variantsUsingValue = variants.filter((variant: any) =>
+    const variantsUsingValue = variants.filter((variant) =>
       (variant.selections ?? []).some(
-        (selection: any) => selection.optionTypeId === args.optionTypeId && selection.optionValueId === args.valueId,
+        (selection) => selection.optionTypeId === args.optionTypeId && selection.optionValueId === args.valueId,
       ),
     );
     if (variantsUsingValue.length > 0) {
@@ -1261,13 +1493,13 @@ export const deleteOptionValue = mutation({
       });
     }
 
-    const optionTypes: any[] = [...((product as any).optionTypes ?? [])];
-    const typeIdx = optionTypes.findIndex((o: any) => o.id === args.optionTypeId);
+    const optionTypes = readOptionTypes(product.optionTypes);
+    const typeIdx = optionTypes.findIndex((o) => o.id === args.optionTypeId);
     if (typeIdx === -1) throw new ConvexError({ code: "not_found", message: "Option type not found" });
 
     optionTypes[typeIdx] = {
       ...optionTypes[typeIdx],
-      values: (optionTypes[typeIdx].values ?? []).filter((v: any) => v.id !== args.valueId),
+      values: optionTypes[typeIdx].values.filter((value) => value.id !== args.valueId),
     };
 
     await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
@@ -1284,12 +1516,13 @@ export const deleteOptionValue = mutation({
  */
 export const listVariants = query({
   args: { productId: v.id("commerce_products") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(commerceDocs.commerce_product_variants),
+  handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     await requireCommerceEnabled(ctx);
     return ctx.db
       .query("commerce_product_variants")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect();
   },
 });
@@ -1371,7 +1604,7 @@ export const createVariant = mutation({
     menuOrder: v.optional(v.number()),
   },
   returns: v.id("commerce_product_variants"),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1381,7 +1614,7 @@ export const createVariant = mutation({
     // Prevent variant creation on bundle-owned products
     const owningBundleForVariant = await ctx.db
       .query("commerce_bundles")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .first();
     if (owningBundleForVariant) {
       throw new ConvexError({
@@ -1390,7 +1623,7 @@ export const createVariant = mutation({
       });
     }
 
-    const optionTypes: any[] = (product as any).optionTypes ?? [];
+    const optionTypes = readOptionTypes(product.optionTypes);
     const selections = validateVariantSelections(optionTypes, args.selections);
 
     const now = Date.now();
@@ -1400,7 +1633,7 @@ export const createVariant = mutation({
 
     const existing = await listVariantsByProduct(ctx, args.productId);
 
-    if (selectionKey && existing.some((variant: any) => variant.selectionKey === selectionKey)) {
+    if (selectionKey && existing.some((variant) => variant.selectionKey === selectionKey)) {
       throw new ConvexError({
         code: "duplicate",
         message: "A variant with the same option selection already exists.",
@@ -1417,7 +1650,8 @@ export const createVariant = mutation({
       }
     }
 
-    const variantId: import("../_generated/dataModel").Id<"commerce_product_variants"> = await insertWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", {
+    const shippingClassId = resolveShippingClassId(ctx, args.shippingClassId);
+    const variantId: VariantId = await insertWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", {
       productId: args.productId,
       title: args.title,
       sku: args.sku,
@@ -1441,7 +1675,7 @@ export const createVariant = mutation({
       backorders: args.backorders,
       lowStockAmount: args.lowStockAmount,
       taxClass: args.taxClass,
-      shippingClassId: args.shippingClassId,
+      shippingClassId,
 	      isVirtual: args.isVirtual,
 	      isDownloadable: args.isDownloadable,
 	      requiresLicense: args.requiresLicense,
@@ -1548,7 +1782,8 @@ export const updateVariant = mutation({
     ),
     menuOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_variants"),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1557,28 +1792,26 @@ export const updateVariant = mutation({
     const product = await ctx.db.get(variant.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
-    for (const key of ["priceAmount", "salePriceAmount"]) {
-      const amount = args[key];
+    for (const amount of [args.priceAmount, args.salePriceAmount]) {
       if (amount !== undefined && amount !== null && (!Number.isSafeInteger(amount) || amount < 0)) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Prices must be nonnegative whole minor currency units." });
     }
-    for (const key of ["salePriceFrom", "salePriceTo"]) {
-      const time = args[key];
+    for (const time of [args.salePriceFrom, args.salePriceTo]) {
       if (time !== undefined && time !== null && !Number.isSafeInteger(time)) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Sale dates must be valid timestamps." });
     }
     const now = Date.now();
-    const updates: any = { updatedAt: now };
+    const updates: Partial<WithoutSystemFields<Doc<"commerce_product_variants">>> = { updatedAt: now };
     const siblings = await listVariantsByProduct(ctx, variant.productId);
 
     if (args.title !== undefined) updates.title = args.title;
     if (args.sku !== undefined) updates.sku = args.sku;
     if (args.optionSummary !== undefined) updates.optionSummary = args.optionSummary;
     if (args.selections !== undefined) {
-      const selections = validateVariantSelections((product as any).optionTypes ?? [], args.selections);
+      const selections = validateVariantSelections(readOptionTypes(product.optionTypes), args.selections);
       const selectionKey = buildSelectionKey(selections);
       if (
         selectionKey &&
         siblings.some(
-          (sibling: any) =>
+          (sibling) =>
             sibling._id !== args.variantId && sibling.selectionKey === selectionKey,
         )
       ) {
@@ -1616,7 +1849,7 @@ export const updateVariant = mutation({
     if (args.backorders !== undefined) updates.backorders = args.backorders;
     if (args.lowStockAmount !== undefined) updates.lowStockAmount = args.lowStockAmount;
     if (args.taxClass !== undefined) updates.taxClass = args.taxClass;
-    if (args.shippingClassId !== undefined) updates.shippingClassId = args.shippingClassId;
+    if (args.shippingClassId !== undefined) updates.shippingClassId = resolveShippingClassId(ctx, args.shippingClassId);
 	    if (args.isVirtual !== undefined) updates.isVirtual = args.isVirtual;
 	    if (args.isDownloadable !== undefined) updates.isDownloadable = args.isDownloadable;
 	    if (args.requiresLicense !== undefined) updates.requiresLicense = args.requiresLicense;
@@ -1640,7 +1873,7 @@ export const updateVariant = mutation({
       updates.isDefault = true;
     } else if (args.isDefault === false) {
       const otherDefault = siblings.some(
-        (s: any) => s._id !== args.variantId && s.isDefault,
+        (s) => s._id !== args.variantId && s.isDefault,
       );
       if (!otherDefault) {
         throw new ConvexError({
@@ -1662,7 +1895,7 @@ export const updateVariant = mutation({
 export const deleteVariant = mutation({
   args: { variantId: v.id("commerce_product_variants") },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1688,7 +1921,7 @@ export const deleteVariant = mutation({
     await deleteWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", args.variantId);
 
     // Check if any variants remain; if not, revert product type
-    const remaining = siblings.filter((sibling: any) => sibling._id !== args.variantId);
+    const remaining = siblings.filter((sibling) => sibling._id !== args.variantId);
 
     if (remaining.length === 0) {
       await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", variant.productId, {
@@ -1711,7 +1944,7 @@ export const generateVariants = mutation({
     basePriceAmount: v.optional(v.number()),
   },
   returns: v.object({ created: v.number(), total: v.number() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1721,7 +1954,7 @@ export const generateVariants = mutation({
     // Prevent variant generation on bundle-owned products
     const owningBundleForGenerate = await ctx.db
       .query("commerce_bundles")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .first();
     if (owningBundleForGenerate) {
       throw new ConvexError({
@@ -1730,7 +1963,7 @@ export const generateVariants = mutation({
       });
     }
 
-    const optionTypes: any[] = (product as any).optionTypes ?? [];
+    const optionTypes = readOptionTypes(product.optionTypes);
     if (optionTypes.length === 0) {
       throw new ConvexError({ code: "no_options", message: "No option types defined" });
     }
@@ -1744,25 +1977,24 @@ export const generateVariants = mutation({
     }
 
     // Build cartesian product of all option values
-    function cartesian(arrays: any[][]): any[][] {
-      return arrays.reduce(
-        (acc: any[][], arr: any[]) =>
-          acc.flatMap((combo: any[]) => arr.map((item: any) => [...combo, item])),
-        [[]] as any[][],
+    function cartesian<T>(arrays: T[][]): T[][] {
+      return arrays.reduce<T[][]>(
+        (acc, arr) => acc.flatMap((combo) => arr.map((item) => [...combo, item])),
+        [[]],
       );
     }
 
     const valueArrays = optionTypes
-      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map((ot: any) =>
-        (ot.values ?? []).map((val: any) => ({
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((ot) =>
+        (ot.values ?? []).map((val) => ({
           typeId: ot.id,
           typeName: ot.name,
           ...val,
         })),
       );
 
-    if (valueArrays.some((a: any[]) => a.length === 0)) {
+    if (valueArrays.some((a) => a.length === 0)) {
       throw new ConvexError({ code: "empty_values", message: "One or more option types have no values" });
     }
 
@@ -1771,11 +2003,11 @@ export const generateVariants = mutation({
     // Get existing variants
     const existing = await ctx.db
       .query("commerce_product_variants")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect();
 
     const existingSelectionKeys = new Set(
-      existing.map((v: any) => v.selectionKey).filter(Boolean),
+      existing.map((v) => v.selectionKey).filter(Boolean),
     );
 
     const currency = product.basePrice?.currencyCode ?? "USD";
@@ -1784,7 +2016,7 @@ export const generateVariants = mutation({
     let created = 0;
 
     for (const combo of combos) {
-      const selections = combo.map((c: any, index: number) => ({
+      const selections = combo.map((c, index) => ({
         optionTypeId: c.typeId,
         optionTypeName: c.typeName,
         optionValueId: c.id,
@@ -1792,14 +2024,14 @@ export const generateVariants = mutation({
         sortOrder: index,
       }));
       const summary = selections
-        .map((selection: any) => `${selection.optionTypeName}: ${selection.optionValueLabel}`)
+        .map((selection) => `${selection.optionTypeName}: ${selection.optionValueLabel}`)
         .join(" / ");
       const selectionKey = buildSelectionKey(selections);
       if (selectionKey && existingSelectionKeys.has(selectionKey)) continue;
 
       await insertWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", {
         productId: args.productId,
-        title: selections.map((selection: any) => selection.optionValueLabel).join(" / "),
+        title: selections.map((selection) => selection.optionValueLabel).join(" / "),
         optionSummary: summary,
         selections,
         selectionKey,
@@ -1838,7 +2070,7 @@ export const bulkUpdateStatus = mutation({
     ),
   },
   returns: v.object({ updated: v.number() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1852,7 +2084,7 @@ export const bulkUpdateStatus = mutation({
         await assertProductBundleLifecycleAllowed(ctx, id, "unpublish");
       }
 
-      const patch: any = { status: args.status, updatedAt: now };
+      const patch: Partial<WithoutSystemFields<ProductDoc>> = { status: args.status, updatedAt: now };
       if (args.status === "publish" && product.status !== "publish") {
         patch.publishedAt = now;
       }
@@ -1879,7 +2111,7 @@ export const bulkDelete = mutation({
     productIds: v.array(v.id("commerce_products")),
   },
   returns: v.object({ deleted: v.number(), errors: v.array(v.string()) }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1895,7 +2127,7 @@ export const bulkDelete = mutation({
         // Delete variants
         const variants = await ctx.db
           .query("commerce_product_variants")
-          .withIndex("by_product", (q: any) => q.eq("productId", id))
+          .withIndex("by_product", (q) => q.eq("productId", id))
           .collect();
         for (const v of variants) {
           await deleteWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", v._id);
@@ -1908,8 +2140,8 @@ export const bulkDelete = mutation({
           title: product.title,
         });
         deleted++;
-      } catch (e: any) {
-        errors.push(`${id}: ${e?.message ?? "Unknown error"}`);
+      } catch (e) {
+        errors.push(`${id}: ${e instanceof Error ? e.message : "Unknown error"}`);
       }
     }
 
@@ -1923,7 +2155,7 @@ export const bulkDelete = mutation({
 export const archiveProduct = mutation({
   args: { productId: v.id("commerce_products") },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1951,7 +2183,7 @@ export const archiveProduct = mutation({
 export const restoreProduct = mutation({
   args: { productId: v.id("commerce_products") },
   returns: v.object({ success: v.boolean() }),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 

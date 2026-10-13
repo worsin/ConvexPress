@@ -1,6 +1,6 @@
 /** Internal policy reads. Paginated readers own separate journals; the block
  * batch uses bounded exact-index reads and refuses overflow before projection. */
-import { ConvexError, v, getDocumentSize, type Value, type Validator } from "convex/values";
+import { ConvexError, v, getDocumentSize, type Value } from "convex/values";
 import type { PaginationResult, RegisteredQuery } from "convex/server";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import type { MeasuredPolicyPage } from "../helpers/requestReadLedger";
@@ -26,12 +26,12 @@ const rule = membershipTables.membership_restriction_rules.validator.fields;
 const grant = membershipTables.membership_grants.validator.fields;
 export type RuleResult = Pick<Doc<"membership_restriction_rules">, "resourceType" | "resourceIdOrKey" | "policyGroup" | "ruleMode" | "planIds" | "requiredCapabilities" | "teaserMode" | "customMessage" | "loginRequired">;
 export type GrantResult = Pick<Doc<"membership_grants">, "planId" | "status" | "startsAt" | "endsAt" | "graceEndsAt" | "revokedAt">;
-export const policyRuleValidator: Validator<RuleResult> = v.object({
+export const policyRuleValidator = v.object({
   resourceType: rule.resourceType, resourceIdOrKey: rule.resourceIdOrKey, policyGroup: rule.policyGroup,
   ruleMode: rule.ruleMode, planIds: rule.planIds, requiredCapabilities: rule.requiredCapabilities,
   teaserMode: rule.teaserMode, customMessage: rule.customMessage, loginRequired: rule.loginRequired,
 });
-export const policyGrantValidator: Validator<GrantResult> = v.object({
+export const policyGrantValidator = v.object({
   planId: grant.planId, status: grant.status, startsAt: grant.startsAt, endsAt: grant.endsAt, graceEndsAt: grant.graceEndsAt, revokedAt: grant.revokedAt,
 });
 export type RuleArgs = { resourceType: RuleResult["resourceType"]; resourceIdOrKey: string };

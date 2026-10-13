@@ -78,7 +78,7 @@ export async function adoptThread(ctx: MutationCtx, source: Session, destination
     updatedAt: now,
   });
   await ctx.db.patch("commerce_assistant_sessions", source._id, { mergedIntoSessionId: destination._id, adoptedAt: now, messageCount: 0, updatedAt: now });
-  await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.transferHistory, { sessionId: source._id });
+  await ctx.scheduler.runAfter(0, internal.commerce.assistant.mutations.transferHistory, { sessionId: source._id });
 }
 
 /** Drain every older row without making sign-in an unbounded transaction. */
@@ -92,5 +92,5 @@ export async function transferHistoryBatch(ctx: MutationCtx, source: Session) {
       await deleteDynamicWithMediaReferences(ctx, row._id);
     } else await patchDynamicWithMediaReferences(ctx, row._id, { sessionId: destination._id, adoptedAt });
   }
-  if (rows.length === 250) await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.transferHistory, { sessionId: source._id });
+  if (rows.length === 250) await ctx.scheduler.runAfter(0, internal.commerce.assistant.mutations.transferHistory, { sessionId: source._id });
 }

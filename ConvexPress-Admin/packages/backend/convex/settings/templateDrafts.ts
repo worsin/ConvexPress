@@ -6,6 +6,18 @@ import { emitEvent } from "../helpers/events";
 import { readAppearance, persistLegacyAppearance, type AppearanceValues } from "./appearanceMigration";
 import { validateSectionValues } from "./validation";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { readValidated } from "../helpers/settingsReader";
+import { environmentKindValidator } from "../management/validators";
+import { appearanceTemplateSettingsValidator } from "./sectionValues";
+
+/** One pack's Customize values (module → field → JSON value), as drafts store them. */
+const packValuesValidator = appearanceTemplateSettingsValidator.fields.settings.value;
+
+export const templateSnapshotValidator = v.object({
+  values: appearanceTemplateSettingsValidator,
+  revision: v.string(),
+  identity: v.union(v.null(), v.object({ websiteKey: v.string(), instanceKey: v.string(), environmentKind: environmentKindValidator })),
+});
 
 const plain = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 function validateValues(value: unknown): asserts value is AppearanceValues {
@@ -26,7 +38,7 @@ async function currentSnapshot(ctx: Pick<QueryCtx, "db">) {
 
 export const snapshot = query({
   args: {},
-  returns: v.any(),
+  returns: templateSnapshotValidator,
   handler: async (ctx) => { await requireCan(ctx, "manage_options"); return currentSnapshot(ctx); },
 });
 
@@ -35,7 +47,7 @@ export const publish = mutation({
     values: v.any(), expectedRevision: v.string(), confirmLive: v.optional(v.boolean()),
     source: v.optional(v.object({ websiteKey: v.string(), instanceKey: v.string(), environmentKind: v.literal("staging"), revision: v.string() })),
   },
-  returns: v.any(),
+  returns: templateSnapshotValidator,
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "manage_options");
     validateValues(args.values);
@@ -58,11 +70,18 @@ function draftRevision(doc: { _id: unknown; updatedAt: number; sourceRevision: s
   return revision({ id: doc._id, updatedAt: doc.updatedAt, sourceRevision: doc.sourceRevision, values: doc.values, variants: doc.variants });
 }
 export const getDraft = query({
-  args: { packId: v.string() }, returns: v.any(),
+  args: { packId: v.string() },
+  returns: v.union(v.null(), v.object({
+    values: packValuesValidator,
+    variants: v.record(v.string(), v.string()),
+    sourceRevision: v.string(),
+    revision: v.string(),
+    updatedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "manage_options");
     const doc = await ctx.db.query("appearance_drafts").withIndex("by_user_pack", q => q.eq("userId", user._id).eq("packId", args.packId)).unique();
-    return doc ? { values: doc.values, variants: doc.variants, sourceRevision: doc.sourceRevision, revision: draftRevision(doc), updatedAt: doc.updatedAt } : null;
+    return doc ? { values: readValidated(packValuesValidator, doc.values, {}), variants: doc.variants, sourceRevision: doc.sourceRevision, revision: draftRevision(doc), updatedAt: doc.updatedAt } : null;
   },
 });
 export const saveDraft = mutation({

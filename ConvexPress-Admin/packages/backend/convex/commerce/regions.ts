@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 const regionArgs = {
   name: v.string(),
   currencyCode: v.string(),
@@ -16,10 +16,10 @@ const regionArgs = {
   metadata: v.optional(v.any()),
 };
 
-async function clearDefault(ctx: any, table: string, currentId?: any) {
+async function clearDefault(ctx: Pick<MutationCtx, "db">, table: "commerce_regions", currentId?: Id<"commerce_regions">) {
   const current = await ctx.db
     .query(table)
-    .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+    .withIndex("by_default", (q) => q.eq("isDefault", true))
     .collect();
   for (const record of current) {
     if (!currentId || record._id.toString() !== currentId.toString()) {
@@ -30,7 +30,7 @@ async function clearDefault(ctx: any, table: string, currentId?: any) {
 
 export const list = query({
   args: {},
-  returns: v.array(tableDocs.commerce_regions),
+  returns: v.array(commerceDocs.commerce_regions),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db.query("commerce_regions").collect();

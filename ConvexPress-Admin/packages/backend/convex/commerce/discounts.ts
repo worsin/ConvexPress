@@ -1,12 +1,28 @@
-// @ts-nocheck
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type ObjectType } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type QueryCtx } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 import { createDiscountCodeArgs, updateDiscountCodeArgs } from "./validators";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
+type DiscountDoc = Doc<"commerce_discount_codes">;
+type DiscountFieldArgs = Omit<ObjectType<typeof updateDiscountCodeArgs>, "discountId">;
+type DiscountTierInput = NonNullable<DiscountFieldArgs["tiers"]>[number];
+
+const DISCOUNT_STATUSES: readonly DiscountDoc["status"][] = ["active", "inactive"];
+const DISCOUNT_TYPES: readonly DiscountDoc["discountType"][] = ["fixed_cart", "percent", "fixed_product", "free_shipping"];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+/** The literal from `allowed` equal to `value`, if any. */
+function matchLiteral<T extends string>(allowed: readonly T[], value: string | undefined): T | undefined {
+	return allowed.find((candidate) => candidate === value);
+}
+
 function normalizeCode(value: string) {
 	return value.trim().toUpperCase();
 }
@@ -54,10 +70,10 @@ function assertDiscountAmount(
 	}
 }
 
-function normalizeIdArray(values: unknown[] | null | undefined) {
+function normalizeIdArray<T extends string>(values: T[] | null | undefined): T[] | undefined {
 	if (!values) return undefined;
 	const seen = new Set<string>();
-	return values.filter((value: any) => {
+	return values.filter((value) => {
 		const key = value.toString();
 		if (seen.has(key)) return false;
 		seen.add(key);
@@ -65,7 +81,7 @@ function normalizeIdArray(values: unknown[] | null | undefined) {
 	});
 }
 
-function normalizeTiers(tiers: any[] | null | undefined) {
+function normalizeTiers(tiers: DiscountTierInput[] | null | undefined) {
 	if (!tiers || tiers.length === 0) return undefined;
 
 	return tiers.map((tier, index) => {
@@ -114,7 +130,7 @@ function validateWindow(
 	}
 }
 
-function normalizeDiscountFields(args: any, existing?: any) {
+function normalizeDiscountFields(args: DiscountFieldArgs, existing?: DiscountDoc): Partial<DiscountDoc> {
 	const nextDiscountType = args.discountType ?? existing?.discountType;
 	const nextAmount = args.amount ?? existing?.amount;
 	if (nextDiscountType && nextAmount !== undefined) {
@@ -134,37 +150,23 @@ function normalizeDiscountFields(args: any, existing?: any) {
 		args.endsAt === null ? undefined : (args.endsAt ?? existing?.endsAt);
 	validateWindow(startsAt, endsAt);
 
-	const patch: Record<string, unknown> = {};
-	const nullableNumberFields = [
-		"minimumSubtotalAmount",
-		"minimumQuantity",
-		"maxDiscountAmount",
-		"usageLimit",
-		"startsAt",
-		"endsAt",
-	];
-
-	for (const field of nullableNumberFields) {
-		if (args[field] !== undefined) {
-			patch[field] = args[field] ?? undefined;
-		}
-	}
+	const patch: Partial<DiscountDoc> = {};
+	// `null` clears a field; `undefined` leaves it untouched.
+	if (args.minimumSubtotalAmount !== undefined) patch.minimumSubtotalAmount = args.minimumSubtotalAmount ?? undefined;
+	if (args.minimumQuantity !== undefined) patch.minimumQuantity = args.minimumQuantity ?? undefined;
+	if (args.maxDiscountAmount !== undefined) patch.maxDiscountAmount = args.maxDiscountAmount ?? undefined;
+	if (args.usageLimit !== undefined) patch.usageLimit = args.usageLimit ?? undefined;
+	if (args.startsAt !== undefined) patch.startsAt = args.startsAt ?? undefined;
+	if (args.endsAt !== undefined) patch.endsAt = args.endsAt ?? undefined;
 
 	if (args.applicability !== undefined) {
 		patch.applicability = args.applicability;
 	}
 
-	const idFields = [
-		"productIds",
-		"categoryIds",
-		"excludedProductIds",
-		"excludedCategoryIds",
-	];
-	for (const field of idFields) {
-		if (args[field] !== undefined) {
-			patch[field] = normalizeIdArray(args[field]) ?? undefined;
-		}
-	}
+	if (args.productIds !== undefined) patch.productIds = normalizeIdArray(args.productIds);
+	if (args.categoryIds !== undefined) patch.categoryIds = normalizeIdArray(args.categoryIds);
+	if (args.excludedProductIds !== undefined) patch.excludedProductIds = normalizeIdArray(args.excludedProductIds);
+	if (args.excludedCategoryIds !== undefined) patch.excludedCategoryIds = normalizeIdArray(args.excludedCategoryIds);
 
 	if (args.tiers !== undefined) {
 		patch.tiers = normalizeTiers(args.tiers) ?? undefined;
@@ -173,10 +175,10 @@ function normalizeDiscountFields(args: any, existing?: any) {
 	return patch;
 }
 
-async function ensureUniqueCode(ctx: any, code: string, excludeId?: string) {
+async function ensureUniqueCode(ctx: Pick<QueryCtx, "db">, code: string, excludeId?: string) {
 	const existing = await ctx.db
 		.query("commerce_discount_codes")
-		.withIndex("by_code", (q: any) => q.eq("code", code))
+		.withIndex("by_code", (q) => q.eq("code", code))
 		.unique();
 
 	if (existing && existing._id.toString() !== excludeId) {
@@ -197,6 +199,13 @@ export const list = query({
 		page: v.optional(v.number()),
 		perPage: v.optional(v.number()),
 	},
+	returns: v.object({
+   items: v.array(commerceDocs.commerce_discount_codes),
+   total: v.number(),
+   page: v.number(),
+   perPage: v.number(),
+   totalPages: v.number(),
+ }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -204,22 +213,29 @@ export const list = query({
 		const page = Math.max(1, args.page ?? 1);
 		const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
 
-		let scoped: any[];
-		if (args.search && args.search.trim()) {
+		// Filters name schema values; an unknown status or type matches nothing.
+		const status = args.status ? matchLiteral(DISCOUNT_STATUSES, args.status) : undefined;
+		const discountType = args.discountType ? matchLiteral(DISCOUNT_TYPES, args.discountType) : undefined;
+		const unknownFilter = (Boolean(args.status) && !status) || (Boolean(args.discountType) && !discountType);
+
+		let scoped: DiscountDoc[];
+		if (unknownFilter) {
+			scoped = [];
+		} else if (args.search && args.search.trim()) {
 			const term = args.search.trim();
 			scoped = await ctx.db
 				.query("commerce_discount_codes")
-				.withSearchIndex("search_discount_codes", (q: any) => {
+				.withSearchIndex("search_discount_codes", (q) => {
 					let sq = q.search("code", term);
-					if (args.status) sq = sq.eq("status", args.status);
-					if (args.discountType) sq = sq.eq("discountType", args.discountType);
+					if (status) sq = sq.eq("status", status);
+					if (discountType) sq = sq.eq("discountType", discountType);
 					return sq;
 				})
 				.take(2000);
-		} else if (args.status) {
+		} else if (status) {
 			scoped = await ctx.db
 				.query("commerce_discount_codes")
-				.withIndex("by_status", (q: any) => q.eq("status", args.status as any))
+				.withIndex("by_status", (q) => q.eq("status", status))
 				.take(20000);
 		} else {
 			scoped = await ctx.db
@@ -231,12 +247,12 @@ export const list = query({
 
 		let filtered = scoped;
 		if (args.discountType) {
-			filtered = filtered.filter((d: any) => d.discountType === args.discountType);
+			filtered = filtered.filter((d) => d.discountType === args.discountType);
 		}
 		// Search needs to ALSO match description, plus an extra filter pass
 		if (args.search && args.search.trim()) {
 			const term = args.search.trim().toLowerCase();
-			filtered = filtered.filter((d: any) => {
+			filtered = filtered.filter((d) => {
 				const haystack = [d.code, d.description].filter(Boolean).join(" ").toLowerCase();
 				return haystack.includes(term);
 			});
@@ -244,9 +260,9 @@ export const list = query({
 
 		const dir = args.orderDir === "asc" ? 1 : -1;
 		const key = args.orderBy ?? "updatedAt";
-		filtered.sort((a: any, b: any) => {
-			let av: any;
-			let bv: any;
+		filtered.sort((a, b) => {
+			let av: string | number;
+			let bv: string | number;
 			switch (key) {
 				case "code":
 					av = (a.code ?? "").toLowerCase();
@@ -302,19 +318,19 @@ export const counts = query({
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
 
-		let pool: any[];
+		let pool: DiscountDoc[];
 		if (args.search && args.search.trim()) {
 			const term = args.search.trim();
 			pool = await ctx.db
 				.query("commerce_discount_codes")
-				.withSearchIndex("search_discount_codes", (q: any) => q.search("code", term))
+				.withSearchIndex("search_discount_codes", (q) => q.search("code", term))
 				.take(2000);
 		} else {
 			pool = await ctx.db.query("commerce_discount_codes").take(20000);
 		}
 
 		if (args.discountType) {
-			pool = pool.filter((d: any) => d.discountType === args.discountType);
+			pool = pool.filter((d) => d.discountType === args.discountType);
 		}
 
 		const now = Date.now();
@@ -427,7 +443,7 @@ export const update = mutation({
 			});
 		}
 
-		const patch: Record<string, unknown> = {
+		const patch: Partial<DiscountDoc> = {
 			updatedAt: Date.now(),
 		};
 
@@ -486,14 +502,14 @@ export const remove = mutation({
  */
 export const listAutomatic = query({
 	args: {},
-	returns: v.array(tableDocs.commerce_discount_codes),
+	returns: v.array(commerceDocs.commerce_discount_codes),
 	handler: async (ctx) => {
 		await requireCommerceEnabled(ctx);
 		const rows = await ctx.db
 			.query("commerce_discount_codes")
-			.withIndex("by_auto", (q: any) => q.eq("auto", true))
+			.withIndex("by_auto", (q) => q.eq("auto", true))
 			.collect();
-		return rows.filter((r: any) => r.status === "active");
+		return rows.filter((r) => r.status === "active");
 	},
 });
 
@@ -509,7 +525,7 @@ export const listAutomatic = query({
  *   { hasCategoryId: string }  — at least one line's categories match
  */
 export function matchesAutoConditions(
-	conditions: any,
+	conditions: unknown,
 	ctx: {
 		cartSubtotal: number;
 		priorOrderCount?: number;
@@ -517,7 +533,7 @@ export function matchesAutoConditions(
 		categoryIds: string[];
 	},
 ): boolean {
-	if (!conditions || typeof conditions !== "object") return true;
+	if (!isRecord(conditions)) return true;
 	if (
 		typeof conditions.minSubtotal === "number" &&
 		ctx.cartSubtotal < conditions.minSubtotal

@@ -1,14 +1,15 @@
 import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 const DEFAULT_TAX_CLASS = "standard";
 const MAX_TAX_RATE_PERCENT = 100;
 
 type TaxRule = {
-	_id: unknown;
+	_id: Id<"commerce_tax_rules">;
 	name: string;
 	countryCode: string;
 	stateCode?: string;
@@ -221,11 +222,13 @@ function getMatchingRules(
 		});
 }
 
+type AppliedTaxRule = Pick<TaxRule, "_id" | "name" | "countryCode" | "stateCode" | "postalCodePattern" | "ratePercent" | "isCompound" | "priority"> & { taxClass: string };
+
 function calculateRuleGroupTax(
 	rules: TaxRule[],
 	amount: number,
 	pricesIncludeTax = false,
-) {
+): { taxAmount: number; taxRate: number; rules: AppliedTaxRule[] } {
 	if (amount <= 0 || rules.length === 0) {
 		return { taxAmount: 0, taxRate: 0, rules: [] };
 	}
@@ -308,7 +311,7 @@ export function calculateTaxForLinesFromRules(
 		taxableAmount: number;
 		taxAmount: number;
 		taxRate: number;
-		rules: Array<Record<string, unknown>>;
+		rules: AppliedTaxRule[];
 	}> = [];
 
 	for (const [taxClass, amount] of byClass.entries()) {
@@ -339,7 +342,7 @@ export const getById = query({
 	args: {
 		id: v.id("commerce_tax_rules"),
 	},
-	returns: v.union(v.null(), tableDocs.commerce_tax_rules),
+	returns: v.union(v.null(), commerceDocs.commerce_tax_rules),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "commerce.tax.manage");
 		return ctx.db.get("commerce_tax_rules", args.id);
@@ -348,7 +351,7 @@ export const getById = query({
 
 export const list = query({
 	args: {},
-	returns: v.array(tableDocs.commerce_tax_rules),
+	returns: v.array(commerceDocs.commerce_tax_rules),
 	handler: async (ctx) => {
 		await requireCan(ctx, "commerce.tax.manage");
 
@@ -371,6 +374,21 @@ export const calculate = query({
 		taxClass: v.optional(v.string()),
 		pricesIncludeTax: v.optional(v.boolean()),
 	},
+	returns: v.object({
+   taxAmount: v.number(),
+   taxRate: v.number(),
+   rules: v.array(v.object({
+     name: v.string(),
+     priority: v.number(),
+     countryCode: v.string(),
+     stateCode: v.optional(v.string()),
+     postalCodePattern: v.optional(v.string()),
+     ratePercent: v.number(),
+     isCompound: v.boolean(),
+     _id: v.id("commerce_tax_rules"),
+     taxClass: v.string(),
+   })),
+ }),
 	handler: async (ctx, args) => {
 		assertFiniteAmount(args.amount, "Amount");
 		const rules = await ctx.db

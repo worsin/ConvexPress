@@ -58,6 +58,38 @@ export const testConnectionArgs = {
   serviceAccountJson: v.string(),
 };
 
+// ─── Normalized Report Data ────────────────────────────────────────────────
+
+/** Normalized traffic report (built by helpers.buildTrafficData, cached as queryType "traffic"). */
+export const ga4TrafficDataValidator = v.object({
+  totalPageviews: v.number(),
+  totalSessions: v.number(),
+  totalUsers: v.number(),
+  newUsers: v.number(),
+  sources: v.array(v.object({ channel: v.string(), sessions: v.number() })),
+  referrers: v.array(v.object({ domain: v.string(), sessions: v.number() })),
+  countries: v.array(v.object({ country: v.string(), users: v.number() })),
+  devices: v.array(v.object({ category: v.string(), sessions: v.number() })),
+  daily: v.array(v.object({ date: v.string(), pageviews: v.number(), sessions: v.number(), users: v.number() })),
+});
+
+/** Normalized engagement report (built by helpers.buildEngagementData, cached as queryType "engagement"). */
+export const ga4EngagementDataValidator = v.object({
+  bounceRate: v.number(),
+  avgSessionDuration: v.number(),
+  pagesPerSession: v.number(),
+  engagementRate: v.number(),
+  totalEvents: v.number(),
+  daily: v.array(v.object({
+    date: v.string(),
+    bounceRate: v.number(),
+    avgSessionDuration: v.number(),
+    pagesPerSession: v.number(),
+    engagementRate: v.number(),
+    eventCount: v.number(),
+  })),
+});
+
 // ─── Cache Upsert ──────────────────────────────────────────────────────────
 
 export const upsertCacheArgs = {
@@ -66,7 +98,7 @@ export const upsertCacheArgs = {
   dateRange: v.string(),
   queryType: queryTypeValidator,
   path: v.optional(v.string()),
-  data: v.any(),
+  data: v.union(ga4TrafficDataValidator, ga4EngagementDataValidator),
 };
 
 // ─── Re-export ─────────────────────────────────────────────────────────────

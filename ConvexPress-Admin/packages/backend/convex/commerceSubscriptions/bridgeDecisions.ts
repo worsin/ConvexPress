@@ -28,10 +28,10 @@ export type SubscriptionStatus =
   | "expired"
   | string;
 
-export type BridgeInputSubscription = {
+export type BridgeInputSubscription<UserId = unknown> = {
   _id: unknown;
   status: SubscriptionStatus;
-  userId?: unknown;
+  userId?: UserId;
   currentPeriodEndAt?: number;
   endsAt?: number; // not on the schema, but fall-back-compatible
 };
@@ -40,11 +40,11 @@ export type BridgeInputEntitlement = {
   entitlementCode?: string | null;
 };
 
-export type BridgeDecision =
+export type BridgeDecision<UserId = unknown> =
   | {
       action: "grant";
       args: {
-        userId: unknown;
+        userId: UserId;
         entitlementCode: string;
         subscriptionId: string;
         endsAt?: number;
@@ -53,7 +53,7 @@ export type BridgeDecision =
   | {
       action: "moveToGrace";
       args: {
-        userId: unknown;
+        userId: UserId;
         subscriptionId: string;
         gracePeriodDays: number;
       };
@@ -61,7 +61,7 @@ export type BridgeDecision =
   | {
       action: "revoke";
       args: {
-        userId: unknown;
+        userId: UserId;
         subscriptionId: string;
         gracePeriodDays: number; // always 0 — grace already happened on past_due
       };
@@ -77,18 +77,19 @@ export type BridgeDecision =
  *   - the entitlement has no `entitlementCode` (blank/undefined)
  *   - the subscription has no `userId` (can't target a grant without it)
  */
-export function decideBridgeCall(input: {
-  subscription: BridgeInputSubscription;
+export function decideBridgeCall<UserId>(input: {
+  subscription: BridgeInputSubscription<UserId>;
   entitlement: BridgeInputEntitlement;
   gracePeriodDays: number;
-}): BridgeDecision {
+}): BridgeDecision<UserId> {
   const { subscription, entitlement, gracePeriodDays } = input;
 
   const code = entitlement.entitlementCode;
   if (!code) {
     return { action: "noop", reason: "no_entitlement_code" };
   }
-  if (!subscription.userId) {
+  const userId = subscription.userId;
+  if (!userId) {
     return { action: "noop", reason: "no_user_id" };
   }
 
@@ -100,7 +101,7 @@ export function decideBridgeCall(input: {
     return {
       action: "grant",
       args: {
-        userId: subscription.userId,
+        userId,
         entitlementCode: code,
         subscriptionId,
         ...(endsAt !== undefined ? { endsAt } : {}),
@@ -112,7 +113,7 @@ export function decideBridgeCall(input: {
     return {
       action: "moveToGrace",
       args: {
-        userId: subscription.userId,
+        userId,
         subscriptionId,
         gracePeriodDays,
       },
@@ -123,7 +124,7 @@ export function decideBridgeCall(input: {
     return {
       action: "revoke",
       args: {
-        userId: subscription.userId,
+        userId,
         subscriptionId,
         gracePeriodDays: 0, // immediate — grace already happened on past_due
       },

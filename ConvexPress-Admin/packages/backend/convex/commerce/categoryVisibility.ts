@@ -13,7 +13,7 @@ export function createCategoryVisibilityReader(ctx: Pick<QueryCtx, "db">, seed: 
       seen.add(current._id);
       if (current._id !== category._id) ancestors.unshift(current);
       if (!current.parentId) return ancestors;
-      const parentId = current.parentId;
+      const parentId: Id<"commerce_product_categories"> = current.parentId;
       if (!rows.has(parentId)) rows.set(parentId, await readParent(parentId));
       current = rows.get(parentId) ?? null;
     }

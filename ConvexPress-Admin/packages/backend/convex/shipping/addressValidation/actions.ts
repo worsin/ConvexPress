@@ -1,9 +1,66 @@
 "use node";
 
-import { action, internalAction } from "../../_generated/server";
+import type { Infer } from "convex/values";
+import { action, internalAction, type ActionCtx } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { computeAddressFingerprint } from "../helpers/addressFingerprint";
-import { validateAddressArgs } from "./validators";
+import { at, list, readJson, str, type JsonObject } from "../helpers/json";
+import { addressInputValidator, validateAddressArgs } from "./validators";
+
+import { v } from "convex/values";
+type AddressInput = Infer<typeof addressInputValidator>;
+type ValidationRow = Doc<"commerce_address_validations">;
+
+/** What callers learn about an address: the verdict, never the carrier's raw payload. */
+export type AddressValidationResult = {
+  fromCache: boolean;
+  fingerprint: string;
+  provider: ValidationRow["provider"];
+  status: ValidationRow["status"];
+  normalizedAddress?: AddressInput;
+  isResidential?: boolean;
+  deliveryPoint?: string;
+  warnings?: string[];
+};
+
+/** Cached rows store addresses untyped; only a complete address is reported back. */
+function storedAddress(value: unknown): AddressInput | undefined {
+  const line1 = str(at(value, "line1"));
+  const city = str(at(value, "city"));
+  const postalCode = str(at(value, "postalCode"));
+  const countryCode = str(at(value, "countryCode"));
+  if (line1 === undefined || city === undefined || postalCode === undefined || countryCode === undefined) return undefined;
+  const optional = (key: string) => {
+    const field = at(value, key);
+    return typeof field === "string" ? field : undefined;
+  };
+  return {
+    line1,
+    line2: optional("line2"),
+    city,
+    state: optional("state"),
+    postalCode,
+    countryCode,
+    firstName: optional("firstName"),
+    lastName: optional("lastName"),
+    company: optional("company"),
+    phone: optional("phone"),
+  };
+}
+
+function cachedResult(row: ValidationRow): AddressValidationResult {
+  return {
+    fromCache: true,
+    fingerprint: row.fingerprint,
+    provider: row.provider,
+    status: row.status,
+    normalizedAddress: storedAddress(row.normalizedAddress),
+    isResidential: row.isResidential,
+    deliveryPoint: row.deliveryPoint,
+    warnings: row.warnings,
+  };
+}
 
 type ProviderAttempt = {
   provider: "usps" | "smartystreets" | "google" | "skip";
@@ -15,7 +72,10 @@ type ProviderAttempt = {
   skippedReason?: string;
 };
 
-async function runValidateAddress(ctx: any, args: any) {
+async function runValidateAddress(
+  ctx: ActionCtx,
+  args: { address: AddressInput; force?: boolean },
+): Promise<AddressValidationResult> {
   const fingerprint = computeAddressFingerprint(args.address);
 
   if (!args.force) {
@@ -25,7 +85,7 @@ async function runValidateAddress(ctx: any, args: any) {
       { fingerprint },
     );
     if (cached) {
-      return { fromCache: true, ...cached };
+      return cachedResult(cached);
     }
   }
 
@@ -49,7 +109,7 @@ async function runValidateAddress(ctx: any, args: any) {
       errorMessage: uspsResult.errorMessage,
       skippedReason: uspsResult.skippedReason,
     });
-    if (uspsResult.success && uspsResult.normalizedAddress) {
+    if (uspsResult.success && uspsResult.normalizedAddress && uspsResult.status) {
       const result = {
         fingerprint,
         provider: "usps" as const,
@@ -69,7 +129,16 @@ async function runValidateAddress(ctx: any, args: any) {
         internal.shipping.addressValidation.mutations.recordValidation,
         result,
       );
-      return { fromCache: false, ...result };
+      return {
+        fromCache: false,
+        fingerprint,
+        provider: result.provider,
+        status: result.status,
+        normalizedAddress: result.normalizedAddress,
+        isResidential: result.isResidential,
+        deliveryPoint: result.deliveryPoint,
+        warnings: result.warnings,
+      };
     }
   } catch (err) {
     diagnostics.push({
@@ -125,25 +194,32 @@ async function runValidateAddress(ctx: any, args: any) {
     result,
   );
 
-  return { fromCache: false, ...result };
+  return {
+    fromCache: false,
+    fingerprint,
+    provider: result.provider,
+    status: result.status,
+    normalizedAddress: result.normalizedAddress,
+    warnings: result.warnings,
+  };
 }
 
 type UspsValidateResult = {
   success: boolean;
   status?: "valid" | "corrected" | "invalid" | "ambiguous" | "unsupported_country";
-  normalizedAddress?: any;
+  normalizedAddress?: AddressInput;
   isResidential?: boolean;
   deliveryPoint?: string;
   warnings?: string[];
-  rawResponse?: any;
+  rawResponse?: JsonObject;
   errorCode?: string;
   errorMessage?: string;
   skippedReason?: string;
 };
 
 async function tryUspsValidate(
-  ctx: any,
-  address: any,
+  ctx: ActionCtx,
+  address: AddressInput,
 ): Promise<UspsValidateResult> {
   // USPS only supports US domestic. Non-US → skip, don't error.
   if (String(address.countryCode ?? "").toUpperCase() !== "US") {
@@ -189,21 +265,23 @@ async function tryUspsValidate(
       errorMessage: body.slice(0, 500),
     };
   }
-  const data = (await res.json()) as any;
-  if (!data?.address) {
+  const data = await readJson(res);
+  if (!data.address) {
     return {
       success: false,
       errorMessage: "USPS response missing `address` object.",
       rawResponse: data,
     };
   }
-  const normalized = {
-    line1: data.address.streetAddress ?? address.line1,
-    line2: data.address.secondaryAddress ?? address.line2,
-    city: data.address.city ?? address.city,
-    state: data.address.state ?? address.state,
-    postalCode: data.address.ZIPCode
-      ? `${data.address.ZIPCode}${data.address.ZIPPlus4 ? `-${data.address.ZIPPlus4}` : ""}`
+  const zipCode = str(at(data, "address", "ZIPCode"));
+  const zipPlus4 = str(at(data, "address", "ZIPPlus4"));
+  const normalized: AddressInput = {
+    line1: str(at(data, "address", "streetAddress")) ?? address.line1,
+    line2: str(at(data, "address", "secondaryAddress")) ?? address.line2,
+    city: str(at(data, "address", "city")) ?? address.city,
+    state: str(at(data, "address", "state")) ?? address.state,
+    postalCode: zipCode
+      ? `${zipCode}${zipPlus4 ? `-${zipPlus4}` : ""}`
       : address.postalCode,
     countryCode: "US",
     firstName: address.firstName,
@@ -212,8 +290,8 @@ async function tryUspsValidate(
     phone: address.phone,
   };
   // USPS signals corrections via `corrections[]` + `matches[]` arrays.
-  const corrections = Array.isArray(data.corrections) ? data.corrections : [];
-  const matches = Array.isArray(data.matches) ? data.matches : [];
+  const corrections = list(data.corrections);
+  const matches = list(data.matches);
   let status: UspsValidateResult["status"] = "valid";
   const warnings: string[] = [];
   if (matches.length > 1) {
@@ -222,15 +300,17 @@ async function tryUspsValidate(
   } else if (corrections.length > 0) {
     status = "corrected";
     for (const c of corrections) {
-      if (c?.text) warnings.push(`Corrected: ${c.text}`);
+      const text = str(at(c, "text"));
+      if (text) warnings.push(`Corrected: ${text}`);
     }
   }
   // DeliveryPoint + residential heuristic.
   const deliveryPoint =
-    data.additionalInfo?.deliveryPoint ?? data.address?.deliveryPoint;
+    str(at(data, "additionalInfo", "deliveryPoint")) ?? str(at(data, "address", "deliveryPoint"));
+  const business = at(data, "additionalInfo", "business");
   const isResidential =
-    typeof data.additionalInfo?.business === "string"
-      ? data.additionalInfo.business.toUpperCase() !== "Y"
+    typeof business === "string"
+      ? business.toUpperCase() !== "Y"
       : undefined;
   return {
     success: true,
@@ -248,7 +328,28 @@ async function tryUspsValidate(
  */
 export const validateAddressInternal = internalAction({
   args: validateAddressArgs,
-  handler: async (ctx, args) => runValidateAddress(ctx, args),
+  returns: v.object({
+    fromCache: v.boolean(),
+    fingerprint: v.string(),
+    provider: v.union(v.literal("google"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("smartystreets"), v.literal("skip")),
+    status: v.union(v.literal("skipped"), v.literal("valid"), v.literal("corrected"), v.literal("invalid"), v.literal("unconfirmed"), v.literal("ambiguous"), v.literal("unsupported_country")),
+    normalizedAddress: v.optional(v.object({
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      company: v.optional(v.string()),
+      line2: v.optional(v.string()),
+      state: v.optional(v.string()),
+      line1: v.string(),
+      city: v.string(),
+      postalCode: v.string(),
+      countryCode: v.string(),
+    })),
+    isResidential: v.optional(v.boolean()),
+    deliveryPoint: v.optional(v.string()),
+    warnings: v.optional(v.array(v.string())),
+  }),
+  handler: async (ctx, args): Promise<AddressValidationResult> => runValidateAddress(ctx, args),
 });
 
 /**
@@ -268,5 +369,26 @@ export const validateAddressInternal = internalAction({
  */
 export const validateAddress = action({
   args: validateAddressArgs,
-  handler: async (ctx, args) => runValidateAddress(ctx, args),
+  returns: v.object({
+    fromCache: v.boolean(),
+    fingerprint: v.string(),
+    provider: v.union(v.literal("google"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("smartystreets"), v.literal("skip")),
+    status: v.union(v.literal("skipped"), v.literal("valid"), v.literal("corrected"), v.literal("invalid"), v.literal("unconfirmed"), v.literal("ambiguous"), v.literal("unsupported_country")),
+    normalizedAddress: v.optional(v.object({
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      company: v.optional(v.string()),
+      line2: v.optional(v.string()),
+      state: v.optional(v.string()),
+      line1: v.string(),
+      city: v.string(),
+      postalCode: v.string(),
+      countryCode: v.string(),
+    })),
+    isResidential: v.optional(v.boolean()),
+    deliveryPoint: v.optional(v.string()),
+    warnings: v.optional(v.array(v.string())),
+  }),
+  handler: async (ctx, args): Promise<AddressValidationResult> => runValidateAddress(ctx, args),
 });

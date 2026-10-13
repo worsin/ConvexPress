@@ -1,6 +1,3 @@
-// @ts-nocheck
-// TS2589: the generated commerce schema union exceeds TypeScript's instantiation depth
-// inside Convex's typecheck; handlers are annotated `any` like the rest of convex/commerce.
 /**
  * Product relation graph.
  *
@@ -13,8 +10,9 @@
  * after an admin approves it).
  */
 
-import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query } from "../_generated/server";
+import { ConvexError, v, type Infer } from "convex/values";
+import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import {
   productRelationSourceValidator,
@@ -24,6 +22,7 @@ import { requireCommerceEnabled } from "./helpers";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { commerceAssistantDocs } from "../schema/commerceAssistant.docs.generated";
 export type RelationType =
   | "accessory_of"
   | "compatible_with"
@@ -86,25 +85,27 @@ function clampWeight(value: number | undefined): number {
   return Math.min(1, Math.max(0, value));
 }
 
+type RelationSource = Infer<typeof productRelationSourceValidator>;
+
 async function upsertRelation(
-  ctx: any,
+  ctx: Pick<MutationCtx, "db">,
   input: {
-    fromProductId: any;
-    toProductId: any;
+    fromProductId: Id<"commerce_products">;
+    toProductId: Id<"commerce_products">;
     type: RelationType;
     weight?: number;
-    source: string;
+    source: RelationSource;
     evidence?: string;
     status?: "active" | "rejected";
   },
-) {
+): Promise<Id<"commerce_product_relations">> {
   if (String(input.fromProductId) === String(input.toProductId)) {
     throw new ConvexError({ code: "VALIDATION_ERROR", message: "A product cannot relate to itself." });
   }
   const now = Date.now();
   const existing = await ctx.db
     .query("commerce_product_relations")
-    .withIndex("by_pair", (q: any) =>
+    .withIndex("by_pair", (q) =>
       q.eq("fromProductId", input.fromProductId).eq("toProductId", input.toProductId).eq("type", input.type),
     )
     .unique();
@@ -135,27 +136,61 @@ async function upsertRelation(
 
 export const listForProduct = query({
   args: productIdArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    outgoing: v.array(v.object({
+      from: v.union(v.null(), v.object({ title: v.string(), slug: v.string() })),
+      to: v.union(v.null(), v.object({ title: v.string(), slug: v.string() })),
+      _id: v.id("commerce_product_relations"),
+      _creationTime: v.number(),
+      evidence: v.optional(v.string()),
+      type: v.union(v.literal("accessory_of"), v.literal("compatible_with"), v.literal("consumable_for"), v.literal("maintenance_for"), v.literal("upgrade_of"), v.literal("replacement_for"), v.literal("bundle_with"), v.literal("similar_to")),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("active"), v.literal("rejected")),
+      source: v.union(v.literal("manual"), v.literal("woo_upsell"), v.literal("woo_crosssell"), v.literal("ai_inferred"), v.literal("co_purchase"), v.literal("seed")),
+      weight: v.number(),
+      fromProductId: v.id("commerce_products"),
+      toProductId: v.id("commerce_products"),
+    })),
+    incoming: v.array(v.object({
+      from: v.union(v.null(), v.object({ title: v.string(), slug: v.string() })),
+      to: v.union(v.null(), v.object({ title: v.string(), slug: v.string() })),
+      _id: v.id("commerce_product_relations"),
+      _creationTime: v.number(),
+      evidence: v.optional(v.string()),
+      type: v.union(v.literal("accessory_of"), v.literal("compatible_with"), v.literal("consumable_for"), v.literal("maintenance_for"), v.literal("upgrade_of"), v.literal("replacement_for"), v.literal("bundle_with"), v.literal("similar_to")),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("active"), v.literal("rejected")),
+      source: v.union(v.literal("manual"), v.literal("woo_upsell"), v.literal("woo_crosssell"), v.literal("ai_inferred"), v.literal("co_purchase"), v.literal("seed")),
+      weight: v.number(),
+      fromProductId: v.id("commerce_products"),
+      toProductId: v.id("commerce_products"),
+    })),
+  }),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     const [outgoing, incoming] = await Promise.all([
       ctx.db
         .query("commerce_product_relations")
-        .withIndex("by_from", (q: any) => q.eq("fromProductId", args.productId))
+        .withIndex("by_from", (q) => q.eq("fromProductId", args.productId))
         .collect(),
       ctx.db
         .query("commerce_product_relations")
-        .withIndex("by_to", (q: any) => q.eq("toProductId", args.productId))
+        .withIndex("by_to", (q) => q.eq("toProductId", args.productId))
         .collect(),
     ]);
-    const ids = new Set<string>();
+    const ids = new Map<string, Id<"commerce_products">>();
     for (const edge of [...outgoing, ...incoming]) {
-      ids.add(String(edge.fromProductId));
-      ids.add(String(edge.toProductId));
+      ids.set(String(edge.fromProductId), edge.fromProductId);
+      ids.set(String(edge.toProductId), edge.toProductId);
     }
-    const products = await Promise.all([...ids].map((id) => ctx.db.get(id as any)));
-    const titles = new Map(products.filter(Boolean).map((p: any) => [String(p._id), { title: p.title, slug: p.slug }]));
-    const decorate = (edge: any) => ({
+    const products = await Promise.all([...ids.values()].map((id) => ctx.db.get(id)));
+    const titles = new Map(
+      products.flatMap((p) => (p ? [[String(p._id), { title: p.title, slug: p.slug }] as const] : [])),
+    );
+    const decorate = (edge: Doc<"commerce_product_relations">) => ({
       ...edge,
       from: titles.get(String(edge.fromProductId)) ?? null,
       to: titles.get(String(edge.toProductId)) ?? null,
@@ -166,12 +201,13 @@ export const listForProduct = query({
 
 export const listPending = query({
   args: {},
-  handler: async (ctx: any) => {
+  returns: v.array(commerceAssistantDocs.commerce_product_relations),
+  handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     const edges = await ctx.db
       .query("commerce_product_relations")
-      .withIndex("by_status", (q: any) => q.eq("status", "rejected"))
+      .withIndex("by_status", (q) => q.eq("status", "rejected"))
       .take(200);
     return edges;
   },
@@ -179,7 +215,8 @@ export const listPending = query({
 
 export const upsert = mutation({
   args: upsertArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_product_relations"),
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     return await upsertRelation(ctx, { ...args, source: "manual" });
@@ -189,7 +226,7 @@ export const upsert = mutation({
 export const setStatus = mutation({
   args: setStatusArgs,
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     await patchDynamicWithMediaReferences(ctx, args.relationId, { status: args.status, updatedAt: Date.now() });
@@ -199,7 +236,7 @@ export const setStatus = mutation({
 export const remove = mutation({
   args: relationIdArgs,
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
     await deleteDynamicWithMediaReferences(ctx, args.relationId);
@@ -210,7 +247,8 @@ export const remove = mutation({
 
 export const upsertInternal = internalMutation({
   args: upsertInternalArgs,
-  handler: async (ctx: any, args: any) => upsertRelation(ctx, args),
+  returns: v.id("commerce_product_relations"),
+  handler: async (ctx, args) => upsertRelation(ctx, args),
 });
 
 /**
@@ -220,7 +258,7 @@ export const upsertInternal = internalMutation({
 export const seedFromWoo = internalMutation({
   args: {},
   returns: v.object({ created: v.number() }),
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     const products = await ctx.db.query("commerce_products").take(5000);
     let created = 0;
     for (const product of products) {

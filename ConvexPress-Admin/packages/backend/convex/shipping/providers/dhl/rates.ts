@@ -21,6 +21,7 @@ import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getDhlBasicAuth, getDhlCredentialsV2 } from "./auth";
 import { getDhlServiceName } from "./serviceCodes";
+import { at, list, readJson, str, timeOf } from "../../helpers/json";
 
 export type DhlRateInput = {
   sessionToken: string;
@@ -77,7 +78,7 @@ export async function fetchDhlRatesV2(
   const credentials = await getDhlCredentialsV2(ctx);
   const basicAuth = getDhlBasicAuth(credentials);
 
-  const shippableItems = (rateContext.items as any[]).filter(
+  const shippableItems = rateContext.items.filter(
     (item) => item.product && item.product.isVirtual !== true,
   );
   const totalWeightOz =
@@ -149,40 +150,43 @@ export async function fetchDhlRatesV2(
     });
   }
 
-  const data = (await response.json()) as { products?: any[] };
-  const rawProducts: any[] = Array.isArray(data?.products) ? data.products : [];
+  const data = await readJson(response);
+  const rawProducts = list(at(data, "products"));
 
   const ttlMs = Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000;
   const expiresAt = Date.now() + ttlMs;
   const addressKey = computeAddressFingerprint(args.shippingAddress);
-  const cartKey = (rateContext.items as any[])
+  const cartKey = rateContext.items
     .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
     .sort()
     .join(",");
 
   const filtered = rawProducts.filter((product) => {
-    const totalPrice = product?.totalPrice?.[0]?.price ?? product?.totalPrice ?? 0;
+    const totalPrice = at(product, "totalPrice", 0, "price") ?? at(product, "totalPrice") ?? 0;
     return Number(totalPrice) > 0;
   });
 
   const unranked = filtered.map((product, index) => {
+    const productName = str(at(product, "productName"));
     const serviceCode =
-      product.productCode ?? product.productName ?? `dhl-service-${index + 1}`;
-    const priceEntry = Array.isArray(product.totalPrice)
-      ? product.totalPrice[0]
-      : product.totalPrice ?? {};
-    const amount = priceEntry?.price ?? priceEntry ?? 0;
+      str(at(product, "productCode")) ?? productName ?? `dhl-service-${index + 1}`;
+    const totalPrice = at(product, "totalPrice");
+    const priceEntry = Array.isArray(totalPrice)
+      ? totalPrice[0]
+      : totalPrice ?? {};
+    const amount = at(priceEntry, "price") ?? priceEntry ?? 0;
     const currency =
-      priceEntry?.priceCurrency ?? rateContext.cart.currencyCode ?? "USD";
+      str(at(priceEntry, "priceCurrency")) ?? rateContext.cart.currencyCode ?? "USD";
 
-    const deliveryDate = product.deliveryCapabilities?.estimatedDeliveryDateAndTime;
+    const deliveryAt = timeOf(at(product, "deliveryCapabilities", "estimatedDeliveryDateAndTime"));
     let estimatedDays: number | undefined;
-    if (deliveryDate) {
-      const diffMs = new Date(deliveryDate).getTime() - Date.now();
+    if (deliveryAt !== undefined) {
+      const diffMs = deliveryAt - Date.now();
       estimatedDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     }
-    if (!estimatedDays && product.deliveryCapabilities?.totalTransitDays) {
-      estimatedDays = Number(product.deliveryCapabilities.totalTransitDays);
+    const totalTransitDays = at(product, "deliveryCapabilities", "totalTransitDays");
+    if (!estimatedDays && totalTransitDays) {
+      estimatedDays = Number(totalTransitDays);
     }
 
     return {
@@ -191,7 +195,7 @@ export async function fetchDhlRatesV2(
       carrierCode: "dhl",
       carrierName: "DHL Express",
       serviceCode: String(serviceCode),
-      serviceName: product.productName || getDhlServiceName(String(serviceCode)),
+      serviceName: productName || getDhlServiceName(String(serviceCode)),
       amount: Math.round(Number(amount || 0) * 100) || 0,
       currency,
       estimatedDaysMin: estimatedDays,

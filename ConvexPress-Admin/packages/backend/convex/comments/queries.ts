@@ -21,7 +21,7 @@
 import { ConvexError } from "convex/values";
 import { query } from "../_generated/server";
 import { getCurrentUser, currentUserCan, getUserIdentifier } from "../helpers/permissions";
-import { getDiscussionSettings, buildCommentTree } from "../helpers/comment";
+import { getDiscussionSettings, buildCommentTree, type CommentTreeNode } from "../helpers/comment";
 import {
   listCommentsArgs,
   forPostArgs,
@@ -30,6 +30,7 @@ import {
   DEFAULT_PER_PAGE_ADMIN,
   MAX_PER_PAGE,
 } from "./validators";
+import { COMMENT_TREE_LEVELS, capCommentTreeDepth, forPostResultValidator } from "./treeContract";
 
 import { v } from "convex/values";
 // ─── List (Admin) ────────────────────────────────────────────────────────────
@@ -235,15 +236,18 @@ export const list = query({
  * Public query - no auth required for approved comments.
  * If authenticated, includes isLikedByMe status.
  *
- * Returns a flat array (tree building happens on the client or here).
+ * Returns the requested page of top-level comments, each with its replies
+ * nested up to COMMENT_TREE_LEVELS levels (see ./treeContract).
  */
 export const forPost = query({
   args: forPostArgs,
+  returns: forPostResultValidator,
   handler: async (ctx, args) => {
     // Verify post exists
     const post = await ctx.db.get("posts", args.postId);
     if (!post || post.status !== "publish") {
-      return { comments: [], total: 0, page: 1, perPage: 50, totalPages: 0 };
+      const comments: CommentTreeNode[] = [];
+      return { comments, total: 0, page: 1, perPage: 50, totalPages: 0 };
     }
 
     const settings = await getDiscussionSettings(ctx);
@@ -297,7 +301,10 @@ export const forPost = query({
     const total = tree.length;
     const totalPages = Math.ceil(total / perPage);
     const offset = (page - 1) * perPage;
-    const paginatedTree = tree.slice(offset, offset + perPage);
+    const paginatedTree = capCommentTreeDepth(
+      tree.slice(offset, offset + perPage),
+      COMMENT_TREE_LEVELS,
+    );
 
     return {
       comments: paginatedTree,

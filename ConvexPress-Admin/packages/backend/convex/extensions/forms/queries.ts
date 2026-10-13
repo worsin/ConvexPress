@@ -9,8 +9,14 @@ import { readCompletedFormCount } from "../../helpers/formSubmissionCounts";
  * reused customFields `fieldDefinitions`; submission answers from `fieldValues`.
  */
 
-import { query } from "../../_generated/server";
+import { query, type QueryCtx } from "../../_generated/server";
 import { v } from "convex/values";
+import type { PricingLineItem } from "./calc/recompute";
+import {
+  parsePricingLineItems,
+  parseRecurringSnapshots,
+  type PricingRecurringSnapshot,
+} from "./pricingSnapshot";
 import { paginationOptsValidator } from "convex/server";
 import { currentUserCan, getCurrentUser } from "../../helpers/permissions";
 import { isPluginEnabled } from "../../helpers/plugins";
@@ -29,7 +35,8 @@ export { DEFAULT_RESUME_TTL_MS, computeResumeExpiry } from "./tokens";
 import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { formsExtensionDocs } from "./schema.docs.generated";
+import { paginationResultValidator } from "convex/server";
 function formCap(cap: string): Capability {
   return cap as Capability;
 }
@@ -67,13 +74,13 @@ type SubmissionDoc = {
 };
 
 async function countFieldsForForm(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   fieldGroupId: Id<"fieldGroups"> | undefined,
 ): Promise<number> {
   if (!fieldGroupId) return 0;
   const fields = await ctx.db
     .query("fieldDefinitions")
-    .withIndex("by_group", (q: any) => q.eq("groupId", fieldGroupId))
+    .withIndex("by_group", (q) => q.eq("groupId", fieldGroupId))
     .collect();
   return fields.length;
 }
@@ -81,7 +88,7 @@ async function countFieldsForForm(
 async function withFieldCounts<
   T extends { fieldGroupId?: Id<"fieldGroups"> },
 >(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   forms: T[],
 ): Promise<Array<T & { fieldCount: number }>> {
   return await Promise.all(
@@ -126,13 +133,13 @@ function submissionMatchesSearch(row: SubmissionDoc, term: string): boolean {
 }
 
 async function submissionValuesMatchSearch(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   submissionId: Id<"form_submissions">,
   term: string,
 ): Promise<boolean> {
   const values = await ctx.db
     .query("fieldValues")
-    .withIndex("by_entity", (q: any) =>
+    .withIndex("by_entity", (q) =>
       q
         .eq("entityType", "form_submission")
         .eq("entityId", submissionId as string),
@@ -147,7 +154,7 @@ async function submissionValuesMatchSearch(
 }
 
 async function searchSubmissions(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   formId: Id<"forms">,
   status: "partial" | "complete" | "spam" | "deleted" | undefined,
   paginationOpts: { numItems: number; cursor: string | null },
@@ -158,14 +165,14 @@ async function searchSubmissions(
   const rows: SubmissionDoc[] = status
     ? await ctx.db
         .query("form_submissions")
-        .withIndex("by_form_status", (q: any) =>
+        .withIndex("by_form_status", (q) =>
           q.eq("formId", formId).eq("status", status),
         )
         .order("desc")
         .collect()
     : await ctx.db
         .query("form_submissions")
-        .withIndex("by_form", (q: any) => q.eq("formId", formId))
+        .withIndex("by_form", (q) => q.eq("formId", formId))
         .order("desc")
         .collect();
 
@@ -217,6 +224,28 @@ export const list = query({
     paginationOpts: paginationOptsValidator,
     status: v.optional(formStatus),
   },
+  returns: paginationResultValidator(v.object({
+    _id: v.id("forms"),
+    _creationTime: v.number(),
+    updatedBy: v.optional(v.id("users")),
+    description: v.optional(v.string()),
+    publishedAt: v.optional(v.number()),
+    contactPostId: v.optional(v.id("posts")),
+    contactBlockId: v.optional(v.string()),
+    contactDefinition: v.optional(v.string()),
+    contactNotificationId: v.optional(v.id("form_notifications")),
+    contactConfirmationId: v.optional(v.id("form_confirmations")),
+    fieldGroupId: v.optional(v.id("fieldGroups")),
+    submissionCountReady: v.optional(v.boolean()),
+    title: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("draft"), v.literal("archived"), v.literal("published")),
+    slug: v.string(),
+    createdBy: v.id("users"),
+    settings: v.string(),
+    fieldCount: v.number(),
+  })),
   handler: async (ctx, { paginationOpts, status }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return { page: [], isDone: true, continueCursor: "" };
@@ -253,7 +282,7 @@ export const list = query({
 // ─── Admin: single form by id ────────────────────────────────────────────────
 export const getForm = query({
   args: { id: v.id("forms") },
-  returns: v.union(v.null(), tableDocs.forms),
+  returns: v.union(v.null(), formsExtensionDocs.forms),
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -415,11 +444,6 @@ export const resume = query({
   args: { token: v.string(), contactPassword: v.optional(v.string()) },
   returns: v.union(v.null(), v.object({
     status: v.literal("expired"),
-    submissionId: v.optional(v.null()),
-    formSlug: v.optional(v.null()),
-    currentStep: v.optional(v.null()),
-    expiresAt: v.optional(v.null()),
-    values: v.optional(v.null()),
   }), v.object({
     submissionId: v.id("form_submissions"),
     formSlug: v.string(),
@@ -491,6 +515,24 @@ export const listSubmissions = query({
     read: v.optional(v.boolean()),
     starred: v.optional(v.boolean()),
   },
+  returns: paginationResultValidator(v.object({
+    _id: v.id("form_submissions"),
+    formId: v.id("forms"),
+    status: v.union(v.literal("partial"), v.literal("spam"), v.literal("complete"), v.literal("deleted")),
+    submittedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    ip: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    referrer: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    resumeToken: v.optional(v.string()),
+    currentStep: v.optional(v.number()),
+    read: v.boolean(),
+    starred: v.boolean(),
+    meta: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })),
   handler: async (
     ctx,
     { formId, paginationOpts, status, search, read, starred },
@@ -592,6 +634,71 @@ export const listNotes = query({
 // ─── Admin: a single submission with its answers + notes ─────────────────────
 export const getSubmission = query({
   args: { id: v.id("form_submissions") },
+  returns: v.union(v.null(), v.object({
+    submission: v.object({
+      _id: v.id("form_submissions"),
+      _creationTime: v.number(),
+      userId: v.optional(v.id("users")),
+      completedAt: v.optional(v.number()),
+      referrer: v.optional(v.string()),
+      userAgent: v.optional(v.string()),
+      ip: v.optional(v.string()),
+      currentStep: v.optional(v.number()),
+      submittedAt: v.optional(v.number()),
+      confirmationTokenHash: v.optional(v.string()),
+      confirmationExpiresAt: v.optional(v.number()),
+      resumeToken: v.optional(v.string()),
+      read: v.boolean(),
+      starred: v.boolean(),
+      meta: v.optional(v.string()),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("partial"), v.literal("spam"), v.literal("complete"), v.literal("deleted")),
+      formId: v.id("forms"),
+    }),
+    values: v.array(v.object({
+      fieldLabel: v.string(),
+      fieldType: v.optional(v.string()),
+      _id: v.id("fieldValues"),
+      _creationTime: v.number(),
+      formFieldSnapshot: v.optional(v.object({ type: v.string(), label: v.string() })),
+      updatedAt: v.number(),
+      updatedBy: v.string(),
+      value: v.string(),
+      entityType: v.string(),
+      entityId: v.string(),
+      fieldKey: v.string(),
+      fieldName: v.string(),
+    })),
+    notes: v.array(v.object({
+      authorName: v.string(),
+      authorEmail: v.optional(v.string()),
+      _id: v.id("form_submission_notes"),
+      _creationTime: v.number(),
+      createdAt: v.number(),
+      authorId: v.id("users"),
+      submissionId: v.id("form_submissions"),
+      body: v.string(),
+    })),
+    pricing: v.union(v.null(), v.object({
+      oneTime: v.number(),
+      recurring: v.array(v.object({ interval: v.string(), amount: v.number(), label: v.optional(v.string()) })),
+      lineItems: v.array(v.object({
+        source: v.union(v.literal("product"), v.literal("choice"), v.literal("calculation")),
+        fieldKey: v.string(),
+        fieldLabel: v.string(),
+        label: v.string(),
+        amount: v.number(),
+        priceKind: v.union(v.literal("recurring"), v.literal("oneTime")),
+        choiceValue: v.optional(v.string()),
+        quantity: v.optional(v.number()),
+        interval: v.optional(v.union(v.literal("year"), v.literal("month"))),
+        recurringLabel: v.optional(v.string()),
+        firstPeriodAmount: v.optional(v.number()),
+      })),
+      currency: v.string(),
+    })),
+  })),
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -690,6 +797,24 @@ export const getSubmissionEditing = query({
 // ─── Public: a submission's trusted pricing summary (commerce/confirmation) ───
 export const getSubmissionPricing = query({
   args: { id: v.id("form_submissions") },
+  returns: v.union(v.null(), v.object({
+    oneTime: v.number(),
+    recurring: v.array(v.object({ interval: v.string(), amount: v.number(), label: v.optional(v.string()) })),
+    lineItems: v.array(v.object({
+      source: v.union(v.literal("product"), v.literal("choice"), v.literal("calculation")),
+      fieldKey: v.string(),
+      fieldLabel: v.string(),
+      label: v.string(),
+      amount: v.number(),
+      priceKind: v.union(v.literal("recurring"), v.literal("oneTime")),
+      choiceValue: v.optional(v.string()),
+      quantity: v.optional(v.number()),
+      interval: v.optional(v.union(v.literal("year"), v.literal("month"))),
+      recurringLabel: v.optional(v.string()),
+      firstPeriodAmount: v.optional(v.number()),
+    })),
+    currency: v.string(),
+  })),
   handler: async (ctx, { id }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
     const submission = await ctx.db.get(id);
@@ -704,9 +829,18 @@ export const getSubmissionPricing = query({
  */
 export interface SubmissionPricingSnapshot {
   oneTime: number;
-  recurring: Array<{ interval: string; amount: number; label?: string }>;
-  lineItems: Array<Record<string, unknown>>;
+  recurring: PricingRecurringSnapshot[];
+  lineItems: PricingLineItem[];
   currency: string;
+}
+
+function readPricingBag(meta: string): Record<string, unknown> | null {
+  const parsed: unknown = JSON.parse(meta);
+  if (typeof parsed !== "object" || parsed === null || !("pricing" in parsed)) return null;
+  const pricing: unknown = parsed.pricing;
+  return typeof pricing === "object" && pricing !== null && !Array.isArray(pricing)
+    ? { ...pricing }
+    : null;
 }
 
 export function parseMetaPricing(
@@ -714,21 +848,20 @@ export function parseMetaPricing(
 ): SubmissionPricingSnapshot | null {
   if (!meta) return null;
   try {
-    const parsed = JSON.parse(meta);
-    const pricing = parsed?.pricing;
+    const pricing = readPricingBag(meta);
     if (
       pricing &&
-      typeof pricing === "object" &&
       typeof pricing.oneTime === "number" &&
       Array.isArray(pricing.recurring)
     ) {
+      const currency = pricing.currency;
       return {
         oneTime: pricing.oneTime,
-        recurring: pricing.recurring,
-        lineItems: Array.isArray(pricing.lineItems) ? pricing.lineItems : [],
+        recurring: parseRecurringSnapshots(pricing.recurring),
+        lineItems: parsePricingLineItems(pricing.lineItems),
         currency:
-          typeof pricing.currency === "string" && pricing.currency.trim()
-            ? pricing.currency.trim().toUpperCase()
+          typeof currency === "string" && currency.trim()
+            ? currency.trim().toUpperCase()
             : "USD",
       };
     }

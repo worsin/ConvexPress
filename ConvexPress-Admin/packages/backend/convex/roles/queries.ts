@@ -21,7 +21,7 @@ import {
   resolveUserRole,
 } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { rolesDocs } from "../schema/roles.docs.generated";
 type RolePolicyRecord = {
   _id: unknown;
   capabilities: string[];
@@ -199,7 +199,7 @@ export const listRoles = query({
  */
 export const getRole = query({
   args: { roleId: v.id("roles") },
-  returns: v.union(v.null(), tableDocs.roles),
+  returns: v.union(v.null(), rolesDocs.roles),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -220,7 +220,7 @@ export const getRole = query({
  */
 export const getRoleBySlug = query({
   args: { slug: v.string() },
-  returns: v.union(v.null(), tableDocs.roles),
+  returns: v.union(v.null(), rolesDocs.roles),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -244,7 +244,7 @@ export const getRoleBySlug = query({
  */
 export const getDefaultRole = query({
   args: {},
-  returns: v.union(v.null(), tableDocs.roles),
+  returns: v.union(v.null(), rolesDocs.roles),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

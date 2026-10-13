@@ -37,7 +37,7 @@ import {
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { ticketsDocs } from "../schema/tickets.docs.generated";
 type TicketUserNameFields = {
   displayName?: string | null;
   firstName?: string | null;
@@ -61,7 +61,7 @@ function getTicketUserSnapshotName(user: TicketUserNameFields): string {
  */
 export const getByTicket: RegisteredQuery<"public", ObjectType<typeof getMessagesByTicketArgs>, Doc<"ticket_messages">[] | null> = query({
   args: getMessagesByTicketArgs,
-  returns: v.union(v.null(), v.array(tableDocs.ticket_messages)),
+  returns: v.union(v.null(), v.array(ticketsDocs.ticket_messages)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -105,7 +105,7 @@ export const getByTicket: RegisteredQuery<"public", ObjectType<typeof getMessage
  */
 export const getPublicByTicket: RegisteredQuery<"public", ObjectType<typeof getPublicMessagesByTicketArgs>, Doc<"ticket_messages">[] | null> = query({
   args: getPublicMessagesByTicketArgs,
-  returns: v.union(v.null(), v.array(tableDocs.ticket_messages)),
+  returns: v.union(v.null(), v.array(ticketsDocs.ticket_messages)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);

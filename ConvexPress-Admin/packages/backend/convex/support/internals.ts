@@ -15,6 +15,7 @@
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { flagSetting, settingsRecord } from "../helpers/settingsReader";
 import { logDeflectionInternalArgs, DEFLECTION_LOG_RETENTION_MS } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
@@ -267,16 +268,17 @@ export const getSupportAiSettings = internalQuery({
       };
     }
 
-    const values = doc.values as Record<string, unknown>;
+    const values = settingsRecord(doc.values);
+    const text = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
     return {
-      aiProvider: (values.aiProvider as string | null) ?? null,
-      aiApiKey: (values.aiApiKey as string | null) ?? null,
-      aiModel: (values.aiModel as string | null) ?? null,
-      meilisearchEnabled: (values.meilisearchEnabled as boolean) ?? false,
-      meilisearchUrl: (values.meilisearchUrl as string | null) ?? null,
-      meilisearchApiKey: (values.meilisearchApiKey as string | null) ?? null,
-      ragEnabled: (values.ragEnabled as boolean) ?? false,
+      aiProvider: text(values.aiProvider),
+      aiApiKey: text(values.aiApiKey),
+      aiModel: text(values.aiModel),
+      meilisearchEnabled: flagSetting(values.meilisearchEnabled, false),
+      meilisearchUrl: text(values.meilisearchUrl),
+      meilisearchApiKey: text(values.meilisearchApiKey),
+      ragEnabled: flagSetting(values.ragEnabled, false),
     };
   },
 });

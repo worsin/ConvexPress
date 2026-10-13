@@ -22,7 +22,11 @@ import {
   internalMutation,
   internalAction,
   internalQuery,
+  type MutationCtx,
+  type QueryCtx,
 } from "../_generated/server";
+import type { Doc, Id, TableNames } from "../_generated/dataModel";
+import type { HistoricalAuthoringSource } from "../helpers/authoringSnapshot";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { emitEvent } from "../helpers/events";
@@ -39,7 +43,7 @@ import {
   isValidEmail,
   EMAIL_TEMPLATES,
 } from "../helpers/email";
-import { getUserIdentifier, lookupUserByIdentifier } from "../helpers/permissions";
+import { getUserIdentifier, lookupUserByIdentifier, requireCan } from "../helpers/permissions";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import {
   queueEmailInternalArgs,
@@ -55,6 +59,7 @@ import {
   EMAIL_TEMPLATE_REGISTRY_BY_SLUG,
 } from "./registry";
 import { buildTemplateSampleVariables } from "./testData";
+import { emailsDocs } from "../schema/emails.docs.generated";
 
 // ─── Retry Constants ─────────────────────────────────────────────────────────
 
@@ -64,16 +69,41 @@ const RETRY_BASE_DELAY_MS = 5000;
 /** HTTP status codes that are retryable */
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
 
-function parsePayload(payload: string | undefined) {
-  if (!payload) return {} as Record<string, any>;
+type DbCtx = Pick<QueryCtx, "db">;
+
+/** Event payloads are JSON written by the emitting system; read fields with `text`. */
+type EventPayload = Record<string, unknown>;
+
+function parsePayload(payload: string | undefined): EventPayload {
+  if (!payload) return {};
   try {
-    return JSON.parse(payload) as Record<string, any>;
+    const parsed: unknown = JSON.parse(payload);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { ...parsed } : {};
   } catch {
-    return {} as Record<string, any>;
+    return {};
   }
 }
 
-function toDisplayName(user: any) {
+/** A payload field as template text: strings as-is, numbers and booleans stringified. */
+function text(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return undefined;
+}
+
+/** A payload timestamp (epoch ms or date string). */
+function timestamp(value: unknown): number | string | undefined {
+  return typeof value === "number" || typeof value === "string" ? value : undefined;
+}
+
+type DisplayNameSource = {
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+};
+
+function toDisplayName(user: DisplayNameSource | null | undefined): string {
   return (
     user?.displayName ??
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ??
@@ -95,7 +125,18 @@ function excerptText(value: string | undefined, maxLength = 180) {
   return `${normalized.slice(0, maxLength - 1).trim()}…`;
 }
 
-async function getEventRecord(ctx: any, eventId: any) {
+/** Load a document from an untrusted event-payload id, only if it belongs to `table`. */
+async function getPayloadDoc<T extends TableNames>(
+  ctx: DbCtx,
+  table: T,
+  raw: unknown,
+): Promise<Doc<T> | null> {
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  const id = ctx.db.normalizeId(table, raw);
+  return id ? await ctx.db.get(table, id) : null;
+}
+
+async function getEventRecord(ctx: DbCtx, eventId: Id<"events">) {
   const event = await ctx.db.get("events", eventId);
   if (!event) return null;
   return {
@@ -104,45 +145,42 @@ async function getEventRecord(ctx: any, eventId: any) {
   };
 }
 
-async function getTemplateRecord(ctx: any, templateSlug: string) {
+async function getTemplateRecord(ctx: DbCtx, templateSlug: string) {
   return await ctx.db
     .query("emailTemplates")
-    .withIndex("by_slug", (q: any) => q.eq("slug", templateSlug))
+    .withIndex("by_slug", (q) => q.eq("slug", templateSlug))
     .unique();
 }
 
-async function getUserByAnyId(ctx: any, identifier: any) {
-  if (!identifier) return null;
-  try {
-    return await lookupUserByIdentifier(ctx, String(identifier));
-  } catch {
-    return null;
-  }
+async function getUserByAnyId(ctx: DbCtx, identifier: unknown) {
+  if (typeof identifier !== "string" || identifier.length === 0) return null;
+  return await lookupUserByIdentifier(ctx, identifier);
 }
 
-async function getPostContext(ctx: any, postId: any, siteUrl: string) {
-  if (!postId) return null;
-  const post = await ctx.db.get(postId);
+async function getPostContext(ctx: DbCtx, postId: unknown, siteUrl: string) {
+  const post = await getPayloadDoc(ctx, "posts", postId);
   if (!post) return null;
-  const author = post.authorId ? await ctx.db.get(post.authorId) : null;
+  // Pre-retirement posts may still carry legacy article content.
+  const source: HistoricalAuthoringSource = post;
+  const author = await ctx.db.get("users", post.authorId);
   return {
     post,
     author,
     postUrl: buildWebsiteUrl(siteUrl, `/blog/${post.slug}`),
     excerpt:
       excerptText(post.excerpt) ||
-      excerptText(stripHtmlToText(post.content ?? "")) ||
+      excerptText(stripHtmlToText(source.content ?? "")) ||
       excerptText(post.title),
   };
 }
 
-async function getCommentContext(ctx: any, commentId: any, siteUrl: string) {
-  if (!commentId) return null;
-  const comment = await ctx.db.get(commentId);
+async function getCommentContext(ctx: DbCtx, commentId: unknown, siteUrl: string) {
+  const comment = await getPayloadDoc(ctx, "comments", commentId);
   if (!comment) return null;
   const postContext = await getPostContext(ctx, comment.postId, siteUrl);
   if (!postContext) return null;
-  const author = comment.authorId ? await ctx.db.get(comment.authorId) : null;
+  // Comment authors are user identifier strings (Clerk id or users _id).
+  const author = await getUserByAnyId(ctx, comment.authorId);
   return {
     comment,
     post: postContext.post,
@@ -154,26 +192,24 @@ async function getCommentContext(ctx: any, commentId: any, siteUrl: string) {
   };
 }
 
-async function getTicketContext(ctx: any, ticketId: any, siteUrl: string) {
-  if (!ticketId) return null;
-  const ticket = await ctx.db.get(ticketId);
+async function getTicketContext(ctx: DbCtx, ticketId: unknown, siteUrl: string) {
+  const ticket = await getPayloadDoc(ctx, "ticket_tickets", ticketId);
   if (!ticket) return null;
-  const assignee = ticket.assignedTo ? await ctx.db.get(ticket.assignedTo) : null;
-  const owner = ticket.userId ? await ctx.db.get(ticket.userId) : null;
+  const assignee = ticket.assignedTo ? await ctx.db.get("users", ticket.assignedTo) : null;
+  const owner = await ctx.db.get("users", ticket.userId);
   return {
     ticket,
     assignee,
     owner,
-    ticketUrl: buildWebsiteUrl(siteUrl, `/support/tickets/${ticketId}`),
+    ticketUrl: buildWebsiteUrl(siteUrl, `/support/tickets/${ticket._id}`),
   };
 }
 
-async function getKbArticleContext(ctx: any, articleId: any, siteUrl: string) {
-  if (!articleId) return null;
-  const article = await ctx.db.get(articleId);
+async function getKbArticleContext(ctx: DbCtx, articleId: unknown, siteUrl: string) {
+  const article = await getPayloadDoc(ctx, "kb_articles", articleId);
   if (!article) return null;
-  const author = article.authorId ? await ctx.db.get(article.authorId) : null;
-  const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+  const author = await ctx.db.get("users", article.authorId);
+  const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
   const categorySlug = category?.slug ?? "general";
   return {
     article,
@@ -186,21 +222,19 @@ async function getKbArticleContext(ctx: any, articleId: any, siteUrl: string) {
   };
 }
 
-async function getLmsContext(ctx: any, payload: Record<string, any>, siteUrl: string) {
-  const course = payload.courseId ? await ctx.db.get(payload.courseId) : null;
+async function getLmsContext(ctx: DbCtx, payload: EventPayload, siteUrl: string) {
+  const course = await getPayloadDoc(ctx, "lms_courses", payload.courseId);
   const learner = await getUserByAnyId(ctx, payload.userId);
   const firstLesson = course
     ? await ctx.db
         .query("lms_nodes")
-        .withIndex("by_course_kind", (q: any) =>
+        .withIndex("by_course_kind", (q) =>
           q.eq("courseId", course._id).eq("kind", "lesson"),
         )
         .first()
     : null;
-  const issue = payload.certificateIssueId
-    ? await ctx.db.get(payload.certificateIssueId)
-    : null;
-  const serial = payload.serial ?? issue?.serial ?? "";
+  const issue = await getPayloadDoc(ctx, "lms_certificate_issues", payload.certificateIssueId);
+  const serial = text(payload.serial) ?? issue?.serial ?? "";
   const courseSlug = course?.slug ?? "";
   const courseUrl =
     courseSlug && firstLesson
@@ -220,7 +254,7 @@ async function getLmsContext(ctx: any, payload: Record<string, any>, siteUrl: st
     learner,
     firstLesson,
     issue,
-    courseTitle: course?.title ?? payload.courseTitle ?? "your course",
+    courseTitle: course?.title ?? text(payload.courseTitle) ?? "your course",
     courseUrl,
     coursePublicUrl,
     certificateUrl,
@@ -228,7 +262,7 @@ async function getLmsContext(ctx: any, payload: Record<string, any>, siteUrl: st
   };
 }
 
-async function getCustomerRecipients(ctx: any) {
+async function getCustomerRecipients(ctx: DbCtx) {
   const recipientMap = new Map<
     string,
     { email: string; name?: string; userId: string }
@@ -237,13 +271,13 @@ async function getCustomerRecipients(ctx: any) {
   for (const roleSlug of ["subscriber", "customer"]) {
     const role = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q: any) => q.eq("slug", roleSlug))
+      .withIndex("by_slug", (q) => q.eq("slug", roleSlug))
       .unique();
     if (!role || role.status !== "active") continue;
 
     const users = await ctx.db
       .query("users")
-      .withIndex("by_roleId", (q: any) => q.eq("roleId", role._id))
+      .withIndex("by_roleId", (q) => q.eq("roleId", role._id))
       .collect();
 
     for (const user of users) {
@@ -260,7 +294,7 @@ async function getCustomerRecipients(ctx: any) {
   return Array.from(recipientMap.values());
 }
 
-export async function runBootstrapTemplates(ctx: any, now = Date.now()) {
+export async function runBootstrapTemplates(ctx: Pick<MutationCtx, "db">, now = Date.now()) {
   let created = 0;
   let updated = 0;
 
@@ -350,9 +384,10 @@ export const queueEmail = internalMutation({
   },
 });
 
-const queueRenderedEmailConfig: any = {
+export const queueRenderedEmail = internalMutation({
   args: queueRenderedEmailArgs,
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("emailQueue"),
+  handler: async (ctx, args) => {
     if (!isValidEmail(args.recipientEmail)) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
@@ -391,22 +426,29 @@ const queueRenderedEmailConfig: any = {
 
     return queueId;
   },
-};
+});
 
-export const queueRenderedEmail = internalMutation(queueRenderedEmailConfig);
+/** Throws unless the caller may manage Email settings (used by the test-send actions). */
+export const assertEmailSettingsAccess = internalQuery({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await requireCan(ctx, "settings.update_email");
+    return null;
+  },
+});
 
-const getTemplateForTestingConfig: any = {
+export const getTemplateForTesting = internalQuery({
   args: {
     templateSlug: v.string(),
   },
-  handler: async (ctx: any, args: { templateSlug: string }) => {
+  returns: v.union(v.null(), emailsDocs.emailTemplates),
+  handler: async (ctx, args) => {
     return await getTemplateRecord(ctx, args.templateSlug);
   },
-};
+});
 
-export const getTemplateForTesting = internalQuery(getTemplateForTestingConfig);
-
-const queueTemplateTestEmailConfig: any = {
+export const queueTemplateTestEmail = internalMutation({
   args: {
     templateSlug: v.string(),
     recipientEmail: v.string(),
@@ -414,7 +456,8 @@ const queueTemplateTestEmailConfig: any = {
     samplePreset: v.optional(v.string()),
     variableOverrides: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("emailQueue"),
+  handler: async (ctx, args) => {
     const template = await getTemplateRecord(ctx, args.templateSlug);
     if (!template) {
       throw new ConvexError({
@@ -479,9 +522,7 @@ const queueTemplateTestEmailConfig: any = {
 
     return queueId;
   },
-};
-
-export const queueTemplateTestEmail = internalMutation(queueTemplateTestEmailConfig);
+});
 
 // ─── sendEmail (Internal Action) ─────────────────────────────────────────────
 
@@ -1016,17 +1057,17 @@ export const generateDigest = internalMutation({
 
         const posts = await ctx.db
           .query("posts")
-          .withIndex("by_author", (q: any) =>
+          .withIndex("by_author", (q) =>
             q.eq("authorId", employeeUser._id).eq("type", "post").eq("status", "publish"),
           )
           .collect();
 
-        const recentComments: any[] = [];
+        const recentComments: Doc<"comments">[] = [];
         const touchedPosts = new Set<string>();
         for (const post of posts) {
           const comments = await ctx.db
             .query("comments")
-            .withIndex("by_post", (q: any) => q.eq("postId", post._id))
+            .withIndex("by_post", (q) => q.eq("postId", post._id))
             .collect();
 
           for (const comment of comments) {
@@ -1168,9 +1209,9 @@ export const onUserRegistered = internalMutation({
     const { event, payload } = eventRecord;
     const settings = await getEmailSettings(ctx);
     const user =
-      (await getUserByAnyId(ctx, payload.userId ?? event.actorId)) ??
+      (await getUserByAnyId(ctx, text(payload.userId) ?? event.actorId)) ??
       null;
-    const recipientEmail = user?.email ?? payload.email ?? "";
+    const recipientEmail = user?.email ?? text(payload.email) ?? "";
     const recipientName = toDisplayName(user);
     const recipientUserId = user ? getUserIdentifier(user) : undefined;
 
@@ -1193,7 +1234,7 @@ export const onUserRegistered = internalMutation({
         variables: {
           user_name: recipientName,
           verification_url:
-            payload.verificationUrl ??
+            text(payload.verificationUrl) ??
             buildWebsiteUrl(settings.siteUrl, "/verify-email"),
         },
         eventId: args.eventId,
@@ -1229,29 +1270,25 @@ export const onUserInvited = internalMutation({
     const { payload } = eventRecord;
     if (payload.sendNotification === false) return;
 
-    const invitation = payload.invitationId
-      ? await ctx.db.get(payload.invitationId)
-      : null;
-    const inviter = payload.invitedBy
-      ? await ctx.db.get(payload.invitedBy)
-      : null;
+    const invitation = await getPayloadDoc(ctx, "invitations", payload.invitationId);
+    const inviter = await getPayloadDoc(ctx, "users", payload.invitedBy);
     const settings = await getEmailSettings(ctx);
     const inviteToken =
-      invitation?.token ?? payload.token ?? payload.invitationToken ?? "";
+      invitation?.token ?? text(payload.token) ?? text(payload.invitationToken) ?? "";
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.INVITATION, {
-      recipientEmail: payload.email ?? "",
+      recipientEmail: text(payload.email) ?? "",
       recipientName:
         [payload.firstName, payload.lastName].filter(Boolean).join(" ") ||
         undefined,
       variables: {
         inviter_name: toDisplayName(inviter),
         invite_url:
-          payload.inviteUrl ??
+          text(payload.inviteUrl) ??
           (inviteToken
             ? buildWebsiteUrl(settings.siteUrl, `/register?token=${inviteToken}`)
             : buildWebsiteUrl(settings.siteUrl, "/register")),
-        role: payload.role ?? "",
+        role: text(payload.role) ?? "",
       },
       eventId: args.eventId,
     });
@@ -1270,19 +1307,19 @@ export const onLoggedIn = internalMutation({
     if (!eventRecord) return;
 
     const { event, payload } = eventRecord;
-    const user = await getUserByAnyId(ctx, payload.userId ?? event.actorId);
+    const user = await getUserByAnyId(ctx, text(payload.userId) ?? event.actorId);
     if (!user || !user.email) return;
 
-    const device = payload.device ?? payload.userAgent ?? "Unknown device";
-    const ipAddress = payload.ip ?? payload.ipAddress ?? event.actorIp ?? "Unknown";
+    const device = text(payload.device) ?? text(payload.userAgent) ?? "Unknown device";
+    const ipAddress = text(payload.ip) ?? text(payload.ipAddress) ?? event.actorIp ?? "Unknown";
 
     const recentAlerts = await ctx.db
       .query("emailQueue")
-      .withIndex("by_recipient", (q: any) => q.eq("to", user.email))
+      .withIndex("by_recipient", (q) => q.eq("to", user.email))
       .order("desc")
       .take(25);
 
-    const alreadySeen = recentAlerts.some((queuedEmail: any) => {
+    const alreadySeen = recentAlerts.some((queuedEmail) => {
       if (queuedEmail.templateSlug !== EMAIL_TEMPLATES.LOGIN_NEW_DEVICE) {
         return false;
       }
@@ -1304,8 +1341,8 @@ export const onLoggedIn = internalMutation({
       variables: {
         device,
         ip_address: ipAddress,
-        location: payload.location ?? "Unknown location",
-        login_time: new Date(payload.loginAt ?? event.emittedAt).toISOString(),
+        location: text(payload.location) ?? "Unknown location",
+        login_time: new Date(timestamp(payload.loginAt) ?? event.emittedAt).toISOString(),
       },
       eventId: args.eventId,
     });
@@ -1324,14 +1361,14 @@ export const onLoginFailed = internalMutation({
     if (!eventRecord) return;
 
     const { event, payload } = eventRecord;
-    const targetEmail = payload.email;
+    const targetEmail = text(payload.email);
     if (!targetEmail) return;
 
     // Count recent failures for this email (last 15 minutes)
     const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
     const recentFailures = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_email", (q: any) =>
+      .withIndex("by_email", (q) =>
         q.eq("email", targetEmail).gte("attemptedAt", fifteenMinutesAgo),
       )
       .take(25);
@@ -1341,12 +1378,12 @@ export const onLoginFailed = internalMutation({
 
     const existingAlerts = await ctx.db
       .query("emailQueue")
-      .withIndex("by_template", (q: any) =>
+      .withIndex("by_template", (q) =>
         q.eq("templateSlug", EMAIL_TEMPLATES.FAILED_LOGIN).gte("createdAt", fifteenMinutesAgo),
       )
       .take(50);
 
-    const alreadyAlerted = existingAlerts.some((queuedEmail: any) => {
+    const alreadyAlerted = existingAlerts.some((queuedEmail) => {
       const variables = parsePayload(queuedEmail.templateVariables);
       return variables.target_email === targetEmail;
     });
@@ -1361,7 +1398,7 @@ export const onLoginFailed = internalMutation({
         variables: {
           target_email: targetEmail,
           attempt_count: String(recentFailures.length),
-          ip_address: payload.ip ?? event.actorIp ?? "Unknown",
+          ip_address: text(payload.ip) ?? event.actorIp ?? "Unknown",
         },
         eventId: args.eventId,
       });
@@ -1393,7 +1430,7 @@ export const onPasswordChanged = internalMutation({
     if (!eventRecord) return;
 
     const { event, payload } = eventRecord;
-    const user = await getUserByAnyId(ctx, payload.userId ?? event.actorId);
+    const user = await getUserByAnyId(ctx, text(payload.userId) ?? event.actorId);
     if (!user || !user.email) return;
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PASSWORD_CHANGED, {
@@ -1401,7 +1438,7 @@ export const onPasswordChanged = internalMutation({
       recipientName: toDisplayName(user),
       recipientUserId: getUserIdentifier(user),
       variables: {
-        ip_address: event.actorIp ?? payload.ip ?? "Unknown",
+        ip_address: event.actorIp ?? text(payload.ip) ?? "Unknown",
         changed_at: new Date(event.emittedAt).toISOString(),
       },
       eventId: args.eventId,
@@ -1432,7 +1469,7 @@ export const onPostPublished = internalMutation({
       postContext.author ??
       (await getUserByAnyId(
         ctx,
-        payload.authorId ?? event.actorId ?? postContext.post.authorId,
+        text(payload.authorId) ?? event.actorId ?? postContext.post.authorId,
       ));
 
     if (author?.email) {
@@ -1494,7 +1531,7 @@ export const onPostScheduled = internalMutation({
     );
     const author = await getUserByAnyId(
       ctx,
-      payload.authorId ?? event.actorId ?? postContext?.post.authorId,
+      text(payload.authorId) ?? event.actorId ?? postContext?.post.authorId,
     );
     if (!author || !author.email) return;
 
@@ -1503,19 +1540,19 @@ export const onPostScheduled = internalMutation({
       recipientName: toDisplayName(author),
       recipientUserId: getUserIdentifier(author),
       variables: {
-        title: postContext?.post.title ?? payload.title ?? "",
-        post_title: postContext?.post.title ?? payload.title ?? "",
+        title: postContext?.post.title ?? text(payload.title) ?? "",
+        post_title: postContext?.post.title ?? text(payload.title) ?? "",
         date:
-          payload.scheduledDate ??
-          payload.publishDate ??
+          text(payload.scheduledDate) ??
+          text(payload.publishDate) ??
           String(postContext?.post.scheduledAt ?? ""),
         scheduled_date:
-          payload.scheduledDate ??
-          payload.publishDate ??
+          text(payload.scheduledDate) ??
+          text(payload.publishDate) ??
           String(postContext?.post.scheduledAt ?? ""),
         edit_url: buildWebsiteUrl(
           settings.siteUrl,
-          `/admin/posts/${payload.postId ?? ""}/edit`,
+          `/admin/posts/${text(payload.postId) ?? ""}/edit`,
         ),
       },
       eventId: args.eventId,
@@ -1641,7 +1678,7 @@ export const onCommentReplied = internalMutation({
     );
     if (!commentContext?.comment.parentId) return;
 
-    const parentComment = await ctx.db.get(commentContext.comment.parentId);
+    const parentComment = await ctx.db.get("comments", commentContext.comment.parentId);
     if (!parentComment?.authorId) return;
     if (parentComment.authorId === commentContext.comment.authorId) return;
 
@@ -1676,7 +1713,7 @@ export const onRoleAssigned = internalMutation({
     if (!eventRecord) return;
 
     const { payload } = eventRecord;
-    const targetUserId = payload.userId ?? payload.targetUserId;
+    const targetUserId = text(payload.userId) ?? text(payload.targetUserId);
     if (!targetUserId) return;
 
     const user = await getUserByAnyId(ctx, targetUserId);
@@ -1688,15 +1725,15 @@ export const onRoleAssigned = internalMutation({
         recipientUserId: getUserIdentifier(user),
         variables: {
           role:
-            payload.newRole ??
-            payload.newRoleName ??
-            payload.newRoleSlug ??
-            payload.roleName ??
+            text(payload.newRole) ??
+            text(payload.newRoleName) ??
+            text(payload.newRoleSlug) ??
+            text(payload.roleName) ??
             "",
           old_role:
-            payload.oldRole ??
-            payload.previousRole ??
-            payload.oldRoleName ??
+            text(payload.oldRole) ??
+            text(payload.previousRole) ??
+            text(payload.oldRoleName) ??
             "",
         },
         eventId: args.eventId,
@@ -1716,7 +1753,7 @@ export const onRevisionRestored = internalMutation({
     if (!eventRecord) return;
 
     const { payload } = eventRecord;
-    const post = payload.postId ? await ctx.db.get(payload.postId) : null;
+    const post = await getPayloadDoc(ctx, "posts", payload.postId);
     const employees = await resolveRecipients(ctx, "employee");
     const actor = await getUserByAnyId(ctx, payload.restoredBy);
     const actorName = toDisplayName(actor) || "Someone";
@@ -1728,9 +1765,9 @@ export const onRevisionRestored = internalMutation({
         recipientUserId: emp.userId,
         variables: {
           user: actorName,
-          post_title: post?.title ?? payload.postTitle ?? "",
+          post_title: post?.title ?? text(payload.postTitle) ?? "",
           revision_date:
-            payload.revisionDate ??
+            text(payload.revisionDate) ??
             (post?.updatedAt ? new Date(post.updatedAt).toISOString() : ""),
         },
         eventId: args.eventId,
@@ -1752,7 +1789,7 @@ export const onMediaUploaded = internalMutation({
 
     const mediaSettingsDoc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: any) => q.eq("section", "media"))
+      .withIndex("by_section", (q) => q.eq("section", "media"))
       .unique();
     const mediaSettings = (mediaSettingsDoc?.values ?? {}) as Record<
       string,
@@ -1765,7 +1802,7 @@ export const onMediaUploaded = internalMutation({
 
     const mediaRows = await ctx.db.query("media").take(5000);
     const usedBytes = mediaRows.reduce(
-      (sum: number, media: any) => sum + (media.fileSize ?? 0),
+      (sum: number, media) => sum + (media.fileSize ?? 0),
       0,
     );
     const usagePercent = Math.round((usedBytes / storageQuotaBytes) * 100);
@@ -1816,7 +1853,7 @@ export const onSettingsUpdated = internalMutation({
     // Don't send email for email template changes (avoid noise)
     if (payload.section === "email_templates") return;
 
-    const actor = await getUserByAnyId(ctx, payload.updatedBy ?? event.actorId);
+    const actor = await getUserByAnyId(ctx, text(payload.updatedBy) ?? event.actorId);
     const admins = await resolveRecipients(ctx, "admin");
     for (const admin of admins) {
       // Don't notify the admin who made the change
@@ -1827,7 +1864,7 @@ export const onSettingsUpdated = internalMutation({
         recipientName: admin.name,
         recipientUserId: admin.userId,
         variables: {
-          section: payload.section ?? "",
+          section: text(payload.section) ?? "",
           changed_by: toDisplayName(actor) || "Unknown",
         },
         eventId: args.eventId,
@@ -1855,8 +1892,8 @@ export const onSitemapGenerated = internalMutation({
         recipientName: admin.name,
         recipientUserId: admin.userId,
         variables: {
-          url_count: String(payload.urlCount ?? payload.pageCount ?? ""),
-          sitemap_url: payload.sitemapUrl ?? payload.url ?? "",
+          url_count: String(text(payload.urlCount) ?? text(payload.pageCount) ?? ""),
+          sitemap_url: text(payload.sitemapUrl) ?? text(payload.url) ?? "",
         },
         eventId: args.eventId,
       });
@@ -1878,7 +1915,7 @@ export const onWebhookTriggered = internalMutation({
     const { payload } = eventRecord;
 
     // Only send for failures
-    const statusCode = Number(payload.statusCode ?? "0");
+    const statusCode = Number(text(payload.statusCode) ?? "0");
     const isFailure =
       statusCode >= 400 || payload.networkError === true || payload.success === false;
     if (!isFailure) return;
@@ -1890,9 +1927,9 @@ export const onWebhookTriggered = internalMutation({
         recipientName: admin.name,
         recipientUserId: admin.userId,
         variables: {
-          endpoint: payload.endpoint ?? payload.url ?? "",
+          endpoint: text(payload.endpoint) ?? text(payload.url) ?? "",
           status_code: statusCode > 0 ? String(statusCode) : "",
-          error: payload.error ?? payload.errorMessage ?? "",
+          error: text(payload.error) ?? text(payload.errorMessage) ?? "",
         },
         eventId: args.eventId,
       });
@@ -1911,7 +1948,7 @@ export const onProfileDeactivated = internalMutation({
     if (!eventRecord) return;
 
     const { event, payload } = eventRecord;
-    const targetUserId = payload.userId ?? payload.targetUserId ?? event.actorId;
+    const targetUserId = text(payload.userId) ?? text(payload.targetUserId) ?? event.actorId;
     if (!targetUserId) return;
 
     const user = await getUserByAnyId(ctx, targetUserId);
@@ -1922,7 +1959,7 @@ export const onProfileDeactivated = internalMutation({
         recipientName: toDisplayName(user),
         recipientUserId: getUserIdentifier(user),
         variables: {
-          reason: payload.reason ?? "",
+          reason: text(payload.reason) ?? "",
           support_email: "support@convexpress.com",
         },
         eventId: args.eventId,
@@ -1945,8 +1982,8 @@ export const onProfileDeleted = internalMutation({
 
     const { payload } = eventRecord;
     // The user may already be deleted, so use the payload email
-    const email = payload.email;
-    const name = payload.name ?? payload.displayName;
+    const email = text(payload.email);
+    const name = text(payload.name) ?? text(payload.displayName);
     if (!email) return;
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.USER_DELETION, {
@@ -1961,9 +1998,10 @@ export const onProfileDeleted = internalMutation({
   },
 });
 
-const onTicketRepliedConfig: any = {
+export const onTicketReplied = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -1978,7 +2016,7 @@ const onTicketRepliedConfig: any = {
     );
     if (!ticketContext) return;
 
-    const message = payload.messageId ? await ctx.db.get(payload.messageId) : null;
+    const message = await getPayloadDoc(ctx, "ticket_messages", payload.messageId);
     const replyExcerpt = excerptText(message?.content);
 
     if (payload.senderType === "admin" && ticketContext.owner?.email) {
@@ -2016,13 +2054,12 @@ const onTicketRepliedConfig: any = {
       });
     }
   },
-};
+});
 
-export const onTicketReplied = internalMutation(onTicketRepliedConfig);
-
-const onTicketAssignedConfig: any = {
+export const onTicketAssigned = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2050,13 +2087,12 @@ const onTicketAssignedConfig: any = {
       eventId: args.eventId,
     });
   },
-};
+});
 
-export const onTicketAssigned = internalMutation(onTicketAssignedConfig);
-
-const onTicketResolvedConfig: any = {
+export const onTicketResolved = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2083,13 +2119,12 @@ const onTicketResolvedConfig: any = {
       eventId: args.eventId,
     });
   },
-};
+});
 
-export const onTicketResolved = internalMutation(onTicketResolvedConfig);
-
-const onKbWorkflowStepReadyConfig: any = {
+export const onKbWorkflowStepReady = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2100,9 +2135,7 @@ const onKbWorkflowStepReadyConfig: any = {
       payload.articleId,
       settings.siteUrl,
     );
-    const reviewer = payload.assigneeId
-      ? await ctx.db.get(payload.assigneeId)
-      : null;
+    const reviewer = await getPayloadDoc(ctx, "users", payload.assigneeId);
     if (!articleContext || !reviewer?.email) return;
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.KB_WORKFLOW_STEP_READY, {
@@ -2113,19 +2146,18 @@ const onKbWorkflowStepReadyConfig: any = {
         reviewer_name: toDisplayName(reviewer),
         article_title: articleContext.article.title,
         article_url: articleContext.articleUrl,
-        step_name: payload.stepName ?? payload.workflowStep ?? "Review",
+        step_name: text(payload.stepName) ?? text(payload.workflowStep) ?? "Review",
         author_name: articleContext.author ? toDisplayName(articleContext.author) : "",
       },
       eventId: args.eventId,
     });
   },
-};
+});
 
-export const onKbWorkflowStepReady = internalMutation(onKbWorkflowStepReadyConfig);
-
-const onKbWorkflowApprovedConfig: any = {
+export const onKbWorkflowApproved = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2148,18 +2180,17 @@ const onKbWorkflowApprovedConfig: any = {
         article_title: articleContext.article.title,
         article_url: articleContext.articleUrl,
         reviewer_name: toDisplayName(reviewer),
-        next_step: payload.nextStep ?? "Published",
+        next_step: text(payload.nextStep) ?? "Published",
       },
       eventId: args.eventId,
     });
   },
-};
+});
 
-export const onKbWorkflowApproved = internalMutation(onKbWorkflowApprovedConfig);
-
-const onKbWorkflowRejectedConfig: any = {
+export const onKbWorkflowRejected = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2182,18 +2213,17 @@ const onKbWorkflowRejectedConfig: any = {
         article_title: articleContext.article.title,
         article_url: articleContext.articleUrl,
         reviewer_name: toDisplayName(reviewer),
-        rejection_reason: payload.rejectionReason ?? "",
+        rejection_reason: text(payload.rejectionReason) ?? "",
       },
       eventId: args.eventId,
     });
   },
-};
+});
 
-export const onKbWorkflowRejected = internalMutation(onKbWorkflowRejectedConfig);
-
-const onKbCommentCreatedConfig: any = {
+export const onKbCommentCreated = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2204,8 +2234,8 @@ const onKbCommentCreatedConfig: any = {
       payload.articleId,
       settings.siteUrl,
     );
-    const comment = payload.commentId ? await ctx.db.get(payload.commentId) : null;
-    const commentAuthor = payload.userId ? await ctx.db.get(payload.userId) : null;
+    const comment = await getPayloadDoc(ctx, "kb_comments", payload.commentId);
+    const commentAuthor = await getPayloadDoc(ctx, "users", payload.userId);
     if (!articleContext || !comment) return;
 
     const recipients =
@@ -2235,13 +2265,12 @@ const onKbCommentCreatedConfig: any = {
       });
     }
   },
-};
+});
 
-export const onKbCommentCreated = internalMutation(onKbCommentCreatedConfig);
-
-const onLmsCourseEnrolledConfig: any = {
+export const onLmsCourseEnrolled = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2262,13 +2291,12 @@ const onLmsCourseEnrolledConfig: any = {
       correlationId: event.correlationId,
     });
   },
-};
+});
 
-export const onLmsCourseEnrolled = internalMutation(onLmsCourseEnrolledConfig);
-
-const onLmsCourseUnenrolledConfig: any = {
+export const onLmsCourseUnenrolled = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2289,13 +2317,12 @@ const onLmsCourseUnenrolledConfig: any = {
       correlationId: event.correlationId,
     });
   },
-};
+});
 
-export const onLmsCourseUnenrolled = internalMutation(onLmsCourseUnenrolledConfig);
-
-const onLmsEnrollmentExpiredConfig: any = {
+export const onLmsEnrollmentExpired = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2322,13 +2349,12 @@ const onLmsEnrollmentExpiredConfig: any = {
       correlationId: event.correlationId,
     });
   },
-};
+});
 
-export const onLmsEnrollmentExpired = internalMutation(onLmsEnrollmentExpiredConfig);
-
-const onLmsCourseCompletedConfig: any = {
+export const onLmsCourseCompleted = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2350,13 +2376,12 @@ const onLmsCourseCompletedConfig: any = {
       correlationId: event.correlationId,
     });
   },
-};
+});
 
-export const onLmsCourseCompleted = internalMutation(onLmsCourseCompletedConfig);
-
-const onLmsCertificateIssuedConfig: any = {
+export const onLmsCertificateIssued = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2378,13 +2403,12 @@ const onLmsCertificateIssuedConfig: any = {
       correlationId: event.correlationId,
     });
   },
-};
+});
 
-export const onLmsCertificateIssued = internalMutation(onLmsCertificateIssuedConfig);
-
-const onLmsCertificateRevokedConfig: any = {
+export const onLmsCertificateRevoked = internalMutation({
   args: { eventId: v.id("events") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
 
@@ -2406,6 +2430,4 @@ const onLmsCertificateRevokedConfig: any = {
       correlationId: event.correlationId,
     });
   },
-};
-
-export const onLmsCertificateRevoked = internalMutation(onLmsCertificateRevokedConfig);
+});

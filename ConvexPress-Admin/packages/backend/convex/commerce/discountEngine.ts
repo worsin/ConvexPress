@@ -40,7 +40,7 @@ export type DiscountLineItem = {
 	product?: {
 		_id?: string;
 		categoryIds?: string[];
-	};
+	} | null;
 };
 
 export type DiscountEvaluation = {

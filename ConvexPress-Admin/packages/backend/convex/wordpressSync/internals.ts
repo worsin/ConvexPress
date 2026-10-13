@@ -6,8 +6,8 @@ import type { RegisteredQuery, RegisteredMutation } from "convex/server";
  * Not callable from clients - only from other Convex functions.
  */
 
-import { internalAction, internalMutation, internalQuery } from "../_generated/server";
-import { v, ConvexError, type ObjectType } from "convex/values";
+import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { v, ConvexError, type Infer, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id, Doc, TableNames } from "../_generated/dataModel";
 import { decryptSecret } from "../api/crypto_helpers";
@@ -32,7 +32,15 @@ import {
 import { deleteDynamicWithMediaReferences, patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commentsDocs } from "../schema/comments.docs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
+import { commerceReviewsDocs } from "../schema/commerceReviews.docs.generated";
+import { mediaDocs } from "../schema/media.docs.generated";
+import { menusDocs } from "../schema/menus.docs.generated";
+import { postsDocs } from "../schema/posts.docs.generated";
+import { taxonomiesDocs } from "../schema/taxonomies.docs.generated";
+import { usersDocs } from "../schema/users.docs.generated";
+import { wordpressSyncDocs } from "../schema/wordpressSync.docs.generated";
 // Environment variable for decrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
 const ARTIFACT_DELETE_BATCH_SIZE = 500;
@@ -49,7 +57,7 @@ async function decryptStoredSecret(secret: string | undefined): Promise<string |
   return secret;
 }
 
-async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
+async function deleteImportArtifactsForJob(ctx: Pick<MutationCtx, "db">, jobId: Id<"wordpressSyncJobs">) {
   let reportsDeleted = 0;
   let findingsDeleted = 0;
   let reportBatch;
@@ -58,7 +66,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
   do {
     reportBatch = await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
+      .withIndex("by_job", (q) => q.eq("jobId", jobId))
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const report of reportBatch) {
@@ -70,7 +78,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
   do {
     findingBatch = await ctx.db
       .query("wordpressSyncReconciliationFindings")
-      .withIndex("by_job_created", (q: any) => q.eq("jobId", jobId))
+      .withIndex("by_job_created", (q) => q.eq("jobId", jobId))
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const finding of findingBatch) {
@@ -91,7 +99,7 @@ export const getSiteWithCredentials: RegisteredQuery<"internal", { siteId: Id<"w
   args: {
     siteId: v.id("wordpressSites"),
   },
-  returns: v.union(v.null(), tableDocs.wordpressSites),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSites),
   handler: async (ctx, { siteId }) => {
     return await ctx.db.get(siteId);
   },
@@ -104,7 +112,7 @@ export const getJobInternal: RegisteredQuery<"internal", { jobId: Id<"wordpressS
   args: {
     jobId: v.id("wordpressSyncJobs"),
   },
-  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
+  returns: v.union(v.null(), wordpressSyncDocs.wordpressSyncJobs),
   handler: async (ctx, { jobId }) => {
     return await ctx.db.get(jobId);
   },
@@ -115,11 +123,11 @@ export const getJobInternal: RegisteredQuery<"internal", { jobId: Id<"wordpressS
  */
 export const countFindings: RegisteredQuery<"internal", { jobId: Id<"wordpressSyncJobs">; limit: number }, Doc<"wordpressSyncReconciliationFindings">[]> = internalQuery({
   args: { jobId: v.id("wordpressSyncJobs"), limit: v.number() },
-  returns: v.array(tableDocs.wordpressSyncReconciliationFindings),
+  returns: v.array(wordpressSyncDocs.wordpressSyncReconciliationFindings),
   handler: async (ctx, { jobId, limit }) => {
     return await ctx.db
       .query("wordpressSyncReconciliationFindings")
-      .withIndex("by_job_created", (q: any) => q.eq("jobId", jobId))
+      .withIndex("by_job_created", (q) => q.eq("jobId", jobId))
       .take(limit);
   },
 });
@@ -127,19 +135,19 @@ export const countFindings: RegisteredQuery<"internal", { jobId: Id<"wordpressSy
 /**
  * Get a batch of ID mappings for a site, paginated by wpId.
  */
-export const getMappingsBatch: RegisteredQuery<"internal", { siteId: Id<"wordpressSites">; objectType: string; afterWpId: number; limit: number }, Doc<"wpIdMappings">[]> = internalQuery({
+export const getMappingsBatch = internalQuery({
   args: {
     siteId: v.id("wordpressSites"),
-    objectType: v.string(),
+    objectType: wordpressSyncDocs.wpIdMappings.fields.objectType,
     afterWpId: v.number(),
     limit: v.number(),
   },
-  returns: v.array(tableDocs.wpIdMappings),
+  returns: v.array(wordpressSyncDocs.wpIdMappings),
   handler: async (ctx, { siteId, objectType, afterWpId, limit }) => {
     return await ctx.db
       .query("wpIdMappings")
-      .withIndex("by_wp_id", (q: any) =>
-        q.eq("siteId", siteId).eq("objectType", objectType as any).gt("wpId", afterWpId)
+      .withIndex("by_wp_id", (q) =>
+        q.eq("siteId", siteId).eq("objectType", objectType).gt("wpId", afterWpId)
       )
       .take(limit);
   },
@@ -150,13 +158,13 @@ export const getMappingsBatch: RegisteredQuery<"internal", { siteId: Id<"wordpre
 /**
  * Find a post by slug (for slug collision detection).
  */
-export const findPostBySlug: RegisteredQuery<"internal", { slug: string; type?: string }, Doc<"posts"> | null> = internalQuery({
-  args: { slug: v.string(), type: v.optional(v.string()) },
-  returns: v.union(v.null(), tableDocs.posts),
+export const findPostBySlug = internalQuery({
+  args: { slug: v.string(), type: v.optional(postsDocs.posts.fields.type) },
+  returns: v.union(v.null(), postsDocs.posts),
   handler: async (ctx, { slug, type }) => {
     return await ctx.db
       .query("posts")
-      .withIndex("by_slug", (q: any) =>
+      .withIndex("by_slug", (q) =>
         type ? q.eq("slug", slug).eq("type", type) : q.eq("slug", slug)
       )
       .first();
@@ -168,11 +176,11 @@ export const findPostBySlug: RegisteredQuery<"internal", { slug: string; type?: 
  */
 export const findUserByEmail: RegisteredQuery<"internal", { email: string }, Doc<"users"> | null> = internalQuery({
   args: { email: v.string() },
-  returns: v.union(v.null(), tableDocs.users),
+  returns: v.union(v.null(), usersDocs.users),
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("users")
-      .withIndex("by_email", (q: any) => q.eq("email", email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
   },
 });
@@ -180,13 +188,13 @@ export const findUserByEmail: RegisteredQuery<"internal", { email: string }, Doc
 /**
  * Find a term by slug and taxonomy (for taxonomy collision detection).
  */
-export const findTermBySlug: RegisteredQuery<"internal", { slug: string; taxonomy: string }, Doc<"terms"> | null> = internalQuery({
-  args: { slug: v.string(), taxonomy: v.string() },
-  returns: v.union(v.null(), tableDocs.terms),
+export const findTermBySlug = internalQuery({
+  args: { slug: v.string(), taxonomy: taxonomiesDocs.terms.fields.taxonomy },
+  returns: v.union(v.null(), taxonomiesDocs.terms),
   handler: async (ctx, { slug, taxonomy }) => {
     return await ctx.db
       .query("terms")
-      .withIndex("by_slug_taxonomy", (q: any) =>
+      .withIndex("by_slug_taxonomy", (q) =>
         q.eq("slug", slug).eq("taxonomy", taxonomy)
       )
       .first();
@@ -198,11 +206,11 @@ export const findTermBySlug: RegisteredQuery<"internal", { slug: string; taxonom
  */
 export const findMenuBySlug: RegisteredQuery<"internal", { slug: string }, Doc<"menus"> | null> = internalQuery({
   args: { slug: v.string() },
-  returns: v.union(v.null(), tableDocs.menus),
+  returns: v.union(v.null(), menusDocs.menus),
   handler: async (ctx, { slug }) => {
     return await ctx.db
       .query("menus")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .first();
   },
 });
@@ -212,11 +220,11 @@ export const findMenuBySlug: RegisteredQuery<"internal", { slug: string }, Doc<"
  */
 export const findProductBySku: RegisteredQuery<"internal", { sku: string }, Doc<"commerce_products"> | null> = internalQuery({
   args: { sku: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_products),
+  returns: v.union(v.null(), commerceDocs.commerce_products),
   handler: async (ctx, { sku }) => {
     return await ctx.db
       .query("commerce_products")
-      .withIndex("by_sku", (q: any) => q.eq("sku", sku))
+      .withIndex("by_sku", (q) => q.eq("sku", sku))
       .first();
   },
 });
@@ -226,11 +234,11 @@ export const findProductBySku: RegisteredQuery<"internal", { sku: string }, Doc<
  */
 export const findCustomerByEmail: RegisteredQuery<"internal", { email: string }, Doc<"commerce_customer_profiles"> | null> = internalQuery({
   args: { email: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_customer_profiles),
+  returns: v.union(v.null(), commerceDocs.commerce_customer_profiles),
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("commerce_customer_profiles")
-      .withIndex("by_email", (q: any) => q.eq("email", email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
   },
 });
@@ -240,11 +248,11 @@ export const findCustomerByEmail: RegisteredQuery<"internal", { email: string },
  */
 export const findOrderByNumber: RegisteredQuery<"internal", { orderNumber: string }, Doc<"commerce_orders"> | null> = internalQuery({
   args: { orderNumber: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_orders),
+  returns: v.union(v.null(), commerceDocs.commerce_orders),
   handler: async (ctx, { orderNumber }) => {
     return await ctx.db
       .query("commerce_orders")
-      .withIndex("by_orderNumber", (q: any) => q.eq("orderNumber", orderNumber))
+      .withIndex("by_orderNumber", (q) => q.eq("orderNumber", orderNumber))
       .first();
   },
 });
@@ -254,28 +262,151 @@ export const findOrderByNumber: RegisteredQuery<"internal", { orderNumber: strin
  */
 export const findDiscountByCode: RegisteredQuery<"internal", { code: string }, Doc<"commerce_discount_codes"> | null> = internalQuery({
   args: { code: v.string() },
-  returns: v.union(v.null(), tableDocs.commerce_discount_codes),
+  returns: v.union(v.null(), commerceDocs.commerce_discount_codes),
   handler: async (ctx, { code }) => {
     return await ctx.db
       .query("commerce_discount_codes")
-      .withIndex("by_code", (q: any) => q.eq("code", code))
+      .withIndex("by_code", (q) => q.eq("code", code))
       .first();
   },
 });
 
+/** Every table a WordPress import mapping (`wpIdMappings.convexId`) can point into. */
+const mappedEntityTableValidator = v.union(
+  v.literal("users"),
+  v.literal("posts"),
+  v.literal("terms"),
+  v.literal("media"),
+  v.literal("comments"),
+  v.literal("menus"),
+  v.literal("menuItems"),
+  v.literal("commerce_product_categories"),
+  v.literal("commerce_products"),
+  v.literal("commerce_product_variants"),
+  v.literal("commerce_customer_profiles"),
+  v.literal("commerce_orders"),
+  v.literal("commerce_order_items"),
+  v.literal("commerce_payment_transactions"),
+  v.literal("commerce_discount_codes"),
+  v.literal("commerce_review_items"),
+  v.literal("commerce_payment_refunds"),
+);
+
+export type MappedEntityTable = Infer<typeof mappedEntityTableValidator>;
+export type WpObjectType = Doc<"wpIdMappings">["objectType"];
+
+/** Mapping object types in cleanup order (the cleanup cursor encodes an index into this list). */
+export const WP_OBJECT_TYPES = [
+  "user",
+  "post",
+  "page",
+  "category",
+  "tag",
+  "media",
+  "comment",
+  "menu",
+  "menuItem",
+  "commerceCategory",
+  "commerceProduct",
+  "commerceProductVariant",
+  "commerceCustomer",
+  "commerceOrder",
+  "commerceOrderItem",
+  "commercePaymentTransaction",
+  "commerceDiscount",
+  "commerceReview",
+  "commerceRefund",
+] as const satisfies readonly WpObjectType[];
+
+/** The table a mapping's `convexId` points into, per mapping object type. */
+export const MAPPED_ENTITY_TABLE: Record<WpObjectType, MappedEntityTable> = {
+  user: "users",
+  post: "posts",
+  page: "posts",
+  category: "terms",
+  tag: "terms",
+  media: "media",
+  comment: "comments",
+  menu: "menus",
+  menuItem: "menuItems",
+  commerceCategory: "commerce_product_categories",
+  commerceProduct: "commerce_products",
+  commerceProductVariant: "commerce_product_variants",
+  commerceCustomer: "commerce_customer_profiles",
+  commerceOrder: "commerce_orders",
+  commerceOrderItem: "commerce_order_items",
+  commercePaymentTransaction: "commerce_payment_transactions",
+  commerceDiscount: "commerce_discount_codes",
+  commerceReview: "commerce_review_items",
+  commerceRefund: "commerce_payment_refunds",
+};
+
+async function loadMappedEntity<T extends MappedEntityTable>(ctx: QueryCtx, table: T, id: string) {
+  const normalized = ctx.db.normalizeId(table, id);
+  const doc = normalized ? await ctx.db.get(table, normalized) : null;
+  return doc ? { table, doc } : null;
+}
+
 /**
- * Generic entity lookup by table + ID string.
- * Used for local edit detection — fetches the local entity to compare updatedAt.
+ * Generic entity lookup by table + ID string, tagged with its table so callers
+ * can narrow to the document type. Returns null when the ID does not belong to
+ * `table` or the row is gone.
  */
 export const getEntityById = internalQuery({
-  args: { table: v.string(), id: v.string() },
-  returns: v.union(v.null(), tableDocs.posts, tableDocs.users, tableDocs.contentPromotion_mediaUploads, tableDocs.contentPromotion_mediaRecoveryGrants, tableDocs.contentPromotion_receipts, tableDocs.locale_translation_groups, tableDocs.media, tableDocs.roles, tableDocs.wordpressSites, tableDocs.capabilities, tableDocs.events, tableDocs.eventListeners, tableDocs.terms, tableDocs.fieldGroups, tableDocs.settings, tableDocs.fieldDefinitions, tableDocs.mailingLists, tableDocs.mailingListSubscribers, tableDocs.leadMagnetDeliveries, tableDocs.forms, tableDocs.syncedBlocks, tableDocs.convexpress_managementSessions, tableDocs.syncedBlockRefreshJobs, tableDocs.reusableBlocks, tableDocs.blockDefinitions, tableDocs.comments, tableDocs.menus, tableDocs.menuItems, tableDocs.redirects, tableDocs.webhooks, tableDocs.wordpressSyncJobs, tableDocs.kb_articles, tableDocs.kb_categories, tableDocs.kb_category_deletions, tableDocs.kb_tags, tableDocs.kb_collections, tableDocs.kb_workflows, tableDocs.kb_comments, tableDocs.ticket_tickets, tableDocs.support_channels, tableDocs.recipe_categories, tableDocs.gallery_categories, tableDocs.gallery_albums, tableDocs.commerce_orders, tableDocs.form_submissions, tableDocs.form_orders, tableDocs.commerce_subscriptions, tableDocs.commerce_subscription_checkout_intents, tableDocs.commerce_subscription_invoices, tableDocs.commerce_customer_profiles, tableDocs.purchase_orders, tableDocs.commerce_products, tableDocs.commerce_product_variants, tableDocs.lms_courses, tableDocs.purchase_payments, tableDocs.commerce_product_categories, tableDocs.commerce_product_brands, tableDocs.commerce_product_tags, tableDocs.commerce_shipping_classes, tableDocs.commerce_shipping_packages, tableDocs.commerce_regions, tableDocs.commerce_sales_channels, tableDocs.commerce_customer_groups, tableDocs.commerce_dynamic_pricing_rules, tableDocs.commerce_carts, tableDocs.commerce_checkout_sessions, tableDocs.commerce_shipping_rate_quotes, tableDocs.commerce_customer_addresses, tableDocs.commerce_payment_collections, tableDocs.commerce_ship_from_locations, tableDocs.commerce_order_items, tableDocs.commerce_discount_codes, tableDocs.commerce_price_sets, tableDocs.commerce_price_lists, tableDocs.commerce_prices, tableDocs.commerce_payment_sessions, tableDocs.commerce_payment_transactions, tableDocs.commerce_cart_items, tableDocs.commerce_checkout_shipping_methods, tableDocs.commerce_payment_captures, tableDocs.commerce_return_requests, tableDocs.commerce_draft_orders, tableDocs.commerce_order_changes, tableDocs.commerce_tax_rules, tableDocs.commerce_assistant_sessions, tableDocs.commerce_assistant_messages, tableDocs.shipping_provider_connections, tableDocs.shipping_provider_accounts, tableDocs.commerce_shipments, tableDocs.commerce_shipment_labels, tableDocs.commerce_shipping_zones, tableDocs.commerce_shipping_rules, tableDocs.commerce_subscription_templates, tableDocs.commerce_bundles, tableDocs.membership_plan_benefits, tableDocs.commerce_subscription_offers, tableDocs.commerce_subscription_order_forms, tableDocs.fieldValues, tableDocs.commerce_subscription_form_submissions, tableDocs.commerce_subscription_offer_items, tableDocs.commerce_subscription_proration_events, tableDocs.commerce_subscription_items, tableDocs.commerce_subscription_coupons, tableDocs.membership_plans, tableDocs.commerce_download_tokens, tableDocs.commerce_digital_files, tableDocs.commerce_license_keys, tableDocs.commerce_review_items, tableDocs.commerce_wishlists, tableDocs.commerce_bundle_components, tableDocs.commerce_product_attributes, tableDocs.lms_certificates, tableDocs.lms_nodes, tableDocs.lms_ai_generations, tableDocs.convexpress_managementAuthorities, tableDocs.convexpress_managementBindings, tableDocs.extension_events, tableDocs.extension_event_categories, tableDocs.form_notifications, tableDocs.form_confirmations, tableDocs.form_actions, tableDocs.form_poll_rate_limits, tableDocs.form_poll_tallies, tableDocs.form_poll_votes, tableDocs.formSubmissionCounts, tableDocs.form_submission_notes, tableDocs.form_action_runs, tableDocs.form_funnel_stats, tableDocs.form_funnel_public_events, tableDocs.form_submission_attempts, tableDocs.form_security_settings, tableDocs.event_rsvp_totals, tableDocs.event_rsvp_entries, tableDocs.event_rsvp_operations, tableDocs.event_rsvp_rate_limits, tableDocs.dashboard_layouts, tableDocs.dashboard_user_layouts, tableDocs.convexpress_siteIdentity, tableDocs.convexpress_managementNonces, tableDocs.lms_course_catalog, tableDocs.lms_course_prerequisites, tableDocs.lms_curriculum_counts, tableDocs.lms_lessonVersions, tableDocs.lms_enrollments, tableDocs.lms_progress_maintenance, tableDocs.lms_progress_counts, tableDocs.lms_progress, tableDocs.lms_course_completions, tableDocs.lms_certificate_issues, tableDocs.lms_jobs, tableDocs.commerce_product_attribute_terms, tableDocs.commerce_return_items, tableDocs.commerce_return_labels, tableDocs.commerce_return_history, tableDocs.commerce_return_reasons, tableDocs.commerce_store_credit_ledger, tableDocs.commerce_bundle_selections, tableDocs.commerce_wishlist_owner_totals, tableDocs.commerce_wishlist_counts, tableDocs.commerce_wishlist_deletions, tableDocs.commerce_wishlist_items, tableDocs.commerce_review_ratings, tableDocs.commerce_review_helpful_votes, tableDocs.commerce_download_leases, tableDocs.commerce_download_log, tableDocs.commerce_license_activations, tableDocs.membership_grants, tableDocs.membership_restriction_rules, tableDocs.membership_enrollment_repairs, tableDocs.membership_access_log, tableDocs.commerce_product_subscription_overrides, tableDocs.commerce_subscription_invoice_items, tableDocs.commerce_subscription_history, tableDocs.commerce_subscription_entitlements, tableDocs.commerce_subscription_dunning_attempts, tableDocs.commerce_subscription_idempotency_keys, tableDocs.commerce_subscription_coupon_redemptions, tableDocs.commerce_subscription_pricing_card_config, tableDocs.shipping_provider_oauth_tokens, tableDocs.shipping_webhook_deliveries, tableDocs.shipping_provider_secrets, tableDocs.shipping_provider_services, tableDocs.commerce_label_batch_jobs, tableDocs.commerce_shipment_tracking_events, tableDocs.commerce_shipment_manifests, tableDocs.commerce_shipping_method_flat_rate, tableDocs.commerce_shipping_method_weight_based, tableDocs.commerce_shipping_method_dimensional, tableDocs.commerce_shipping_method_price_based, tableDocs.commerce_shipping_method_quantity_based, tableDocs.commerce_shipping_method_free, tableDocs.commerce_shipping_method_local_pickup, tableDocs.commerce_shipping_method_local_delivery, tableDocs.commerce_shipping_method_table_rate, tableDocs.commerce_rate_pipeline_runs, tableDocs.commerce_tracking_sync_log, tableDocs.commerce_address_validations, tableDocs.commerce_product_location_fulfillment, tableDocs.commerce_shipping_profiles, tableDocs.commerce_shipping_zone_methods, tableDocs.shipping_quote_diagnostics, tableDocs.commerce_product_relations, tableDocs.commerce_assistant_requests, tableDocs.commerce_shopper_memory, tableDocs.commerce_assistant_briefs, tableDocs.commerce_search_facets, tableDocs.commerce_recommendation_events, tableDocs.commerce_catalog_revisions, tableDocs.commerce_product_sales, tableDocs.commerce_product_discovery, tableDocs.commerce_order_history, tableDocs.commerce_discount_usages, tableDocs.commerce_product_sales_channels, tableDocs.commerce_customer_group_members, tableDocs.commerce_price_rules, tableDocs.commerce_applied_adjustments, tableDocs.commerce_payment_refunds, tableDocs.commerce_order_change_actions, tableDocs.commerce_shipping_methods, tableDocs.commerce_tax_classes, tableDocs.commerce_order_tax_lines, tableDocs.commerce_tax_rate_history, tableDocs.commerce_inventory_adjustments, tableDocs.commerce_inventory_levels, tableDocs.commerce_low_stock_alerts, tableDocs.commerce_stock_reservations, tableDocs.commerce_draft_order_items, tableDocs.commerce_workflow_runs, tableDocs.commerce_saved_payment_methods, tableDocs.commerce_webhook_events, tableDocs.purchase_order_lines, tableDocs.purchase_refunds, tableDocs.purchase_order_events, tableDocs.gallery_albumItems, tableDocs.recipes, tableDocs.support_deflectionLogs, tableDocs.support_inbound_events, tableDocs.ticket_messages, tableDocs.ticket_counters, tableDocs.ticket_cannedResponses, tableDocs.ticket_sessions, tableDocs.ticket_rateLimits, tableDocs.kb_search_jobs, tableDocs.kb_articleVersions, tableDocs.kb_article_category_guards, tableDocs.kb_articleTags, tableDocs.kb_relatedArticles, tableDocs.kb_collectionArticles, tableDocs.kb_templates, tableDocs.kb_articleFeedback, tableDocs.kb_bookmarks, tableDocs.kb_userProgress, tableDocs.kb_pageViews, tableDocs.kb_searchQueries, tableDocs.kb_articleWorkflows, tableDocs.kb_commentVotes, tableDocs.kb_ragChunks, tableDocs.gaCache, tableDocs.pageEvents, tableDocs.pageAnalyticsDaily, tableDocs.websiteOperatorHandoffs, tableDocs.refreshTokens, tableDocs.authSetupState, tableDocs.wpIdMappings, tableDocs.wordpressSyncReconciliationFindings, tableDocs.wordpressSyncReports, tableDocs.failedLoginAttempts, tableDocs.siteNotificationDefinitions, tableDocs.routeDefinitions, tableDocs.eventDefinitions, tableDocs.dashboardPreferences, tableDocs.apiKeys, tableDocs.webhookDeliveries, tableDocs.apiRateLimitWindows, tableDocs.sitemapCache, tableDocs.sitemapGenerationLog, tableDocs.sitemapPingLog, tableDocs.seoSettings, tableDocs.searchReindexState, tableDocs.searchIndex, tableDocs.searchQueries, tableDocs.searchSynonyms, tableDocs.notFound, tableDocs.menuLocations, tableDocs.invitations, tableDocs.revisions, tableDocs.editorLocks, tableDocs.commentMeta, tableDocs.commentLikes, tableDocs.commentFlags, tableDocs.siteNotifications, tableDocs.notificationPreferences, tableDocs.blockDefinitionVersions, tableDocs.blockDefinitionApprovals, tableDocs.syncedBlockConsumerDirty, tableDocs.syncedBlockConsumerIndex, tableDocs.syncedBlockRefreshFailures, tableDocs.syncedBlockConsumers, tableDocs.syncedBlockRevisions, tableDocs.socialFeedSources, tableDocs.mailingListConsentEvents, tableDocs.emailTemplates, tableDocs.emailQueue, tableDocs.emailUnsubscribes, tableDocs.newsletterSubscribers, tableDocs.postMeta, tableDocs.auditEntries, tableDocs.termRelationships, tableDocs.mediaMaintenance, tableDocs.mediaSizes, tableDocs.mediaMeta, tableDocs.media_reference_edges, tableDocs.media_epoch_import_receipts, tableDocs.media_epoch_claim, tableDocs.media_reference_state, tableDocs.integration_checks, tableDocs.legacyAppearanceArchives, tableDocs.appearance_drafts, tableDocs.eventListenerExecutions, tableDocs.roleChanges, tableDocs.authorPostCounts, tableDocs.locale_routing, tableDocs.locale_translations, tableDocs.contentPromotion_mediaRecoveryAudit, tableDocs.contentPromotion_mappings, tableDocs.contentPromotion_backups, tableDocs.canonicalDocumentDrafts),
+  args: { table: mappedEntityTableValidator, id: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({ table: v.literal("users"), doc: usersDocs.users }),
+    v.object({ table: v.literal("posts"), doc: postsDocs.posts }),
+    v.object({ table: v.literal("terms"), doc: taxonomiesDocs.terms }),
+    v.object({ table: v.literal("media"), doc: mediaDocs.media }),
+    v.object({ table: v.literal("comments"), doc: commentsDocs.comments }),
+    v.object({ table: v.literal("menus"), doc: menusDocs.menus }),
+    v.object({ table: v.literal("menuItems"), doc: menusDocs.menuItems }),
+    v.object({ table: v.literal("commerce_product_categories"), doc: commerceDocs.commerce_product_categories }),
+    v.object({ table: v.literal("commerce_products"), doc: commerceDocs.commerce_products }),
+    v.object({ table: v.literal("commerce_product_variants"), doc: commerceDocs.commerce_product_variants }),
+    v.object({ table: v.literal("commerce_customer_profiles"), doc: commerceDocs.commerce_customer_profiles }),
+    v.object({ table: v.literal("commerce_orders"), doc: commerceDocs.commerce_orders }),
+    v.object({ table: v.literal("commerce_order_items"), doc: commerceDocs.commerce_order_items }),
+    v.object({ table: v.literal("commerce_payment_transactions"), doc: commerceDocs.commerce_payment_transactions }),
+    v.object({ table: v.literal("commerce_discount_codes"), doc: commerceDocs.commerce_discount_codes }),
+    v.object({ table: v.literal("commerce_review_items"), doc: commerceReviewsDocs.commerce_review_items }),
+    v.object({ table: v.literal("commerce_payment_refunds"), doc: commerceDocs.commerce_payment_refunds }),
+  ),
   handler: async (ctx, { table, id }) => {
-    try {
-      return await ctx.db.get(id as any);
-    } catch {
-      return null;
+    switch (table) {
+      case "users": return await loadMappedEntity(ctx, table, id);
+      case "posts": return await loadMappedEntity(ctx, table, id);
+      case "terms": return await loadMappedEntity(ctx, table, id);
+      case "media": return await loadMappedEntity(ctx, table, id);
+      case "comments": return await loadMappedEntity(ctx, table, id);
+      case "menus": return await loadMappedEntity(ctx, table, id);
+      case "menuItems": return await loadMappedEntity(ctx, table, id);
+      case "commerce_product_categories": return await loadMappedEntity(ctx, table, id);
+      case "commerce_products": return await loadMappedEntity(ctx, table, id);
+      case "commerce_product_variants": return await loadMappedEntity(ctx, table, id);
+      case "commerce_customer_profiles": return await loadMappedEntity(ctx, table, id);
+      case "commerce_orders": return await loadMappedEntity(ctx, table, id);
+      case "commerce_order_items": return await loadMappedEntity(ctx, table, id);
+      case "commerce_payment_transactions": return await loadMappedEntity(ctx, table, id);
+      case "commerce_discount_codes": return await loadMappedEntity(ctx, table, id);
+      case "commerce_review_items": return await loadMappedEntity(ctx, table, id);
+      case "commerce_payment_refunds": return await loadMappedEntity(ctx, table, id);
     }
+  },
+});
+
+/**
+ * Typed lookup of an imported post/page by its mapped ID string.
+ * Used by the posts and pages phases for local edit detection.
+ */
+export const getPostById = internalQuery({
+  args: { id: v.string() },
+  returns: v.union(v.null(), postsDocs.posts),
+  handler: async (ctx, { id }) => {
+    const postId = ctx.db.normalizeId("posts", id);
+    return postId ? await ctx.db.get("posts", postId) : null;
   },
 });
 
@@ -309,20 +440,27 @@ export const getMediaMappingsWithUrls = internalQuery({
     siteId: v.id("wordpressSites"),
     limit: v.number(),
   },
+  returns: v.array(v.object({
+    convexId: v.string(),
+    sourceUrl: v.optional(v.string()),
+    sourceUrls: v.optional(v.array(v.string())),
+    url: v.string(),
+  })),
   handler: async (ctx, { siteId, limit }) => {
     const all = await ctx.db
       .query("wpIdMappings")
-      .withIndex("by_wp_id", (q: any) =>
+      .withIndex("by_wp_id", (q) =>
         q.eq("siteId", siteId).eq("objectType", "media")
       )
       .take(limit);
-    const mediaMappings = all.filter((m: any) =>
+    const mediaMappings = all.filter((m) =>
       m.objectType === "media" && (m.sourceUrl || (Array.isArray(m.sourceUrls) && m.sourceUrls.length > 0))
     );
 
-    const result = [];
+    const result: Array<{ convexId: string; sourceUrl?: string; sourceUrls?: string[]; url: string }> = [];
     for (const mapping of mediaMappings) {
-      const media = await ctx.db.get(mapping.convexId as Id<"media">);
+      const mediaId = ctx.db.normalizeId("media", mapping.convexId);
+      const media = mediaId ? await ctx.db.get("media", mediaId) : null;
       if (!media) continue;
       result.push({
         convexId: mapping.convexId,
@@ -515,7 +653,7 @@ export const upsertReport: RegisteredMutation<"internal", Omit<Doc<"wordpressSyn
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
+      .withIndex("by_job", (q) => q.eq("jobId", args.jobId))
       .first();
 
     if (existing) {
@@ -845,32 +983,10 @@ function getProgressKey(phase: SyncPhase): string {
  * Run cleanup phase (finalization).
  */
 async function runCleanup(
-  ctx: { runMutation: typeof internalAction.prototype.handler },
+  ctx: ActionCtx,
   job: Doc<"wordpressSyncJobs">
 ): Promise<PhaseResult> {
-  const tableForType: Record<string, string> = {
-    user: "users",
-    post: "posts",
-    page: "posts",
-    category: "terms",
-    tag: "terms",
-    media: "media",
-    comment: "comments",
-    menu: "menus",
-    menuItem: "menuItems",
-    commerceCategory: "commerce_product_categories",
-    commerceProduct: "commerce_products",
-    commerceProductVariant: "commerce_product_variants",
-    commerceCustomer: "commerce_customer_profiles",
-    commerceOrder: "commerce_orders",
-    commerceOrderItem: "commerce_order_items",
-    commercePaymentTransaction: "commerce_payment_transactions",
-    commerceDiscount: "commerce_discount_codes",
-    commerceReview: "commerce_review_items",
-    commerceRefund: "commerce_payment_refunds",
-  };
-
-  const objectTypes = Object.keys(tableForType);
+  const objectTypes = WP_OBJECT_TYPES;
   const cursorBucket = 100_000_000;
   const batchSize = 100;
   const progress = { ...job.progress.cleanup };
@@ -884,7 +1000,8 @@ async function runCleanup(
   }
 
   const objectType = objectTypes[typeIndex];
-  const mappings = await (ctx as any).runQuery(
+  const table = MAPPED_ENTITY_TABLE[objectType];
+  const mappings = await ctx.runQuery(
     internal.wordpressSync.internals.getMappingsBatch,
     {
       siteId: job.siteId,
@@ -898,18 +1015,16 @@ async function runCleanup(
   let missing = 0;
 
   for (const mapping of mappings) {
-    const table = tableForType[mapping.objectType];
-    if (!table) continue;
     checked++;
 
-    const entity = await (ctx as any).runQuery(internal.wordpressSync.internals.getEntityById, {
+    const entity = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
       table,
       id: mapping.convexId,
     });
 
     if (!entity) {
       missing++;
-      await (ctx as any).runMutation(internal.wordpressSync.internals.insertFinding, {
+      await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
         siteId: job.siteId,
         jobId: job._id,
         severity: "warning",
@@ -1053,7 +1168,7 @@ export const cleanupOldJobs = internalMutation({
     // Find old completed jobs
     const oldJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: any) => q.eq("status", "completed"))
+      .withIndex("by_status", (q) => q.eq("status", "completed"))
       .take(BATCH_SIZE);
 
     for (const job of oldJobs) {
@@ -1067,7 +1182,7 @@ export const cleanupOldJobs = internalMutation({
     // Find old failed jobs
     const failedJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: any) => q.eq("status", "failed"))
+      .withIndex("by_status", (q) => q.eq("status", "failed"))
       .take(BATCH_SIZE);
 
     for (const job of failedJobs) {
@@ -1081,7 +1196,7 @@ export const cleanupOldJobs = internalMutation({
     // Find old cancelled jobs
     const cancelledJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: any) => q.eq("status", "cancelled"))
+      .withIndex("by_status", (q) => q.eq("status", "cancelled"))
       .take(BATCH_SIZE);
 
     for (const job of cancelledJobs) {
@@ -1111,7 +1226,7 @@ export const cleanupOrphanedMappings = internalMutation({
 
     // Get all site IDs
     const sites = await ctx.db.query("wordpressSites").take(1000);
-    const siteIds = new Set(sites.map((s: any) => s._id));
+    const siteIds = new Set(sites.map((s) => s._id));
 
     // Find mappings and check if their site still exists
     const mappings = await ctx.db.query("wpIdMappings").take(BATCH_SIZE);
@@ -1143,7 +1258,7 @@ export const checkStaleJobs = internalMutation({
 
     const runningJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: any) => q.eq("status", "running"))
+      .withIndex("by_status", (q) => q.eq("status", "running"))
       .take(50);
 
     for (const job of runningJobs) {

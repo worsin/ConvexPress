@@ -24,9 +24,9 @@ import { insertDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 import { ConvexError, v } from "convex/values";
 
-import { mutation } from "../_generated/server";
+import { mutation, type MutationCtx } from "../_generated/server";
 import type { RegisteredMutation } from "convex/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { BundlePurchaseMetadata, BundleSelectionInput } from "./runtime";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceBundlesEnabled } from "./helpers";
@@ -48,7 +48,23 @@ import { insertWithMediaReferences, patchWithMediaReferences , patchDynamicWithM
 // HELPER: Recalculate and update bundle price
 // ============================================
 
-async function recalculateBundlePrice(ctx: any, bundleId: any) {
+type BundleDoc = Doc<"commerce_bundles">;
+/** Bundle fields an admin update may change (absent keys are left untouched). */
+type BundleUpdates = Partial<Pick<BundleDoc,
+  "name" | "slug" | "description" | "shortDescription" | "images" | "pricingType" | "fixedPrice" | "discountPercent"
+  | "discountAmount" | "bundleType" | "minItems" | "maxItems" | "stockCount" | "trackInventory" | "allowPartialStock"
+  | "status" | "categoryIds" | "tags" | "metaTitle" | "metaDescription">>;
+
+/** Copies only the keys whose value is defined (a patch with `undefined` would clear the field). */
+function definedEntries<T extends Record<string, unknown>>(value: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key of Object.keys(value) as (keyof T)[]) {
+    if (value[key] !== undefined) result[key] = value[key];
+  }
+  return result;
+}
+
+async function recalculateBundlePrice(ctx: MutationCtx, bundleId: Id<"commerce_bundles">) {
   const bundle = await ctx.db.get(bundleId);
   if (!bundle) return;
   const snapshot = await resolveBundlePricingPreview(ctx, { bundle });
@@ -61,21 +77,21 @@ async function recalculateBundlePrice(ctx: any, bundleId: any) {
 }
 
 async function ensureOwningProductForBundle(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    actorId: any;
-    bundle: any;
-    updates?: Record<string, unknown>;
+    actorId: Id<"users">;
+    bundle: BundleDoc;
+    updates?: BundleUpdates;
   },
-) {
+): Promise<Id<"commerce_products">> {
   if (args.bundle.productId) {
     return args.bundle.productId;
   }
 
   const commerceSettings = await getCommerceSettings(ctx);
   const now = Date.now();
-  const effective = args.updates ?? {};
-  const productId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
+  const effective: BundleUpdates = args.updates ?? {};
+  const productId: Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
     title: effective.name ?? args.bundle.name,
     slug: effective.slug ?? args.bundle.slug,
     description: effective.description ?? args.bundle.description,
@@ -117,10 +133,10 @@ async function ensureOwningProductForBundle(
 }
 
 async function requireActiveBundleIsPurchasable(
-  ctx: any,
-  bundle: any,
+  ctx: MutationCtx,
+  bundle: BundleDoc,
   options?: {
-    components?: any[];
+    components?: Doc<"commerce_bundle_components">[];
   },
 ) {
   if (bundle.status !== "active") return;
@@ -144,7 +160,7 @@ async function requireActiveBundleIsPurchasable(
     options?.components ??
     (await ctx.db
       .query("commerce_bundle_components")
-      .withIndex("by_bundle", (q: any) => q.eq("bundleId", bundle._id))
+      .withIndex("by_bundle", (q) => q.eq("bundleId", bundle._id))
       .collect());
   if (components.length === 0) {
     throw new ConvexError({
@@ -210,7 +226,7 @@ export const create = mutation({
     metaDescription: v.optional(v.string()),
   },
   returns: v.string(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     const actor = await requireCan(ctx, "commerce.bundles.create");
@@ -224,7 +240,7 @@ export const create = mutation({
     // Check for duplicate slug
     const existing = await ctx.db
       .query("commerce_bundles")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
 
     if (existing) {
@@ -236,17 +252,13 @@ export const create = mutation({
 
     const now = Date.now();
     const commerceSettings = await getCommerceSettings(ctx);
-    const owningProductId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
+    const owningProductId: Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
       title: args.name,
       slug: args.slug,
       description: args.description,
       excerpt: args.shortDescription,
-      status:
-        args.status === "active"
-          ? "publish"
-          : args.status === "archived"
-            ? "private"
-            : "draft",
+      // An active status is rejected above; new bundles start unpublished.
+      status: args.status === "archived" ? "private" : "draft",
       productType: "simple",
       sku: undefined,
       authorId: actor._id,
@@ -264,7 +276,7 @@ export const create = mutation({
       isVirtual: false,
       shippingWeightOz: undefined,
       isDownloadable: false,
-      publishedAt: args.status === "active" ? now : undefined,
+      publishedAt: undefined,
       createdAt: now,
       updatedAt: now,
     });
@@ -292,7 +304,7 @@ export const create = mutation({
       metaDescription: args.metaDescription,
       status: args.status ?? "draft",
       purchaseCount: 0,
-      publishedAt: args.status === "active" ? now : undefined,
+      publishedAt: undefined,
       createdAt: now,
       updatedAt: now,
     });
@@ -326,7 +338,8 @@ export const update = mutation({
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_bundles"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     const actor = await requireCan(ctx, "commerce.bundles.edit");
@@ -342,10 +355,11 @@ export const update = mutation({
     }
 
     // Check slug uniqueness if changed
-    if (updates.slug && updates.slug !== bundle.slug) {
+    const nextSlug = updates.slug;
+    if (nextSlug && nextSlug !== bundle.slug) {
       const existing = await ctx.db
         .query("commerce_bundles")
-        .withIndex("by_slug", (q: any) => q.eq("slug", updates.slug))
+        .withIndex("by_slug", (q) => q.eq("slug", nextSlug))
         .unique();
 
       if (existing) {
@@ -357,9 +371,7 @@ export const update = mutation({
     }
 
     // Remove undefined values
-    const cleanUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, val]) => val !== undefined),
-    );
+    const cleanUpdates: BundleUpdates = definedEntries(updates);
 
     const now = Date.now();
     const owningProductId = await ensureOwningProductForBundle(ctx, {
@@ -422,7 +434,7 @@ export const update = mutation({
     if (newStatus === "active" && currentStatus !== "active") {
       const activationComponents = await ctx.db
         .query("commerce_bundle_components")
-        .withIndex("by_bundle", (q: any) => q.eq("bundleId", id))
+        .withIndex("by_bundle", (q) => q.eq("bundleId", id))
         .collect();
       const snapshot = await resolveBundlePricingPreview(ctx, { bundle: nextBundle, components: activationComponents });
       if (!snapshot) {
@@ -445,7 +457,8 @@ export const update = mutation({
  */
 export const remove = mutation({
   args: { id: v.id("commerce_bundles") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_bundles"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.delete");
@@ -461,7 +474,7 @@ export const remove = mutation({
     // Delete all components
     const components = await ctx.db
       .query("commerce_bundle_components")
-      .withIndex("by_bundle", (q: any) => q.eq("bundleId", args.id))
+      .withIndex("by_bundle", (q) => q.eq("bundleId", args.id))
       .collect();
 
     for (const comp of components) {
@@ -471,7 +484,7 @@ export const remove = mutation({
     // Delete all selections
     const selections = await ctx.db
       .query("commerce_bundle_selections")
-      .withIndex("by_bundle", (q: any) => q.eq("bundleId", args.id))
+      .withIndex("by_bundle", (q) => q.eq("bundleId", args.id))
       .collect();
 
     for (const sel of selections) {
@@ -513,7 +526,8 @@ export const addComponent = mutation({
     allowVariantChange: v.optional(v.boolean()),
     label: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_bundle_components"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
@@ -552,7 +566,7 @@ export const addComponent = mutation({
     // Get current component count for sort order
     const existing = await ctx.db
       .query("commerce_bundle_components")
-      .withIndex("by_bundle", (q: any) => q.eq("bundleId", args.bundleId))
+      .withIndex("by_bundle", (q) => q.eq("bundleId", args.bundleId))
       .collect();
 
     const now = Date.now();
@@ -605,7 +619,8 @@ export const updateComponent = mutation({
     label: v.optional(v.union(v.string(), v.null())),
     sortOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_bundle_components"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
@@ -674,7 +689,8 @@ export const updateComponent = mutation({
  */
 export const removeComponent = mutation({
   args: { componentId: v.id("commerce_bundle_components") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_bundle_components"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
@@ -692,7 +708,7 @@ export const removeComponent = mutation({
     if (bundle?.status === "active") {
       const existingComponents = await ctx.db
         .query("commerce_bundle_components")
-        .withIndex("by_bundle", (q: any) => q.eq("bundleId", bundleId))
+        .withIndex("by_bundle", (q) => q.eq("bundleId", bundleId))
         .collect();
       if (existingComponents.length <= 1) {
         throw new ConvexError({
@@ -728,7 +744,8 @@ export const reorderComponents = mutation({
     bundleId: v.id("commerce_bundles"),
     componentIds: v.array(v.id("commerce_bundle_components")),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_bundles"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
@@ -770,10 +787,36 @@ export const saveSelection: RegisteredMutation<"public", { bundleId: Id<"commerc
       }),
     ),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({
+    selectionId: v.id("commerce_bundle_selections"),
+    totalPrice: v.number(),
+    metadata: v.object({
+      lineType: v.literal("bundle"),
+      bundleId: v.id("commerce_bundles"),
+      bundleSlug: v.string(),
+      bundleName: v.string(),
+      owningProductId: v.id("commerce_products"),
+      bundleType: v.union(v.literal("fixed"), v.literal("mix_and_match"), v.literal("bogo")),
+      pricingType: v.union(v.literal("fixed"), v.literal("percent_off"), v.literal("amount_off"), v.literal("component_sum")),
+      regularPriceAmount: v.number(),
+      resolvedBundlePriceAmount: v.number(),
+      selections: v.array(v.object({
+        componentId: v.id("commerce_bundle_components"),
+        componentLabel: v.optional(v.string()),
+        productId: v.id("commerce_products"),
+        productTitle: v.string(),
+        variantId: v.optional(v.id("commerce_product_variants")),
+        variantTitle: v.optional(v.string()),
+        quantity: v.number(),
+        unitPriceAmount: v.number(),
+        lineTotalAmount: v.number(),
+      })),
+    }),
+  }),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
-    await requireCan(ctx, "commerce.bundles.edit");
+    const actor = await requireCan(ctx, "commerce.bundles.edit");
 
     const bundle = await ctx.db.get(args.bundleId);
     if (!bundle) {
@@ -810,7 +853,8 @@ export const saveSelection: RegisteredMutation<"public", { bundleId: Id<"commerc
       totalPrice: snapshot.resolvedBundlePriceAmount,
       metadata: buildBundleLineMetadata({
         bundle,
-        owningProductId: bundle.productId,
+        // Legacy bundles without an owning product get one, as on update.
+        owningProductId: await ensureOwningProductForBundle(ctx, { actorId: actor._id, bundle }),
         snapshot,
       }),
     };
@@ -820,7 +864,7 @@ export const saveSelection: RegisteredMutation<"public", { bundleId: Id<"commerc
 export const backfillOwningProducts = mutation({
   args: {},
   returns: v.object({ updatedCount: v.number() }),
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     const actor = await requireCan(ctx, "commerce.bundles.edit");

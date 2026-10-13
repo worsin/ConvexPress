@@ -11,7 +11,7 @@
  *   - Default Subscriber role (can be upgraded later)
  */
 
-import { action, internalAction, internalMutation, internalQuery } from "../../_generated/server";
+import { action, internalAction, internalMutation, internalQuery, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -476,9 +476,7 @@ export const markImportedUserCredentialMigration = internalMutation({
 });
 
 async function markCredentialMigration(
-  ctx: {
-    runMutation: (ref: any, args: any) => Promise<any>;
-  },
+  ctx: Pick<ActionCtx, "runMutation">,
   userId: Id<"users">,
   patch: CredentialMigrationPatch,
 ) {
@@ -524,6 +522,37 @@ export const provisionImportedUserCredentials = internalAction({
     credentialExportFailed: v.boolean(),
     jobId: v.optional(v.id("wordpressSyncJobs")),
   },
+  returns: v.union(v.object({
+    status: v.literal("skipped"),
+    reason: v.optional(v.null()),
+    error: v.optional(v.null()),
+    clerkUserId: v.optional(v.null()),
+  }), v.object({
+    status: v.literal("reset_required"),
+    reason: v.optional(v.null()),
+    error: v.optional(v.null()),
+    clerkUserId: v.optional(v.null()),
+  }), v.object({
+    status: v.literal("reset_required"),
+    reason: v.string(),
+    error: v.optional(v.null()),
+    clerkUserId: v.optional(v.null()),
+  }), v.object({
+    status: v.literal("failed"),
+    error: v.string(),
+    reason: v.optional(v.null()),
+    clerkUserId: v.optional(v.null()),
+  }), v.object({
+    status: v.literal("failed"),
+    reason: v.optional(v.null()),
+    error: v.optional(v.null()),
+    clerkUserId: v.optional(v.null()),
+  }), v.object({
+    status: v.string(),
+    clerkUserId: v.string(),
+    reason: v.optional(v.null()),
+    error: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     const email = normalizeEmail(args.email);
     const source = args.jobId ? "wordpress_import" : "wordpress_credential_backfill";
@@ -712,6 +741,7 @@ export const backfillImportedUserCredentials = action({
     afterWpId: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
+  returns: v.object({ processed: v.number(), hasMore: v.boolean(), nextAfterWpId: v.number() }),
   handler: async (ctx, args) => {
     await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal, {});
 

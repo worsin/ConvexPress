@@ -9,7 +9,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { eventDefinitionsDocs } from "../schema/eventDefinitions.docs.generated";
 /**
  * List all event definitions with optional filtering.
  */
@@ -19,7 +19,7 @@ export const list = query({
     category: v.optional(v.string()),
     search: v.optional(v.string()),
   },
-  returns: v.array(tableDocs.eventDefinitions),
+  returns: v.array(eventDefinitionsDocs.eventDefinitions),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -61,7 +61,7 @@ export const list = query({
  */
 export const get = query({
   args: { id: v.id("eventDefinitions") },
-  returns: v.union(v.null(), tableDocs.eventDefinitions),
+  returns: v.union(v.null(), eventDefinitionsDocs.eventDefinitions),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

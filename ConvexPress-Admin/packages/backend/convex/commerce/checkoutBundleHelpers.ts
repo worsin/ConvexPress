@@ -1,7 +1,8 @@
 import { getBundlePurchaseDelta } from "../commerceBundles/runtime";
+import type { Id } from "../_generated/dataModel";
 
-export function collectBundlePurchaseCounts(items: any[]) {
-  const bundleQuantities = new Map<string, { bundleId: any; quantity: number }>();
+export function collectBundlePurchaseCounts(items: Array<{ metadata?: unknown; quantity: number }>) {
+  const bundleQuantities = new Map<string, { bundleId: Id<"commerce_bundles">; quantity: number }>();
 
   for (const item of items) {
     const delta = getBundlePurchaseDelta(item.metadata, item.quantity);

@@ -31,16 +31,38 @@ import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { redactSettingSecrets } from "../helpers/settingsSecret";
 import { getSectionArgs } from "./validators";
 import {
-  getDefaults,
-  AUTOLOADED_SECTIONS,
   SECTION_NAMES,
   type SettingsSection,
 } from "./defaults";
 import { readAppearance, legacyShopProjection } from "./appearanceMigration";
+import {
+  anySectionValuesValidator,
+  appearanceTemplateSettingsValidator,
+  blockSettingsValidator,
+  brandSettingsValidator,
+  commerceAssistantSettingsValidator,
+  commerceGeneralSettingsValidator,
+  commerceLayoutSettingsValidator,
+  dashboardSettingsValidator,
+  discussionSettingsValidator,
+  footerSettingsValidator,
+  generalSettingsValidator,
+  headerSettingsValidator,
+  permalinkSettingsValidator,
+  privacySettingsValidator,
+  readingSettingsValidator,
+  readSectionValues,
+  readSectionWithMeta,
+  readSettingsSection,
+  sectionMeta,
+  sectionWithMetaValidator,
+  shippingIntegrationSettingsValidator,
+} from "./sectionValues";
 import type { Capability } from "../types/capabilities";
 
-import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { v, type Infer } from "convex/values";
+import { settingsRecord } from "../helpers/settingsReader";
+import { settingsDocs } from "../schema/settings.docs.generated";
 const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> = {
   email: "settings.update_email",
   media: "manage_options",
@@ -103,7 +125,7 @@ async function requireSettingsReadAccess(ctx: QueryCtx, section: SettingsSection
  */
 export const get = query({
   args: getSectionArgs,
-  returns: v.union(v.null(), tableDocs.settings),
+  returns: v.union(v.null(), settingsDocs.settings),
   handler: async (ctx, args) => {
     const section = args.section as SettingsSection;
     const user = await requireSettingsReadAccess(ctx, section);
@@ -117,7 +139,7 @@ export const get = query({
     if (!doc) return null;
     return {
       ...doc,
-      values: redactSettingSecrets(doc.values as Record<string, any>),
+      values: redactSettingSecrets(settingsRecord(doc.values)),
     };
   },
 });
@@ -129,48 +151,34 @@ export const get = query({
  * This is the primary query for admin settings forms.
  *
  * Returns an object with:
- *   - All settings values (defaults merged with stored)
+ *   - Every field the section declares, at its declared type (a stored value
+ *     of the wrong type, or a missing one, reads as the default; fields the
+ *     section does not declare are not returned)
  *   - _id: Document ID (if stored, for optimistic updates)
  *   - updatedAt: Last update timestamp (if stored)
  *   - updatedBy: User who last updated (if stored)
+ *
+ * Secret fields are masked with the "__set__" sentinel; the admin UI renders a
+ * masked state and the plaintext only leaves the backend through internal
+ * decryption helpers.
  *
  * Auth required. Sensitive operational sections require the same capability
  * needed to manage that settings surface.
  */
 export const getBySection = query({
   args: getSectionArgs,
+  returns: v.union(v.null(), sectionWithMetaValidator),
   handler: async (ctx, args) => {
-    const section = args.section as SettingsSection;
+    const section: SettingsSection = args.section;
     const user = await requireSettingsReadAccess(ctx, section);
     if (!user) return null;
 
-    // Get defaults
-    const defaults = getDefaults(section);
-
-    // Get stored document
-    const doc = await ctx.db
-      .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", section))
-      .unique();
-
-    // Merge defaults with stored values
-    const values = section === "appearance.template"
-      ? (await readAppearance(ctx)).values
-      : doc
-      ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-      : { ...defaults };
-
-    // Redact any field whose name suggests it's a secret. The admin UI
-    // sees `__set__` as a sentinel and renders a masked display; the real
-    // plaintext only leaves the backend via internal decryption helpers.
-    const redacted = redactSettingSecrets(values);
-
-    return {
-      ...(redacted as any),
-      _id: doc?._id ?? null,
-      updatedAt: doc?.updatedAt ?? null,
-      updatedBy: doc?.updatedBy ?? null,
-    };
+    if (section === "appearance.template") {
+      // The template section reads through the legacy-appearance projection.
+      const { doc, values } = await readAppearance(ctx);
+      return { ...readSectionValues(section, values), ...sectionMeta(doc) };
+    }
+    return await readSectionWithMeta(ctx, section, { redact: true });
   },
 });
 
@@ -181,29 +189,40 @@ export const getBySection = query({
  */
 export const getPluginAvailability = query({
   args: {},
+  returns: v.union(v.null(), v.record(v.string(), v.boolean())),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user || user.status !== "active") return null;
 
     const values = await getMergedSettingsSection(ctx, "plugins");
-    return Object.fromEntries(
-      Object.entries(values).filter(
-        ([key, value]) =>
-          /^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) &&
-          typeof value === "boolean",
-      ),
-    );
+    const flags: Record<string, boolean> = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (/^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) && typeof value === "boolean") flags[key] = value;
+    }
+    return flags;
   },
 });
 
 // ─── getAutoloaded ───────────────────────────────────────────────────────────
 
+/** The autoloaded sections as getAutoloaded returns them. */
+export const autoloadedSettingsValidator = v.object({
+  general: generalSettingsValidator.omit("adminEmail"),
+  reading: readingSettingsValidator,
+  permalinks: permalinkSettingsValidator,
+  discussion: discussionSettingsValidator.omit("moderationWordList", "disallowedWordList"),
+  privacy: privacySettingsValidator,
+  header: headerSettingsValidator,
+  footer: footerSettingsValidator,
+});
+
 /**
  * Get all autoloaded settings sections merged with defaults.
  * PUBLIC query - no auth required.
  *
- * Returns a record keyed by section name, each containing the merged values.
- * Autoloaded sections: general, reading, permalinks, discussion, privacy, header, footer.
+ * Returns each autoloaded section (general, reading, permalinks, discussion,
+ * privacy, header, footer) at its declared type, without the operator-only
+ * values getPublic also omits (adminEmail and the comment word lists).
  * Writing is NOT autoloaded (only needed when creating posts).
  *
  * This is the WordPress equivalent of `wp_load_alloptions()`.
@@ -211,37 +230,108 @@ export const getPluginAvailability = query({
  */
 export const getAutoloaded = query({
   args: {},
+  returns: autoloadedSettingsValidator,
   handler: async (ctx) => {
-    const result: Record<string, Record<string, unknown>> = {};
-
-    for (const section of AUTOLOADED_SECTIONS) {
-      const defaults = getDefaults(section);
-
+    const read = async <S extends SettingsSection>(section: S) => {
       const doc = await ctx.db
         .query("settings")
         .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
+      return readSectionValues(section, redactSettingSecrets(settingsRecord(doc?.values)));
+    };
 
-      const merged: Record<string, unknown> = doc
-        ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-        : { ...defaults };
-      // Public query: drop operator-only values (the same ones getPublic omits).
-      for (const key of AUTOLOAD_PRIVATE_KEYS) delete merged[key];
-      result[section] = redactSettingSecrets(merged) as Record<string, unknown>;
-    }
+    // Public query: drop operator-only values (the same ones getPublic omits).
+    const { adminEmail: _adminEmail, ...general } = await read("general");
+    const {
+      moderationWordList: _moderationWordList,
+      disallowedWordList: _disallowedWordList,
+      ...discussion
+    } = await read("discussion");
 
-    return result;
+    return {
+      general,
+      reading: await read("reading"),
+      permalinks: await read("permalinks"),
+      discussion,
+      privacy: await read("privacy"),
+      header: await read("header"),
+      footer: await read("footer"),
+    };
   },
 });
 
-const AUTOLOAD_PRIVATE_KEYS = [
-  "adminEmail",
-  "moderationWordList",
-  "disallowedWordList",
-  "commentBlocklist",
-];
-
 // ─── getPublic ───────────────────────────────────────────────────────────────
+
+const optionalText = (value: string | null | undefined): string | undefined => value ?? undefined;
+
+/** The public settings projection as getPublic returns it. */
+export const publicSettingsValidator = v.object({
+  siteTitle: v.string(),
+  tagline: v.string(),
+  siteUrl: v.string(),
+  homeUrl: v.string(),
+  logoUrl: v.optional(v.string()),
+  siteLogo: v.optional(v.string()),
+  membershipEnabled: v.boolean(),
+  siteLanguage: v.string(),
+  timezone: v.string(),
+  dateFormat: v.string(),
+  timeFormat: v.string(),
+  weekStartsOn: v.number(),
+  homepageDisplays: readingSettingsValidator.fields.homepageDisplays,
+  homepageId: v.optional(v.string()),
+  postsPageId: v.optional(v.string()),
+  postsPerPage: v.number(),
+  feedItemCount: v.number(),
+  feedContentDisplay: readingSettingsValidator.fields.feedContentDisplay,
+  searchEngineVisibility: v.boolean(),
+  allowComments: v.boolean(),
+  requireNameEmail: v.boolean(),
+  requireRegistration: v.boolean(),
+  enableThreadedComments: v.boolean(),
+  threadedCommentsDepth: v.number(),
+  commentOrder: discussionSettingsValidator.fields.commentOrder,
+  showAvatars: v.boolean(),
+  avatarRating: discussionSettingsValidator.fields.avatarRating,
+  defaultAvatar: v.string(),
+  permalinkStructure: permalinkSettingsValidator.fields.structure,
+  categoryBase: v.string(),
+  tagBase: v.string(),
+  privacyPolicyPageId: v.optional(v.string()),
+  showPrivacyPolicyLink: v.boolean(),
+  headerConfig: headerSettingsValidator,
+  footerConfig: footerSettingsValidator,
+  colorPalette: v.array(v.object({ slug: v.string(), color: v.string() })),
+  plugins: v.record(v.string(), v.boolean()),
+  dashboardConfig: dashboardSettingsValidator,
+  blocksConfig: blockSettingsValidator,
+  commerceConfig: v.object({
+    storeName: v.string(),
+    storeEmail: v.string(),
+    currencyCode: v.string(),
+    currencySymbol: v.string(),
+    pricesIncludeTax: v.boolean(),
+    taxRateBasis: commerceGeneralSettingsValidator.fields.taxRateBasis,
+    defaultCountryCode: v.string(),
+    defaultState: v.string(),
+    checkoutRequiresPhone: v.boolean(),
+    allowGuestCheckout: v.boolean(),
+    shippingEnabled: v.boolean(),
+    shippingMethods: commerceGeneralSettingsValidator.fields.shippingMethods,
+    paymentMethods: commerceGeneralSettingsValidator.fields.paymentMethods,
+    preferredProvider: shippingIntegrationSettingsValidator.fields.preferredProvider,
+    liveRatesEnabled: v.boolean(),
+    fallbackToManualRates: v.boolean(),
+    fallbackMessage: v.string(),
+    cheapestBadgeLabel: v.string(),
+    fastestBadgeLabel: v.string(),
+    bestOptionBadgeLabel: v.string(),
+  }),
+  assistantConfig: commerceAssistantSettingsValidator,
+  layoutConfig: commerceLayoutSettingsValidator,
+  templateConfig: appearanceTemplateSettingsValidator,
+  brandConfig: brandSettingsValidator.pick("typography", "density", "radius", "industry"),
+});
 
 /**
  * Get a curated subset of public-safe settings values.
@@ -252,85 +342,84 @@ const AUTOLOAD_PRIVATE_KEYS = [
  *
  * This powers the website SettingsProvider context.
  */
-function publicString(value: unknown): string | undefined { return typeof value === "string" ? value : undefined; }
-function publicBoolean(value: unknown): boolean | undefined { return typeof value === "boolean" ? value : undefined; }
-function publicNumber(value: unknown): number | undefined { return typeof value === "number" && Number.isFinite(value) ? value : undefined; }
-
 export const getPublic = query({
   args: {},
+  returns: publicSettingsValidator,
   handler: async (ctx) => {
-    // Fetch all autoloaded sections
-    const sections: Record<string, Record<string, unknown>> = {};
+    const { values: general } = await readSettingsSection(ctx, "general");
+    const { values: reading } = await readSettingsSection(ctx, "reading");
+    const { values: discussion } = await readSettingsSection(ctx, "discussion");
+    const { values: permalinks } = await readSettingsSection(ctx, "permalinks");
+    const { values: privacy } = await readSettingsSection(ctx, "privacy");
+    const { values: header } = await readSettingsSection(ctx, "header");
+    const { values: footer } = await readSettingsSection(ctx, "footer");
+    const { values: commerce } = await readSettingsSection(ctx, "commerce.general");
+    const { values: assistant } = await readSettingsSection(ctx, "commerce.assistant");
+    const { values: brand } = await readSettingsSection(ctx, "brand");
+    const { values: shipping } = await readSettingsSection(ctx, "integrations.shipping");
+    const { values: blocks } = await readSettingsSection(ctx, "blocks");
+    const { values: dashboard } = await readSettingsSection(ctx, "dashboard");
+    const template = readSectionValues("appearance.template", (await readAppearance(ctx)).values);
+    const layout = readSectionValues("commerce.layout", legacyShopProjection(template));
 
-    for (const section of AUTOLOADED_SECTIONS) {
-      sections[section] = await getMergedSettingsSection(ctx, section);
-    }
-
-    // Build the public-safe result by picking specific values
-    const general = sections.general ?? {};
-    const reading = sections.reading ?? {};
-    const discussion = sections.discussion ?? {};
-    const permalinks = sections.permalinks ?? {};
-    const privacy = sections.privacy ?? {};
-    const header = sections.header ?? {};
-    const footer = sections.footer ?? {};
+    // Public plugin flags. These are feature visibility controls, not
+    // secrets. Every stored or default `<id>Enabled` boolean is projected so
+    // new extensions reach the website without editing this file.
     const plugins = await getMergedSettingsSection(ctx, "plugins");
-    const commerce = await getMergedSettingsSection(ctx, "commerce.general");
-    const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
-    const { values: template } = await readAppearance(ctx);
-    const layout = legacyShopProjection(template);
-    const brand = await getMergedSettingsSection(ctx, "brand");
-    const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
-    const blocks = await getMergedSettingsSection(ctx, "blocks");
-    const dashboard = await getMergedSettingsSection(ctx, "dashboard");
-
     const publicPlugins: Record<string, boolean> = {};
     for (const [key, value] of Object.entries(plugins)) {
       if (/^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) && typeof value === "boolean") publicPlugins[key] = value;
     }
+
+    // Compatibility palette follows the effective template, including migrated custom tokens.
+    const colorPalette: Array<{ slug: string; color: string }> = [];
+    for (const [slug, color] of Object.entries(template.settings[template.active]?.colors ?? {})) {
+      if (typeof color === "string") colorPalette.push({ slug, color });
+    }
+
     return {
       // General (excluding adminEmail)
-      siteTitle: publicString(general.siteTitle),
-      tagline: publicString(general.tagline),
-      siteUrl: publicString(general.siteUrl),
-      homeUrl: publicString(general.homeUrl),
-      logoUrl: publicString(general.logoUrl),
-      siteLogo: publicString(general.siteLogo),
-      membershipEnabled: publicBoolean(general.membershipEnabled),
-      siteLanguage: publicString(general.siteLanguage),
-      timezone: publicString(general.timezone),
-      dateFormat: publicString(general.dateFormat),
-      timeFormat: publicString(general.timeFormat),
-      weekStartsOn: publicNumber(general.weekStartsOn),
+      siteTitle: general.siteTitle,
+      tagline: general.tagline,
+      siteUrl: general.siteUrl,
+      homeUrl: general.homeUrl,
+      logoUrl: general.logoUrl,
+      siteLogo: general.siteLogo,
+      membershipEnabled: general.membershipEnabled,
+      siteLanguage: general.siteLanguage,
+      timezone: general.timezone,
+      dateFormat: general.dateFormat,
+      timeFormat: general.timeFormat,
+      weekStartsOn: general.weekStartsOn,
 
       // Reading
-      homepageDisplays: publicString(reading.homepageDisplays),
-      homepageId: publicString(reading.homepageId),
-      postsPageId: publicString(reading.postsPageId),
-      postsPerPage: publicNumber(reading.postsPerPage),
-      feedItemCount: publicNumber(reading.feedItemCount),
-      feedContentDisplay: publicString(reading.feedContentDisplay),
-      searchEngineVisibility: publicBoolean(reading.searchEngineVisibility),
+      homepageDisplays: reading.homepageDisplays,
+      homepageId: optionalText(reading.homepageId),
+      postsPageId: optionalText(reading.postsPageId),
+      postsPerPage: reading.postsPerPage,
+      feedItemCount: reading.feedItemCount,
+      feedContentDisplay: reading.feedContentDisplay,
+      searchEngineVisibility: reading.searchEngineVisibility,
 
       // Discussion (excluding word lists)
-      allowComments: publicBoolean(discussion.allowComments),
-      requireNameEmail: publicBoolean(discussion.requireNameEmail),
-      requireRegistration: publicBoolean(discussion.requireRegistration),
-      enableThreadedComments: publicBoolean(discussion.enableThreadedComments),
-      threadedCommentsDepth: publicNumber(discussion.threadedCommentsDepth),
-      commentOrder: publicString(discussion.commentOrder),
-      showAvatars: publicBoolean(discussion.showAvatars),
-      avatarRating: publicString(discussion.avatarRating),
-      defaultAvatar: publicString(discussion.defaultAvatar),
+      allowComments: discussion.allowComments,
+      requireNameEmail: discussion.requireNameEmail,
+      requireRegistration: discussion.requireRegistration,
+      enableThreadedComments: discussion.enableThreadedComments,
+      threadedCommentsDepth: discussion.threadedCommentsDepth,
+      commentOrder: discussion.commentOrder,
+      showAvatars: discussion.showAvatars,
+      avatarRating: discussion.avatarRating,
+      defaultAvatar: discussion.defaultAvatar,
 
       // Permalinks
-      permalinkStructure: publicString(permalinks.structure),
-      categoryBase: publicString(permalinks.categoryBase),
-      tagBase: publicString(permalinks.tagBase),
+      permalinkStructure: permalinks.structure,
+      categoryBase: permalinks.categoryBase,
+      tagBase: permalinks.tagBase,
 
       // Privacy
-      privacyPolicyPageId: publicString(privacy.privacyPolicyPageId),
-      showPrivacyPolicyLink: publicBoolean(privacy.showPrivacyPolicyLink),
+      privacyPolicyPageId: optionalText(privacy.privacyPolicyPageId),
+      showPrivacyPolicyLink: privacy.showPrivacyPolicyLink,
 
       // Website Appearance - Header config (all fields are safe for public)
       headerConfig: header,
@@ -338,14 +427,8 @@ export const getPublic = query({
       // Website Appearance - Footer config (all fields are safe for public)
       footerConfig: footer,
 
-      // Compatibility palette follows the effective template, including migrated custom tokens.
-      colorPalette: Object.entries(template.settings[template.active]?.colors ?? {})
-        .filter(([, color]) => typeof color === "string")
-        .map(([slug, color]) => ({ slug, color })),
+      colorPalette,
 
-      // Public plugin flags. These are feature visibility controls, not
-      // secrets. Every `<id>Enabled` boolean is projected so new extensions
-      // reach the website without editing this file.
       plugins: publicPlugins,
 
       // Customer dashboard shell configuration (Dashboard extension).
@@ -353,34 +436,30 @@ export const getPublic = query({
 
       // Block editor runtime config. Public so the front-end renderer can
       // suppress blocks that have been disabled in admin settings.
-      blocksConfig: {
-        disabledBlockNames: Array.isArray((blocks as any).disabledBlockNames)
-          ? (blocks as any).disabledBlockNames
-          : [],
-      },
+      blocksConfig: { disabledBlockNames: blocks.disabledBlockNames },
 
       // Commerce runtime settings used by the public cart and checkout UI.
       commerceConfig: {
-        storeName: publicString(commerce.storeName),
-        storeEmail: publicString(commerce.storeEmail),
-        currencyCode: publicString(commerce.currencyCode),
-        currencySymbol: publicString(commerce.currencySymbol),
-        pricesIncludeTax: publicBoolean(commerce.pricesIncludeTax),
-        taxRateBasis: publicString(commerce.taxRateBasis),
-        defaultCountryCode: publicString(commerce.defaultCountryCode),
-        defaultState: publicString(commerce.defaultState),
-        checkoutRequiresPhone: publicBoolean(commerce.checkoutRequiresPhone),
-        allowGuestCheckout: publicBoolean(commerce.allowGuestCheckout),
-        shippingEnabled: publicBoolean(commerce.shippingEnabled),
+        storeName: commerce.storeName,
+        storeEmail: commerce.storeEmail,
+        currencyCode: commerce.currencyCode,
+        currencySymbol: commerce.currencySymbol,
+        pricesIncludeTax: commerce.pricesIncludeTax,
+        taxRateBasis: commerce.taxRateBasis,
+        defaultCountryCode: commerce.defaultCountryCode,
+        defaultState: commerce.defaultState,
+        checkoutRequiresPhone: commerce.checkoutRequiresPhone,
+        allowGuestCheckout: commerce.allowGuestCheckout,
+        shippingEnabled: commerce.shippingEnabled,
         shippingMethods: commerce.shippingMethods,
         paymentMethods: commerce.paymentMethods,
-        preferredProvider: publicString(shipping.preferredProvider),
-        liveRatesEnabled: publicBoolean(shipping.liveRatesEnabled),
-        fallbackToManualRates: publicBoolean(shipping.fallbackToManualRates),
-        fallbackMessage: publicString(shipping.fallbackMessage),
-        cheapestBadgeLabel: publicString(shipping.cheapestBadgeLabel),
-        fastestBadgeLabel: publicString(shipping.fastestBadgeLabel),
-        bestOptionBadgeLabel: publicString(shipping.bestOptionBadgeLabel),
+        preferredProvider: shipping.preferredProvider,
+        liveRatesEnabled: shipping.liveRatesEnabled,
+        fallbackToManualRates: shipping.fallbackToManualRates,
+        fallbackMessage: shipping.fallbackMessage,
+        cheapestBadgeLabel: shipping.cheapestBadgeLabel,
+        fastestBadgeLabel: shipping.fastestBadgeLabel,
+        bestOptionBadgeLabel: shipping.bestOptionBadgeLabel,
       },
 
       // Shopping assistant rail. No secrets live in this section; the model
@@ -406,6 +485,14 @@ export const getPublic = query({
 
 // ─── exportAll ───────────────────────────────────────────────────────────────
 
+/** The settings export format as exportAll returns it. */
+export const settingsExportValidator = v.object({
+  version: v.literal("1.0"),
+  exportedAt: v.number(),
+  exportedBy: v.string(),
+  settings: v.record(v.string(), anySectionValuesValidator),
+});
+
 /**
  * Export all settings sections as a JSON-compatible object.
  * Auth required - needs settings.export capability (Administrator only).
@@ -413,37 +500,35 @@ export const getPublic = query({
  * Returns the standard export format:
  *   {
  *     version: "1.0",
- *     exportedAt: ISO 8601 string,
+ *     exportedAt: Unix timestamp (ms),
  *     exportedBy: admin email,
  *     settings: { [section]: values }
  *   }
+ *
+ * Each section is exported at its declared type (see getBySection).
  */
 export const exportAll = query({
   args: {},
+  returns: settingsExportValidator,
   handler: async (ctx) => {
     // Require settings.export capability
     const user = await requireCan(ctx, "settings.export");
 
-    const settings: Record<string, Record<string, unknown>> = {};
+    const settings: Record<string, Infer<typeof anySectionValuesValidator>> = {};
 
     for (const section of SECTION_NAMES) {
-      const defaults = getDefaults(section);
-
       const doc = await ctx.db
         .query("settings")
         .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
 
-      const merged = doc
-        ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-        : { ...defaults };
       // Exports include secrets as redacted sentinels — never plaintext.
       // Operators re-enter keys on a restored install.
-      settings[section] = redactSettingSecrets(merged as any) as any;
+      settings[section] = readSectionValues(section, redactSettingSecrets(settingsRecord(doc?.values)));
     }
 
     return {
-      version: "1.0",
+      version: "1.0" as const,
       // Use Date.now() (deterministic within a Convex transaction) instead of
       // new Date().toISOString() which is non-deterministic and can interfere
       // with Convex query caching. The client can format this as needed.

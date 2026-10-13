@@ -1,11 +1,11 @@
-// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
 const ruleStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("inactive"));
 const processingMode = v.union(
   v.literal("all_applicable"),
@@ -102,7 +102,56 @@ function cleanText(value?: string) {
   return next ? next : undefined;
 }
 
-function assertRule(args: any) {
+type PricingRule = Doc<"commerce_dynamic_pricing_rules">;
+type PricingCondition = PricingRule["conditions"][number];
+type PricingAction = PricingRule["action"];
+type RuleFields = Pick<PricingRule, "name" | "action"> & { startsAt?: number | null; endsAt?: number | null };
+
+/** The cart fields rules read. */
+type PricingCart = {
+  userId?: Id<"users">;
+  currencyCode?: string;
+  customerGroupId?: string;
+  appliedDiscountCode?: string;
+  shippingAddress?: { countryCode?: string };
+};
+
+/** The line fields rules read; callers' own fields pass through untouched. */
+type PricingItem = {
+  productId: string;
+  quantity: number;
+  baseUnitPriceAmount?: number;
+  unitPriceAmount?: number;
+  product?: { categoryIds?: readonly string[] } | null;
+};
+
+type WorkingItem<T extends PricingItem> = Omit<T, "baseUnitPriceAmount"> & {
+  baseUnitPriceAmount: number;
+  adjustedUnitPriceAmount: number;
+  dynamicPricingAdjustmentAmount: number;
+  dynamicPricingRuleIds: Id<"commerce_dynamic_pricing_rules">[];
+};
+
+/** Who is buying, as the rule conditions see it. */
+type CustomerContext = {
+  userId?: string;
+  email?: string;
+  roleValues: string[];
+  totalOrders: number;
+  totalSpentAmount: number;
+};
+
+type EvaluationContext = CustomerContext & {
+  customerGroupId?: string;
+  appliedDiscountCode?: string;
+  shippingCountry?: string;
+  cartSubtotal: number;
+  cartItemCount: number;
+  matchingSubtotal: number;
+  matchingQuantity: number;
+};
+
+function assertRule(args: RuleFields) {
   if (!args.name.trim()) {
     throw new ConvexError({ code: "VALIDATION_ERROR", message: "Rule name is required." });
   }
@@ -122,27 +171,28 @@ function assertRule(args: any) {
 
 export const list = query({
   args: { status: v.optional(ruleStatus) },
-  returns: v.array(tableDocs.commerce_dynamic_pricing_rules),
+  returns: v.array(commerceDocs.commerce_dynamic_pricing_rules),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    const rows = args.status
+    const status = args.status;
+    const rows = status
       ? await ctx.db
           .query("commerce_dynamic_pricing_rules")
-          .withIndex("by_status", (q: any) => q.eq("status", args.status))
+          .withIndex("by_status", (q) => q.eq("status", status))
           .collect()
       : await ctx.db
           .query("commerce_dynamic_pricing_rules")
           .withIndex("by_updatedAt")
           .order("desc")
           .collect();
-    return rows.sort((a: any, b: any) => b.priority - a.priority || b.updatedAt - a.updatedAt);
+    return rows.sort((a, b) => b.priority - a.priority || b.updatedAt - a.updatedAt);
   },
 });
 
 export const get = query({
   args: { ruleId: v.id("commerce_dynamic_pricing_rules") },
-  returns: v.union(v.null(), tableDocs.commerce_dynamic_pricing_rules),
+  returns: v.union(v.null(), commerceDocs.commerce_dynamic_pricing_rules),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -257,11 +307,11 @@ export const preview = query({
     const rules = (
       await ctx.db
         .query("commerce_dynamic_pricing_rules")
-        .withIndex("by_status", (q: any) => q.eq("status", "active"))
+        .withIndex("by_status", (q) => q.eq("status", "active"))
         .collect()
     )
-      .filter((rule: any) => (!rule.startsAt || rule.startsAt <= now) && (!rule.endsAt || rule.endsAt >= now))
-      .sort((a: any, b: any) => b.priority - a.priority || a.createdAt - b.createdAt);
+      .filter((rule) => (!rule.startsAt || rule.startsAt <= now) && (!rule.endsAt || rule.endsAt >= now))
+      .sort((a, b) => b.priority - a.priority || a.createdAt - b.createdAt);
     const quantity = Math.max(1, Math.floor(args.quantity || 1));
     const item = {
       _id: "preview-item",
@@ -301,21 +351,21 @@ export const preview = query({
         adjustedItem.adjustedUnitPriceAmount * quantity - result.cartDiscountAmount,
       ),
       freeShipping: result.freeShipping,
-      ruleIds: result.ruleIds.map((id: any) => String(id)),
+      ruleIds: result.ruleIds.map((id) => String(id)),
       description: result.description,
     };
   },
 });
 
-function ids(values?: any[]) {
+function ids(values?: readonly string[]) {
   return new Set((values ?? []).map((value) => String(value)));
 }
 
-function productCategoryIds(item: any) {
-  return new Set((item.product?.categoryIds ?? []).map((value: any) => String(value)));
+function productCategoryIds(item: PricingItem) {
+  return new Set((item.product?.categoryIds ?? []).map((value) => String(value)));
 }
 
-function scopeMatches(rule: any, item: any) {
+function scopeMatches(rule: PricingRule, item: PricingItem) {
   const scope = rule.scope ?? { appliesTo: "all_products" };
   const productId = String(item.productId);
   const itemCategoryIds = productCategoryIds(item);
@@ -334,7 +384,7 @@ function scopeMatches(rule: any, item: any) {
   return false;
 }
 
-function compare(condition: any, actual: any) {
+function compare(condition: PricingCondition, actual: unknown) {
   const expected =
     condition.numberValue ??
     condition.stringValue ??
@@ -344,19 +394,19 @@ function compare(condition: any, actual: any) {
   if (condition.operator === "is_false") return Boolean(actual) === false;
   if (condition.operator === "in") {
     const actualList = Array.isArray(actual) ? actual.map(String) : [String(actual)];
-    return expectedList.map(String).some((value: string) => actualList.includes(value));
+    return expectedList.map(String).some((value) => actualList.includes(value));
   }
   if (condition.operator === "not_in") {
     const actualList = Array.isArray(actual) ? actual.map(String) : [String(actual)];
-    return expectedList.map(String).every((value: string) => !actualList.includes(value));
+    return expectedList.map(String).every((value) => !actualList.includes(value));
   }
   if (condition.operator === "contains") {
     const actualList = Array.isArray(actual) ? actual.map(String) : [String(actual)];
-    return expectedList.some((value: string) => actualList.includes(String(value)));
+    return expectedList.some((value) => actualList.includes(String(value)));
   }
   if (condition.operator === "not_contains") {
     const actualList = Array.isArray(actual) ? actual.map(String) : [String(actual)];
-    return expectedList.every((value: string) => !actualList.includes(String(value)));
+    return expectedList.every((value) => !actualList.includes(String(value)));
   }
   if (condition.operator === "eq") {
     const actualList = Array.isArray(actual) ? actual.map(String) : [String(actual)];
@@ -375,18 +425,16 @@ function compare(condition: any, actual: any) {
   return false;
 }
 
-async function buildCustomerContext(ctx: any, cart: any) {
+async function buildCustomerContext(ctx: Pick<QueryCtx, "db">, cart: PricingCart): Promise<CustomerContext> {
   const user = cart.userId ? await ctx.db.get(cart.userId) : null;
   const role = user?.roleId ? await ctx.db.get(user.roleId) : null;
   const profile = user?._id
     ? await ctx.db
         .query("commerce_customer_profiles")
-        .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
         .unique()
     : null;
   return {
-    user,
-    role,
     userId: user?._id ? String(user._id) : undefined,
     email: user?.email,
     roleValues: [role?._id, role?.slug, role?.name].filter(Boolean).map(String),
@@ -395,7 +443,7 @@ async function buildCustomerContext(ctx: any, cart: any) {
   };
 }
 
-function conditionActual(condition: any, ctx: any) {
+function conditionActual(condition: PricingCondition, ctx: EvaluationContext): unknown {
   switch (condition.kind) {
     case "cart_subtotal":
       return ctx.cartSubtotal;
@@ -426,7 +474,7 @@ function conditionActual(condition: any, ctx: any) {
   }
 }
 
-function applyItemAction(action: any, baseUnitPrice: number) {
+function applyItemAction(action: PricingAction, baseUnitPrice: number) {
   const amount = Number(action.amount ?? 0);
   if (action.type === "percentage_discount") return Math.max(0, Math.round(baseUnitPrice * (1 - amount / 100)));
   if (action.type === "fixed_discount") return Math.max(0, baseUnitPrice - amount);
@@ -436,14 +484,14 @@ function applyItemAction(action: any, baseUnitPrice: number) {
   return baseUnitPrice;
 }
 
-function capRuleDiscount(action: any, discount: number) {
+function capRuleDiscount(action: PricingAction, discount: number) {
   if (typeof action.maxDiscountAmount === "number") {
     return Math.min(discount, action.maxDiscountAmount);
   }
   return discount;
 }
 
-function cartActionDiscount(action: any, amountBase: number) {
+function cartActionDiscount(action: PricingAction, amountBase: number) {
   const amount = Number(action.amount ?? 0);
   let discount = 0;
   if (action.type === "percentage_discount") discount = Math.round(amountBase * (amount / 100));
@@ -454,8 +502,8 @@ function cartActionDiscount(action: any, amountBase: number) {
   return Math.max(0, Math.min(amountBase, discount));
 }
 
-function createWorkingItems(items: any[]) {
-  return items.map((item) => {
+function createWorkingItems<T extends PricingItem>(items: T[]): WorkingItem<T>[] {
+  return items.map((item): WorkingItem<T> => {
     const base = Number(item.baseUnitPriceAmount ?? item.unitPriceAmount ?? 0);
     return {
       ...item,
@@ -467,19 +515,31 @@ function createWorkingItems(items: any[]) {
   });
 }
 
-function evaluateRuleEligibility(rule: any, workingItems: any[], context: any) {
+type RuleEligibility<T extends PricingItem> = {
+  matchingItems: WorkingItem<T>[];
+  cartSubtotal: number;
+  matchingSubtotal: number;
+};
+
+type BaseContext = Omit<EvaluationContext, "cartSubtotal" | "cartItemCount" | "matchingSubtotal" | "matchingQuantity">;
+
+function evaluateRuleEligibility<T extends PricingItem>(
+  rule: PricingRule,
+  workingItems: WorkingItem<T>[],
+  context: BaseContext,
+): RuleEligibility<T> | null {
   const matchingItems = workingItems.filter((item) => scopeMatches(rule, item));
   if (matchingItems.length === 0) return null;
   const cartSubtotal = workingItems.reduce((sum, item) => sum + item.adjustedUnitPriceAmount * item.quantity, 0);
   const matchingSubtotal = matchingItems.reduce((sum, item) => sum + item.adjustedUnitPriceAmount * item.quantity, 0);
-  const evalContext = {
+  const evalContext: EvaluationContext = {
     ...context,
     cartSubtotal,
     cartItemCount: workingItems.reduce((sum, item) => sum + item.quantity, 0),
     matchingSubtotal,
     matchingQuantity: matchingItems.reduce((sum, item) => sum + item.quantity, 0),
   };
-  const conditionResults = (rule.conditions ?? []).map((condition: any) =>
+  const conditionResults = (rule.conditions ?? []).map((condition) =>
     compare(condition, conditionActual(condition, evalContext)),
   );
   const eligible =
@@ -490,7 +550,7 @@ function evaluateRuleEligibility(rule: any, workingItems: any[], context: any) {
   return eligible ? { matchingItems, cartSubtotal, matchingSubtotal } : null;
 }
 
-function applyRule(rule: any, workingItems: any[], eligibility: any) {
+function applyRule<T extends PricingItem>(rule: PricingRule, eligibility: RuleEligibility<T>) {
   const matchingItems = eligibility.matchingItems;
   let cartDiscountAmount = 0;
   let freeShipping = false;
@@ -541,16 +601,19 @@ function applyRule(rule: any, workingItems: any[], eligibility: any) {
   return { cartDiscountAmount, freeShipping, ruleDiscount };
 }
 
-export async function evaluateDynamicPricingForCart(ctx: any, input: { cart: any; items: any[] }) {
+export async function evaluateDynamicPricingForCart<T extends PricingItem>(
+  ctx: Pick<QueryCtx, "db">,
+  input: { cart: PricingCart; items: T[] },
+) {
   const now = Date.now();
   const rules = (
     await ctx.db
       .query("commerce_dynamic_pricing_rules")
-      .withIndex("by_status", (q: any) => q.eq("status", "active"))
+      .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect()
   )
-    .filter((rule: any) => (!rule.startsAt || rule.startsAt <= now) && (!rule.endsAt || rule.endsAt >= now))
-    .sort((a: any, b: any) => b.priority - a.priority || a.createdAt - b.createdAt);
+    .filter((rule) => (!rule.startsAt || rule.startsAt <= now) && (!rule.endsAt || rule.endsAt >= now))
+    .sort((a, b) => b.priority - a.priority || a.createdAt - b.createdAt);
 
   const customer = await buildCustomerContext(ctx, input.cart);
   return evaluateDynamicPricingRules({
@@ -561,22 +624,22 @@ export async function evaluateDynamicPricingForCart(ctx: any, input: { cart: any
   });
 }
 
-function evaluateDynamicPricingRules(input: {
-  rules: any[];
-  cart: any;
-  items: any[];
-  customerContext: any;
-}) {
+function evaluateDynamicPricingRules<T extends PricingItem>(input: {
+  rules: PricingRule[];
+  cart: PricingCart;
+  items: T[];
+  customerContext: CustomerContext;
+}): {
+  items: WorkingItem<T>[];
+  cartDiscountAmount: number;
+  ruleIds: Id<"commerce_dynamic_pricing_rules">[];
+  freeShipping: boolean;
+  description: string | undefined;
+} {
   const { rules } = input;
   if (rules.length === 0) {
     return {
-      items: input.items.map((item) => ({
-        ...item,
-        baseUnitPriceAmount: item.baseUnitPriceAmount ?? item.unitPriceAmount,
-        adjustedUnitPriceAmount: item.baseUnitPriceAmount ?? item.unitPriceAmount,
-        dynamicPricingAdjustmentAmount: 0,
-        dynamicPricingRuleIds: [],
-      })),
+      items: createWorkingItems(input.items),
       cartDiscountAmount: 0,
       ruleIds: [],
       freeShipping: false,
@@ -586,24 +649,29 @@ function evaluateDynamicPricingRules(input: {
 
   const workingItems = createWorkingItems(input.items);
   let cartDiscountAmount = 0;
-  const appliedRuleIds: any[] = [];
+  const appliedRuleIds: Id<"commerce_dynamic_pricing_rules">[] = [];
   const messages: string[] = [];
   let freeShipping = false;
-  const baseContext = {
+  const baseContext: BaseContext = {
     ...input.customerContext,
     customerGroupId: input.cart.customerGroupId ? String(input.cart.customerGroupId) : undefined,
     appliedDiscountCode: input.cart.appliedDiscountCode,
     shippingCountry: input.cart.shippingAddress?.countryCode,
   };
 
-  const bestDiscountRules = rules.filter((rule: any) => rule.processingMode === "best_discount");
-  let bestCandidate: any = null;
+  const bestDiscountRules = rules.filter((rule) => rule.processingMode === "best_discount");
+  let bestCandidate: {
+    rule: PricingRule;
+    items: WorkingItem<T>[];
+    result: ReturnType<typeof applyRule>;
+    totalBenefit: number;
+  } | null = null;
   for (const rule of bestDiscountRules) {
     if (input.cart.appliedDiscountCode && rule.stackWithCoupons === false) continue;
     const simulatedItems = createWorkingItems(input.items);
     const eligibility = evaluateRuleEligibility(rule, simulatedItems, baseContext);
     if (!eligibility) continue;
-    const result = applyRule(rule, simulatedItems, eligibility);
+    const result = applyRule(rule, eligibility);
     const totalBenefit = result.ruleDiscount + (result.freeShipping ? 1 : 0);
     if (totalBenefit > 0 && (!bestCandidate || totalBenefit > bestCandidate.totalBenefit)) {
       bestCandidate = {
@@ -643,7 +711,7 @@ function evaluateDynamicPricingRules(input: {
     }
     const eligibility = evaluateRuleEligibility(rule, workingItems, baseContext);
     if (!eligibility) continue;
-    const result = applyRule(rule, workingItems, eligibility);
+    const result = applyRule(rule, eligibility);
     cartDiscountAmount += result.cartDiscountAmount;
     freeShipping = freeShipping || result.freeShipping;
 

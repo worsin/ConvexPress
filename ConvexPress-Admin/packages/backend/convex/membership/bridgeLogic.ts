@@ -49,10 +49,14 @@ export function selectBridgeablePlans<P extends BridgePlan>(
 
 // ───────────────────────── Grant decisions ─────────────────────────
 
-export type BridgeGrant = {
-  _id: string;
-  userId: string;
-  planId: string;
+export type BridgeGrant<
+  GrantId extends string = string,
+  UserId extends string = string,
+  PlanId extends string = string,
+> = {
+  _id: GrantId;
+  userId: UserId;
+  planId: PlanId;
   sourceType: "manual" | "subscription" | "purchase" | "import" | string;
   sourceRef?: string | null;
   status: "active" | "grace" | "revoked" | "expired" | string;
@@ -63,12 +67,16 @@ export type BridgeGrant = {
   updatedAt?: number;
 };
 
-export type GrantDecision =
+export type GrantDecision<
+  GrantId extends string = string,
+  UserId extends string = string,
+  PlanId extends string = string,
+> =
   | {
       kind: "create";
       doc: {
-        userId: string;
-        planId: string;
+        userId: UserId;
+        planId: PlanId;
         sourceType: "subscription";
         sourceRef: string;
         status: "active";
@@ -80,7 +88,7 @@ export type GrantDecision =
     }
   | {
       kind: "refresh";
-      grantId: string;
+      grantId: GrantId;
       patch: {
         sourceRef: string;
         updatedAt: number;
@@ -100,14 +108,18 @@ export type GrantDecision =
  *     - Only extend endsAt if incoming endsAt is strictly later (or existing
  *       grant has no endsAt at all). Never shrink an end date on refresh.
  */
-export function decideGrant(input: {
-  existingActiveGrantsForUserPlan: readonly BridgeGrant[];
-  userId: string;
-  planId: string;
+export function decideGrant<
+  GrantId extends string,
+  UserId extends string,
+  PlanId extends string,
+>(input: {
+  existingActiveGrantsForUserPlan: readonly BridgeGrant<GrantId, UserId, PlanId>[];
+  userId: UserId;
+  planId: PlanId;
   subscriptionId: string;
   endsAt: number | undefined;
   now: number;
-}): GrantDecision {
+}): GrantDecision<GrantId, UserId, PlanId> {
   const { existingActiveGrantsForUserPlan, userId, planId, subscriptionId, endsAt, now } =
     input;
 
@@ -116,24 +128,22 @@ export function decideGrant(input: {
   );
 
   if (!existing) {
-    const doc: GrantDecision = {
-      kind: "create",
-      doc: {
-        userId,
-        planId,
-        sourceType: "subscription",
-        sourceRef: subscriptionId,
-        status: "active",
-        startsAt: now,
-        endsAt,
-        createdAt: now,
-        updatedAt: now,
-      },
+    const doc = {
+      userId,
+      planId,
+      sourceType: "subscription" as const,
+      sourceRef: subscriptionId,
+      status: "active" as const,
+      startsAt: now,
+      createdAt: now,
+      updatedAt: now,
     };
-    // Remove undefined endsAt from the doc if not provided (cleaner output,
-    // matches legacy behavior where field was omitted).
-    if (endsAt === undefined) delete (doc.doc as any).endsAt;
-    return doc;
+    // Omit endsAt when not provided (cleaner output, matches legacy behavior
+    // where the field was absent).
+    return {
+      kind: "create",
+      doc: endsAt === undefined ? doc : { ...doc, endsAt },
+    };
   }
 
   const patch: { sourceRef: string; updatedAt: number; endsAt?: number } = {
@@ -153,15 +163,15 @@ export function decideGrant(input: {
 
 // ───────────────────────── Revoke decisions ─────────────────────────
 
-export type RevokePatch =
+export type RevokePatch<GrantId extends string = string> =
   | {
       kind: "revoke";
-      grantId: string;
+      grantId: GrantId;
       patch: { status: "revoked"; revokedAt: number; updatedAt: number };
     }
   | {
       kind: "grace";
-      grantId: string;
+      grantId: GrantId;
       patch: { status: "grace"; graceEndsAt: number; updatedAt: number };
     };
 
@@ -174,11 +184,11 @@ export type RevokePatch =
  *   - gracePeriodDays > 0 → move to grace with `graceEndsAt = now + days`.
  *   - Otherwise → revoke immediately.
  */
-export function decideRevoke(input: {
-  grant: BridgeGrant;
+export function decideRevoke<GrantId extends string>(input: {
+  grant: BridgeGrant<GrantId>;
   gracePeriodDays: number;
   now: number;
-}): RevokePatch {
+}): RevokePatch<GrantId> {
   const { grant, gracePeriodDays, now } = input;
 
   if (grant.status === "grace") {
@@ -223,13 +233,13 @@ export function filterGrantsBySubscription<G extends BridgeGrant>(
 
 // ───────────────────────── Move-to-grace decisions ─────────────────────────
 
-export type MoveToGraceDecision =
+export type MoveToGraceDecision<GrantId extends string = string> =
   | {
       kind: "move";
-      grantId: string;
+      grantId: GrantId;
       patch: { status: "grace"; graceEndsAt: number; updatedAt: number };
     }
-  | { kind: "skip"; grantId: string; reason: "already_grace" | "not_active" };
+  | { kind: "skip"; grantId: GrantId; reason: "already_grace" | "not_active" };
 
 /**
  * Decide the transition for `moveGrantToGrace`.
@@ -239,11 +249,11 @@ export type MoveToGraceDecision =
  * graceEndsAt — that would extend the grace window every time the
  * subscription status re-transitions, which is wrong).
  */
-export function decideMoveToGrace(input: {
-  grant: BridgeGrant;
+export function decideMoveToGrace<GrantId extends string>(input: {
+  grant: BridgeGrant<GrantId>;
   gracePeriodDays: number;
   now: number;
-}): MoveToGraceDecision {
+}): MoveToGraceDecision<GrantId> {
   const { grant, gracePeriodDays, now } = input;
 
   if (grant.status === "grace") {

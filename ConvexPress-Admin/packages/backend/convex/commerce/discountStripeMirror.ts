@@ -15,9 +15,11 @@
 
 import { v } from "convex/values";
 
-import { internalAction } from "../_generated/server";
+import type Stripe from "stripe";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
+import { stripeErrorReason } from "./taxStripe";
 
 /**
  * Translate a ConvexPress discount to a Stripe Coupon create payload.
@@ -28,8 +30,8 @@ export function buildStripeCouponPayload(discount: {
   amount: number;
   code?: string;
   description?: string;
-}): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
+}): Stripe.CouponCreateParams | null {
+  const payload: Stripe.CouponCreateParams = {
     name: discount.description ?? discount.code,
   };
   if (discount.discountType === "percent") {
@@ -45,22 +47,15 @@ export function buildStripeCouponPayload(discount: {
   } else if (discount.discountType === "free_shipping") {
     // Stripe Coupon has no native free-shipping type; skip mirroring.
     // Caller checks for `null` payload and no-ops.
-    return null as unknown as Record<string, unknown>;
+    return null;
   }
   payload.duration = "once";
   return payload;
 }
 
-async function getStripeSecretKey(ctx: any): Promise<string | undefined> {
-  const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
-  );
-  const values = (settings?.values ?? settings) as
-    | Record<string, unknown>
-    | null
-    | undefined;
-  return await resolveServiceKeyAsync(values, "stripeSecretKey", "STRIPE_SECRET_KEY");
+async function getStripeSecretKey(ctx: ActionCtx): Promise<string | undefined> {
+  const settings = await ctx.runQuery(internal.commerce.settingsInternals.getPaymentSettings, {});
+  return await resolveServiceKeyAsync(settings, "stripeSecretKey", "STRIPE_SECRET_KEY");
 }
 
 export const mirrorDiscountToStripe = internalAction({
@@ -79,7 +74,7 @@ export const mirrorDiscountToStripe = internalAction({
     stripePromotionCodeId?: string;
     reason?: string;
   }> => {
-    const discount: any = await ctx.runQuery(
+    const discount = await ctx.runQuery(
       internal.commerce.discountInternals.getById,
       { discountId: args.discountId },
     );
@@ -100,25 +95,24 @@ export const mirrorDiscountToStripe = internalAction({
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(stripeKey);
 
-      let stripeCouponId = discount.stripeCouponId as string | undefined;
+      let stripeCouponId = discount.stripeCouponId;
       if (!stripeCouponId) {
         const created = await stripe.coupons.create(
-          payload as any,
+          payload,
           { idempotencyKey: `cp_coupon_${String(args.discountId)}` },
         );
         stripeCouponId = created.id;
       }
 
-      let stripePromotionCodeId = discount.stripePromotionCodeId as
-        | string
-        | undefined;
+      let stripePromotionCodeId = discount.stripePromotionCodeId;
       if (!stripePromotionCodeId && stripeCouponId && discount.code) {
+        // Promotion codes reference their coupon through `promotion` in the pinned API.
         const promo = await stripe.promotionCodes.create(
           {
-            coupon: stripeCouponId,
+            promotion: { type: "coupon", coupon: stripeCouponId },
             code: discount.code,
             active: discount.status === "active",
-          } as any,
+          },
           { idempotencyKey: `cp_promo_${String(args.discountId)}` },
         );
         stripePromotionCodeId = promo.id;
@@ -138,12 +132,12 @@ export const mirrorDiscountToStripe = internalAction({
         stripeCouponId,
         stripePromotionCodeId,
       };
-    } catch (err: any) {
+    } catch (err) {
       console.error(
         `[discountStripeMirror] mirror failed for ${args.discountId}:`,
-        err?.message ?? err,
+        err instanceof Error ? err.message : err,
       );
-      return { success: false, reason: err?.code ?? err?.type ?? "stripe_error" };
+      return { success: false, reason: stripeErrorReason(err) };
     }
   },
 });

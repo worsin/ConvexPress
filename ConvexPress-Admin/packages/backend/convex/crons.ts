@@ -86,6 +86,7 @@ crons.weekly(
   "search-orphan-cleanup",
   { dayOfWeek: "monday", hourUTC: 3, minuteUTC: 30 },
   internal.search.internals.cleanupOrphanedIndex,
+  {},
 );
 
 // ─── Email Notification System ────────────────────────────────────────────────
@@ -194,7 +195,8 @@ crons.daily(
 crons.daily(
   "lms-expire-enrollments",
   { hourUTC: 3, minuteUTC: 20 },
-  (internal as any).lms.enrollment.internals.expireExpiredEnrollments,
+  internal.lms.enrollment.internals.expireExpiredEnrollments,
+  {},
 );
 
 // ─── Content Editor System ──────────────────────────────────────────────────
@@ -338,7 +340,7 @@ crons.daily(
 crons.daily(
   "shipping:address-validation-purge",
   { hourUTC: 4, minuteUTC: 15 },
-  (internal as any).shipping.addressValidation.mutations.purgeExpired,
+  internal.shipping.addressValidation.mutations.purgeExpired,
   {},
 );
 
@@ -347,7 +349,7 @@ crons.daily(
 crons.interval(
   "shipping:tracking-sync",
   { hours: 4 },
-  (internal as any).shipping.tracking.actions.syncTracking,
+  internal.shipping.tracking.actions.syncTracking,
   {},
 );
 
@@ -356,7 +358,7 @@ crons.interval(
 crons.hourly(
   "shipping:manifest-auto-close",
   { minuteUTC: 5 },
-  (internal as any).shipping.manifests.actions.autoCloseDueManifests,
+  internal.shipping.manifests.actions.autoCloseDueManifests,
   {},
 );
 
@@ -364,7 +366,7 @@ crons.hourly(
 crons.daily(
   "shipping:oauth-token-purge",
   { hourUTC: 4, minuteUTC: 30 },
-  (internal as any).shipping.providers._shared.tokenCache.purgeExpiredTokens,
+  internal.shipping.providers._shared.tokenCache.purgeExpiredTokens,
   {},
 );
 
@@ -372,7 +374,7 @@ crons.daily(
 crons.daily(
   "shipping:webhook-dedup-purge",
   { hourUTC: 4, minuteUTC: 45 },
-  (internal as any).shipping.webhookDedup.purgeExpired,
+  internal.shipping.webhookDedup.purgeExpired,
   {},
 );
 
@@ -390,7 +392,7 @@ crons.interval(
 crons.hourly(
   "commerce:mark-abandoned-carts",
   { minuteUTC: 20 },
-  (internal as any).commerce.cart.markAbandonedCarts,
+  internal.commerce.cart.markAbandonedCarts,
   {},
 );
 
@@ -399,7 +401,7 @@ crons.hourly(
 crons.daily(
   "commerce:cleanup-stale-bundle-selections",
   { hourUTC: 3, minuteUTC: 10 },
-  (internal as any).commerceBundles.internals.cleanupStaleBundleSelections,
+  internal.commerceBundles.internals.cleanupStaleBundleSelections,
   {},
 );
 
@@ -444,6 +446,7 @@ crons.hourly(
   "subscription-renewals",
   { minuteUTC: 0 },
   internal.commerceSubscriptions.renewal.runRenewalSweep,
+  {},
 );
 
 // Hourly dunning retry sweep (offset 15 min so renewals run first).
@@ -452,6 +455,7 @@ crons.hourly(
   "subscription-dunning",
   { minuteUTC: 15 },
   internal.commerceSubscriptions.dunning.runDunningSweep,
+  {},
 );
 
 // Daily sweep of contracts past their cancelAt timestamp (scheduled
@@ -461,6 +465,7 @@ crons.daily(
   "subscription-expire-pending-cancel",
   { hourUTC: 3, minuteUTC: 45 },
   internal.commerceSubscriptions.internals.expirePendingCancellations,
+  {},
 );
 
 // Daily notifier for trials ending in ~3 days (Wave 10.2). Emits

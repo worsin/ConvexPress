@@ -16,12 +16,12 @@ import { getProgressArgs, trackProgressArgs } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── Get Progress ───────────────────────────────────────────────────────────
 
 export const getProgress: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }, Doc<"kb_userProgress"> | null> = query({
   args: getProgressArgs,
-  returns: v.union(v.null(), tableDocs.kb_userProgress),
+  returns: v.union(v.null(), kbDocs.kb_userProgress),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);

@@ -24,11 +24,12 @@
 
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { decryptSettingSecret, encryptSettingSecret } from "../helpers/settingsSecret";
 import { collectLegacySecrets, withReplacedValues } from "../helpers/settingsSecretUpgrade";
 import { getInternalArgs } from "./validators";
-import { getDefaults, isValidSection, type SettingsSection } from "./defaults";
+import { isValidSection } from "./defaults";
+import { readSectionWithMeta, sectionWithMetaValidator } from "./sectionValues";
 import { requireCan } from "../helpers/permissions";
 
 import { v } from "convex/values";
@@ -36,22 +37,20 @@ import { v } from "convex/values";
 
 /**
  * Internal query for reading merged settings (defaults + stored).
- * Same behavior as getBySection but not client-callable.
+ * Same values as getBySection, without its access check and without masking
+ * secrets (internal callers decrypt them).
  *
  * Takes a string section name (not a union validator) for flexibility
  * when called from internal functions that may build the section name
  * dynamically.
  *
  * @param section - Section name as a string
- * @returns Merged settings values, or null if the section is invalid
+ * @returns The section's values at their declared types plus the document
+ *   metadata, or null if the section is invalid
  */
 export const getInternal = internalQuery({
   args: getInternalArgs,
-  returns: v.union(v.null(), v.object({
-    _id: v.union(v.null(), v.id("settings")),
-    updatedAt: v.union(v.null(), v.number()),
-    updatedBy: v.union(v.null(), v.id("users")),
-  })),
+  returns: v.union(v.null(), sectionWithMetaValidator),
   handler: async (ctx, args) => {
     const { section } = args;
 
@@ -60,28 +59,7 @@ export const getInternal = internalQuery({
       return null;
     }
 
-    const sectionName = section as SettingsSection;
-
-    // Get defaults
-    const defaults = getDefaults(sectionName);
-
-    // Get stored document
-    const doc = await ctx.db
-      .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", sectionName))
-      .unique();
-
-    // Merge defaults with stored values
-    const values = doc
-      ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-      : { ...defaults };
-
-    return {
-      ...values,
-      _id: doc?._id ?? null,
-      updatedAt: doc?.updatedAt ?? null,
-      updatedBy: doc?.updatedBy ?? null,
-    };
+    return await readSectionWithMeta(ctx, section, { redact: false });
   },
 });
 
@@ -100,9 +78,7 @@ export const requireManageOptionsInternal = internalQuery({
  * Re-seal every reversible `b64:` secret as `enc:` now that the deployment has
  * an at-rest encryption key. Idempotent; safe to run repeatedly.
  */
-export async function upgradeLegacySettingSecrets(ctx: {
-  db: any;
-}): Promise<{ upgraded: number; sections: string[] }> {
+export async function upgradeLegacySettingSecrets(ctx: Pick<MutationCtx, "db">): Promise<{ upgraded: number; sections: string[] }> {
   if (!process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY) {
     throw new ConvexError({
       code: "CONFIG_ERROR",

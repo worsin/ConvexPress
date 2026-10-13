@@ -3,16 +3,20 @@ import { mutation, internalQuery } from '../../_generated/server';
 import { api } from '../../_generated/api';
 import { assistantScope } from './scope';
 import { resolveThread } from './history';
-import { getSettingsDoc, mergeWithDefaults } from '../../settings/helpers';
+import { readAssistantSettings } from '../settingsInternals';
+import { storedBlocks } from './blocks';
 import { isPublicVariant } from '../activePrice';
 
+/** Ids come from model tool calls as plain strings; anything that is not a live option reads as null. */
 export const variantTitle = internalQuery({
-  args: { productId: v.id('commerce_products'), variantId: v.id('commerce_product_variants') },
+  args: { productId: v.string(), variantId: v.string() },
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, args) => {
-    const product = await ctx.db.get('commerce_products', args.productId);
-    const variant = await ctx.db.get('commerce_product_variants', args.variantId);
-    if (!product || product.status !== 'publish' || !variant || variant.productId !== args.productId || !isPublicVariant(variant)) return null;
+    const productId = ctx.db.normalizeId('commerce_products', args.productId);
+    const variantId = ctx.db.normalizeId('commerce_product_variants', args.variantId);
+    const product = productId ? await ctx.db.get('commerce_products', productId) : null;
+    const variant = variantId ? await ctx.db.get('commerce_product_variants', variantId) : null;
+    if (!product || product.status !== 'publish' || !variant || variant.productId !== productId || !isPublicVariant(variant)) return null;
     return variant.title || variant.optionSummary || null;
   },
 });
@@ -23,7 +27,7 @@ export const variantTitle = internalQuery({
 export const confirm = mutation({
   args: { sessionToken: v.string(), messageId: v.id('commerce_assistant_messages'), proposalId: v.string() },
   returns: v.null(),
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     const scope = await assistantScope(ctx, args.sessionToken);
     const message = await ctx.db.get('commerce_assistant_messages', args.messageId);
     const origin = message ? await ctx.db.get('commerce_assistant_sessions', message.sessionId) : null;
@@ -33,22 +37,24 @@ export const confirm = mutation({
       || Math.max(message.adoptedAt ?? message.createdAt, resolved.adoptedAt) <= (resolved.session.clearedBefore ?? 0)) {
       throw new ConvexError({ code: 'ACTION_UNAVAILABLE', message: 'This cart action is no longer available.' });
     }
-    const index = message.blocks.findIndex((block: any) => block.type === 'cart_proposal' && block.id === args.proposalId);
-    if (index < 0) throw new ConvexError({ code: 'ACTION_UNAVAILABLE', message: 'This cart action is no longer available.' });
-    const proposal = message.blocks[index];
+    const blocks = storedBlocks(message.blocks);
+    const index = blocks.findIndex((block) => block.type === 'cart_proposal' && block.id === args.proposalId);
+    const proposal = blocks[index];
+    if (!proposal || proposal.type !== 'cart_proposal') throw new ConvexError({ code: 'ACTION_UNAVAILABLE', message: 'This cart action is no longer available.' });
     if (proposal.added) return null;
-    const settings = await getSettingsDoc(ctx, 'commerce.assistant');
-    if (mergeWithDefaults('commerce.assistant', settings?.values ?? null).enabled === false) {
+    if ((await readAssistantSettings(ctx)).enabled === false) {
       throw new ConvexError({ code: 'DISABLED', message: 'The shop assistant is turned off.' });
     }
     if (!Number.isSafeInteger(proposal.quantity) || proposal.quantity < 1 || proposal.quantity > 20) {
       throw new ConvexError({ code: 'INVALID_ACTION', message: 'Please request this item again.' });
     }
-    await ctx.runMutation((api as any).commerce.cart.addItem, {
-      sessionToken: scope.session.sessionToken, productId: proposal.productId,
-      ...(proposal.variantId ? { variantId: proposal.variantId } : {}), quantity: proposal.quantity,
+    const productId = ctx.db.normalizeId('commerce_products', proposal.productId);
+    const variantId = proposal.variantId ? ctx.db.normalizeId('commerce_product_variants', proposal.variantId) : undefined;
+    if (!productId || variantId === null) throw new ConvexError({ code: 'ACTION_UNAVAILABLE', message: 'This cart action is no longer available.' });
+    await ctx.runMutation(api.commerce.cart.addItem, {
+      sessionToken: scope.session.sessionToken, productId,
+      ...(variantId ? { variantId } : {}), quantity: proposal.quantity,
     });
-    const blocks = [...message.blocks];
     blocks[index] = { ...proposal, added: true };
     await ctx.db.patch('commerce_assistant_messages', message._id, { blocks });
     return null;

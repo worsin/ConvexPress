@@ -22,8 +22,9 @@
 
 import { v } from "convex/values";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 
 // ─── Charge result shape ────────────────────────────────────────────────────
@@ -42,27 +43,24 @@ export interface SubscriptionChargeResult {
  * subscription charging disabled until the admin operator explicitly flips it
  * on. Key lives under `commerce.payments` alongside Stripe creds.
  */
-async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
+async function isLiveChargingEnabled(ctx: Pick<ActionCtx, "runQuery">): Promise<boolean> {
   const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
+    internal.commerceSubscriptions.internals.getPaymentChargingSettings,
+    {},
   );
-  const flag =
-    settings?.values?.subscriptionChargingEnabled ??
-    settings?.subscriptionChargingEnabled;
-  return flag === true;
+  return settings.subscriptionChargingEnabled;
 }
 
-async function getStripeSecretKey(ctx: any): Promise<string | undefined> {
+async function getStripeSecretKey(ctx: Pick<ActionCtx, "runQuery">): Promise<string | undefined> {
   const settings = await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "commerce.payments" },
+    internal.commerceSubscriptions.internals.getPaymentChargingSettings,
+    {},
   );
-  const values = (settings?.values ?? settings) as
-    | Record<string, unknown>
-    | null
-    | undefined;
-  return await resolveServiceKeyAsync(values, "stripeSecretKey", "STRIPE_SECRET_KEY");
+  return await resolveServiceKeyAsync(
+    { stripeSecretKey: settings.stripeSecretKey },
+    "stripeSecretKey",
+    "STRIPE_SECRET_KEY",
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -97,19 +95,10 @@ export const chargeSubscriptionInvoice = internalAction({
       return { success: false, failureReason: "stripe_not_configured" };
     }
 
-    const invoice = (await ctx.runQuery(
+    const invoice = await ctx.runQuery(
       internal.commerceSubscriptions.internals.getInvoiceForRenewal,
       { invoiceId: args.invoiceId },
-    )) as {
-      _id: string;
-      totalAmount: number;
-      currencyCode: string;
-      savedPaymentMethodId?: string;
-      stripeCustomerId?: string;
-      subscriptionId: string;
-      manualBilling?: boolean;
-      email?: string;
-    } | null;
+    );
 
     if (!invoice) {
       return { success: false, failureReason: "invoice_not_found" };
@@ -190,18 +179,17 @@ export const chargeSubscriptionInvoice = internalAction({
       };
       await writeResult(ctx, args.invoiceId, result);
       return result;
-    } catch (err: any) {
+    } catch (err) {
       // Stripe decline errors carry decline_code / code / message.
-      const failureReason =
-        err?.code || err?.decline_code || err?.type || "stripe_error";
+      const failure = describeStripeFailure(err);
       console.error(
         `[stripeCharge] Invoice ${args.invoiceId} charge failed:`,
-        err?.message || err,
+        failure.message ?? err,
       );
       const result: SubscriptionChargeResult = {
         success: false,
-        failureReason,
-        transactionId: err?.payment_intent?.id,
+        failureReason: failure.failureReason,
+        transactionId: failure.paymentIntentId,
       };
       await writeResult(ctx, args.invoiceId, result);
       return result;
@@ -209,9 +197,36 @@ export const chargeSubscriptionInvoice = internalAction({
   },
 });
 
+function nonEmptyStringField(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" && field.length > 0 ? field : undefined;
+}
+
+/** Reads the fields Stripe puts on a thrown StripeError without trusting its shape. */
+function describeStripeFailure(err: unknown): {
+  failureReason: string;
+  message?: string;
+  paymentIntentId?: string;
+} {
+  const paymentIntent =
+    typeof err === "object" && err !== null
+      ? (err as Record<string, unknown>).payment_intent
+      : undefined;
+  return {
+    failureReason:
+      nonEmptyStringField(err, "code") ??
+      nonEmptyStringField(err, "decline_code") ??
+      nonEmptyStringField(err, "type") ??
+      "stripe_error",
+    message: nonEmptyStringField(err, "message"),
+    paymentIntentId: nonEmptyStringField(paymentIntent, "id"),
+  };
+}
+
 async function writeResult(
-  ctx: any,
-  invoiceId: any,
+  ctx: Pick<ActionCtx, "runMutation">,
+  invoiceId: Id<"commerce_subscription_invoices">,
   result: SubscriptionChargeResult,
 ): Promise<void> {
   await ctx.runMutation(
@@ -275,16 +290,10 @@ export const beginSubscriptionFirstCharge = internalAction({
       throw new Error("stripe_not_configured");
     }
 
-    const intent: {
-      _id: string;
-      email?: string;
-      initialAmount: number;
-      recurringAmount?: number;
-      currencyCode: string;
-    } | null = (await ctx.runQuery(
+    const intent = await ctx.runQuery(
       internal.commerceSubscriptions.internals.getCheckoutIntentForCharge,
       { checkoutIntentId: args.checkoutIntentId },
-    )) as any;
+    );
 
     if (!intent) throw new Error("checkout_intent_not_found");
     if (!intent.email) throw new Error("missing_email_on_intent");
@@ -390,8 +399,7 @@ export const saveSetupIntentResult = internalAction({
   returns: v.null(),
   handler: async (ctx, args): Promise<void> => {
     await ctx.runMutation(
-      (internal.commerceSubscriptions.internals as any)
-        .recordSavedPaymentMethod,
+      internal.commerceSubscriptions.internals.recordSavedPaymentMethod,
       {
         checkoutIntentId: args.checkoutIntentId,
         stripeCustomerId: args.stripeCustomerId,
@@ -400,8 +408,7 @@ export const saveSetupIntentResult = internalAction({
     );
     if (args.activateCheckout && args.setupIntentId) {
       await ctx.runMutation(
-        (internal.commerceSubscriptions.internals as any)
-          .activateCheckoutIntentFromStripeSetup,
+        internal.commerceSubscriptions.internals.activateCheckoutIntentFromStripeSetup,
         {
           checkoutIntentId: args.checkoutIntentId,
           stripeCustomerId: args.stripeCustomerId,

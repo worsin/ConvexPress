@@ -213,7 +213,7 @@ export const importBatch = internalAction({
             // and let the UploadThing pass pick it up later.
             await createFinding(ctx, {
               siteId, jobId, severity: "warning", phase: "media",
-              code: "MEDIA_SIZE_CAP_EXCEEDED" as any,
+              code: FINDING_CODES.MEDIA_SIZE_CAP_EXCEEDED,
               message: result.error ?? "Skipped (size cap)",
               sourceType: "media", sourceId: String(wpMedia.id),
               destinationTable: "media", wpId: wpMedia.id,
@@ -774,7 +774,7 @@ async function replaceImportedMediaSizes(
 ) {
   const existingSizes = await ctx.db
     .query("mediaSizes")
-    .withIndex("by_media", (q: any) => q.eq("mediaId", mediaId))
+    .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
     .collect();
 
   for (const size of existingSizes) {

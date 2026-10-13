@@ -31,14 +31,12 @@
  * the portal wrappers simply delegate. They exist as thin wrappers (not
  * re-exports) so the website calls a stable `portal.*` API surface that is
  * distinct from the admin API surface.
- *
- * `@ts-nocheck` matches the rest of the commerceSubscriptions backend.
- * Wave 7 removes it across all subscriptions files in one pass.
  */
 
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
-import { action, mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { action, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
@@ -46,11 +44,34 @@ import { computeProration } from "../helpers/proration";
 import { decideBridgeCall } from "./bridgeDecisions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
+import { membershipDocs } from "../schema/membership.docs.generated";
 
 
 // ─── Local helpers ──────────────────────────────────────────────────────────
 
-type BillingInterval = "week" | "month" | "year";
+type BillingInterval = NonNullable<Doc<"commerce_subscriptions">["billingInterval"]>;
+type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
+
+type HistoryEntry = {
+	subscriptionId: Id<"commerce_subscriptions">;
+	eventType: string;
+	message?: string;
+	actorUserId?: Id<"users">;
+	fromStatus?: SubscriptionStatus;
+	toStatus?: SubscriptionStatus;
+	reason?: string;
+	data?: Record<string, unknown>;
+	correlationId?: string;
+};
+
+const prorationResultValidator = v.object({
+	daysRemaining: v.number(),
+	daysInCycle: v.number(),
+	unusedOldAmount: v.number(),
+	proratedNewAmount: v.number(),
+	netCharge: v.number(),
+});
 
 function addDays(timestamp: number, days: number): number {
 	return timestamp + days * 24 * 60 * 60 * 1000;
@@ -62,6 +83,10 @@ function addBillingPeriod(
 	intervalCount: number,
 ): number {
 	const date = new Date(timestamp);
+	if (interval === "day") {
+		date.setDate(date.getDate() + intervalCount);
+		return date.getTime();
+	}
 	if (interval === "week") {
 		date.setDate(date.getDate() + 7 * intervalCount);
 		return date.getTime();
@@ -148,7 +173,7 @@ function buildSimplePdf(lines: string[]): string {
 	return pdf;
 }
 
-async function writeHistory(ctx: any, args: any) {
+async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
 	await ctx.db.insert("commerce_subscription_history", {
 		subscriptionId: args.subscriptionId,
 		eventType: args.eventType,
@@ -179,8 +204,8 @@ async function writeHistory(ctx: any, args: any) {
  * default when product config is unknown.
  */
 async function syncEntitlementsForContract(
-	ctx: any,
-	subscriptionId: any,
+	ctx: MutationCtx,
+	subscriptionId: Id<"commerce_subscriptions">,
 	gracePeriodDays = 3,
 ) {
 	const subscription = await ctx.db.get(subscriptionId);
@@ -189,7 +214,7 @@ async function syncEntitlementsForContract(
 
 	const entitlements = await ctx.db
 		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q: any) =>
+		.withIndex("by_subscription", (q) =>
 			q.eq("subscriptionId", subscription._id),
 		)
 		.collect();
@@ -231,7 +256,7 @@ async function syncEntitlementsForContract(
 	try {
 		const settingsRow = await ctx.db
 			.query("settings")
-			.withIndex("by_section", (q: any) =>
+			.withIndex("by_section", (q) =>
 				q.eq("section", "membership.general"),
 			)
 			.unique();
@@ -245,7 +270,7 @@ async function syncEntitlementsForContract(
 	if (!refreshed) return;
 	const refreshedEntitlements = await ctx.db
 		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q: any) =>
+		.withIndex("by_subscription", (q) =>
 			q.eq("subscriptionId", refreshed._id),
 		)
 		.collect();
@@ -310,9 +335,9 @@ async function syncEntitlementsForContract(
  * Admins should call the admin-side `mutations.ts` paths directly.
  */
 async function requireOwnedContract(
-	ctx: any,
-	contractId: any,
-): Promise<{ user: any; contract: any }> {
+	ctx: QueryCtx | MutationCtx,
+	contractId: Id<"commerce_subscriptions">,
+): Promise<{ user: { _id: Id<"users"> }; contract: Doc<"commerce_subscriptions"> }> {
 	const user = await getCurrentUser(ctx);
 	if (!user) {
 		throw new ConvexError({
@@ -444,6 +469,61 @@ export const getPublicOffer = query({
  */
 export const getMyActiveContracts = query({
 	args: {},
+	returns: v.array(
+		commerceSubscriptionsDocs.commerce_subscriptions.extend({
+			offer: v.union(
+				v.null(),
+				v.object({
+					_id: v.id("commerce_subscription_offers"),
+					title: v.string(),
+					slug: v.string(),
+					recurringAmount: v.number(),
+					currencyCode: v.string(),
+					features: commerceSubscriptionsDocs.commerce_subscription_offers.fields.features,
+				}),
+			),
+			product: v.union(
+				v.null(),
+				v.object({
+					_id: v.id("commerce_products"),
+					title: v.string(),
+					slug: v.string(),
+				}),
+			),
+			currentInvoice: v.union(
+				v.null(),
+				v.object({
+					_id: v.id("commerce_subscription_invoices"),
+					status: commerceSubscriptionsDocs.commerce_subscription_invoices.fields.status,
+					totalAmount: v.number(),
+					currencyCode: v.string(),
+					dueAt: v.optional(v.number()),
+					paidAt: v.optional(v.number()),
+					createdAt: v.number(),
+				}),
+			),
+			nextChargeAt: v.optional(v.number()),
+			membershipGrants: v.array(
+				v.object({
+					_id: v.id("membership_grants"),
+					planId: v.id("membership_plans"),
+					plan: v.union(
+						v.null(),
+						v.object({
+							_id: v.id("membership_plans"),
+							name: v.string(),
+							slug: v.string(),
+						}),
+					),
+					status: membershipDocs.membership_grants.fields.status,
+					startsAt: v.number(),
+					endsAt: v.optional(v.number()),
+					graceEndsAt: v.optional(v.number()),
+				}),
+			),
+			entitlements: v.array(commerceSubscriptionsDocs.commerce_subscription_entitlements),
+		}),
+	),
 	handler: async (ctx) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -453,26 +533,26 @@ export const getMyActiveContracts = query({
 
 		const contracts = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_user", (q: any) => q.eq("userId", user._id))
+			.withIndex("by_user", (q) => q.eq("userId", user._id))
 			.collect();
 
 		const activeIsh = contracts.filter(
-			(sub: any) => sub.status !== "cancelled" && sub.status !== "expired",
+			(sub) => sub.status !== "cancelled" && sub.status !== "expired",
 		);
 
 		// Pre-resolve enrichment data for each contract in parallel.
 		return Promise.all(
-			activeIsh.map(async (contract: any) => {
+			activeIsh.map(async (contract) => {
 				// Active item → current offer
 				const items = await ctx.db
 					.query("commerce_subscription_items")
-					.withIndex("by_subscription", (q: any) =>
+					.withIndex("by_subscription", (q) =>
 						q.eq("subscriptionId", contract._id),
 					)
 					.collect();
 				const activeItem =
-					items.find((it: any) => it.status === "active") ??
-					items.find((it: any) => it.status === "pending_cancel") ??
+					items.find((it) => it.status === "active") ??
+					items.find((it) => it.status === "pending_cancel") ??
 					items[0];
 				const offer =
 					activeItem?.sourceOfferId != null
@@ -487,23 +567,23 @@ export const getMyActiveContracts = query({
 				// Most recent invoice
 				const allInvoices = await ctx.db
 					.query("commerce_subscription_invoices")
-					.withIndex("by_subscription", (q: any) =>
+					.withIndex("by_subscription", (q) =>
 						q.eq("subscriptionId", contract._id),
 					)
 					.collect();
 				const currentInvoice =
 					allInvoices
 						.slice()
-						.sort((a: any, b: any) => b.createdAt - a.createdAt)[0] ?? null;
+						.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
 
 				// Membership grants sourced from this contract. The bridge stores the
 				// contract id in sourceRef as a plain string.
 				const grantsByUser = await ctx.db
 					.query("membership_grants")
-					.withIndex("by_user", (q: any) => q.eq("userId", user._id))
+					.withIndex("by_user", (q) => q.eq("userId", user._id))
 					.collect();
 				const membershipGrants = grantsByUser.filter(
-					(g: any) =>
+					(g) =>
 						g.sourceType === "subscription" &&
 						typeof g.sourceRef === "string" &&
 						g.sourceRef === contract._id,
@@ -512,40 +592,38 @@ export const getMyActiveContracts = query({
 				// Entitlements (active + grace — anything currently unlocking stuff)
 				const allEntitlements = await ctx.db
 					.query("commerce_subscription_entitlements")
-					.withIndex("by_subscription", (q: any) =>
+					.withIndex("by_subscription", (q) =>
 						q.eq("subscriptionId", contract._id),
 					)
 					.collect();
 				const entitlements = allEntitlements.filter(
-					(e: any) => e.status === "active" || e.status === "grace",
+					(e) => e.status === "active" || e.status === "grace",
 				);
 
 				// Attach plan summaries for each grant so the UI can render without
 				// another query. Membership plans live in `membership_plans`.
 				const grantPlanIds = Array.from(
-					new Set(
-						membershipGrants
-							.map((g: any) => g.planId)
-							.filter((p: any) => p != null),
-					),
+					new Set(membershipGrants.map((g) => g.planId)),
 				);
 				const plans = await Promise.all(
-					grantPlanIds.map(async (planId: any) => {
+					grantPlanIds.map(async (planId) => {
 						const plan = await ctx.db.get(planId);
 						return plan
 							? {
 									_id: plan._id,
-									name: plan.name,
+									name: plan.title,
 									slug: plan.slug,
 								}
 							: null;
 					}),
 				);
-				const planMap = new Map(
-					plans
-						.filter((p): p is any => p != null)
-						.map((p: any) => [p._id, p]),
-				);
+				const planMap = new Map<
+					Id<"membership_plans">,
+					{ _id: Id<"membership_plans">; name: string; slug: string }
+				>();
+				for (const plan of plans) {
+					if (plan) planMap.set(plan._id, plan);
+				}
 
 				return {
 					...contract,
@@ -562,7 +640,7 @@ export const getMyActiveContracts = query({
 					product: product
 						? {
 								_id: product._id,
-								title: product.title ?? product.name,
+								title: product.title,
 								slug: product.slug,
 							}
 						: null,
@@ -578,7 +656,7 @@ export const getMyActiveContracts = query({
 							}
 						: null,
 					nextChargeAt: contract.nextBillingAt ?? contract.currentPeriodEndAt,
-					membershipGrants: membershipGrants.map((g: any) => ({
+					membershipGrants: membershipGrants.map((g) => ({
 						_id: g._id,
 						planId: g.planId,
 						plan: planMap.get(g.planId) ?? null,
@@ -634,12 +712,12 @@ export const previewPlanChange = query({
 		// Current offer via the active item.
 		const items = await ctx.db
 			.query("commerce_subscription_items")
-			.withIndex("by_subscription", (q: any) =>
+			.withIndex("by_subscription", (q) =>
 				q.eq("subscriptionId", args.contractId),
 			)
 			.collect();
 		const activeItem = items.find(
-			(it: any) => it.status === "active" || it.status === "pending_cancel",
+			(it) => it.status === "active" || it.status === "pending_cancel",
 		);
 		if (!activeItem || !activeItem.sourceOfferId) return null;
 
@@ -703,6 +781,15 @@ export const listMyInvoices = query({
 	args: {
 		limit: v.optional(v.number()),
 	},
+	returns: v.array(
+		commerceSubscriptionsDocs.commerce_subscription_invoices.extend({
+			subscription: v.object({
+				_id: v.id("commerce_subscriptions"),
+				status: commerceSubscriptionsDocs.commerce_subscriptions.fields.status,
+				productId: v.optional(v.id("commerce_products")),
+			}),
+		}),
+	),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -717,16 +804,24 @@ export const listMyInvoices = query({
 		// by subscription, not by user.
 		const contracts = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_user", (q: any) => q.eq("userId", user._id))
+			.withIndex("by_user", (q) => q.eq("userId", user._id))
 			.collect();
 
 		if (contracts.length === 0) return [];
 
-		const allInvoices: any[] = [];
+		const allInvoices: Array<
+			Doc<"commerce_subscription_invoices"> & {
+				subscription: {
+					_id: Id<"commerce_subscriptions">;
+					status: SubscriptionStatus;
+					productId?: Id<"commerce_products">;
+				};
+			}
+		> = [];
 		for (const contract of contracts) {
 			const invs = await ctx.db
 				.query("commerce_subscription_invoices")
-				.withIndex("by_subscription", (q: any) =>
+				.withIndex("by_subscription", (q) =>
 					q.eq("subscriptionId", contract._id),
 				)
 				.collect();
@@ -742,7 +837,7 @@ export const listMyInvoices = query({
 			}
 		}
 
-		allInvoices.sort((a: any, b: any) => b.createdAt - a.createdAt);
+		allInvoices.sort((a, b) => b.createdAt - a.createdAt);
 		return allInvoices.slice(0, limit);
 	},
 });
@@ -777,7 +872,10 @@ export const requestPauseContract = mutation({
 		contractId: v.id("commerce_subscriptions"),
 		reason: v.optional(v.string()),
 	},
-	returns: v.union(v.object({ ok: v.boolean(), alreadyPaused: v.boolean(), status: v.optional(v.null()) }), v.object({ ok: v.boolean(), status: v.literal("paused"), alreadyPaused: v.optional(v.null()) })),
+	returns: v.union(
+		v.object({ ok: v.boolean(), alreadyPaused: v.boolean() }),
+		v.object({ ok: v.boolean(), status: v.literal("paused") }),
+	),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -825,6 +923,11 @@ export const requestResumeContract = mutation({
 	args: {
 		contractId: v.id("commerce_subscriptions"),
 	},
+	returns: v.object({
+		ok: v.boolean(),
+		status: v.literal("active"),
+		nextBillingAt: v.optional(v.number()),
+	}),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -844,7 +947,7 @@ export const requestResumeContract = mutation({
 			(contract.currentPeriodEndAt ?? 0) < now
 				? addBillingPeriod(
 						now,
-						(contract.billingInterval ?? "month") as BillingInterval,
+						contract.billingInterval ?? "month",
 						contract.billingIntervalCount ?? 1,
 					)
 				: contract.currentPeriodEndAt;
@@ -886,6 +989,20 @@ export const requestCancelContract = mutation({
 		immediate: v.optional(v.boolean()),
 		reason: v.optional(v.string()),
 	},
+	returns: v.union(
+		v.object({ ok: v.boolean(), alreadyCancelled: v.boolean() }),
+		v.object({
+			ok: v.boolean(),
+			status: v.literal("cancelled"),
+			immediate: v.boolean(),
+		}),
+		v.object({
+			ok: v.boolean(),
+			status: v.literal("pending_cancel"),
+			immediate: v.boolean(),
+			effectiveAt: v.optional(v.number()),
+		}),
+	),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -970,6 +1087,22 @@ export const requestPlanChange = mutation({
 		contractId: v.id("commerce_subscriptions"),
 		toOfferId: v.id("commerce_subscription_offers"),
 	},
+	returns: v.union(
+		v.object({
+			ok: v.boolean(),
+			mode: v.literal("scheduled"),
+			effectiveAt: v.number(),
+			netCharge: v.number(),
+			proration: prorationResultValidator,
+		}),
+		v.object({
+			ok: v.boolean(),
+			mode: v.literal("immediate"),
+			invoiceId: v.union(v.null(), v.id("commerce_subscription_invoices")),
+			netCharge: v.number(),
+			proration: prorationResultValidator,
+		}),
+	),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1002,12 +1135,12 @@ export const requestPlanChange = mutation({
 		// Resolve the current (from) offer via the active item.
 		const items = await ctx.db
 			.query("commerce_subscription_items")
-			.withIndex("by_subscription", (q: any) =>
+			.withIndex("by_subscription", (q) =>
 				q.eq("subscriptionId", args.contractId),
 			)
 			.collect();
 		const activeItem = items.find(
-			(it: any) => it.status === "active" || it.status === "pending_cancel",
+			(it) => it.status === "active" || it.status === "pending_cancel",
 		);
 		if (!activeItem || !activeItem.sourceOfferId) {
 			throw new ConvexError({
@@ -1071,11 +1204,7 @@ export const requestPlanChange = mutation({
 		// ── Upgrade: delegate to applyUpgradeProration ─────────────────────────
 		// That mutation handles proration_event creation, invoice, coupon discounts,
 		// live payment scheduling/fail-closed gating, and item swap.
-		const upgradeResult: {
-			invoiceId: string | null;
-			success: boolean;
-			error?: string;
-		} = await ctx.runMutation(
+		const upgradeResult = await ctx.runMutation(
 			internal.commerceSubscriptions.proration.applyUpgradeProration,
 			{
 				contractId: args.contractId,
@@ -1165,12 +1294,12 @@ export const applyCouponToMyContract = mutation({
 		// Resolve target offer from the active item so scope validation works.
 		const items = await ctx.db
 			.query("commerce_subscription_items")
-			.withIndex("by_subscription", (q: any) =>
+			.withIndex("by_subscription", (q) =>
 				q.eq("subscriptionId", args.contractId),
 			)
 			.collect();
 		const activeItem = items.find(
-			(it: any) => it.status === "active" || it.status === "pending_cancel",
+			(it) => it.status === "active" || it.status === "pending_cancel",
 		);
 		if (!activeItem || !activeItem.sourceOfferId) {
 			throw new ConvexError({
@@ -1265,7 +1394,7 @@ export const getInvoicePdf = action({
 		content: string;
 		contentType: string;
 	}> => {
-		const result: any = await ctx.runQuery(
+		const result = await ctx.runQuery(
 			internal.commerceSubscriptions.internals.getMyInvoiceForPdf,
 			{ invoiceId: args.invoiceId },
 		);
@@ -1302,7 +1431,7 @@ export const getInvoicePdf = action({
 		lines.push("Line Items");
 		lines.push("----------");
 		for (const item of items) {
-			const qty = item.quantity ?? 1;
+			const qty = item.quantity;
 			lines.push(`  ${item.description}`);
 			lines.push(
 				`    qty=${qty}  unit=${formatMoney(item.unitAmount, currencyCode)}  total=${formatMoney(item.lineTotalAmount, currencyCode)}  (${item.lineType ?? "line"})`,

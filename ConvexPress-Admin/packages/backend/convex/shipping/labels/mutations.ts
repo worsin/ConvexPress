@@ -69,7 +69,7 @@ export const recordPurchasedLabel = internalMutation({
     if (args.externalLabelId) {
       const existing = await ctx.db
         .query("commerce_shipment_labels")
-        .withIndex("by_external_label", (q: any) =>
+        .withIndex("by_external_label", (q) =>
           q.eq("externalLabelId", args.externalLabelId),
         )
         .first();
@@ -93,12 +93,12 @@ export const recordPurchasedLabel = internalMutation({
     // created on first manual close).
     try {
       const shipment = await ctx.db.get(args.shipmentId);
-      if (shipment && (shipment as any).shipFromLocationId && args.carrierCode) {
+      if (shipment && shipment.shipFromLocationId && args.carrierCode) {
         const today = new Date(now).toISOString().slice(0, 10);
         const manifestId = await ctx.runMutation(
           internal.shipping.manifests.mutations.createPendingManifest,
           {
-            shipFromLocationId: (shipment as any).shipFromLocationId,
+            shipFromLocationId: shipment.shipFromLocationId,
             provider: args.provider,
             carrierCode: args.carrierCode,
             manifestDate: today,
@@ -206,7 +206,7 @@ export const voidLabel = mutation({
     });
     await ctx.scheduler.runAfter(
       0,
-      (internal as any).shipping.labels.actions.voidLabelWithCarrier,
+      internal.shipping.labels.actions.voidLabelWithCarrier,
       { labelId: args.labelId },
     );
     await emitEvent(ctx, SHIPPING_EVENTS.LABEL_VOID_REQUESTED, "shipping", {

@@ -50,7 +50,8 @@ import {
 import { checkPostCapability } from "../helpers/postAuth";
 
 import { v } from "convex/values";
-import { tableDocs } from "../schema/tableDocs.generated";
+import type { WithoutSystemFields } from "convex/server";
+import { taxonomiesDocs } from "../schema/taxonomies.docs.generated";
 // ─── Validation Helpers (local) ─────────────────────────────────────────────
 
 function validateName(name: string): string {
@@ -224,7 +225,7 @@ export const createCategory = mutation({
  */
 export const updateCategory = mutation({
   args: updateCategoryArgs,
-  returns: v.union(v.null(), tableDocs.terms),
+  returns: v.union(v.null(), taxonomiesDocs.terms),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.update_category");
@@ -245,7 +246,7 @@ export const updateCategory = mutation({
     }
 
     // 3. Build patch object and track changes
-    const patch: Record<string, any> = {};
+    const patch: Partial<WithoutSystemFields<Doc<"terms">>> = {};
     const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = [];
 
     // 4. Validate and apply name change
@@ -587,7 +588,7 @@ export const createTag = mutation({
  */
 export const updateTag = mutation({
   args: updateTagArgs,
-  returns: v.union(v.null(), tableDocs.terms),
+  returns: v.union(v.null(), taxonomiesDocs.terms),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.update_tag");
@@ -608,7 +609,7 @@ export const updateTag = mutation({
     }
 
     // 3. Build patch object and track changes
-    const patch: Record<string, any> = {};
+    const patch: Partial<WithoutSystemFields<Doc<"terms">>> = {};
     const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = [];
 
     // 4. Validate name

@@ -1,12 +1,16 @@
 import { v } from "convex/values";
 
-import { internalQuery } from "../../_generated/server";
+import { internalQuery, type QueryCtx } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+/** A location able to fulfil a product, with the product mapping's priority when one applies. */
+type ResolvedLocation = Doc<"commerce_ship_from_locations"> & { mappingPriority?: number };
+
+import { shippingDocs } from "../../schema/shipping.docs.generated";
 /** Fetch a ship-from location by id — used by the rate pipeline. */
 export const getById = internalQuery({
   args: { locationId: v.id("commerce_ship_from_locations") },
-  returns: v.union(v.null(), tableDocs.commerce_ship_from_locations),
+  returns: v.union(v.null(), shippingDocs.commerce_ship_from_locations),
   handler: async (ctx, args) => {
     return ctx.db.get(args.locationId);
   },
@@ -15,11 +19,11 @@ export const getById = internalQuery({
 /** List active pickup-enabled ship-from locations for the rate pipeline. */
 export const listActivePickupLocations = internalQuery({
   args: {},
-  returns: v.array(tableDocs.commerce_ship_from_locations),
+  returns: v.array(shippingDocs.commerce_ship_from_locations),
   handler: async (ctx) => {
     const all = await ctx.db.query("commerce_ship_from_locations").collect();
     return all.filter(
-      (loc: any) => loc.isPickupEnabled === true && !loc.isArchived && loc.isActive,
+      (loc) => loc.isPickupEnabled === true && !loc.isArchived && loc.isActive,
     );
   },
 });
@@ -36,16 +40,21 @@ export const resolveForProduct = internalQuery({
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
   },
-  handler: async (ctx, args) => {
+  returns: v.array(v.object({
+    ...shippingDocs.commerce_ship_from_locations.fields,
+    mappingPriority: v.optional(v.number()),
+  })),
+  handler: async (ctx, args): Promise<ResolvedLocation[]> => {
     // Variant-specific mappings take precedence.
-    if (args.variantId) {
+    const variantId = args.variantId;
+    if (variantId) {
       const variantMappings = await ctx.db
         .query("commerce_product_location_fulfillment")
-        .withIndex("by_variant_location", (q: any) =>
-          q.eq("variantId", args.variantId),
+        .withIndex("by_variant_location", (q) =>
+          q.eq("variantId", variantId),
         )
         .collect();
-      const enabledVariant = variantMappings.filter((m: any) => m.enabled !== false);
+      const enabledVariant = variantMappings.filter((m) => m.enabled !== false);
       if (enabledVariant.length > 0) {
         return await resolveLocations(ctx, enabledVariant);
       }
@@ -54,10 +63,10 @@ export const resolveForProduct = internalQuery({
     // Product-level mappings.
     const productMappings = await ctx.db
       .query("commerce_product_location_fulfillment")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect();
     const productLevel = productMappings.filter(
-      (m: any) => !m.variantId && m.enabled !== false,
+      (m) => !m.variantId && m.enabled !== false,
     );
     if (productLevel.length > 0) {
       return await resolveLocations(ctx, productLevel);
@@ -66,7 +75,7 @@ export const resolveForProduct = internalQuery({
     // Fallback to default location.
     const defaultLocation = await ctx.db
       .query("commerce_ship_from_locations")
-      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+      .withIndex("by_default", (q) => q.eq("isDefault", true))
       .unique();
     return defaultLocation && defaultLocation.isActive && !defaultLocation.isArchived
       ? [defaultLocation]
@@ -74,8 +83,11 @@ export const resolveForProduct = internalQuery({
   },
 });
 
-async function resolveLocations(ctx: any, mappings: any[]) {
-  const locations = [];
+async function resolveLocations(
+  ctx: Pick<QueryCtx, "db">,
+  mappings: Doc<"commerce_product_location_fulfillment">[],
+): Promise<ResolvedLocation[]> {
+  const locations: ResolvedLocation[] = [];
   for (const mapping of mappings) {
     const loc = await ctx.db.get(mapping.locationId);
     if (loc && loc.isActive && !loc.isArchived) {
@@ -83,7 +95,7 @@ async function resolveLocations(ctx: any, mappings: any[]) {
     }
   }
   locations.sort(
-    (a: any, b: any) =>
+    (a, b) =>
       (a.mappingPriority ?? a.priority ?? 100) -
       (b.mappingPriority ?? b.priority ?? 100),
   );
@@ -92,11 +104,11 @@ async function resolveLocations(ctx: any, mappings: any[]) {
 
 export const getDefault = internalQuery({
   args: {},
-  returns: v.union(v.null(), tableDocs.commerce_ship_from_locations),
+  returns: v.union(v.null(), shippingDocs.commerce_ship_from_locations),
   handler: async (ctx) => {
     return ctx.db
       .query("commerce_ship_from_locations")
-      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+      .withIndex("by_default", (q) => q.eq("isDefault", true))
       .unique();
   },
 });

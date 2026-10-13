@@ -23,15 +23,12 @@
  * Wave 7 will swap in the fine-grained
  *   commerceSubscriptions.offers.manage
  * capability.
- *
- * `@ts-nocheck` is set because generated API types may not be emitted yet
- * for new modules; Wave 7 removes it across all subscriptions backend
- * files in one pass (Rule #14).
  */
 
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
 import {
@@ -40,8 +37,9 @@ import {
 } from "../schema/commerceSubscriptions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import { getDisplayableBenefitsForCodesHelper } from "../membership/helpers";
+import { displayableBenefitValidator } from "../membership/validators";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 // ─── Shared shape validators ────────────────────────────────────────────────
 
 const featureValidator = v.object({
@@ -52,8 +50,7 @@ const featureValidator = v.object({
 
 // ─── Immutability check ─────────────────────────────────────────────────────
 
-type OfferActiveStatuses = "active" | "trialing" | "past_due" | "paused";
-const OFFER_ACTIVE_CONTRACT_STATUSES: OfferActiveStatuses[] = [
+const OFFER_ACTIVE_CONTRACT_STATUSES: Doc<"commerce_subscriptions">["status"][] = [
   "active",
   "trialing",
   "past_due",
@@ -65,12 +62,12 @@ const OFFER_ACTIVE_CONTRACT_STATUSES: OfferActiveStatuses[] = [
  * Used to gate price/interval/template mutations — see immutability rule above.
  */
 async function hasActiveContractReferencingOffer(
-  ctx: any,
-  offerId: any,
+  ctx: { db: QueryCtx["db"] },
+  offerId: Id<"commerce_subscription_offers">,
 ): Promise<boolean> {
   const items = await ctx.db
     .query("commerce_subscription_items")
-    .withIndex("by_source_offer", (q: any) => q.eq("sourceOfferId", offerId))
+    .withIndex("by_source_offer", (q) => q.eq("sourceOfferId", offerId))
     .collect();
 
   for (const item of items) {
@@ -141,7 +138,7 @@ export const createOffer = mutation({
     // Slug must be unique.
     const existingBySlug = await ctx.db
       .query("commerce_subscription_offers")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (existingBySlug) {
       throw new ConvexError({
@@ -246,10 +243,10 @@ export const updateOffer = mutation({
 
     // Collect proposed changes to immutable-if-hot fields.
     const immutableAttempted: string[] = [];
-    const checkImmutable = (
+    const checkImmutable = <T,>(
       fieldName: string,
-      newValue: any,
-      oldValue: any,
+      newValue: T | undefined,
+      oldValue: T | undefined,
     ) => {
       if (newValue !== undefined && newValue !== oldValue) {
         immutableAttempted.push(fieldName);
@@ -305,10 +302,11 @@ export const updateOffer = mutation({
     }
 
     // If slug is being changed, enforce uniqueness.
-    if (args.slug !== undefined && args.slug !== existing.slug) {
+    const newSlug = args.slug;
+    if (newSlug !== undefined && newSlug !== existing.slug) {
       const existingBySlug = await ctx.db
         .query("commerce_subscription_offers")
-        .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
         .first();
       if (existingBySlug && existingBySlug._id !== existing._id) {
         throw new ConvexError({
@@ -344,7 +342,7 @@ export const updateOffer = mutation({
     ];
     for (const field of maybeFields) {
       if (args[field] !== undefined) {
-        (patch as any)[field] = args[field];
+        patch[field] = args[field];
       }
     }
 
@@ -396,23 +394,23 @@ export const listOffers = query({
     status: v.optional(commerceSubscriptionOfferStatusValidator),
     search: v.optional(v.string()),
   },
+  returns: v.union(v.null(), v.array(commerceSubscriptionsDocs.commerce_subscription_offers)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let offers: any[];
-    if (args.templateId) {
+    let offers: Doc<"commerce_subscription_offers">[];
+    const { templateId, status } = args;
+    if (templateId) {
       offers = await ctx.db
         .query("commerce_subscription_offers")
-        .withIndex("by_template", (q: any) =>
-          q.eq("templateId", args.templateId),
-        )
+        .withIndex("by_template", (q) => q.eq("templateId", templateId))
         .collect();
-    } else if (args.status) {
+    } else if (status) {
       offers = await ctx.db
         .query("commerce_subscription_offers")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     } else {
       offers = await ctx.db.query("commerce_subscription_offers").collect();
@@ -426,12 +424,12 @@ export const listOffers = query({
       const needle = args.search.trim().toLowerCase();
       offers = offers.filter(
         (o) =>
-          (o.title ?? "").toLowerCase().includes(needle) ||
-          (o.slug ?? "").toLowerCase().includes(needle),
+          o.title.toLowerCase().includes(needle) ||
+          o.slug.toLowerCase().includes(needle),
       );
     }
 
-    return offers.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    return offers.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -442,7 +440,7 @@ export const getOffer = query({
   args: {
     offerId: v.id("commerce_subscription_offers"),
   },
-  returns: v.union(v.null(), tableDocs.commerce_subscription_offers),
+  returns: v.union(v.null(), commerceSubscriptionsDocs.commerce_subscription_offers),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -479,26 +477,37 @@ export const getOffer = query({
  */
 export const listOffersForPricing = query({
   args: {},
+  returns: v.array(
+    commerceSubscriptionsDocs.commerce_subscription_offers.extend({
+      planBenefits: v.array(displayableBenefitValidator),
+      billingInterval: v.union(
+        v.null(),
+        commerceSubscriptionsDocs.commerce_subscription_templates.fields.billingInterval,
+      ),
+      billingIntervalCount: v.union(v.null(), v.number()),
+      templateTrialDays: v.union(v.null(), v.number()),
+    }),
+  ),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 
     const offers = await ctx.db
       .query("commerce_subscription_offers")
-      .withIndex("by_status", (q: any) => q.eq("status", "active"))
+      .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
 
     const visible = offers
-      .filter((o: any) => o.pricingCardVisible !== false)
-      .sort((a: any, b: any) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      .filter((o) => o.pricingCardVisible !== false)
+      .sort((a, b) => b.createdAt - a.createdAt);
 
     // Batch-load templates so we can surface billingInterval / trialDays.
     // Uses a Map keyed by templateId (deduped across offers sharing one).
     const uniqueTemplateIds = Array.from(
-      new Set(visible.map((o: any) => o.templateId).filter(Boolean)),
+      new Set(visible.map((o) => o.templateId)),
     );
-    const templateMap = new Map<string, any>();
+    const templateMap = new Map<string, Doc<"commerce_subscription_templates">>();
     await Promise.all(
-      uniqueTemplateIds.map(async (tid: any) => {
+      uniqueTemplateIds.map(async (tid) => {
         const t = await ctx.db.get(tid);
         if (t) templateMap.set(String(tid), t);
       }),
@@ -509,7 +518,7 @@ export const listOffersForPricing = query({
     // gracefully; when a template is missing (orphan offer) the interval
     // fields are null so the UI can fall back to a generic label.
     const enriched = await Promise.all(
-      visible.map(async (offer: any) => {
+      visible.map(async (offer) => {
         const allPlanBenefits = await getDisplayableBenefitsForCodesHelper(
           ctx,
           offer.entitlementCodes ?? [],

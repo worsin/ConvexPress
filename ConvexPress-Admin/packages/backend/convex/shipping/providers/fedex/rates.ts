@@ -19,6 +19,7 @@ import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
 import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getFedexAccessTokenV2 } from "./auth";
+import { at, list, readJson, str } from "../../helpers/json";
 import { getFedexServiceName, parseFedexTransitDays } from "./serviceCodes";
 
 /**
@@ -39,7 +40,7 @@ async function resolveResidentialFlag(
 ): Promise<boolean> {
   try {
     const fingerprint = computeAddressFingerprint(address);
-    const cached: any = await ctx.runQuery(
+    const cached = await ctx.runQuery(
       internal.shipping.addressValidation.queries.getValidationByFingerprintInternal,
       { fingerprint },
     );
@@ -107,7 +108,7 @@ export async function fetchFedexRatesV2(
     });
   }
 
-  const shippableItems = (rateContext.items as any[]).filter(
+  const shippableItems = rateContext.items.filter(
     (item) => item.product && item.product.isVirtual !== true,
   );
   const totalWeightOz =
@@ -195,42 +196,41 @@ export async function fetchFedexRatesV2(
     });
   }
 
-  const data = (await response.json()) as any;
-  const rawRates: any[] = Array.isArray(data?.output?.rateReplyDetails)
-    ? data.output.rateReplyDetails
-    : Array.isArray(data?.rateReplyDetails)
-      ? data.rateReplyDetails
-      : [];
+  const data = await readJson(response);
+  const outputRates = at(data, "output", "rateReplyDetails");
+  const rawRates: unknown[] = Array.isArray(outputRates)
+    ? outputRates
+    : list(at(data, "rateReplyDetails"));
 
   const ttlMs = Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000;
   const expiresAt = Date.now() + ttlMs;
   const addressKey = computeAddressFingerprint(args.shippingAddress);
-  const cartKey = (rateContext.items as any[])
+  const cartKey = rateContext.items
     .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
     .sort()
     .join(",");
 
   const unranked = rawRates.map((rate, index) => {
-    const serviceCode = rate.serviceType ?? rate.serviceName ?? `fedex-service-${index + 1}`;
+    const serviceCode = str(at(rate, "serviceType")) ?? str(at(rate, "serviceName")) ?? `fedex-service-${index + 1}`;
     const chargeDetail =
-      rate.ratedShipmentDetails?.[0]?.totalNetCharge ??
-      rate.ratedShipmentDetails?.[0]?.shipmentRateDetail?.totalNetCharge ??
-      rate.ratedShipmentDetails?.[0]?.shipmentRateDetail?.totalNetFedExCharge ??
+      at(rate, "ratedShipmentDetails", 0, "totalNetCharge") ??
+      at(rate, "ratedShipmentDetails", 0, "shipmentRateDetail", "totalNetCharge") ??
+      at(rate, "ratedShipmentDetails", 0, "shipmentRateDetail", "totalNetFedExCharge") ??
       {};
     const amount =
-      chargeDetail.amount ??
-      rate.totalNetCharge?.amount ??
-      rate.totalCharge?.amount ??
+      at(chargeDetail, "amount") ??
+      at(rate, "totalNetCharge", "amount") ??
+      at(rate, "totalCharge", "amount") ??
       0;
     const currency =
-      chargeDetail.currency ??
-      rate.currency ??
+      str(at(chargeDetail, "currency")) ??
+      str(at(rate, "currency")) ??
       rateContext.cart.currencyCode ??
       "USD";
     const transitDays =
-      parseFedexTransitDays(rate.commit?.transitDays) ??
-      parseFedexTransitDays(rate.commit?.delayDetail?.status) ??
-      parseFedexTransitDays(rate.transitTime);
+      parseFedexTransitDays(at(rate, "commit", "transitDays")) ??
+      parseFedexTransitDays(at(rate, "commit", "delayDetail", "status")) ??
+      parseFedexTransitDays(at(rate, "transitTime"));
 
     return {
       quoteKey: `fedex:${serviceCode}-${index}`,
@@ -238,7 +238,7 @@ export async function fetchFedexRatesV2(
       carrierCode: "fedex",
       carrierName: "FedEx",
       serviceCode: String(serviceCode),
-      serviceName: rate.serviceName || getFedexServiceName(String(serviceCode)),
+      serviceName: str(at(rate, "serviceName")) || getFedexServiceName(String(serviceCode)),
       amount: Math.round(Number(amount || 0) * 100) || 0,
       currency,
       estimatedDaysMin: transitDays,

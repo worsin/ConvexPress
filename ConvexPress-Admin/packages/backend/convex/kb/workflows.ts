@@ -32,12 +32,12 @@ import { v } from "convex/values";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { kbDocs } from "../schema/kb.docs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
-  returns: v.union(v.null(), v.array(tableDocs.kb_workflows)),
+  returns: v.union(v.null(), v.array(kbDocs.kb_workflows)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -53,7 +53,7 @@ export const list = query({
 
 export const get: RegisteredQuery<"public", { workflowId: Id<"kb_workflows"> }, Doc<"kb_workflows"> | null> = query({
   args: { workflowId: v.id("kb_workflows") },
-  returns: v.union(v.null(), tableDocs.kb_workflows),
+  returns: v.union(v.null(), kbDocs.kb_workflows),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -69,7 +69,7 @@ export const get: RegisteredQuery<"public", { workflowId: Id<"kb_workflows"> }, 
 
 export const getDefault: RegisteredQuery<"public", {}, Doc<"kb_workflows"> | null> = query({
   args: {},
-  returns: v.union(v.null(), tableDocs.kb_workflows),
+  returns: v.union(v.null(), kbDocs.kb_workflows),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);

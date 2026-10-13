@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * WordPress Sync - WooCommerce Catalog Import Phase
  *
@@ -7,12 +6,13 @@
  */
 
 import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
-import { internalAction, internalMutation } from "../../_generated/server";
+import { internalAction, internalMutation, type ActionCtx, type MutationCtx } from "../../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
-import type { PhaseProgress, SyncError } from "../validators";
+import type { ImportConfig, PhaseProgress, SyncError } from "../validators";
+import { commerceDocs } from "../../schema/commerce.docs.generated";
 import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
@@ -154,7 +154,7 @@ export const importBatch = internalAction({
 });
 
 async function importCategoryBatch(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     jobId: Id<"wordpressSyncJobs">;
@@ -162,7 +162,7 @@ async function importCategoryBatch(
     progress: PhaseProgress;
     categoryTotal: number;
     isDryRun: boolean;
-    importConfig: any;
+    importConfig: ImportConfig;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -305,7 +305,7 @@ async function importCategoryBatch(
 }
 
 async function importProductBatch(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     jobId: Id<"wordpressSyncJobs">;
@@ -315,7 +315,7 @@ async function importProductBatch(
     categoryTotal: number;
     productTotal: number;
     isDryRun: boolean;
-    importConfig: any;
+    importConfig: ImportConfig;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -438,13 +438,13 @@ async function importProductBatch(
 }
 
 async function importSingleProduct(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     siteCreatedBy: Id<"users">;
     product: WooProduct;
     forcedExistingId?: string;
-    importConfig: any;
+    importConfig: ImportConfig;
     jobId: Id<"wordpressSyncJobs">;
   }
 ): Promise<{ productId: string; status: "created" | "updated" | "skipped" }> {
@@ -577,13 +577,13 @@ async function importSingleProduct(
 }
 
 async function importProductVariations(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   args: {
     siteId: Id<"wordpressSites">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     product: WooProduct;
     productId: string;
-    importConfig: any;
+    importConfig: ImportConfig;
     jobId: Id<"wordpressSyncJobs">;
   }
 ): Promise<{ imported: number; created: number; updated: number; skipped: number; failed: number; discoveredTotal: number; errors: SyncError[] }> {
@@ -702,13 +702,13 @@ async function importProductVariations(
               shippingLengthIn: variation.dimensions?.length || undefined,
               shippingWidthIn: variation.dimensions?.width || undefined,
               shippingHeightIn: variation.dimensions?.height || undefined,
-              shippingClassId: variation.shipping_class_id ? String(variation.shipping_class_id) : undefined,
+              shippingClassSlug: variation.shipping_class || undefined,
               taxClass: variation.tax_class || undefined,
               isVirtual: variation.virtual ?? undefined,
               isDownloadable: variation.downloadable ?? undefined,
               downloadLimit: variation.download_limit ?? undefined,
               downloadExpiry: variation.download_expiry ?? undefined,
-              status: variation.status || undefined,
+              status: mapWooVariationStatus(variation.status),
               menuOrder: variation.menu_order ?? undefined,
             },
           }
@@ -748,7 +748,7 @@ async function importProductVariations(
 }
 
 async function resolveCommerceCategoryIds(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   wpIds: number[],
 ): Promise<string[]> {
@@ -767,7 +767,7 @@ async function resolveCommerceCategoryIds(
 }
 
 async function repairCommerceCategoryHierarchy(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
 ) {
@@ -805,7 +805,7 @@ async function repairCommerceCategoryHierarchy(
 }
 
 async function resolveCommerceMediaIds(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   wpIds: number[],
 ): Promise<string[]> {
@@ -840,6 +840,11 @@ function mapWooStatus(status: string | undefined): "draft" | "publish" | "privat
   }
 }
 
+/** Variation statuses ConvexPress stores; anything else (e.g. "pending") is left unset. */
+function mapWooVariationStatus(status: string | undefined): "publish" | "private" | "draft" | undefined {
+  return status === "publish" || status === "private" || status === "draft" ? status : undefined;
+}
+
 function mapWooProductType(type: string | undefined): "simple" | "variable" | "external" {
   if (type === "variable") return "variable";
   if (type === "external") return "external";
@@ -847,7 +852,7 @@ function mapWooProductType(type: string | undefined): "simple" | "variable" | "e
 }
 
 function inferCurrencyCode(product: WooProduct): string {
-  const currency = (product as Record<string, unknown>).currency;
+  const currency = product.currency;
   return typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
 }
 
@@ -986,7 +991,7 @@ function buildVariantSelections(
         sortOrder: optionType.position ?? 0,
       };
     })
-    .filter(Boolean)
+    .filter((selection) => selection !== null)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   return selections?.length ? selections : undefined;
@@ -1017,7 +1022,7 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-async function getCommerceCategoryParentState(ctx: any, parentId?: string) {
+async function getCommerceCategoryParentState(ctx: Pick<MutationCtx, "db">, parentId?: string) {
   if (!parentId) {
     return { parentId: undefined, path: [], depth: 0 };
   }
@@ -1042,7 +1047,7 @@ async function getCommerceCategoryParentState(ctx: any, parentId?: string) {
   return { parentId: typedParentId, path, depth: path.length };
 }
 
-async function updateCommerceCategoryDescendantPaths(ctx: any, categoryId: Id<"commerce_product_categories">) {
+async function updateCommerceCategoryDescendantPaths(ctx: Pick<MutationCtx, "db">, categoryId: Id<"commerce_product_categories">) {
   const parent = await ctx.db.get("commerce_product_categories", categoryId);
   if (!parent) return;
 
@@ -1246,6 +1251,8 @@ export const upsertProduct = internalMutation({
   },
 });
 
+const variantFields = commerceDocs.commerce_product_variants.fields;
+
 export const upsertVariant = internalMutation({
   args: {
     existingId: v.optional(v.string()),
@@ -1254,7 +1261,7 @@ export const upsertVariant = internalMutation({
       title: v.string(),
       sku: v.optional(v.string()),
       optionSummary: v.string(),
-      selections: v.optional(v.any()),
+      selections: variantFields.selections,
       price: v.object({
         amount: v.number(),
         currencyCode: v.string(),
@@ -1270,21 +1277,22 @@ export const upsertVariant = internalMutation({
       globalUniqueId: v.optional(v.string()),
       salePriceFrom: v.optional(v.number()),
       salePriceTo: v.optional(v.number()),
-      manageStock: v.optional(v.string()),
-      stockStatus: v.optional(v.string()),
-      backorders: v.optional(v.string()),
+      manageStock: variantFields.manageStock,
+      stockStatus: variantFields.stockStatus,
+      backorders: variantFields.backorders,
       lowStockAmount: v.optional(v.number()),
       weight: v.optional(v.string()),
       shippingLengthIn: v.optional(v.string()),
       shippingWidthIn: v.optional(v.string()),
       shippingHeightIn: v.optional(v.string()),
-      shippingClassId: v.optional(v.string()),
+      /** WooCommerce shipping class slug; linked to the local class with the same slug when one exists. */
+      shippingClassSlug: v.optional(v.string()),
       taxClass: v.optional(v.string()),
       isVirtual: v.optional(v.boolean()),
       isDownloadable: v.optional(v.boolean()),
       downloadLimit: v.optional(v.number()),
       downloadExpiry: v.optional(v.number()),
-      status: v.optional(v.string()),
+      status: variantFields.status,
       menuOrder: v.optional(v.number()),
     }),
   },
@@ -1333,6 +1341,14 @@ export const upsertVariant = internalMutation({
       }
     }
 
+    const shippingClassSlug = variant.shippingClassSlug;
+    const shippingClassId = shippingClassSlug
+      ? (await ctx.db
+          .query("commerce_shipping_classes")
+          .withIndex("by_slug", (q) => q.eq("slug", shippingClassSlug))
+          .first())?._id
+      : undefined;
+
     const patch = {
       productId: targetProductId,
       title: variant.title,
@@ -1344,7 +1360,7 @@ export const upsertVariant = internalMutation({
       salePrice: variant.salePrice,
       stockQuantity: variant.stockQuantity,
       featuredMediaId: variant.featuredMediaId
-        ? (variant.featuredMediaId as Id<"media">)
+        ? ctx.db.normalizeId("media", variant.featuredMediaId) ?? undefined
         : undefined,
       isDefault: variant.isDefault,
       description: variant.description,
@@ -1359,7 +1375,7 @@ export const upsertVariant = internalMutation({
       shippingLengthIn: variant.shippingLengthIn,
       shippingWidthIn: variant.shippingWidthIn,
       shippingHeightIn: variant.shippingHeightIn,
-      shippingClassId: variant.shippingClassId,
+      shippingClassId,
       taxClass: variant.taxClass,
       isVirtual: variant.isVirtual,
       isDownloadable: variant.isDownloadable,

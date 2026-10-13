@@ -4,7 +4,22 @@
  */
 import { internalQuery, internalAction, internalMutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
-import { internal, api } from "./_generated/api";
+import { internal } from "./_generated/api";
+import type { Doc, TableNames } from "./_generated/dataModel";
+import schema from "./schema";
+import { commerceOrderStatusValidator, commerceProductStatusValidator } from "./schema/commerce";
+import { normalizeImportConfig, syncPhaseValidator, type ImportConfig } from "./wordpressSync/validators";
+
+function isTableName(name: string): name is TableNames {
+  return Object.prototype.hasOwnProperty.call(schema.tables, name);
+}
+
+function requireTableName(name: string): TableNames {
+  if (!isTableName(name)) {
+    throw new ConvexError({ code: "UNKNOWN_TABLE", message: `Unknown table: ${name}` });
+  }
+  return name;
+}
 
 function assertDevInternalsEnabled() {
   if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
@@ -46,7 +61,7 @@ export const liveCounts = internalQuery({
     const out: Record<string, number | string> = {};
     for (const t of tables) {
       try {
-        const rows = await ctx.db.query(t as any).take(50000);
+        const rows = await ctx.db.query(t).take(50000);
         out[t] = rows.length;
       } catch (err) {
         out[t] = "n/a";
@@ -55,9 +70,9 @@ export const liveCounts = internalQuery({
 
     try {
       const jobs = await ctx.db.query("wordpressSyncJobs").take(5);
-      out.activeJob = jobs.find((j: any) => j.status === "running")?._id ?? "none";
+      out.activeJob = jobs.find((j) => j.status === "running")?._id ?? "none";
       out.latestJobStatus = jobs[0]?.status ?? "no-jobs";
-      out.latestPhase = (jobs[0] as any)?.currentPhase ?? "n/a";
+      out.latestPhase = jobs[0]?.currentPhase ?? "n/a";
     } catch {}
 
     return out;
@@ -70,10 +85,11 @@ export const liveCounts = internalQuery({
 // know there's MORE than 50000 (rare during demo).
 export const tableSize = internalQuery({
   args: { table: v.string() },
+  returns: v.union(v.number(), v.string()),
   handler: async (ctx, { table }) => {
     assertDevInternalsEnabled();
-    const page: any = await (ctx.db as any)
-      .query(table)
+    const page = await ctx.db
+      .query(requireTableName(table))
       .paginate({ cursor: null, numItems: 8000 });
     return page.isDone ? page.page.length : `${page.page.length}+`;
   },
@@ -82,18 +98,32 @@ export const tableSize = internalQuery({
 // Auth-bypassing probe for commerce/discounts:list
 export const probeDiscountsList = internalQuery({
   args: { search: v.optional(v.string()), page: v.optional(v.number()), perPage: v.optional(v.number()) },
+  returns: v.object({
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    sample: v.array(v.object({
+      _id: v.id("commerce_discount_codes"),
+      code: v.string(),
+      status: v.union(v.literal("active"), v.literal("inactive")),
+      discountType: v.union(v.literal("fixed_cart"), v.literal("percent"), v.literal("fixed_product"), v.literal("free_shipping")),
+      amount: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     assertDevInternalsEnabled();
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
-    let scoped: any[];
-    if (args.search?.trim()) {
-      scoped = await (ctx.db as any)
+    const search = args.search?.trim();
+    let scoped: Doc<"commerce_discount_codes">[];
+    if (search) {
+      scoped = await ctx.db
         .query("commerce_discount_codes")
-        .withSearchIndex("search_discount_codes", (q: any) => q.search("code", args.search!.trim()))
+        .withSearchIndex("search_discount_codes", (q) => q.search("code", search))
         .take(2000);
     } else {
-      scoped = await (ctx.db as any)
+      scoped = await ctx.db
         .query("commerce_discount_codes")
         .withIndex("by_updatedAt")
         .order("desc")
@@ -106,7 +136,7 @@ export const probeDiscountsList = internalQuery({
       page,
       perPage,
       totalPages: Math.ceil(total / perPage),
-      sample: slice.slice(0, 3).map((d: any) => ({
+      sample: slice.slice(0, 3).map((d) => ({
         _id: d._id,
         code: d.code,
         status: d.status,
@@ -124,18 +154,33 @@ export const probeCustomersList = internalQuery({
     page: v.optional(v.number()),
     perPage: v.optional(v.number()),
   },
+  returns: v.object({
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    sample: v.array(v.object({
+      _id: v.id("commerce_customer_profiles"),
+      email: v.string(),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      totalOrders: v.number(),
+      isGuest: v.optional(v.boolean()),
+    })),
+  }),
   handler: async (ctx, args) => {
     assertDevInternalsEnabled();
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
-    let scoped: any[];
-    if (args.search && args.search.trim()) {
-      scoped = await (ctx.db as any)
+    const search = args.search?.trim();
+    let scoped: Doc<"commerce_customer_profiles">[];
+    if (search) {
+      scoped = await ctx.db
         .query("commerce_customer_profiles")
-        .withSearchIndex("search_customers", (q: any) => q.search("email", args.search!.trim()))
+        .withSearchIndex("search_customers", (q) => q.search("email", search))
         .take(2000);
     } else {
-      scoped = await (ctx.db as any)
+      scoped = await ctx.db
         .query("commerce_customer_profiles")
         .withIndex("by_createdAt")
         .order("desc")
@@ -148,7 +193,7 @@ export const probeCustomersList = internalQuery({
       page,
       perPage,
       totalPages: Math.ceil(total / perPage),
-      sample: slice.slice(0, 3).map((c: any) => ({
+      sample: slice.slice(0, 3).map((c) => ({
         _id: c._id,
         email: c.email,
         firstName: c.firstName,
@@ -163,16 +208,26 @@ export const probeCustomersList = internalQuery({
 // Auth-bypassing probe for the unpaginated listAll picker query.
 export const probeProductsListAll = internalQuery({
   args: { isDownloadable: v.optional(v.boolean()) },
+  returns: v.object({
+    isArray: v.boolean(),
+    count: v.number(),
+    sample: v.array(v.object({
+      _id: v.id("commerce_products"),
+      title: v.string(),
+      status: v.union(v.literal("draft"), v.literal("trash"), v.literal("publish"), v.literal("private")),
+      sku: v.optional(v.string()),
+    })),
+  }),
   handler: async (ctx, args) => {
     assertDevInternalsEnabled();
-    let products = await (ctx.db as any).query("commerce_products").take(5000);
+    let products = await ctx.db.query("commerce_products").take(5000);
     if (args.isDownloadable !== undefined) {
-      products = products.filter((p: any) => Boolean(p.isDownloadable) === args.isDownloadable);
+      products = products.filter((p) => Boolean(p.isDownloadable) === args.isDownloadable);
     }
     return {
       isArray: Array.isArray(products),
       count: products.length,
-      sample: products.slice(0, 2).map((p: any) => ({
+      sample: products.slice(0, 2).map((p) => ({
         _id: p._id,
         title: p.title,
         status: p.status,
@@ -185,32 +240,46 @@ export const probeProductsListAll = internalQuery({
 // Auth-bypassing probe for new commerce/products:list query.
 export const probeProductsList = internalQuery({
   args: {
-    status: v.optional(v.string()),
+    status: v.optional(commerceProductStatusValidator),
     search: v.optional(v.string()),
     page: v.optional(v.number()),
     perPage: v.optional(v.number()),
   },
+  returns: v.object({
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    sample: v.array(v.object({
+      _id: v.id("commerce_products"),
+      title: v.string(),
+      sku: v.optional(v.string()),
+      status: v.union(v.literal("draft"), v.literal("trash"), v.literal("publish"), v.literal("private")),
+      productType: v.union(v.literal("simple"), v.literal("variable"), v.literal("external")),
+      updatedAt: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     assertDevInternalsEnabled();
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
-    let scoped: any[];
-    if (args.search && args.search.trim()) {
-      scoped = await (ctx.db as any)
+    const search = args.search?.trim();
+    const status = args.status;
+    let scoped: Doc<"commerce_products">[];
+    if (search) {
+      scoped = await ctx.db
         .query("commerce_products")
-        .withSearchIndex("search_commerce_products", (q: any) =>
-          q.search("title", args.search!.trim()),
-        )
+        .withSearchIndex("search_commerce_products", (q) => q.search("title", search))
         .take(2000);
-    } else if (args.status) {
-      scoped = await (ctx.db as any)
+    } else if (status) {
+      scoped = await ctx.db
         .query("commerce_products")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .take(20000);
     } else {
-      scoped = await (ctx.db as any).query("commerce_products").take(20000);
+      scoped = await ctx.db.query("commerce_products").take(20000);
     }
-    scoped.sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+    scoped.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
     const total = scoped.length;
     const slice = scoped.slice((page - 1) * perPage, page * perPage);
     return {
@@ -218,7 +287,7 @@ export const probeProductsList = internalQuery({
       page,
       perPage,
       totalPages: Math.ceil(total / perPage),
-      sample: slice.slice(0, 3).map((p: any) => ({
+      sample: slice.slice(0, 3).map((p) => ({
         _id: p._id,
         title: p.title,
         sku: p.sku,
@@ -235,27 +304,50 @@ export const probeProductsList = internalQuery({
 // before the UI tests it.
 export const probeOrdersList = internalQuery({
   args: {
-    status: v.optional(v.string()),
+    status: v.optional(commerceOrderStatusValidator),
     search: v.optional(v.string()),
     page: v.optional(v.number()),
     perPage: v.optional(v.number()),
-    orderBy: v.optional(v.string()),
+    orderBy: v.optional(v.union(
+      v.literal("createdAt"),
+      v.literal("updatedAt"),
+      v.literal("orderNumber"),
+      v.literal("status"),
+      v.literal("email"),
+      v.literal("totalAmount"),
+    )),
     orderDir: v.optional(v.string()),
   },
+  returns: v.object({
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    sample: v.array(v.object({
+      _id: v.id("commerce_orders"),
+      orderNumber: v.string(),
+      status: v.union(v.literal("pending"), v.literal("failed"), v.literal("processing"), v.literal("completed"), v.literal("cancelled"), v.literal("paid"), v.literal("refunded"), v.literal("fulfilled")),
+      totalAmount: v.number(),
+      currencyCode: v.string(),
+      email: v.string(),
+      createdAt: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     assertDevInternalsEnabled();
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
 
-    let scoped: any[];
-    if (args.status) {
-      scoped = await (ctx.db as any)
+    const status = args.status;
+    let scoped: Doc<"commerce_orders">[];
+    if (status) {
+      scoped = await ctx.db
         .query("commerce_orders")
-        .withIndex("by_status_createdAt", (q: any) => q.eq("status", args.status!))
+        .withIndex("by_status_createdAt", (q) => q.eq("status", status))
         .order("desc")
         .take(20000);
     } else {
-      scoped = await (ctx.db as any)
+      scoped = await ctx.db
         .query("commerce_orders")
         .withIndex("by_createdAt")
         .order("desc")
@@ -264,7 +356,7 @@ export const probeOrdersList = internalQuery({
 
     const dir = args.orderDir === "asc" ? 1 : -1;
     const key = args.orderBy ?? "createdAt";
-    scoped.sort((a: any, b: any) => {
+    scoped.sort((a, b) => {
       const av = a[key] ?? 0;
       const bv = b[key] ?? 0;
       if (av < bv) return -1 * dir;
@@ -281,7 +373,7 @@ export const probeOrdersList = internalQuery({
       page,
       perPage,
       totalPages,
-      sample: slice.slice(0, 3).map((o: any) => ({
+      sample: slice.slice(0, 3).map((o) => ({
         _id: o._id,
         orderNumber: o.orderNumber,
         status: o.status,
@@ -304,7 +396,7 @@ export const tableSizeFull = internalAction({
     let total = 0;
     let cursor: string | null = null;
     while (true) {
-      const result: any = await ctx.runQuery(internal._devCounts.tableSizePage, {
+      const result: { count: number; isDone: boolean; continueCursor: string } = await ctx.runQuery(internal._devCounts.tableSizePage, {
         table,
         cursor,
       });
@@ -318,10 +410,11 @@ export const tableSizeFull = internalAction({
 
 export const tableSizePage = internalQuery({
   args: { table: v.string(), cursor: v.union(v.string(), v.null()) },
+  returns: v.object({ count: v.number(), isDone: v.boolean(), continueCursor: v.string() }),
   handler: async (ctx, { table, cursor }) => {
     assertDevInternalsEnabled();
-    const page: any = await (ctx.db as any)
-      .query(table)
+    const page = await ctx.db
+      .query(requireTableName(table))
       .paginate({ cursor, numItems: 8000 });
     return {
       count: page.page.length,
@@ -333,10 +426,19 @@ export const tableSizePage = internalQuery({
 
 export const listSitesNoAuth = internalQuery({
   args: {},
+  returns: v.array(v.object({
+    _id: v.id("wordpressSites"),
+    name: v.string(),
+    siteUrl: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("error")),
+    wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    hasWooKey: v.boolean(),
+    hasWooSecret: v.boolean(),
+  })),
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     const sites = await ctx.db.query("wordpressSites").collect();
-    return sites.map((s: any) => ({
+    return sites.map((s) => ({
       _id: s._id,
       name: s.name,
       siteUrl: s.siteUrl,
@@ -350,13 +452,155 @@ export const listSitesNoAuth = internalQuery({
 
 export const listJobsNoAuth = internalQuery({
   args: {},
+  returns: v.array(v.object({
+    _id: v.id("wordpressSyncJobs"),
+    siteId: v.id("wordpressSites"),
+    status: v.union(v.literal("pending"), v.literal("failed"), v.literal("completed"), v.literal("running"), v.literal("cancelled"), v.literal("paused")),
+    currentPhase: v.union(v.literal("posts"), v.literal("users"), v.literal("media"), v.literal("pages"), v.literal("comments"), v.literal("menus"), v.literal("taxonomies"), v.literal("commerceCatalog"), v.literal("commerceTransactions"), v.literal("reconciliation"), v.literal("cleanup")),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    progress: v.object({
+      categories: v.optional(v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      })),
+      tags: v.optional(v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      })),
+      taxonomies: v.optional(v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      })),
+      posts: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      users: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      media: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      pages: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      comments: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      menus: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      commerceCatalog: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      commerceTransactions: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      reconciliation: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+      cleanup: v.object({
+        skipped: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        created: v.optional(v.number()),
+        updated: v.optional(v.number()),
+        conflicted: v.optional(v.number()),
+        failed: v.number(),
+        total: v.number(),
+        imported: v.number(),
+      }),
+    }),
+    errors: v.array(v.object({ phase: v.string(), timestamp: v.number(), message: v.string(), wpId: v.number() })),
+    errorCount: v.number(),
+  })),
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     const jobs = await ctx.db
       .query("wordpressSyncJobs")
       .order("desc")
       .take(10);
-    return jobs.map((j: any) => ({
+    return jobs.map((j) => ({
       _id: j._id,
       siteId: j.siteId,
       status: j.status,
@@ -364,14 +608,22 @@ export const listJobsNoAuth = internalQuery({
       startedAt: j.startedAt,
       completedAt: j.completedAt,
       progress: j.progress,
-      errors: (j.errors ?? []).slice(-10),
-      errorCount: (j.errors ?? []).length,
+      errors: j.errors.slice(-10),
+      errorCount: j.errors.length,
     }));
   },
 });
 
 export const listFindingsNoAuth = internalQuery({
   args: { jobId: v.optional(v.id("wordpressSyncJobs")) },
+  returns: v.array(v.object({
+    severity: v.union(v.literal("error"), v.literal("info"), v.literal("warning")),
+    code: v.optional(v.string()),
+    message: v.string(),
+    phase: v.string(),
+    createdAt: v.number(),
+    metadata: v.optional(v.string()),
+  })),
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
     const findings = await ctx.db
@@ -379,15 +631,15 @@ export const listFindingsNoAuth = internalQuery({
       .order("desc")
       .take(50);
     const filtered = jobId
-      ? findings.filter((f: any) => f.jobId === jobId)
+      ? findings.filter((f) => f.jobId === jobId)
       : findings;
-    return filtered.map((f: any) => ({
-      severity: (f as any).severity,
-      category: (f as any).category,
-      message: (f as any).message,
-      phase: (f as any).phase,
-      createdAt: (f as any).createdAt,
-      details: (f as any).details,
+    return filtered.map((f) => ({
+      severity: f.severity,
+      code: f.code,
+      message: f.message,
+      phase: f.phase,
+      createdAt: f.createdAt,
+      metadata: f.metadata,
     }));
   },
 });
@@ -422,6 +674,10 @@ export const clearJobErrors = internalMutation({
 // Clear errors AND resume — the common combo after a bug fix.
 export const resumeWithFreshErrors = internalMutation({
   args: { jobId: v.id("wordpressSyncJobs") },
+  returns: v.object({
+    resumed: v.id("wordpressSyncJobs"),
+    fromPhase: v.union(v.literal("posts"), v.literal("users"), v.literal("media"), v.literal("pages"), v.literal("comments"), v.literal("menus"), v.literal("taxonomies"), v.literal("commerceCatalog"), v.literal("commerceTransactions"), v.literal("reconciliation"), v.literal("cleanup")),
+  }),
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
     const job = await ctx.db.get(jobId);
@@ -436,7 +692,7 @@ export const resumeWithFreshErrors = internalMutation({
     await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.runSyncPhase, {
       jobId,
     });
-    return { resumed: jobId, fromPhase: (job as any).currentPhase };
+    return { resumed: jobId, fromPhase: job.currentPhase };
   },
 });
 
@@ -446,6 +702,10 @@ export const resumeWithFreshErrors = internalMutation({
 // already-imported items via source-hash comparison.
 export const resumeFailedJob = internalMutation({
   args: { jobId: v.id("wordpressSyncJobs") },
+  returns: v.object({
+    resumed: v.id("wordpressSyncJobs"),
+    fromPhase: v.union(v.literal("posts"), v.literal("users"), v.literal("media"), v.literal("pages"), v.literal("comments"), v.literal("menus"), v.literal("taxonomies"), v.literal("commerceCatalog"), v.literal("commerceTransactions"), v.literal("reconciliation"), v.literal("cleanup")),
+  }),
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
     const job = await ctx.db.get(jobId);
@@ -459,7 +719,7 @@ export const resumeFailedJob = internalMutation({
     await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.runSyncPhase, {
       jobId,
     });
-    return { resumed: jobId, fromPhase: (job as any).currentPhase };
+    return { resumed: jobId, fromPhase: job.currentPhase };
   },
 });
 
@@ -468,24 +728,25 @@ export const resumeFailedJob = internalMutation({
 export const resetPhaseAndResume = internalMutation({
   args: {
     jobId: v.id("wordpressSyncJobs"),
-    phase: v.string(),
+    phase: syncPhaseValidator,
     resetCursor: v.optional(v.boolean()),
   },
   returns: v.object({ resumed: v.id("wordpressSyncJobs"), phase: v.string(), resetCursor: v.boolean() }),
   handler: async (ctx, { jobId, phase, resetCursor }) => {
     assertDevInternalsEnabled();
-    const job: any = await ctx.db.get(jobId);
+    const job = await ctx.db.get(jobId);
     if (!job) throw new Error("Job not found");
     const progress = { ...job.progress };
-    if (progress[phase]) {
+    const phaseProgress = progress[phase];
+    if (phaseProgress) {
       progress[phase] = {
-        ...progress[phase],
+        ...phaseProgress,
         ...(resetCursor ? { cursor: 0, imported: 0, failed: 0 } : {}),
       };
     }
     await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "running",
-      currentPhase: phase as any,
+      currentPhase: phase,
       progress,
       completedAt: undefined,
       pausedAt: undefined,
@@ -506,12 +767,13 @@ export const triggerSyncDirect = internalMutation({
     siteId: v.id("wordpressSites"),
     importConfig: v.optional(v.any()),
   },
-  handler: async (ctx, { siteId, importConfig }): Promise<any> => {
+  returns: v.object({ jobId: v.id("wordpressSyncJobs") }),
+  handler: async (ctx, { siteId, importConfig }) => {
     assertDevInternalsEnabled();
     // Force-cancel any pending/running/paused jobs for this site
     const stale = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q: any) => q.eq("siteId", siteId))
+      .withIndex("by_site", (q) => q.eq("siteId", siteId))
       .collect();
     for (const j of stale) {
       if (
@@ -528,7 +790,7 @@ export const triggerSyncDirect = internalMutation({
 
     const now = Date.now();
     // Sensible default config: import everything we can.
-    const defaultConfig = {
+    const defaultConfig: ImportConfig = {
       scope: {
         wpContent: true,
         elementor: true,
@@ -551,8 +813,8 @@ export const triggerSyncDirect = internalMutation({
         importRefunds: true,
         importReviews: true,
         importCoupons: true,
-        tombstoneMode: "never" as const,
-        destructiveDelete: false as const,
+        tombstoneMode: "never",
+        destructiveDelete: false,
       },
       filters: {},
     };
@@ -560,13 +822,13 @@ export const triggerSyncDirect = internalMutation({
     // Use any administrator user as the createdBy. We're bypassing auth.
     const adminRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q: any) => q.eq("slug", "administrator"))
+      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
       .first();
-    let adminUser: any = null;
+    let adminUser: Doc<"users"> | null = null;
     if (adminRole) {
       adminUser = await ctx.db
         .query("users")
-        .withIndex("by_roleId", (q: any) => q.eq("roleId", adminRole._id))
+        .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
         .first();
     }
     if (!adminUser) {
@@ -596,12 +858,12 @@ export const triggerSyncDirect = internalMutation({
         commerceTransactions: { ...emptyPhase },
         reconciliation: { ...emptyPhase },
         cleanup: { ...emptyPhase },
-      } as any,
-      importConfig: importConfig ?? defaultConfig,
+      },
+      importConfig: importConfig === undefined ? defaultConfig : normalizeImportConfig(importConfig),
       createdBy: adminUser._id,
       createdAt: now,
       updatedAt: now,
-    } as any);
+    });
 
     await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.runSyncPhase, {
       jobId,

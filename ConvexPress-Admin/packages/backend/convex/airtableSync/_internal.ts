@@ -13,7 +13,12 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { capabilitiesDocs } from "../schema/capabilities.docs.generated";
+import { emailsDocs } from "../schema/emails.docs.generated";
+import { eventDefinitionsDocs } from "../schema/eventDefinitions.docs.generated";
+import { rolesDocs } from "../schema/roles.docs.generated";
+import { routeDefinitionsDocs } from "../schema/routeDefinitions.docs.generated";
+import { siteNotificationDefinitionsDocs } from "../schema/siteNotificationDefinitions.docs.generated";
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
 /**
@@ -66,7 +71,7 @@ export const checkAdminPermission = internalQuery({
 
 export const getCapabilityByAirtableId = internalQuery({
   args: { airtableRecordId: v.string() },
-  returns: v.union(v.null(), tableDocs.capabilities),
+  returns: v.union(v.null(), capabilitiesDocs.capabilities),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("capabilities")
@@ -125,7 +130,7 @@ export const updateCapability = internalMutation({
 
 export const getRoleByAirtableId = internalQuery({
   args: { airtableRecordId: v.string() },
-  returns: v.union(v.null(), tableDocs.roles),
+  returns: v.union(v.null(), rolesDocs.roles),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("roles")
@@ -138,7 +143,7 @@ export const getRoleByAirtableId = internalQuery({
 
 export const getRoleBySlug = internalQuery({
   args: { slug: v.string() },
-  returns: v.union(v.null(), tableDocs.roles),
+  returns: v.union(v.null(), rolesDocs.roles),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("roles")
@@ -284,7 +289,7 @@ export const deleteRoleById = internalMutation({
 
 export const getEventDefByAirtableId = internalQuery({
   args: { airtableRecordId: v.string() },
-  returns: v.union(v.null(), tableDocs.eventDefinitions),
+  returns: v.union(v.null(), eventDefinitionsDocs.eventDefinitions),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("eventDefinitions")
@@ -347,7 +352,7 @@ export const updateEventDef = internalMutation({
 
 export const getRouteDefByAirtableId = internalQuery({
   args: { airtableRecordId: v.string() },
-  returns: v.union(v.null(), tableDocs.routeDefinitions),
+  returns: v.union(v.null(), routeDefinitionsDocs.routeDefinitions),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("routeDefinitions")
@@ -408,7 +413,7 @@ export const updateRouteDef = internalMutation({
 
 export const getEmailTemplateByAirtableId = internalQuery({
   args: { airtableRecordId: v.string() },
-  returns: v.union(v.null(), tableDocs.emailTemplates),
+  returns: v.union(v.null(), emailsDocs.emailTemplates),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("emailTemplates")
@@ -455,7 +460,7 @@ export const updateEmailTemplate = internalMutation({
 
 export const getSiteNotifDefByAirtableId = internalQuery({
   args: { airtableRecordId: v.string() },
-  returns: v.union(v.null(), tableDocs.siteNotificationDefinitions),
+  returns: v.union(v.null(), siteNotificationDefinitionsDocs.siteNotificationDefinitions),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("siteNotificationDefinitions")

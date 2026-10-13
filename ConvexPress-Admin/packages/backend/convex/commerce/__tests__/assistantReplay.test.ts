@@ -14,6 +14,7 @@ const modules = {
   "./convex/commerce/cart.ts": () => import("../cart"),
   "./convex/commerce/storefront.ts": () => import("../storefront"),
   "./convex/settings/httpInternals.ts": () => import("../../settings/httpInternals"),
+  "./convex/commerce/settingsInternals.ts": () => import("../settingsInternals"),
   "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
 };
 const token = "11111111-1111-4111-8111-111111111111";

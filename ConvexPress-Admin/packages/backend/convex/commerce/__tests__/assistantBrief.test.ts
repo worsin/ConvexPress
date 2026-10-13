@@ -4,7 +4,7 @@ import { brief } from "../assistant/actions";
 
 function fixture() {
   const bundle: any = {
-    assistant: { enabled: true, memoryEnabled: true },
+    assistant: { enabled: true, memoryEnabled: true, model: "" },
     ai: { provider: "anthropic", defaultModel: "test" },
     store: { storeName: "Test shop", tagline: "", currencyCode: "USD", currencySymbol: "$" },
     cart: { itemCount: 1, subtotalAmount: 2400, lines: [{ productId: "notebook", variantId: "blue", title: "Notebook", variantTitle: "Blue", quantity: 1, unitPriceAmount: 2400 }] },
@@ -17,7 +17,7 @@ function fixture() {
     runQuery: async (fn: any, args: any) => {
       const name = getFunctionName(fn);
       if (name.endsWith(":contextBundle")) return structuredClone(bundle);
-      if (name.endsWith(":getBySectionInternal")) return { provider: "anthropic", apiKey: "synthetic-only", defaultModel: bundle.ai.defaultModel };
+      if (name.endsWith(":getAssistantAiSettings")) return { provider: "anthropic", apiKey: "synthetic-only", defaultModel: bundle.ai.defaultModel };
       if (name.endsWith(":productCards")) return structuredClone(cards);
       if (name.endsWith(":relatedForProducts")) return [];
       if (name.endsWith(":getBrief")) return cache.get(args.cacheKey) ?? null;

@@ -32,7 +32,7 @@ import {
   MAX_BATCH_SIZE,
 } from "./validators";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { routingDocs } from "../schema/routing.docs.generated";
 // ─── Resolve Redirect ───────────────────────────────────────────────────────
 
 /**
@@ -52,7 +52,7 @@ import { tableDocs } from "../schema/tableDocs.generated";
  */
 export const resolveRedirect = internalQuery({
   args: resolveRedirectArgs,
-  returns: v.union(v.null(), tableDocs.redirects, v.object({
+  returns: v.union(v.null(), routingDocs.redirects, v.object({
     _resolvedTargetUrl: v.string(),
     _id: v.id("redirects"),
     _creationTime: v.number(),

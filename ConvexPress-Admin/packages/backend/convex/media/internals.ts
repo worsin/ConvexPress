@@ -45,7 +45,7 @@ import {
 } from "./helpers";
 
 import { paginationResultValidator } from "convex/server";
-import { tableDocs } from "../schema/tableDocs.generated";
+import { mediaDocs } from "../schema/media.docs.generated";
 const DEFAULT_ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
@@ -811,7 +811,7 @@ export const getMediaInternal_list = internalQuery({
     numItems: v.number(),
     cursor: v.optional(v.union(v.string(), v.null())),
   },
-  returns: v.object({ items: v.array(tableDocs.media), total: v.number() }),
+  returns: v.object({ items: v.array(mediaDocs.media), total: v.number() }),
   handler: async (ctx, args) => {
     let items;
 
@@ -1145,14 +1145,17 @@ export const checkEditCapability = internalMutation({
  * instead of using the workaround of calling the public update mutation with
  * unchanged data just to trigger an event.
  */
+/** A before/after value of an image edit (dimensions, flags, labels). */
+const editedValueValidator = v.union(v.null(), v.boolean(), v.number(), v.string());
+
 export const emitMediaEditedEvent = internalMutation({
   args: {
     mediaId: v.id("media"),
     editAction: v.string(),
     changes: v.optional(v.array(v.object({
       field: v.string(),
-      oldValue: v.any(),
-      newValue: v.any(),
+      oldValue: editedValueValidator,
+      newValue: editedValueValidator,
     }))),
   },
   returns: v.null(),
@@ -1204,8 +1207,9 @@ export const processImageAction = internalAction({
 
     try {
       // ── 1. Fetch the original image blob ────────────────────────────────
-      const blob = await ctx.storage.get(media.storageId);
-      if (!blob) {
+      // URL-only imports have no Convex blob to process.
+      const blob = media.storageId ? await ctx.storage.get(media.storageId) : null;
+      if (!blob || !media.storageId) {
         await ctx.runMutation(internal.media.mutations.updateStatus, {
           mediaId: args.mediaId,
           status: "failed",
@@ -1614,7 +1618,7 @@ export const listImagesForRegeneration = internalQuery({
     cursor: v.union(v.string(), v.null()),
     numItems: v.number(),
   },
-  returns: paginationResultValidator(tableDocs.media),
+  returns: paginationResultValidator(mediaDocs.media),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("media")

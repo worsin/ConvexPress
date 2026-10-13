@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { recordAuthorizedDownload, type DownloadAttempt, type RecordedDownload } from "./downloadEntitlement";
 import type { RegisteredMutation } from "convex/server";
 import type { Id } from "../_generated/dataModel";
@@ -41,7 +40,8 @@ export const uploadFile = mutation({
     requiresLicense: v.optional(v.boolean()),
     sortOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_digital_files"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -55,8 +55,8 @@ export const uploadFile = mutation({
     // Mark existing files as not latest if this is a new version
     const existingFiles = await ctx.db
       .query("commerce_digital_files")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
-      .filter((q: any) =>
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
+      .filter((q) =>
         args.variantId
           ? q.eq(q.field("variantId"), args.variantId)
           : q.eq(q.field("variantId"), undefined)
@@ -114,7 +114,8 @@ export const updateFile = mutation({
     requiresLicense: v.optional(v.boolean()),
     sortOrder: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_digital_files"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -144,7 +145,8 @@ export const updateFile = mutation({
  */
 export const deleteFile = mutation({
   args: { fileId: v.id("commerce_digital_files") },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_digital_files"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -161,8 +163,8 @@ export const deleteFile = mutation({
     if (file.isLatest) {
       const remaining = await ctx.db
         .query("commerce_digital_files")
-        .withIndex("by_product", (q: any) => q.eq("productId", file.productId))
-        .filter((q: any) =>
+        .withIndex("by_product", (q) => q.eq("productId", file.productId))
+        .filter((q) =>
           file.variantId
             ? q.eq(q.field("variantId"), file.variantId)
             : q.eq(q.field("variantId"), undefined)
@@ -178,7 +180,7 @@ export const deleteFile = mutation({
     // Check if product still has any digital files
     const anyFiles = await ctx.db
       .query("commerce_digital_files")
-      .withIndex("by_product", (q: any) => q.eq("productId", file.productId))
+      .withIndex("by_product", (q) => q.eq("productId", file.productId))
       .first();
 
     if (!anyFiles) {
@@ -229,7 +231,8 @@ export const generateDownloadToken = internalMutation({
     maxDownloads: v.optional(v.number()),
     expiryDays: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({ tokenId: v.id("commerce_download_tokens"), token: v.string() }),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     const file = await ctx.db.get(args.digitalFileId);
     if (!file) {
@@ -272,7 +275,13 @@ export const generateOrderDownloadTokens = internalMutation({
   args: {
     orderId: v.id("commerce_orders"),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(v.object({
+    orderItemId: v.id("commerce_order_items"),
+    fileId: v.id("commerce_digital_files"),
+    tokenId: v.id("commerce_download_tokens"),
+    token: v.string(),
+  })),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     const order = await ctx.db.get(args.orderId);
     if (!order) {
@@ -282,10 +291,10 @@ export const generateOrderDownloadTokens = internalMutation({
     // Get order items
     const orderItems = await ctx.db
       .query("commerce_order_items")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
 
-    const tokens: any[] = [];
+    const tokens: Array<{ orderItemId: Id<"commerce_order_items">; fileId: Id<"commerce_digital_files">; tokenId: Id<"commerce_download_tokens">; token: string }> = [];
 
     for (const item of orderItems) {
       if (!item.productId) continue;
@@ -293,8 +302,8 @@ export const generateOrderDownloadTokens = internalMutation({
       // Get latest digital files for this product
       const files = await ctx.db
         .query("commerce_digital_files")
-        .withIndex("by_product", (q: any) => q.eq("productId", item.productId))
-        .filter((q: any) =>
+        .withIndex("by_product", (q) => q.eq("productId", item.productId))
+        .filter((q) =>
           item.variantId
             ? q.or(
                 q.eq(q.field("variantId"), item.variantId),
@@ -302,7 +311,7 @@ export const generateOrderDownloadTokens = internalMutation({
               )
             : q.eq(q.field("variantId"), undefined)
         )
-        .filter((q: any) => q.eq(q.field("isLatest"), true))
+        .filter((q) => q.eq(q.field("isLatest"), true))
         .collect();
 
       for (const file of files) {
@@ -379,7 +388,8 @@ export const generateLicenseKeys = mutation({
     expiresAt: v.optional(v.number()),
     prefix: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(v.object({ keyId: v.id("commerce_license_keys"), licenseKey: v.string() })),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -390,7 +400,7 @@ export const generateLicenseKeys = mutation({
     }
 
     const now = Date.now();
-    const keys: any[] = [];
+    const keys: Array<{ keyId: Id<"commerce_license_keys">; licenseKey: string }> = [];
 
     for (let i = 0; i < args.count; i++) {
       // Generate a license key in format: XXXX-XXXX-XXXX-XXXX
@@ -437,7 +447,8 @@ export const importLicenseKeys = mutation({
     maxActivations: v.optional(v.number()),
     expiresAt: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.array(v.union(v.object({ licenseKey: v.string(), error: v.string() }), v.object({ licenseKey: v.string(), keyId: v.id("commerce_license_keys") }))),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -448,13 +459,13 @@ export const importLicenseKeys = mutation({
     }
 
     const now = Date.now();
-    const results: any[] = [];
+    const results: Array<{ licenseKey: string; error: string } | { licenseKey: string; keyId: Id<"commerce_license_keys"> }> = [];
 
     for (const licenseKey of args.keys) {
       // Check for duplicates
       const existing = await ctx.db
         .query("commerce_license_keys")
-        .withIndex("by_license_key", (q: any) => q.eq("licenseKey", licenseKey))
+        .withIndex("by_license_key", (q) => q.eq("licenseKey", licenseKey))
         .unique();
 
       if (existing) {
@@ -492,15 +503,16 @@ export const assignLicenseKey = internalMutation({
     orderId: v.id("commerce_orders"),
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.object({ keyId: v.id("commerce_license_keys"), licenseKey: v.string() }),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     // Find an available key
     const availableKey = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_product_status", (q: any) =>
+      .withIndex("by_product_status", (q) =>
         q.eq("productId", args.productId).eq("status", "available")
       )
-      .filter((q: any) =>
+      .filter((q) =>
         args.variantId
           ? q.eq(q.field("variantId"), args.variantId)
           : q.eq(q.field("variantId"), undefined)
@@ -533,7 +545,8 @@ export const revokeLicenseKey = mutation({
     keyId: v.id("commerce_license_keys"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_license_keys"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -548,7 +561,7 @@ export const revokeLicenseKey = mutation({
     // Deactivate all activations
     const activations = await ctx.db
       .query("commerce_license_activations")
-      .withIndex("by_license_active", (q: any) =>
+      .withIndex("by_license_active", (q) =>
         q.eq("licenseKeyId", args.keyId).eq("isActive", true)
       )
       .collect();
@@ -590,14 +603,30 @@ export const activateLicense = mutation({
     appVersion: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.union(v.object({
+    success: v.boolean(),
+    error: v.string(),
+    activationId: v.optional(v.null()),
+    message: v.optional(v.null()),
+  }), v.object({
+    success: v.boolean(),
+    activationId: v.id("commerce_license_activations"),
+    message: v.string(),
+    error: v.optional(v.null()),
+  }), v.object({
+    success: v.boolean(),
+    activationId: v.id("commerce_license_activations"),
+    error: v.optional(v.null()),
+    message: v.optional(v.null()),
+  })),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
 
     // Find the license key
     const key = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_license_key", (q: any) => q.eq("licenseKey", args.licenseKey))
+      .withIndex("by_license_key", (q) => q.eq("licenseKey", args.licenseKey))
       .unique();
 
     if (!key) {
@@ -619,10 +648,10 @@ export const activateLicense = mutation({
     // Check for existing activation on this device
     const existingActivation = await ctx.db
       .query("commerce_license_activations")
-      .withIndex("by_license_active", (q: any) =>
+      .withIndex("by_license_active", (q) =>
         q.eq("licenseKeyId", key._id).eq("isActive", true)
       )
-      .filter((q: any) => q.eq(q.field("deviceId"), args.deviceId))
+      .filter((q) => q.eq(q.field("deviceId"), args.deviceId))
       .unique();
 
     if (existingActivation) {
@@ -644,7 +673,7 @@ export const activateLicense = mutation({
     if (key.keyType !== "unlimited" && key.maxActivations) {
       const activeCount = await ctx.db
         .query("commerce_license_activations")
-        .withIndex("by_license_active", (q: any) =>
+        .withIndex("by_license_active", (q) =>
           q.eq("licenseKeyId", key._id).eq("isActive", true)
         )
         .collect();
@@ -694,13 +723,14 @@ export const deactivateLicense = mutation({
     licenseKey: v.string(),
     deviceId: v.string(),
   },
-  handler: async (ctx: any, args: any) => {
+  returns: v.id("commerce_license_activations"),
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
 
     const key = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_license_key", (q: any) => q.eq("licenseKey", args.licenseKey))
+      .withIndex("by_license_key", (q) => q.eq("licenseKey", args.licenseKey))
       .unique();
 
     if (!key) {
@@ -709,10 +739,10 @@ export const deactivateLicense = mutation({
 
     const activation = await ctx.db
       .query("commerce_license_activations")
-      .withIndex("by_license_active", (q: any) =>
+      .withIndex("by_license_active", (q) =>
         q.eq("licenseKeyId", key._id).eq("isActive", true)
       )
-      .filter((q: any) => q.eq(q.field("deviceId"), args.deviceId))
+      .filter((q) => q.eq(q.field("deviceId"), args.deviceId))
       .unique();
 
     if (!activation) {

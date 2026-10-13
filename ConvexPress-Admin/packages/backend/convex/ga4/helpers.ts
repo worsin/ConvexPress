@@ -114,34 +114,34 @@ export const ENGAGEMENT_DIMENSIONS_DAILY = ["date"];
  * GA4 responses have a complex row/header structure; this flattens it.
  */
 export function parseGA4RunReportResponse(response: {
-  dimensionHeaders?: Array<{ name: string }>;
-  metricHeaders?: Array<{ name: string; type?: string }>;
+  dimensionHeaders?: Array<{ name?: string | null }>;
+  metricHeaders?: Array<{ name?: string | null; type?: string | null }>;
   rows?: Array<{
-    dimensionValues?: Array<{ value: string }>;
-    metricValues?: Array<{ value: string }>;
+    dimensionValues?: Array<{ value?: string | null }>;
+    metricValues?: Array<{ value?: string | null }>;
   }>;
   totals?: Array<{
-    dimensionValues?: Array<{ value: string }>;
-    metricValues?: Array<{ value: string }>;
+    dimensionValues?: Array<{ value?: string | null }>;
+    metricValues?: Array<{ value?: string | null }>;
   }>;
-  rowCount?: number;
+  rowCount?: number | null;
 }): {
   rows: Array<Record<string, string | number>>;
   totals: Record<string, number>;
   rowCount: number;
 } {
   const dimensionNames =
-    response.dimensionHeaders?.map((h) => h.name) ?? [];
+    response.dimensionHeaders?.map((h) => h.name ?? "") ?? [];
   const metricNames =
-    response.metricHeaders?.map((h) => h.name) ?? [];
+    response.metricHeaders?.map((h) => h.name ?? "") ?? [];
 
   const rows = (response.rows ?? []).map((row) => {
     const record: Record<string, string | number> = {};
     row.dimensionValues?.forEach((dv, i) => {
-      record[dimensionNames[i]] = dv.value;
+      record[dimensionNames[i]] = dv.value ?? "";
     });
     row.metricValues?.forEach((mv, i) => {
-      record[metricNames[i]] = parseFloat(mv.value) || 0;
+      record[metricNames[i]] = parseFloat(mv.value ?? "") || 0;
     });
     return record;
   });
@@ -149,7 +149,7 @@ export function parseGA4RunReportResponse(response: {
   const totals: Record<string, number> = {};
   if (response.totals?.[0]) {
     response.totals[0].metricValues?.forEach((mv, i) => {
-      totals[metricNames[i]] = parseFloat(mv.value) || 0;
+      totals[metricNames[i]] = parseFloat(mv.value ?? "") || 0;
     });
   }
 

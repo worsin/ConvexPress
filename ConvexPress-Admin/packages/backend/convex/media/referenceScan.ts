@@ -1,4 +1,5 @@
 import { ConvexError, getDocumentSize, v } from "convex/values";
+import type { GenericDocument } from "convex/server";
 import type { Id } from "../_generated/dataModel";
 import { typedMediaReferences } from "./referenceInventory.generated";
 import { opaqueMediaContainers, MEDIA_REFERENCE_PAGE, MEDIA_REFERENCE_TOTAL } from "./referencePolicy";
@@ -9,14 +10,14 @@ export const referenceTables = [...new Set([...Object.keys(inventory), ...Object
 export function referenceFailure(message = "Media references exceed the safe transaction budget; nothing was deleted."): never {
   throw new ConvexError({ code: "MEDIA_REFERENCE_BUDGET", message });
 }
-export function completeReferencePage(page: { page: any[]; isDone: boolean; pageStatus?: string | null; splitCursor?: string | null }) {
+export function completeReferencePage(page: { page: readonly GenericDocument[]; isDone: boolean; pageStatus?: string | null; splitCursor?: string | null }) {
   const bytes = page.page.reduce((sum, row) => sum + getDocumentSize(row), 0);
   // Convex may return a potential split cursor on ordinary complete pages.
   // Only pageStatus requests a split; the cursor alone does not imply truncation.
   if (!page.isDone || page.pageStatus != null || page.page.length > MEDIA_REFERENCE_PAGE.numItems || bytes > MEDIA_REFERENCE_PAGE.maximumBytesRead) referenceFailure();
   return { rows: page.page.length, bytes };
 }
-export function scanReferences(table: string, doc: Record<string, any>, mediaIds: readonly string[], normalize?: (value: string) => string | null): ScannedReference[] {
+export function scanReferences(table: string, doc: Readonly<Record<string, unknown>> & { _id: string }, mediaIds: readonly string[], normalize?: (value: string) => string | null): ScannedReference[] {
   const ids = new Set(mediaIds), refs: ScannedReference[] = [];
   const add = (id: string, path: string[], field: string, opaque: boolean) => {
     refs.push({ table, documentId: doc._id, field, path: path.join("."), mediaId: id as Id<"media">, opaque });

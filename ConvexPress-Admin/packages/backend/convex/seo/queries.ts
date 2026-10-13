@@ -32,14 +32,6 @@ import {
   parseSeoSettings,
   parseSeoSettingsValue,
   parsePostSeoFromMeta,
-  DEFAULT_TITLE_SETTINGS,
-  DEFAULT_SOCIAL_SETTINGS,
-  DEFAULT_ROBOTS_SETTINGS,
-  DEFAULT_SCHEMA_SETTINGS,
-  DEFAULT_BREADCRUMB_SETTINGS,
-  DEFAULT_VERIFICATION_SETTINGS,
-  DEFAULT_ADVANCED_SETTINGS,
-  DEFAULT_SEO_SETTINGS,
   EMPTY_POST_SEO,
 } from "../helpers/seo";
 import type { SeoSettings } from "../helpers/seo";
@@ -52,17 +44,7 @@ import {
 } from "./validators";
 
 import { v } from "convex/values";
-// ─── Defaults Map ───────────────────────────────────────────────────────────
-
-const DEFAULTS_BY_KEY: Record<string, object> = {
-  titles: DEFAULT_TITLE_SETTINGS,
-  social: DEFAULT_SOCIAL_SETTINGS,
-  robots: DEFAULT_ROBOTS_SETTINGS,
-  schema: DEFAULT_SCHEMA_SETTINGS,
-  breadcrumbs: DEFAULT_BREADCRUMB_SETTINGS,
-  verification: DEFAULT_VERIFICATION_SETTINGS,
-  advanced: DEFAULT_ADVANCED_SETTINGS,
-};
+import { settingsRecord, textSetting } from "../helpers/settingsReader";
 
 // ─── getSettings ────────────────────────────────────────────────────────────
 
@@ -77,6 +59,136 @@ const DEFAULTS_BY_KEY: Record<string, object> = {
  */
 export const getSettings = query({
   args: getSettingsArgs,
+  returns: v.union(v.null(), v.object({
+    titles: v.object({
+      separator: v.string(),
+      siteTitle: v.string(),
+      tagline: v.string(),
+      homepageTitle: v.string(),
+      homepageDescription: v.string(),
+      postTitleTemplate: v.string(),
+      pageTitleTemplate: v.string(),
+      categoryTitleTemplate: v.string(),
+      tagTitleTemplate: v.string(),
+      authorTitleTemplate: v.string(),
+      searchTitleTemplate: v.string(),
+      notFoundTitleTemplate: v.string(),
+      dateArchiveTitleTemplate: v.string(),
+      postNoindex: v.boolean(),
+      pageNoindex: v.boolean(),
+      categoryNoindex: v.boolean(),
+      tagNoindex: v.boolean(),
+      authorArchiveNoindex: v.boolean(),
+      dateArchiveNoindex: v.boolean(),
+    }),
+    social: v.object({
+      organizationName: v.string(),
+      organizationLogo: v.string(),
+      facebookUrl: v.string(),
+      twitterUsername: v.string(),
+      instagramUrl: v.string(),
+      linkedinUrl: v.string(),
+      youtubeUrl: v.string(),
+      pinterestUrl: v.string(),
+      defaultOgImage: v.string(),
+      twitterCardType: v.union(v.literal("summary"), v.literal("summary_large_image")),
+      facebookAppId: v.string(),
+    }),
+    robots: v.object({ customRules: v.string(), siteNoindex: v.boolean(), blockAiBots: v.boolean() }),
+    schema: v.object({
+      representType: v.union(v.literal("organization"), v.literal("person")),
+      organizationName: v.string(),
+      organizationLogoUrl: v.string(),
+      personName: v.string(),
+      personImageUrl: v.string(),
+      defaultArticleType: v.union(v.literal("Article"), v.literal("BlogPosting"), v.literal("NewsArticle"), v.literal("TechArticle")),
+      defaultPageType: v.union(v.literal("WebPage"), v.literal("AboutPage"), v.literal("ContactPage"), v.literal("FAQPage"), v.literal("CollectionPage"), v.literal("ItemPage"), v.literal("ProfilePage"), v.literal("SearchResultsPage"), v.literal("CheckoutPage")),
+      sitelinksSearchBox: v.boolean(),
+    }),
+    breadcrumbs: v.object({
+      enabled: v.boolean(),
+      separator: v.string(),
+      homeAnchorText: v.string(),
+      showBlogPage: v.boolean(),
+      boldLastItem: v.boolean(),
+    }),
+    verification: v.object({
+      googleSiteVerification: v.string(),
+      bingSiteVerification: v.string(),
+      pinterestVerification: v.string(),
+      yandexVerification: v.string(),
+    }),
+    advanced: v.object({
+      stripCategoryBase: v.boolean(),
+      redirectAttachmentUrls: v.boolean(),
+      cleanPermalinkFragments: v.boolean(),
+      nofollowExternalLinks: v.boolean(),
+      openExternalLinksNewTab: v.boolean(),
+    }),
+  }), v.object({
+    key: v.union(v.literal("titles"), v.literal("social"), v.literal("robots"), v.literal("schema"), v.literal("breadcrumbs"), v.literal("verification"), v.literal("advanced")),
+    value: v.union(v.object({
+      separator: v.string(),
+      siteTitle: v.string(),
+      tagline: v.string(),
+      homepageTitle: v.string(),
+      homepageDescription: v.string(),
+      postTitleTemplate: v.string(),
+      pageTitleTemplate: v.string(),
+      categoryTitleTemplate: v.string(),
+      tagTitleTemplate: v.string(),
+      authorTitleTemplate: v.string(),
+      searchTitleTemplate: v.string(),
+      notFoundTitleTemplate: v.string(),
+      dateArchiveTitleTemplate: v.string(),
+      postNoindex: v.boolean(),
+      pageNoindex: v.boolean(),
+      categoryNoindex: v.boolean(),
+      tagNoindex: v.boolean(),
+      authorArchiveNoindex: v.boolean(),
+      dateArchiveNoindex: v.boolean(),
+    }), v.object({
+      organizationName: v.string(),
+      organizationLogo: v.string(),
+      facebookUrl: v.string(),
+      twitterUsername: v.string(),
+      instagramUrl: v.string(),
+      linkedinUrl: v.string(),
+      youtubeUrl: v.string(),
+      pinterestUrl: v.string(),
+      defaultOgImage: v.string(),
+      twitterCardType: v.union(v.literal("summary"), v.literal("summary_large_image")),
+      facebookAppId: v.string(),
+    }), v.object({ customRules: v.string(), siteNoindex: v.boolean(), blockAiBots: v.boolean() }), v.object({
+      representType: v.union(v.literal("organization"), v.literal("person")),
+      organizationName: v.string(),
+      organizationLogoUrl: v.string(),
+      personName: v.string(),
+      personImageUrl: v.string(),
+      defaultArticleType: v.union(v.literal("Article"), v.literal("BlogPosting"), v.literal("NewsArticle"), v.literal("TechArticle")),
+      defaultPageType: v.union(v.literal("WebPage"), v.literal("AboutPage"), v.literal("ContactPage"), v.literal("FAQPage"), v.literal("CollectionPage"), v.literal("ItemPage"), v.literal("ProfilePage"), v.literal("SearchResultsPage"), v.literal("CheckoutPage")),
+      sitelinksSearchBox: v.boolean(),
+    }), v.object({
+      enabled: v.boolean(),
+      separator: v.string(),
+      homeAnchorText: v.string(),
+      showBlogPage: v.boolean(),
+      boldLastItem: v.boolean(),
+    }), v.object({
+      googleSiteVerification: v.string(),
+      bingSiteVerification: v.string(),
+      pinterestVerification: v.string(),
+      yandexVerification: v.string(),
+    }), v.object({
+      stripCategoryBase: v.boolean(),
+      redirectAttachmentUrls: v.boolean(),
+      cleanPermalinkFragments: v.boolean(),
+      nofollowExternalLinks: v.boolean(),
+      openExternalLinksNewTab: v.boolean(),
+    })),
+    updatedAt: v.union(v.null(), v.number()),
+    updatedBy: v.union(v.null(), v.string()),
+  })),
   handler: async (ctx, args) => {
     const { key } = args;
 
@@ -93,8 +205,7 @@ export const getSettings = query({
         .withIndex("by_key", (q) => q.eq("key", key))
         .unique();
 
-      const defaults = DEFAULTS_BY_KEY[key] ?? {};
-      const value = row ? parseSeoSettingsValue(row.value, defaults) : { ...defaults };
+      const value = parseSeoSettingsValue(row?.value, key);
 
       return {
         key,
@@ -198,17 +309,14 @@ export const getRobotsTxt = query({
       .withIndex("by_key", (q) => q.eq("key", "robots"))
       .unique();
 
-    const robotsSettings = parseSeoSettingsValue(
-      robotsRow?.value,
-      DEFAULT_ROBOTS_SETTINGS,
-    );
+    const robotsSettings = parseSeoSettingsValue(robotsRow?.value, "robots");
 
     // Fetch site URL from the Settings System for absolute sitemap URL (RFC 9309)
     const generalSettings = await ctx.db
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "general"))
       .unique();
-    const siteUrl = (generalSettings?.values as Record<string, unknown> | null)?.siteUrl as string || "";
+    const siteUrl = textSetting(settingsRecord(generalSettings?.values).siteUrl, "");
 
     const lines: string[] = [];
 

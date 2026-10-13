@@ -1,10 +1,10 @@
 /**
  * Tier 3.3 — Typed settings getters for the shipping system.
  *
- * Action handlers need to read shipping settings via `ctx.runQuery`, which
- * returns `any`. These helpers wrap the internal query and cast to the
- * canonical setting types defined in `settings/defaults.ts`, so callers can
- * drop the ad-hoc `: any` annotations they were sprinkling on every read.
+ * Action handlers read shipping settings via `ctx.runQuery`. These helpers
+ * call the typed queries in `shipping/settingsInternals.ts`, which merge the
+ * stored values with the canonical defaults from `settings/defaults.ts` and
+ * validate every field.
  *
  * Usage (action context):
  *   const shippingSettings = await getShippingIntegrationSettings(ctx);
@@ -19,6 +19,7 @@
 
 import { internal } from "../../_generated/api";
 import type { ActionCtx } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 
 /**
  * Resolve the effective ship-from address for carrier rate calls. Prefers
@@ -31,7 +32,7 @@ import type { ActionCtx } from "../../_generated/server";
  *   // origin.shipFromLine1, .shipFromCity, .shipFromPostalCode, etc.
  */
 export type EffectiveShipFromSettings = ShippingIntegrationSettings & {
-  shipFromLocationId: string | null;
+  shipFromLocationId: Id<"commerce_ship_from_locations"> | null;
   shipFromPhone?: string;
 };
 
@@ -58,17 +59,12 @@ export async function getEffectiveShipFrom(
       shipFromCompany:
         loc.address.companyName ?? integration.shipFromCompany ?? "",
       shipFromPhone: loc.address.phone ?? "",
-      shipFromLocationId: String(loc._id),
+      shipFromLocationId: loc._id,
     };
   }
   return { ...integration, shipFromLocationId: null };
 }
-import {
-  SHIPPING_INTEGRATION_DEFAULTS,
-  SHIPPING_PROVIDER_DEFAULTS,
-  type ShippingIntegrationSettings,
-  type ShippingProviderSettings,
-} from "../../settings/defaults";
+import type { ShippingIntegrationSettings, ShippingProviderSettings } from "../../settings/defaults";
 // Inline provider union to avoid ambiguity between shipping/helpers.ts (file)
 // and shipping/helpers/ (dir) resolution.
 type ShippingProvider = "shipstation" | "ups" | "usps" | "fedex" | "dhl";
@@ -76,20 +72,12 @@ type ShippingProvider = "shipstation" | "ups" | "usps" | "fedex" | "dhl";
 export async function getShippingIntegrationSettings(
   ctx: ActionCtx,
 ): Promise<ShippingIntegrationSettings> {
-  const raw = (await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: "integrations.shipping" },
-  )) as Partial<ShippingIntegrationSettings> | null;
-  return { ...SHIPPING_INTEGRATION_DEFAULTS, ...(raw ?? {}) };
+  return await ctx.runQuery(internal.shipping.settingsInternals.getShippingIntegrationSettings, {});
 }
 
 export async function getShippingProviderSettings(
   ctx: ActionCtx,
   provider: ShippingProvider,
 ): Promise<ShippingProviderSettings> {
-  const raw = (await ctx.runQuery(
-    internal.settings.httpInternals.getBySectionInternal,
-    { section: `integrations.shipping.${provider}` as any },
-  )) as Partial<ShippingProviderSettings> | null;
-  return { ...SHIPPING_PROVIDER_DEFAULTS, ...(raw ?? {}) };
+  return await ctx.runQuery(internal.shipping.settingsInternals.getShippingProviderSettings, { provider });
 }

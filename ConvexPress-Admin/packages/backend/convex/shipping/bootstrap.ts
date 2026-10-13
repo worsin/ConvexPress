@@ -33,7 +33,7 @@ export async function runBootstrapShippingTemplates(
   for (const def of getShippingTemplateDefaults()) {
     const found = await ctx.db
       .query("emailTemplates")
-      .withIndex("by_slug", (q: any) => q.eq("slug", def.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", def.slug))
       .unique();
 
     if (found) {

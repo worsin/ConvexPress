@@ -1,4 +1,5 @@
 import { internalMutation } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
 import { recordValidationArgs } from "./validators";
@@ -13,6 +14,7 @@ const INVALID_TTL_MS = 24 * 60 * 60 * 1000; // 24h
  */
 export const recordValidation = internalMutation({
   args: recordValidationArgs,
+  returns: v.id("commerce_address_validations"),
   handler: async (ctx, args) => {
     const ttl =
       args.ttlMs ??
@@ -22,7 +24,7 @@ export const recordValidation = internalMutation({
 
     const existing = await ctx.db
       .query("commerce_address_validations")
-      .withIndex("by_fingerprint", (q: any) => q.eq("fingerprint", args.fingerprint))
+      .withIndex("by_fingerprint", (q) => q.eq("fingerprint", args.fingerprint))
       .unique();
 
     const now = Date.now();
@@ -37,11 +39,12 @@ export const recordValidation = internalMutation({
       warnings: args.warnings,
       geocode: args.geocode,
       rawResponse: args.rawResponse,
+      validationDiagnostics: args.validationDiagnostics,
       validatedAt: now,
       expiresAt: now + ttl,
     };
 
-    let id: any;
+    let id: Id<"commerce_address_validations">;
     if (existing) {
       await ctx.db.patch("commerce_address_validations", existing._id, payload);
       id = existing._id;
@@ -65,7 +68,7 @@ export const purgeExpired = internalMutation({
     const now = Date.now();
     const expired = await ctx.db
       .query("commerce_address_validations")
-      .withIndex("by_expires", (q: any) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
       .collect();
     for (const row of expired) {
       await ctx.db.delete("commerce_address_validations", row._id);

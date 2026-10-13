@@ -6,7 +6,7 @@ import { ConvexError, v, type Infer } from "convex/values";
 import { labelOriginProofValidator, type LabelOriginProof } from "./labelOrigin";
 import { persistedShippingQuoteValidator } from "./quoteProvenance";
 
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { requireCommerceEnabled } from "../commerce/helpers";
 import { lookupUserByIdentifier } from "../helpers/permissions";
 import { zoneMatchesAddress } from "./helpers";
@@ -14,7 +14,8 @@ import { shippingProviderArg } from "./validators";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { commerceDocs } from "../schema/commerce.docs.generated";
+import { shippingDocs } from "../schema/shipping.docs.generated";
 const connectionStatusArg = v.union(
   v.literal("disconnected"),
   v.literal("connected"),
@@ -26,17 +27,17 @@ function shipmentCountsTowardFulfillment(status: string) {
   return status === "label_created" || status === "shipped" || status === "delivered";
 }
 
-async function recalculateOrderFulfillment(ctx: any, orderId: any) {
+async function recalculateOrderFulfillment(ctx: Pick<MutationCtx, "db">, orderId: Id<"commerce_orders">) {
   const order = await ctx.db.get(orderId);
   if (!order) return;
 
   const items = await ctx.db
     .query("commerce_order_items")
-    .withIndex("by_order", (q: any) => q.eq("orderId", orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
     .collect();
   const shipments = await ctx.db
     .query("commerce_shipments")
-    .withIndex("by_order", (q: any) => q.eq("orderId", orderId))
+    .withIndex("by_order", (q) => q.eq("orderId", orderId))
     .collect();
 
   const shippedByItem = new Map<string, number>();
@@ -48,9 +49,9 @@ async function recalculateOrderFulfillment(ctx: any, orderId: any) {
     }
   }
 
-  const totalQuantity = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+  const totalQuantity = items.reduce((sum: number, item) => sum + item.quantity, 0);
   const shippedQuantity = items.reduce(
-    (sum: number, item: any) =>
+    (sum: number, item) =>
       sum + Math.min(item.quantity, shippedByItem.get(item._id.toString()) ?? 0),
     0,
   );
@@ -80,28 +81,28 @@ export const matchZoneForAddress = internalQuery({
     postalCode: v.optional(v.string()),
   },
   returns: v.union(v.null(), v.object({
-    zone: tableDocs.commerce_shipping_zones,
-    methods: v.array(tableDocs.commerce_shipping_zone_methods),
+    zone: shippingDocs.commerce_shipping_zones,
+    methods: v.array(shippingDocs.commerce_shipping_zone_methods),
   })),
   handler: async (ctx, args) => {
     const zones = await ctx.db.query("commerce_shipping_zones").collect();
     const sorted = zones
-      .filter((z: any) => z.enabled !== false)
-      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      .filter((z) => z.enabled !== false)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
     for (const zone of sorted) {
       if (!zoneMatchesAddress(zone, args)) continue;
 
       const methods = await ctx.db
         .query("commerce_shipping_zone_methods")
-        .withIndex("by_zone", (q: any) => q.eq("zoneId", zone._id))
+        .withIndex("by_zone", (q) => q.eq("zoneId", zone._id))
         .collect();
 
       return {
         zone,
         methods: methods
-          .filter((m: any) => m.enabled !== false)
-          .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+          .filter((m) => m.enabled !== false)
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
       };
     }
 
@@ -141,13 +142,13 @@ export const getProviderSecret = internalQuery({
     provider: shippingProviderArg,
   },
   returns: v.union(v.null(), v.object({
-    connection: tableDocs.shipping_provider_connections,
-    secret: v.union(v.null(), tableDocs.shipping_provider_secrets),
+    connection: shippingDocs.shipping_provider_connections,
+    secret: v.union(v.null(), shippingDocs.shipping_provider_secrets),
   })),
   handler: async (ctx, args) => {
     const connection = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
 
     if (!connection) {
@@ -156,7 +157,7 @@ export const getProviderSecret = internalQuery({
 
     const secret = await ctx.db
       .query("shipping_provider_secrets")
-      .withIndex("by_connection", (q: any) => q.eq("connectionId", connection._id))
+      .withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
       .unique();
 
     return {
@@ -168,7 +169,7 @@ export const getProviderSecret = internalQuery({
 
 export const listProviderConnections = internalQuery({
   args: {},
-  returns: v.array(tableDocs.shipping_provider_connections),
+  returns: v.array(shippingDocs.shipping_provider_connections),
   handler: async (ctx) => {
     return ctx.db.query("shipping_provider_connections").collect();
   },
@@ -186,7 +187,7 @@ export const updateConnectionHealth = internalMutation({
   handler: async (ctx, args) => {
     const connection = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
 
     if (!connection) return null;
@@ -213,20 +214,20 @@ export const syncProviderAccountsAndServices = internalMutation({
   handler: async (ctx, args) => {
     const connection = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", args.provider))
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
       .unique();
 
     if (!connection) return null;
 
     const existingAccounts = await ctx.db
       .query("shipping_provider_accounts")
-      .withIndex("by_connection", (q: any) => q.eq("connectionId", connection._id))
+      .withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
       .collect();
 
     for (const account of existingAccounts) {
       const services = await ctx.db
         .query("shipping_provider_services")
-        .withIndex("by_account", (q: any) => q.eq("accountId", account._id))
+        .withIndex("by_account", (q) => q.eq("accountId", account._id))
         .collect();
       for (const service of services) {
         await ctx.db.delete("shipping_provider_services", service._id);
@@ -290,19 +291,30 @@ export const syncProviderAccountsAndServices = internalMutation({
 type CheckoutRateContext = {
   checkoutSession: Doc<"commerce_checkout_sessions">;
   cart: Doc<"commerce_carts">;
-  items: Array<Doc<"commerce_cart_items"> & { product: Doc<"commerce_products"> | null }>;
+  /** Each line carries its product and that product's tag slugs (for rule predicates). */
+  items: Array<Doc<"commerce_cart_items"> & { product: Doc<"commerce_products"> | null; productTagSlugs: string[] }>;
   shipstationConnection: Doc<"shipping_provider_connections"> | null;
 } | null;
 export const getRateContextForSession: RegisteredQuery<"internal", { sessionToken: string }, CheckoutRateContext> = internalQuery({
   args: {
     sessionToken: v.string(),
   },
+  returns: v.union(v.null(), v.object({
+    checkoutSession: commerceDocs.commerce_checkout_sessions,
+    cart: commerceDocs.commerce_carts,
+    items: v.array(v.object({
+      ...commerceDocs.commerce_cart_items.fields,
+      product: v.union(v.null(), commerceDocs.commerce_products),
+      productTagSlugs: v.array(v.string()),
+    })),
+    shipstationConnection: v.union(v.null(), shippingDocs.shipping_provider_connections),
+  })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
 
     const checkoutSessions = await ctx.db
       .query("commerce_checkout_sessions")
-      .withIndex("by_session", (q: any) => q.eq("sessionToken", args.sessionToken))
+      .withIndex("by_session", (q) => q.eq("sessionToken", args.sessionToken))
       .collect();
     const checkoutSession = selectCheckoutSession<Doc<"commerce_checkout_sessions">>(checkoutSessions);
     if (!checkoutSession) return null;
@@ -313,19 +325,24 @@ export const getRateContextForSession: RegisteredQuery<"internal", { sessionToke
 
     const items = await ctx.db
       .query("commerce_cart_items")
-      .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
+      .withIndex("by_cart", (q) => q.eq("cartId", cart._id))
       .collect();
 
     const enrichedItems = await Promise.all(
-      items.map(async (item: any) => ({
-        ...item,
-        product: await ctx.db.get(item.productId),
-      })),
+      items.map(async (item) => {
+        const product = await ctx.db.get(item.productId);
+        const tags = await Promise.all((product?.tagIds ?? []).map((tagId) => ctx.db.get(tagId)));
+        return {
+          ...item,
+          product,
+          productTagSlugs: tags.flatMap((tag) => (tag ? [tag.slug] : [])),
+        };
+      }),
     );
 
     const connection = await ctx.db
       .query("shipping_provider_connections")
-      .withIndex("by_provider", (q: any) => q.eq("provider", "shipstation"))
+      .withIndex("by_provider", (q) => q.eq("provider", "shipstation"))
       .unique();
 
     return {
@@ -398,7 +415,7 @@ export const checkShippingAdminAction = internalQuery({
     } else if (user.internalRole) {
       const role = await ctx.db
         .query("roles")
-        .withIndex("by_slug", (q: any) => q.eq("slug", user.internalRole as string))
+        .withIndex("by_slug", (q) => q.eq("slug", user.internalRole as string))
         .unique();
       if (role && role.status === "active") {
         capabilities = role.capabilities ?? [];
@@ -418,7 +435,8 @@ export const checkShippingAdminAction = internalQuery({
 
 type OrderLabelContext = {
   order: Doc<"commerce_orders">;
-  items: Doc<"commerce_order_items">[];
+  /** Each line carries its product's shipping weight (oz) for label weighting. */
+  items: Array<Doc<"commerce_order_items"> & { productShippingWeightOz?: number }>;
   quote: Doc<"commerce_shipping_rate_quotes"> | null;
   existingShipment: Doc<"commerce_shipments"> | undefined;
 } | null;
@@ -427,24 +445,35 @@ export const getLabelContextForOrder: RegisteredQuery<"internal", { orderId: Id<
     orderId: v.id("commerce_orders"),
   },
   returns: v.union(v.null(), v.object({
-    order: tableDocs.commerce_orders,
-    items: v.array(tableDocs.commerce_order_items),
-    quote: v.union(v.null(), tableDocs.commerce_shipping_rate_quotes),
-    existingShipment: v.optional(tableDocs.commerce_shipments),
+    order: commerceDocs.commerce_orders,
+    items: v.array(v.object({
+      ...commerceDocs.commerce_order_items.fields,
+      productShippingWeightOz: v.optional(v.number()),
+    })),
+    quote: v.union(v.null(), shippingDocs.commerce_shipping_rate_quotes),
+    existingShipment: v.optional(commerceDocs.commerce_shipments),
   })),
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (!order) return null;
 
-    const items = await ctx.db
+    const orderItems = await ctx.db
       .query("commerce_order_items")
-      .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
       .collect();
+    const items = await Promise.all(
+      orderItems.map(async (item) => {
+        const product = await ctx.db.get(item.productId);
+        return product?.shippingWeightOz === undefined
+          ? item
+          : { ...item, productShippingWeightOz: product.shippingWeightOz };
+      }),
+    );
     const quote =
       order.checkoutSessionId && order.selectedShippingMethodCode
         ? await ctx.db
             .query("commerce_shipping_rate_quotes")
-            .withIndex("by_checkout", (q: any) =>
+            .withIndex("by_checkout", (q) =>
               q.eq("checkoutSessionId", order.checkoutSessionId!),
             )
             .filter((q) =>
@@ -458,10 +487,10 @@ export const getLabelContextForOrder: RegisteredQuery<"internal", { orderId: Id<
 
     const shipments = await ctx.db
       .query("commerce_shipments")
-      .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
       .collect();
     const existingShipment = shipments.find(
-      (shipment: any) => shipment.externalLabelId || shipment.trackingNumber,
+      (shipment) => shipment.externalLabelId || shipment.trackingNumber,
     );
 
     return {
@@ -478,8 +507,8 @@ export const getShipmentForTracking: RegisteredQuery<"internal", { shipmentId: I
     shipmentId: v.id("commerce_shipments"),
   },
   returns: v.union(v.null(), v.object({
-    shipment: tableDocs.commerce_shipments,
-    order: v.union(v.null(), tableDocs.commerce_orders),
+    shipment: commerceDocs.commerce_shipments,
+    order: v.union(v.null(), commerceDocs.commerce_orders),
   })),
   handler: async (ctx, args) => {
     const shipment = await ctx.db.get(args.shipmentId);

@@ -26,7 +26,7 @@ import {
   getSrcSetArgs,
 } from "./validators";
 
-import { tableDocs } from "../schema/tableDocs.generated";
+import { mediaDocs } from "../schema/media.docs.generated";
 // ─── List ───────────────────────────────────────────────────────────────────
 
 /**
@@ -65,9 +65,9 @@ export const get = query({
   args: getMediaArgs,
   returns: v.union(v.null(), v.object({
     url: v.string(),
-    sizes: v.array(tableDocs.mediaSizes),
+    sizes: v.array(mediaDocs.mediaSizes),
     sizesMap: v.record(v.string(), v.object({ url: v.string(), width: v.number(), height: v.number(), fileSize: v.number() })),
-    meta: v.array(tableDocs.mediaMeta),
+    meta: v.array(mediaDocs.mediaMeta),
     metaMap: v.record(v.string(), v.string()),
     uploaderName: v.string(),
     _id: v.id("media"),
@@ -219,7 +219,7 @@ export const getPublic = query({
  */
 export const getByIds = query({
   args: getByIdsArgs,
-  returns: v.array(v.union(v.null(), tableDocs.media)),
+  returns: v.array(v.union(v.null(), mediaDocs.media)),
   handler: async (ctx, args) => {
     await requireCan(ctx, "media.read");
 

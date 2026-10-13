@@ -36,6 +36,7 @@ import {
   internalQuery,
   internalMutation,
   internalAction,
+  type QueryCtx,
 } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
@@ -55,7 +56,7 @@ import "./actionTypes";
 import "./commerce";
 import { normalizeFormReturnUrl } from "./redirects";
 
-import { tableDocs } from "../../schema/tableDocs.generated";
+import { formsExtensionDocs } from "./schema.docs.generated";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
 /**
@@ -130,7 +131,7 @@ export const availableActionTypes = query({
 /** Ordered actions for a form (ascending `order`). */
 export const listActions = query({
   args: { formId: v.id("forms") },
-  returns: v.array(tableDocs.form_actions),
+  returns: v.array(formsExtensionDocs.form_actions),
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -144,7 +145,7 @@ export const listActions = query({
 /** Run history for one submission. */
 export const listRunsForSubmission = query({
   args: { submissionId: v.id("form_submissions") },
-  returns: v.array(tableDocs.form_action_runs),
+  returns: v.array(formsExtensionDocs.form_action_runs),
   handler: async (ctx, { submissionId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -224,7 +225,7 @@ export const listRecentRuns = query({
     status: v.optional(runStatusValidator),
     limit: v.optional(v.number()),
   },
-  returns: v.array(tableDocs.form_action_runs),
+  returns: v.array(formsExtensionDocs.form_action_runs),
   handler: async (ctx, { formId, status, limit }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -257,7 +258,7 @@ export const createAction = mutation({
     conditionalLogic: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
-  returns: v.union(v.null(), tableDocs.form_actions),
+  returns: v.union(v.null(), formsExtensionDocs.form_actions),
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -309,7 +310,7 @@ export const updateAction = mutation({
     conditionalLogic: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
-  returns: v.union(v.null(), tableDocs.form_actions),
+  returns: v.union(v.null(), formsExtensionDocs.form_actions),
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -430,12 +431,12 @@ export const replayRun = mutation({
 
 /** Re-read the committed answer map (`fieldKey -> value`) for a submission. */
 async function readSubmissionValues(
-  ctx: { db: { query: any } },
+  ctx: { db: QueryCtx["db"] },
   submissionId: Id<"form_submissions">,
 ): Promise<Record<string, string>> {
   const rows = await ctx.db
     .query("fieldValues")
-    .withIndex("by_entity", (q: any) =>
+    .withIndex("by_entity", (q) =>
       q
         .eq("entityType", "form_submission")
         .eq("entityId", submissionId as string),
@@ -460,7 +461,7 @@ export const getSubmissionValues = internalQuery({
 /** internalQuery: re-read an action mid-flight (enabled/config may have changed). */
 export const getActionInternal = internalQuery({
   args: { actionId: v.id("form_actions") },
-  returns: v.union(v.null(), tableDocs.form_actions),
+  returns: v.union(v.null(), formsExtensionDocs.form_actions),
   handler: async (ctx, { actionId }) => {
     return await ctx.db.get(actionId);
   },
@@ -469,7 +470,7 @@ export const getActionInternal = internalQuery({
 /** internalQuery: read a run row. */
 export const getRun = internalQuery({
   args: { runId: v.id("form_action_runs") },
-  returns: v.union(v.null(), tableDocs.form_action_runs),
+  returns: v.union(v.null(), formsExtensionDocs.form_action_runs),
   handler: async (ctx, { runId }) => {
     return await ctx.db.get(runId);
   },
@@ -771,8 +772,8 @@ export const dispatchAction = internalAction({
       result = await def.run(
         {
           ctx,
-          formId: String(run.formId ?? ""),
-          submissionId: String(run.submissionId),
+          formId: run.formId,
+          submissionId: run.submissionId,
           values,
           attempt,
         },

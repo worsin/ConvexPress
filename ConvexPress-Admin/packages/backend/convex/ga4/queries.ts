@@ -13,8 +13,14 @@
 
 import { query, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
+import { validate } from "convex-helpers/validators";
 import { currentUserCan } from "../helpers/permissions";
-import { ga4DateRangeArgs, ga4PathArgs } from "./validators";
+import {
+  ga4DateRangeArgs,
+  ga4EngagementDataValidator,
+  ga4PathArgs,
+  ga4TrafficDataValidator,
+} from "./validators";
 import {
   computeQueryHash,
   TRAFFIC_METRICS,
@@ -22,6 +28,14 @@ import {
   ENGAGEMENT_METRICS,
   ENGAGEMENT_DIMENSIONS_DAILY,
 } from "./helpers";
+
+function stringSetting(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function numberSetting(value: unknown): number | null {
+  return typeof value === "number" ? value : null;
+}
 
 // ─── isConnected ───────────────────────────────────────────────────────────
 
@@ -62,16 +76,10 @@ export const getConnectionStatus = query({
   args: {},
   returns: v.union(v.null(), v.object({
     connected: v.boolean(),
-    propertyId: v.null(),
-    serviceAccountEmail: v.null(),
-    lastSync: v.null(),
-    error: v.null(),
-  }), v.object({
-    connected: v.boolean(),
-    propertyId: v.string(),
-    serviceAccountEmail: v.string(),
-    lastSync: v.number(),
-    error: v.string(),
+    propertyId: v.union(v.string(), v.null()),
+    serviceAccountEmail: v.union(v.string(), v.null()),
+    lastSync: v.union(v.number(), v.null()),
+    error: v.union(v.string(), v.null()),
   })),
   handler: async (ctx) => {
     const canManage = await currentUserCan(ctx, "analytics.manage");
@@ -96,10 +104,10 @@ export const getConnectionStatus = query({
 
     return {
       connected: values.ga4Connected === true,
-      propertyId: (values.ga4PropertyId as string) ?? null,
-      serviceAccountEmail: (values.ga4ServiceAccountEmail as string) ?? null,
-      lastSync: (values.ga4LastSync as number) ?? null,
-      error: (values.ga4Error as string) ?? null,
+      propertyId: stringSetting(values.ga4PropertyId),
+      serviceAccountEmail: stringSetting(values.ga4ServiceAccountEmail),
+      lastSync: numberSetting(values.ga4LastSync),
+      error: stringSetting(values.ga4Error),
     };
   },
 });
@@ -120,6 +128,11 @@ export const getCachedTrafficData = query({
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
+  returns: v.union(v.null(), v.object({
+    data: ga4TrafficDataValidator,
+    fetchedAt: v.number(),
+    source: v.literal("ga4"),
+  })),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -132,7 +145,7 @@ export const getCachedTrafficData = query({
 
     if (!settings) return null;
     const values = (settings.values as Record<string, unknown>) ?? {};
-    const propertyId = values.ga4PropertyId as string | undefined;
+    const propertyId = stringSetting(values.ga4PropertyId);
     if (!propertyId || values.ga4Connected !== true) return null;
 
     // Compute query hash
@@ -157,8 +170,12 @@ export const getCachedTrafficData = query({
     // Check expiry
     if (cached.expiresAt < Date.now()) return null;
 
+    // A cached payload that is not a normalized traffic report is a cache miss.
+    const data: unknown = cached.data;
+    if (!validate(ga4TrafficDataValidator, data)) return null;
+
     return {
-      data: cached.data,
+      data,
       fetchedAt: cached.fetchedAt,
       source: "ga4" as const,
     };
@@ -178,6 +195,11 @@ export const getCachedEngagementData = query({
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
+  returns: v.union(v.null(), v.object({
+    data: ga4EngagementDataValidator,
+    fetchedAt: v.number(),
+    source: v.literal("ga4"),
+  })),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -190,7 +212,7 @@ export const getCachedEngagementData = query({
 
     if (!settings) return null;
     const values = (settings.values as Record<string, unknown>) ?? {};
-    const propertyId = values.ga4PropertyId as string | undefined;
+    const propertyId = stringSetting(values.ga4PropertyId);
     if (!propertyId || values.ga4Connected !== true) return null;
 
     // Compute query hash
@@ -215,8 +237,12 @@ export const getCachedEngagementData = query({
     // Check expiry
     if (cached.expiresAt < Date.now()) return null;
 
+    // A cached payload that is not a normalized engagement report is a cache miss.
+    const data: unknown = cached.data;
+    if (!validate(ga4EngagementDataValidator, data)) return null;
+
     return {
-      data: cached.data,
+      data,
       fetchedAt: cached.fetchedAt,
       source: "ga4" as const,
     };
@@ -231,7 +257,11 @@ export const getCachedEngagementData = query({
  */
 export const getConnectionStatusInternal = internalQuery({
   args: {},
-  returns: v.union(v.null(), v.object({ connected: v.boolean(), propertyId: v.string(), serviceAccountEmail: v.string() })),
+  returns: v.union(v.null(), v.object({
+    connected: v.boolean(),
+    propertyId: v.union(v.string(), v.null()),
+    serviceAccountEmail: v.union(v.string(), v.null()),
+  })),
   handler: async (ctx) => {
     const settings = await ctx.db
       .query("settings")
@@ -243,8 +273,8 @@ export const getConnectionStatusInternal = internalQuery({
     const values = (settings.values as Record<string, unknown>) ?? {};
     return {
       connected: values.ga4Connected === true,
-      propertyId: (values.ga4PropertyId as string) ?? null,
-      serviceAccountEmail: (values.ga4ServiceAccountEmail as string) ?? null,
+      propertyId: stringSetting(values.ga4PropertyId),
+      serviceAccountEmail: stringSetting(values.ga4ServiceAccountEmail),
     };
   },
 });
