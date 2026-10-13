@@ -21,11 +21,29 @@ export const METHOD_TYPES = [
 ] as const;
 
 export type MethodType = (typeof METHOD_TYPES)[number];
-export type MethodTable = `commerce_shipping_method_${MethodType}`;
+
+/**
+ * The table for each method type, spelled out rather than built from a template
+ * (`commerce_shipping_method_${type}`): explicit table names stay greppable and
+ * survive hosts that mount ConvexPress under renamed tables.
+ */
+export const METHOD_TABLES = {
+  flat_rate: "commerce_shipping_method_flat_rate",
+  weight_based: "commerce_shipping_method_weight_based",
+  dimensional: "commerce_shipping_method_dimensional",
+  price_based: "commerce_shipping_method_price_based",
+  quantity_based: "commerce_shipping_method_quantity_based",
+  free: "commerce_shipping_method_free",
+  local_pickup: "commerce_shipping_method_local_pickup",
+  local_delivery: "commerce_shipping_method_local_delivery",
+  table_rate: "commerce_shipping_method_table_rate",
+} as const satisfies Record<MethodType, string>;
+
+export type MethodTable = (typeof METHOD_TABLES)[MethodType];
 export type MethodDoc = Doc<MethodTable>;
 
 export function methodTableFor(methodType: MethodType): MethodTable {
-  return `commerce_shipping_method_${methodType}`;
+  return METHOD_TABLES[methodType];
 }
 
 /** A method id is only meaningful inside its own method type's table. */
