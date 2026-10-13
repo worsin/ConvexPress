@@ -389,6 +389,14 @@ bun run desktop:dev    # Dev mode
 bun run desktop:build  # Package for current platform
 ```
 
+### Verify everything
+
+```bash
+# From the repo root, with root, Admin and Website dependencies installed
+bun run verify          # every quality gate in sequence; stops at the first failure
+bun run verify --list   # show the gates without running them
+```
+
 ---
 
 ## 🧠 Philosophy

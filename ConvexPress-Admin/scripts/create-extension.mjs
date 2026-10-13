@@ -12,6 +12,9 @@ export function extensionPlan({ id, title, outputRoot = referenceRoot }) {
   const settingsKey = id.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase()) + "Enabled";
   const moduleId = id.replaceAll("-", "_");
   const table = `extension_${moduleId}`;
+  // The export name scripts/typing/generate-table-docs.ts gives this extension's
+  // schema.docs.generated.ts companion (camel-cased module directory).
+  const docsExport = moduleId.replace(/_([a-z0-9])/g, (_, letter) => letter.toUpperCase()) + "ExtensionDocs";
   const pairs = [];
   // Copy the owned source trees, including regression tests. A fixed list drifted
   // as the reference gained pagination, categories and attendance support.
@@ -39,7 +42,7 @@ export function extensionPlan({ id, title, outputRoot = referenceRoot }) {
     let text = readFileSync(join(referenceRoot,from),"utf8");
     text = text
       .replace(/\b(extension_events|extension_event_categories|event_rsvp_(?:totals|entries|operations|rate_limits))\b/g, name =>
-        name === "extension_events" ? table : name === "extension_event_categories" ? `${table}_categories` : `${table}_rsvp_${name.slice("event_rsvp_".length)}`).replaceAll("eventsEnabled",settingsKey).replaceAll("internal.extensions.events", `internal.extensions[${JSON.stringify(moduleId)}]`).replaceAll("api.extensions.events",`api.extensions[${JSON.stringify(moduleId)}]`).replaceAll('"events-', `"${id}-`).replaceAll('"events"',JSON.stringify(id)).replaceAll("'events'",JSON.stringify(id)).replaceAll("/events/",`/${id}/`).replaceAll("/events?",`/${id}?`).replaceAll("'/events'",JSON.stringify(`/${id}`)).replaceAll('"/events"',JSON.stringify(`/${id}`)).replaceAll('"/dashboard/events"',JSON.stringify(`/dashboard/${id}`)).replaceAll("events.index",`${id}.index`).replaceAll("events.detail",`${id}.detail`).replaceAll("events.card",`${id}.card`).replaceAll("dashboard.events",`dashboard.${id}`).replaceAll('title="Events"',`title=${JSON.stringify(title)}`).replaceAll('label: "Events"',`label: ${JSON.stringify(title)}`).replaceAll('title: "Events"',`title: ${JSON.stringify(title)}`).replaceAll('"title": "Events"',`"title": ${JSON.stringify(title)}`);
+        name === "extension_events" ? table : name === "extension_event_categories" ? `${table}_categories` : `${table}_rsvp_${name.slice("event_rsvp_".length)}`).replaceAll("eventsEnabled",settingsKey).replaceAll("eventsExtensionDocs",docsExport).replaceAll("internal.extensions.events", `internal.extensions[${JSON.stringify(moduleId)}]`).replaceAll("api.extensions.events",`api.extensions[${JSON.stringify(moduleId)}]`).replaceAll('"events-', `"${id}-`).replaceAll('"events"',JSON.stringify(id)).replaceAll("'events'",JSON.stringify(id)).replaceAll("/events/",`/${id}/`).replaceAll("/events?",`/${id}?`).replaceAll("'/events'",JSON.stringify(`/${id}`)).replaceAll('"/events"',JSON.stringify(`/${id}`)).replaceAll('"/dashboard/events"',JSON.stringify(`/dashboard/${id}`)).replaceAll("events.index",`${id}.index`).replaceAll("events.detail",`${id}.detail`).replaceAll("events.card",`${id}.card`).replaceAll("dashboard.events",`dashboard.${id}`).replaceAll('title="Events"',`title=${JSON.stringify(title)}`).replaceAll('label: "Events"',`label: ${JSON.stringify(title)}`).replaceAll('title: "Events"',`title: ${JSON.stringify(title)}`).replaceAll('"title": "Events"',`"title": ${JSON.stringify(title)}`);
     // Public IDs/routes may contain hyphens; deployed Convex module paths may not.
     // Only backend module references are rewritten, never frontend import paths.
     if (from.startsWith("ConvexPress-Admin/packages/backend/convex/")) {
@@ -67,11 +70,26 @@ export function extensionPlan({ id, title, outputRoot = referenceRoot }) {
   changes.push({path:readmePath,text:`# ${title}\n\nComplete event-publishing starter extension, generated from Events. The plugin starts disabled. Adapt its fields for your domain, run the generated backend tests, and enable it through Extensions after deployment.\n\nAPI: api.extensions[${JSON.stringify(moduleId)}].queries / mutations\nBackend modules: extensions/${moduleId}\nTable: ${table}\nFlag: ${settingsKey}\nPublic routes: /${id}, /${id}/<slug>\nAdmin: /${id}\nDashboard registry ID: ${id}\n\nDo not remove capability checks, public projections, plugin gates, optimistic editor checks or soft archive behavior.\n`});
   return {id,moduleId,outputRoot,changes};
 }
+// The backend typing generators are Bun TypeScript programs; the scaffold itself
+// may run under Node (create:extension) or Bun (tests).
+const bun = process.versions.bun ? process.execPath : "bun";
+const backendRoot = "ConvexPress-Admin/packages/backend";
 export function writeExtension(plan) {
   for (const change of plan.changes) { mkdirSync(dirname(change.path),{recursive:true}); writeFileSync(change.path,change.text); }
-  for (const relative of ["ConvexPress-Admin/packages/backend/scripts/generate-extension-index.mjs","ConvexPress-Website/scripts/sync-extension-manifests.mjs","ConvexPress-Website/scripts/sync-template-packs.mjs"]) {
+  // Order matters: the extension index discovers the new schema module; the
+  // exact document validators (schema.docs.generated.ts and its manifest) are
+  // derived from that schema; the static API is derived from the new handlers
+  // and their return validators. The copied companion is only a placeholder
+  // until its generator rewrites it, so check:typing holds after scaffolding.
+  for (const [runtime, relative, cwd] of [
+    [process.execPath, `${backendRoot}/scripts/generate-extension-index.mjs`],
+    [bun, `${backendRoot}/scripts/typing/generate-table-docs.ts`, backendRoot],
+    [bun, `${backendRoot}/scripts/typing/generate-static-api.ts`, backendRoot],
+    [process.execPath, "ConvexPress-Website/scripts/sync-extension-manifests.mjs"],
+    [process.execPath, "ConvexPress-Website/scripts/sync-template-packs.mjs"],
+  ]) {
     const path=join(plan.outputRoot,relative); if (!existsSync(path)) continue;
-    const result=spawnSync(process.execPath,[path],{stdio:"inherit"}); if(result.status!==0) throw new Error(`Generated files need attention: ${relative}`);
+    const result=spawnSync(runtime,[path],{stdio:"inherit",...(cwd?{cwd:join(plan.outputRoot,cwd)}:{})}); if(result.status!==0) throw new Error(`Generated files need attention: ${relative}`,{cause:result.error});
   }
   for (const project of ["ConvexPress-Admin", "ConvexPress-Website"]) {
     const cwd = join(plan.outputRoot, project, "apps/web");

@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { test, expect } from "bun:test";
 import { getFunctionName, makeFunctionReference } from "convex/server";
-import { fixture } from "./harness";
+import { fixture, canonicalTargetModules, publishMaintenance } from "./harness";
 import { runReview } from "../review";
 import {
 	execute,
@@ -317,12 +317,9 @@ test("registered broker uses real target intents/storage/dry-run handlers and ke
 	const site = convexTest({
 		schema: siteSchema,
 		modules: {
-			"./convex/_generated/server.js": () =>
-				import("../../../../backend/convex/_generated/server.js"),
+			...canonicalTargetModules,
 			"./convex/contentPromotion/mediaUploads.ts": () =>
 				import("../../../../backend/convex/contentPromotion/mediaUploads"),
-			"./convex/contentPromotion/operations.ts": () =>
-				import("../../../../backend/convex/contentPromotion/operations"),
 		},
 	});
 	const user = await site.run(async (ctx) => {
@@ -507,7 +504,10 @@ test("registered broker uses real target intents/storage/dry-run handlers and ke
 		expect(snapshot.media).toHaveLength(1);
 		expect(snapshot.media[0].storageId).toBe(result.storageId);
 		expect(snapshot.storage).toHaveLength(1);
-		expect(snapshot.jobs).toHaveLength(0);
+		expect(publishMaintenance(snapshot.jobs)).toEqual({
+			postCountRequests: 1,
+			otherWork: [],
+		});
 		expect(snapshot.orders).toHaveLength(0);
 		expect(
 			(await (execute as any)._handler(recordContext, f.confirmation)).phase,

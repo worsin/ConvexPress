@@ -309,6 +309,7 @@ export function validateAuthoringFields(z, attrs, choices = []) {
         }
         if (choice.kind === "web-url" && value !== "") {
           let valid = false;
+          // eslint-disable-next-line no-control-regex -- Reject literal controls, spaces and backslashes that URL parsing would silently normalize away.
           try { const url = new URL(value); valid = /^https?:\/\//i.test(value) && !/[\u0000-\u0020\u007f\\]/.test(value) && ["http:","https:"].includes(url.protocol) && !!url.hostname && !url.username && !url.password; } catch {}
           if (!valid) issues.push({ code: "custom", path, message: "Use a complete HTTP or HTTPS URL without embedded credentials, or leave it empty" });
         }

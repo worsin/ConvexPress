@@ -1,10 +1,15 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/remaining-acceptance-20261007/mt-after.json",
+  "checkpointSource": "docs/superpowers/plans/tracker-checkpoints/2026-10-13-blocks.json",
   "checkpointCounts": {
     "Verified": 136,
     "In progress": 1
+  },
+  "checkpointCapture": {
+    "capturedAt": "2026-10-13",
+    "command": "mt table records q97ft31dnn52vbeha9fdd3zfg98dv4sq --fields \"Name,Status,Spec Path\" --sort Name:asc --limit 500",
+    "note": "Read-only full readback committed so check:delivery-status runs on a fresh checkout. All 137 rows match the statuses reconciled against the untracked 2026-10-07 readback (output/remaining-acceptance-20261007/mt-after.json)."
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
   "currentTask": "136/137 verified. Event RSVP actual real Turnstile registration/reload/cancellation accepted for original and generated providers; passive widget success, no challenge automation or bypass. Owned page trashed/events archived, original content preserved, temporary backend secret/settings restored. E117 complete across10environments. Remaining block: authorized Instagram success; public HTTPS staging is quota-disabled. Unused localhost-only Cloudflare widget removal remains explicit cleanup residual; no callable Cloudflare connector/auth available. No push or audit wait.",

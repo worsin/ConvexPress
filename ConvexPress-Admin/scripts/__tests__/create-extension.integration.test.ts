@@ -11,15 +11,25 @@ test("generated publishing, categories, calendar, RSVP and search handlers opera
   const relative = "ConvexPress-Admin/packages/backend", source = join(sourceRoot, relative), backend = join(root, relative);
   try {
     mkdirSync(backend, { recursive: true });
-    for (const directory of ["convex", "canonical-blocks-foundation", "membership-policy-foundation", "scripts"]) {
+    // Every backend source tree: the static API generator loads every module.
+    for (const directory of ["convex", "canonical-blocks-foundation", "membership-policy-foundation", "lib", "scripts"]) {
       cpSync(join(source, directory), join(backend, directory), { recursive: true, filter: path => !["node_modules", "output"].includes(basename(path)) && !basename(path).startsWith(".env") });
     }
     cpSync(join(source, "package.json"), join(backend, "package.json"));
+    // The backend's typing generators (table docs, static API) run during
+    // scaffolding and need the backend's own dependencies.
+    symlinkSync(join(source, "node_modules"), join(backend, "node_modules"), "dir");
     writeExtension(extensionPlan({ id: "community-events", title: "Community Events", outputRoot: root }));
     // Backend-only acceptance: frontend dependencies/routes are absent during
     // generation. No installed user app is modified.
-    symlinkSync(join(source, "node_modules"), join(backend, "node_modules"), "dir");
     symlinkSync(join(sourceRoot, "ConvexPress-Admin/node_modules"), join(root, "ConvexPress-Admin/node_modules"), "dir");
+    // The scaffold regenerated exact document validators and the static API,
+    // so the backend typing drift gate holds for the new extension as-is.
+    for (const generator of ["generate-table-docs.ts", "generate-static-api.ts"]) {
+      const check = spawnSync(process.execPath, [`scripts/typing/${generator}`, "--check"], { cwd: backend, encoding: "utf8", timeout: 60_000 });
+      if (check.status !== 0) throw new Error(`Scaffold left ${generator} stale:\n${check.stdout}\n${check.stderr}`, { cause: check.error });
+    }
+    expect(readFileSync(join(backend, "convex/extensions/community_events/queries.ts"), "utf8")).toContain("communityEventsExtensionDocs");
     const generated = "./convex/extensions/community_events/__tests__/";
     writeFileSync(join(backend, generated, "sibling-search.test.ts"), `import {test,expect} from 'bun:test';
 import {convexTest} from 'convex-test';
@@ -80,11 +90,25 @@ test('same-slug siblings keep table, route and plugin authority isolated',async(
  expect((await dashboard()).pages.some(page=>page.id==='events')).toBe(true);
  expect((await dashboard()).pages.some(page=>page.id==='community-events')).toBe(false);
 });`);
-    const result = spawnSync(process.execPath, ["test", ...["handlers", "categories", "calendarIndex", "pagination", "search", "rsvp", "sibling-search"].map(name => `${generated}${name}.test.ts`)], { cwd: backend, encoding: "utf8", timeout: 30_000 });
-    // Run the complete generated backend reference suite, including RSVP.
+    // Run the complete generated backend reference suite, including RSVP. Bun's
+    // console output omits passing test names in some environments (AI-agent
+    // and CI modes), so read the outcome from its machine-readable report.
+    const suites = ["handlers", "categories", "calendarIndex", "pagination", "search", "rsvp", "sibling-search"].map(name => `${generated}${name}.test.ts`);
+    const report = join(root, "generated-tests.junit.xml");
+    const result = spawnSync(process.execPath, ["test", "--reporter=junit", `--reporter-outfile=${report}`, ...suites], { cwd: backend, encoding: "utf8", timeout: 30_000 });
     if (result.status !== 0) throw new Error(`Generated handlers failed:\n${result.stdout}\n${result.stderr}`, { cause: result.error });
-    expect(result.stdout + result.stderr).toContain("0 fail");
-    expect(result.stdout + result.stderr).toContain("generated search maintenance owns its source table");
+    const junit = readFileSync(report, "utf8");
+    const attribute = (element: string, name: string) => {
+      const value = new RegExp(`\\s${name}="([^"]*)"`).exec(element)?.[1];
+      return value?.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+    };
+    const totals = /<testsuites\b[^>]*>/.exec(junit)?.[0] ?? "";
+    expect({ failures: attribute(totals, "failures"), skipped: attribute(totals, "skipped") }).toEqual({ failures: "0", skipped: "0" });
+    expect([...junit.matchAll(/<testsuite\b[^>]*>/g)].map(([element]) => attribute(element, "file")).sort()).toEqual(suites.map(suite => suite.slice(2)).sort());
+    // A self-closing <testcase/> has no <failure>/<skipped> child: it passed.
+    const passed = [...junit.matchAll(/<testcase\b[^>]*\/>/g)].map(([element]) => attribute(element, "name"));
+    expect(passed).toContain("generated search maintenance owns its source table through cleanup and full backfill");
+    expect(passed).toContain("same-slug siblings keep table, route and plugin authority isolated");
     expect(readFileSync(join(backend, "convex/schema/_searchIndex.generated.ts"), "utf8")).toContain('../extensions/community_events/search');
   } finally { rmSync(root, { recursive: true, force: true }); }
 }, 60_000);

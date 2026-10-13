@@ -7,6 +7,32 @@ import { CURRENT_SITE_CONTRACT_VERSION } from "@convexpress/site-contract";
 import { hash } from "../policy";
 import { promotionReviewedRecords } from '@convexpress/site-contract/content-promotion';
 export const modules={"./convex/_generated/server.js":()=>import("../../_generated/server.js")};
+/** Authored page data exactly as a site exporter emits it for a canonical
+ * (blocksVersion 2) document: the body travels only as the portable canonical
+ * tree, with no legacy `content`/`blocks`/`contentMode`. Sites refuse legacy
+ * documents with CANONICAL_SOURCE_MIGRATION_REQUIRED, so fixtures must not use them. */
+export function canonicalPageData(title:string){
+ return {title,slug:"aster",status:"publish",visibility:"public",commentStatus:"closed",blocksVersion:2,canonical:{contract:"canonical-promotion-tree-v1",blocks:[{id:"fixture-prose",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:title}]}]}}}],references:[]}};
+}
+/** Site backend modules a canonical target apply reaches: the promotion API, the
+ * internal canonical write boundary it dispatches into, and the post-count
+ * maintenance that publishing a canonical document schedules (exactly as the
+ * site's own editor does when it publishes). */
+export const canonicalTargetModules={
+ "./convex/_generated/server.js":()=>import("../../../../backend/convex/_generated/server.js"),
+ "./convex/contentPromotion/operations.ts":()=>import("../../../../backend/convex/contentPromotion/operations"),
+ "./convex/canonicalDocuments/promotion.ts":()=>import("../../../../backend/convex/canonicalDocuments/promotion"),
+ "./convex/posts/internals.ts":()=>import("../../../../backend/convex/posts/internals"),
+ "./convex/posts/authorCounts.ts":()=>import("../../../../backend/convex/posts/authorCounts"),
+};
+/** Classifies a target's scheduled work after a canonical publish. The apply
+ * itself may schedule exactly one post-count request (which then fans out into
+ * posts/authorCounts:*, on its own timer); anything else is outbound or
+ * duplicated work that a promotion or its recovery must never create. */
+export function publishMaintenance(jobs:ReadonlyArray<{name:string}>){
+ const request="posts/internals:updatePostCount";
+ return {postCountRequests:jobs.filter(job=>job.name===request).length,otherWork:jobs.map(job=>job.name).filter(name=>name!==request&&!name.startsWith("posts/authorCounts:"))};
+}
 export function addReusableTransfer(f: {remote: ReviewTransport}) {
  const original=f.remote.export;
  f.remote.export=async(...args)=>{
@@ -42,6 +68,6 @@ export async function fixture() {
   const args={sourceConnectionId:ids.source.connection,targetConnectionId:ids.target.connection,requestJson:JSON.stringify(request)};
   const calls:string[]=[];
   const context:any={runMutation:async(ref:any,args:any)=>{const name=getFunctionName(ref);calls.push(name);return invoke(name.endsWith(":begin")?begin:name.endsWith(":finish")?finish:failReview,args);},runQuery:async(_ref:any,args:any)=>invoke(get,args),runAction:async(_ref:any,args:any)=>{calls.push("siteBroker/session:exchange");const isSource=args.connectionId===ids.source.connection;return {token:isSource?"opaque-source-session-secret":"opaque-target-session-secret",websiteKey:"aster",instanceKey:`aster:${isSource?"staging":"live"}`,siteOrigin:`https://${isSource?"staging":"live"}.aster.example`,capabilities:args.requestedCapabilities,siteRole:"administrator",siteCapabilities:["manage_options"],expiresAt:Date.now()+60_000};}};
-  const remote:ReviewTransport={export:async(source,_token,request,target)=>({manifest:{version:1,source:{...source.identity},target:{...target.identity},selection:structuredClone(request.selection),records:[{key:"page:source-page",kind:"page",sourceRevision:"revision-1",data:{title:"Aster",slug:"aster",status:"publish",visibility:"public",commentStatus:"closed"}}],dependencies:[],issues:[]},downloadUrls:[]}),dryRun:async(_target,_token,manifest)=>({ready:true,digest:hash(manifest),receiptId:"site-review",issues:[],changes:manifest.records.map(r=>({key:r.key,kind:r.kind,targetId:null,beforeRevision:hash(null),fields:Object.keys(r.data)}))})};
+  const remote:ReviewTransport={export:async(source,_token,request,target)=>({manifest:{version:1,source:{...source.identity},target:{...target.identity},selection:structuredClone(request.selection),records:[{key:"page:source-page",kind:"page",sourceRevision:"revision-1",data:canonicalPageData("Aster")}],dependencies:[],issues:[]},downloadUrls:[]}),dryRun:async(_target,_token,manifest)=>({ready:true,digest:hash(manifest),receiptId:"site-review",issues:[],changes:manifest.records.map(r=>({key:r.key,kind:r.kind,targetId:null,beforeRevision:hash(null),fields:Object.keys(r.data)}))})};
   return {t,ids,invoke,args,request,calls,context,remote};
 }

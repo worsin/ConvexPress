@@ -285,7 +285,7 @@ September28 navigation completion:63Verified/74In progress after Table of Conten
 
 ### Checkpoint parity gate
 
-After each accepted batch, reconcile every `blocks[].checkpointStatus` and its remaining-review/evidence entry against the exact full tracker readback, update `checkpointCounts` and `checkpointSource`, then run `bun run check:delivery-status`. This check compares all137 identities and individual statuses as well as the header counts; matching totals alone are insufficient. The check is read-only and does not grant acceptance or mutate MagicTables.
+After each accepted batch, reconcile every `blocks[].checkpointStatus` and its remaining-review/evidence entry against the exact full tracker readback, update `checkpointCounts` and `checkpointSource`, then run `bun run check:delivery-status`. Commit the readback itself under `docs/superpowers/plans/tracker-checkpoints/` (`mt table records q97ft31dnn52vbeha9fdd3zfg98dv4sq --fields "Name,Status,Spec Path" --sort Name:asc --limit 500 --format json`); the check refuses any other location, so it runs on a fresh checkout instead of depending on an ignored `output/` folder. This check compares all137 identities and individual statuses as well as the header counts; matching totals alone are insufficient. The check is read-only and does not grant acceptance or mutate MagicTables.
 
 ## October 7 original-fleet correction
 

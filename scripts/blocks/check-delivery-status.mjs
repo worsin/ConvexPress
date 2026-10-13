@@ -2,11 +2,22 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
+import {TRACKER} from './tracker.mjs';
+/* Offline parity gate: the delivery status file must match, row for row, an
+ * exact full readback of the MagicTables block tracker. The readback is a
+ * tracked file (CHECKPOINT_DIR), so a fresh checkout can run this without
+ * MagicTables access or anyone's private output/ folder. Capture a new one with
+ *   mt table records <TRACKER.tableId> --fields "Name,Status,Spec Path" --sort Name:asc --limit 500 --format json
+ * into CHECKPOINT_DIR/<date>-blocks.json, then point checkpointSource at it. */
+const CHECKPOINT_DIR='docs/superpowers/plans/tracker-checkpoints/';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const status=JSON.parse(await fs.readFile(path.join(root,'docs/superpowers/plans/2026-09-28-editor-template-status.json'),'utf8'));
-const snapshot=JSON.parse(await fs.readFile(path.resolve(root,status.checkpointSource),'utf8'));
+assert(typeof status.checkpointSource==='string'&&status.checkpointSource.startsWith(CHECKPOINT_DIR)&&path.posix.normalize(status.checkpointSource)===status.checkpointSource&&status.checkpointSource.endsWith('.json'),`checkpointSource must be a tracked readback under ${CHECKPOINT_DIR}`);
+const snapshot=JSON.parse(await fs.readFile(path.join(root,status.checkpointSource),'utf8'));
+assert.deepEqual([snapshot.context?.base?.id,snapshot.context?.table?.id],[TRACKER.baseId,TRACKER.tableId],'Checkpoint is not a readback of the block tracker table');
 const rows=snapshot.records;
 assert(Array.isArray(rows),'Checkpoint source must contain tracker records');
+assert(snapshot.summary?.offset===0&&snapshot.summary.matched===rows.length&&snapshot.summary.returned===rows.length,'Checkpoint must be one complete, untruncated tracker readback');
 const tracker=new Map(rows.map(row=>[row.values.Name,row.values.Status]));
 const local=new Map(status.blocks.map(block=>[block.name,block.checkpointStatus]));
 assert.equal(tracker.size,rows.length,'Duplicate tracker names');

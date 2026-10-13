@@ -25,6 +25,7 @@
     "capture:block-thumbnails": "node scripts/blocks/capture-thumbnails.mjs",
     "check:block-thumbnails": "node scripts/blocks/thumbnail-catalog.mjs",
     "check:plugin-defaults": "bun test ./scripts/plugins/defaults.test.ts",
-    "check:delivery-status": "node scripts/blocks/check-delivery-status.mjs"
+    "check:delivery-status": "node scripts/blocks/check-delivery-status.mjs",
+    "verify": "node scripts/verify.mjs"
   }
 }
