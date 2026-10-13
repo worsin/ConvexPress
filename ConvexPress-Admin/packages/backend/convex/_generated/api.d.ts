@@ -3974,6 +3974,12 @@ export declare const internal:
 "meilisearchIndex": FunctionReference<"query", "internal", {  }, string>,
 }
 ,
+"trustedConsumers":
+{
+"recordHelpfulFeedback": FunctionReference<"mutation", "internal", { articleId: Id<"kb_articles">, sessionId: string, isHelpful: boolean, comment?: string }, { feedbackId: Id<"kb_articleFeedback"> }>,
+"recordPageView": FunctionReference<"mutation", "internal", { articleId: Id<"kb_articles">, sessionId: string, referrer?: string, durationMs?: number }, { viewId: Id<"kb_pageViews">, deduplicated: boolean }>,
+}
+,
 "visibilityTransitions":
 {
 "purgeRagChunks": FunctionReference<"mutation", "internal", { articleId: Id<"kb_articles"> }, null>,
