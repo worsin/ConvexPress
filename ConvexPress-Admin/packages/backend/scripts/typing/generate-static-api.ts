@@ -83,6 +83,19 @@ type RegisteredLike = {
 const functions = new Map<string, Analyzed[]>();
 const missingReturns: string[] = [];
 const missingArgs: string[] = [];
+/**
+ * A deployment push serializes each function's validators as JSON, and the
+ * backend refuses deeply nested documents (it reports "Invalid JSON" near 128
+ * levels). Recursive shapes unrolled with boundedTreeValidator grow about four
+ * levels per tree level, so keep a clear margin below that limit.
+ */
+const MAX_VALIDATOR_JSON_DEPTH = 100;
+const tooDeep: string[] = [];
+function jsonDepth(value: unknown): number {
+  if (Array.isArray(value)) return 1 + Math.max(0, ...value.map(jsonDepth));
+  if (value !== null && typeof value === "object") return 1 + Math.max(0, ...Object.values(value).map(jsonDepth));
+  return 0;
+}
 for (const modulePath of modulePaths()) {
   const mod = (await import(join(convexDir, modulePath))) as Record<string, unknown>;
   const list: Analyzed[] = [];
@@ -98,9 +111,17 @@ for (const modulePath of modulePaths()) {
     const id = `${modulePath.replace(/\.[^.]+$/, "")}:${name}`;
     if (returns === "null") missingReturns.push(id);
     if (JSON.parse(args).type === "any") missingArgs.push(id);
+    const depth = Math.max(jsonDepth(JSON.parse(args)), jsonDepth(JSON.parse(returns)));
+    if (depth > MAX_VALIDATOR_JSON_DEPTH) tooDeep.push(`${id} (depth ${depth})`);
     list.push({ name, udfType, visibility, args, returns });
   }
   if (list.length) functions.set(modulePath.replace(/\.[^.]+$/, ""), list);
+}
+
+if (tooDeep.length) {
+  console.error(`${tooDeep.length} functions export validators nested deeper than ${MAX_VALIDATOR_JSON_DEPTH} levels; a deploy would be refused:`);
+  for (const id of tooDeep) console.error(`  ${id}`);
+  process.exit(1);
 }
 
 if (missingReturns.length && !allowMissingReturns) {

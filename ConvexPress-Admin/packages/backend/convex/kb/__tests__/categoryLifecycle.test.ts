@@ -40,8 +40,14 @@ test('category parenting rejects self, descendants and corrupt ancestor cycles w
 });
 test('hierarchy traversal has a depth bound and inactive parents cannot receive new children',async()=>{
  const f=await fixture();let parent=await f.create({name:'Root'});
- await f.t.run(async ctx=>{for(let i=0;i<70;i++)parent=await ctx.db.insert('kb_categories',{name:`Layer ${i}`,slug:`layer-${i}`,parentId:parent,order:i,isActive:true,isPublished:true,articleCount:0,createdAt:1,updatedAt:1});});
- await expect(f.create({name:'Too deep',parentId:parent})).rejects.toThrow('64');
+ // Root plus 14 layers: a child has 15 ancestors (16 levels), the maximum.
+ await f.t.run(async ctx=>{for(let i=0;i<14;i++)parent=await ctx.db.insert('kb_categories',{name:`Layer ${i}`,slug:`layer-${i}`,parentId:parent,order:i,isActive:true,isPublished:true,articleCount:0,createdAt:1,updatedAt:1});});
+ const deepest=await f.create({name:'Deepest allowed',parentId:parent});
+ await expect(f.create({name:'Too deep',parentId:deepest})).rejects.toThrow('maximum of 15 ancestors');
+ // A pre-existing chain far beyond the bound is refused too, not walked to its end.
+ let corrupt=deepest;
+ await f.t.run(async ctx=>{for(let i=0;i<70;i++)corrupt=await ctx.db.insert('kb_categories',{name:`Corrupt ${i}`,slug:`corrupt-${i}`,parentId:corrupt,order:i,isActive:true,isPublished:true,articleCount:0,createdAt:1,updatedAt:1});});
+ await expect(f.create({name:'Beyond corrupt chain',parentId:corrupt})).rejects.toThrow('maximum of 15 ancestors');
  const inactive=await f.create({name:'Inactive'});await f.t.run(ctx=>ctx.db.patch(inactive,{isActive:false}));
  await expect(f.create({name:'Hidden child',parentId:inactive})).rejects.toThrow('inactive');
 });

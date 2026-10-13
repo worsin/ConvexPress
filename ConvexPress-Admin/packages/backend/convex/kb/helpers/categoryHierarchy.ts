@@ -15,7 +15,13 @@ export async function requireAssignableCategory(ctx: Pick<QueryCtx, "db">, id: I
   if (!category.isActive) throw new ConvexError({ code: "VALIDATION_ERROR", message: "An inactive category cannot receive content." });
 }
 
-export const MAX_CATEGORY_ANCESTORS = 64;
+/**
+ * A category may have at most 15 ancestors (16 levels), the same depth the
+ * page, menu and taxonomy trees return. `getHierarchy` returns the whole tree
+ * through a depth-bounded validator, and a deployment refuses validators nested
+ * much deeper (each tree level adds about four JSON levels).
+ */
+export const MAX_CATEGORY_ANCESTORS = 15;
 
 /** Validate the complete proposed ancestor chain in the same write transaction.
  * A visited set also catches pre-existing cycles that do not include the child. */
@@ -29,7 +35,7 @@ export async function validateCategoryParent(
   let current = parentId;
   for (let depth = 0; current; depth++) {
     if (seen.has(current)) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Category parent cycle detected. Choose a different parent or No parent." });
-    if (depth >= MAX_CATEGORY_ANCESTORS) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Category hierarchy exceeds the maximum of 64 ancestors." });
+    if (depth >= MAX_CATEGORY_ANCESTORS) throw new ConvexError({ code: "VALIDATION_ERROR", message: `Category hierarchy exceeds the maximum of ${MAX_CATEGORY_ANCESTORS} ancestors.` });
     seen.add(current);
     budget.beforeRead();
     const parent = budget.record(await ctx.db.get("kb_categories", current));
