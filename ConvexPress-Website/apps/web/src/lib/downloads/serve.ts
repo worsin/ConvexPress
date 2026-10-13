@@ -44,6 +44,7 @@ export function downloadInterval(header: string | null, size: number): { offset:
   return { offset, length: Math.min(end, size - 1) - offset + 1, partial: true };
 }
 export function attachment(name: string): string {
+  // eslint-disable-next-line no-control-regex -- Strip C0 controls, DEL and path separators before a filename reaches a response header.
   const safe = Array.from(name.replace(/[\u0000-\u001f\u007f/\\]/g, "_")).slice(0, 240).join("") || "download";
   const encoded = encodeURIComponent(new TextDecoder().decode(new TextEncoder().encode(safe))).replace(/['()*]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
   return `attachment; filename="download"; filename*=UTF-8''${encoded}`;

@@ -376,11 +376,13 @@ test("native renewal automatically renders a remounted Website receiver after a 
 		expect(states.at(-1)).toBe("paused");
 		expect(visible).toBeNull();
 		now = 2000;
-		for (const [id, task] of [...tasks])
-			if (task.at <= now) {
-				tasks.delete(id);
-				task.run();
-			}
+		// Fire only the timers already due at this tick, as an event loop would;
+		// anything a callback schedules now waits for a later tick.
+		const due = [...tasks].filter(([, task]) => task.at <= now);
+		for (const [id, task] of due) {
+			tasks.delete(id);
+			task.run();
+		}
 		await pause();
 		expect(reads).toBe(2);
 		expect(connections).toBe(2);
