@@ -77,7 +77,7 @@ export async function listAllMethodRows(
 
 /** A method row tagged with its method type, so `config` narrows on `methodType`. */
 export type ZoneMethod = {
-  [T in MethodType]: { methodType: T; config: Doc<`commerce_shipping_method_${T}`> };
+  [T in MethodType]: { methodType: T; config: Doc<(typeof METHOD_TABLES)[T]> };
 }[MethodType];
 
 /**
