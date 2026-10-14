@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
+import { parseTemplateVariables } from "../helpers/email";
 
 function assertValidEmail(recipientEmail: string) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,21 +81,14 @@ export const sendTemplateTestEmail = action({
 
     let variableOverrides: Record<string, string> | undefined;
     if (args.variableOverridesJson?.trim()) {
-      try {
-        const parsed = JSON.parse(args.variableOverridesJson) as Record<
-          string,
-          unknown
-        >;
-        variableOverrides = {};
-        for (const [key, value] of Object.entries(parsed)) {
-          variableOverrides[key] = String(value);
-        }
-      } catch {
+      const parsed = parseTemplateVariables(args.variableOverridesJson);
+      if (!parsed) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: "Variable overrides must be valid JSON.",
+          message: "Variable overrides must be a JSON object.",
         });
       }
+      variableOverrides = parsed;
     }
 
     const queueId = await ctx.runMutation(

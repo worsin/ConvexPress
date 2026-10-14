@@ -481,9 +481,9 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
   },
 ];
 
-export const EMAIL_TEMPLATE_REGISTRY_BY_SLUG = Object.fromEntries(
-  EMAIL_TEMPLATE_REGISTRY.map((entry) => [entry.slug, entry]),
-) as Record<string, EmailTemplateRegistryEntry>;
+export const EMAIL_TEMPLATE_REGISTRY_BY_SLUG: Record<string, EmailTemplateRegistryEntry> = Object.fromEntries(
+  EMAIL_TEMPLATE_REGISTRY.map((entry): [string, EmailTemplateRegistryEntry] => [entry.slug, entry]),
+);
 
 export const OBSOLETE_EMAIL_LISTENERS = [
   {

@@ -42,7 +42,9 @@ import {
   checkUnsubscribed,
   isValidEmail,
   EMAIL_TEMPLATES,
+  parseTemplateVariables,
 } from "../helpers/email";
+import { settingsRecord } from "../helpers/settingsReader";
 import { getUserIdentifier, lookupUserByIdentifier, requireCan } from "../helpers/permissions";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import {
@@ -387,7 +389,7 @@ export const queueEmail = internalMutation({
   args: queueEmailInternalArgs,
   returns: v.union(v.null(), v.id("emailQueue")),
   handler: async (ctx, args) => {
-    const variables = JSON.parse(args.variables) as Record<string, string>;
+    const variables = parseTemplateVariables(args.variables) ?? {};
 
     return await queueEmailForEvent(ctx, args.templateSlug, {
       recipientEmail: args.recipientEmail,
@@ -482,24 +484,24 @@ export const queueTemplateTestEmail = internalMutation({
       });
     }
 
-    let parsedOverrides: Record<string, string> | undefined;
-    if (args.variableOverrides) {
-      parsedOverrides = JSON.parse(args.variableOverrides) as Record<
-        string,
-        string
-      >;
-    }
+    const parsedOverrides = args.variableOverrides
+      ? parseTemplateVariables(args.variableOverrides) ?? undefined
+      : undefined;
 
     const settings = await getEmailSettings(ctx);
-    const variables = injectGlobalVariables(
-      buildTemplateSampleVariables(template.availableVariables, parsedOverrides),
-      {
-        siteName: settings.siteName,
-        siteUrl: settings.siteUrl,
-        unsubscribeUrl: settings.unsubscribeUrl,
-      },
-      args.recipientName,
-    );
+    // Sample values fill the template's own variables; the site's name and
+    // links are real, so a test looks like what customers receive.
+    const variables = {
+      ...injectGlobalVariables(
+        buildTemplateSampleVariables(template.availableVariables, parsedOverrides),
+        {},
+        args.recipientName,
+      ),
+      site_name: settings.siteName,
+      site_url: settings.siteUrl,
+      unsubscribe_url: settings.unsubscribeUrl,
+      ...parsedOverrides,
+    };
 
     const subject = renderTemplate(template.subjectTemplate, variables);
     const bodyHtml = renderTemplate(template.bodyHtml, variables);
@@ -572,10 +574,9 @@ export const sendEmail = internalAction({
     }
 
     // 2. Get Resend API key (settings table first, env var fallback)
-    const emailSettings = await ctx.runQuery(
-      internal.settings.internals.getInternal,
-      { section: "email" },
-    ) as Record<string, unknown> | null;
+    const emailSettings = settingsRecord(
+      await ctx.runQuery(internal.settings.internals.getInternal, { section: "email" }),
+    );
 
     const apiKey = await resolveServiceKeyAsync(emailSettings, "resendApiKey", "RESEND_API_KEY");
     if (!apiKey) {
@@ -1811,10 +1812,7 @@ export const onMediaUploaded = internalMutation({
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "media"))
       .unique();
-    const mediaSettings = (mediaSettingsDoc?.values ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const mediaSettings = settingsRecord(mediaSettingsDoc?.values);
     const storageQuotaBytes =
       typeof mediaSettings.storageQuotaBytes === "number"
         ? mediaSettings.storageQuotaBytes

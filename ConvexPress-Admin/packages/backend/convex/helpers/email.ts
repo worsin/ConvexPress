@@ -16,9 +16,18 @@
  */
 
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
+import { EMAIL_DEFAULTS as SETTINGS_EMAIL_DEFAULTS, type EmailSettings } from "../settings/defaults";
 import { getUserIdentifier } from "./permissions";
+import {
+  flagSetting,
+  numberSetting,
+  readSettingsGroup,
+  settingsRecord,
+  textSetting,
+  type SettingsSpec,
+} from "./settingsReader";
 
 type ReadCtx = Pick<QueryCtx, "db">;
 
@@ -223,6 +232,27 @@ export function injectGlobalVariables(
   };
 }
 
+/**
+ * Template variables from their JSON form: an object whose string, number and
+ * boolean values become strings; anything else is dropped. Null when the JSON
+ * is not an object.
+ */
+export function parseTemplateVariables(json: string): Record<string, string> | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+  const variables: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value === "string") variables[key] = value;
+    else if (typeof value === "number" || typeof value === "boolean") variables[key] = String(value);
+  }
+  return variables;
+}
+
 // ─── HTML to Text ────────────────────────────────────────────────────────────
 
 /**
@@ -233,47 +263,54 @@ export function injectGlobalVariables(
  * @returns Plain text representation
  */
 export function stripHtmlToText(html: string): string {
-  let text = html;
+  // The document head (its <title>), styles, scripts and comments are not content.
+  let text = html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<(head|style|script|title)\b[\s\S]*?<\/\1>/gi, "");
 
-  // Replace <br> and </p> with newlines
+  // Block ends become line breaks; list items become bullets.
   text = text.replace(/<br\s*\/?>/gi, "\n");
-  text = text.replace(/<\/p>/gi, "\n\n");
-  text = text.replace(/<\/div>/gi, "\n");
-  text = text.replace(/<\/h[1-6]>/gi, "\n\n");
-
-  // Replace <li> with bullet points
-  text = text.replace(/<li>/gi, "  - ");
+  text = text.replace(/<\/(p|h[1-6]|table)>/gi, "\n\n");
+  text = text.replace(/<\/(div|tr)>/gi, "\n");
+  text = text.replace(/<li\b[^>]*>/gi, "  - ");
   text = text.replace(/<\/li>/gi, "\n");
 
-  // Replace <a> tags with "text (url)" format
+  // Links read "text (url)", or just the url when that is the text.
   text = text.replace(
-    /<a\s+[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi,
-    "$2 ($1)",
+    /<a\s+[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+    (_match, href: string, inner: string) => {
+      const label = inner.replace(/<[^>]+>/g, "").trim();
+      return !label || decodeHtmlEntities(label) === decodeHtmlEntities(href) ? href : `${label} (${href})`;
+    },
   );
 
-  // Replace <strong> and <em> with text markers
-  text = text.replace(/<\/?strong>/gi, "");
-  text = text.replace(/<\/?em>/gi, "");
-  text = text.replace(/<\/?b>/gi, "");
-  text = text.replace(/<\/?i>/gi, "");
+  // Strip the remaining tags, then decode entities once.
+  text = decodeHtmlEntities(text.replace(/<[^>]+>/g, ""));
 
-  // Strip remaining HTML tags
-  text = text.replace(/<[^>]+>/g, "");
+  // Template indentation is not text: tidy each line, then the blank lines.
+  text = text
+    .split("\n")
+    .map((line) => line.replace(/[ \t\u00a0]+/g, " ").trim())
+    .join("\n");
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
 
-  // Decode common HTML entities
-  text = text.replace(/&amp;/g, "&");
-  text = text.replace(/&lt;/g, "<");
-  text = text.replace(/&gt;/g, ">");
-  text = text.replace(/&quot;/g, '"');
-  text = text.replace(/&#39;/g, "'");
-  text = text.replace(/&nbsp;/g, " ");
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0", copy: "\u00a9", reg: "\u00ae", trade: "\u2122",
+  mdash: "\u2014", ndash: "\u2013", hellip: "\u2026", middot: "\u00b7", bull: "\u2022", rsquo: "\u2019",
+  lsquo: "\u2018", rdquo: "\u201d", ldquo: "\u201c", euro: "\u20ac", pound: "\u00a3",
+};
 
-  // Clean up excessive whitespace
-  text = text.replace(/[ \t]+/g, " ");
-  text = text.replace(/\n{3,}/g, "\n\n");
-  text = text.trim();
-
-  return text;
+/** Decode named and numeric HTML entities in one pass ("&amp;lt;" stays "&lt;"). */
+export function decodeHtmlEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
+    if (entity.startsWith("#")) {
+      const hex = entity[1] === "x" || entity[1] === "X";
+      const code = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10);
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+    }
+    return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+  });
 }
 
 // ─── Unsubscribe Checks ─────────────────────────────────────────────────────
@@ -283,9 +320,7 @@ export function stripHtmlToText(html: string): string {
  * Security-critical emails cannot be unsubscribed.
  */
 export function isSecurityEmail(templateSlug: string): boolean {
-  return (SECURITY_CRITICAL_TEMPLATES as readonly string[]).includes(
-    templateSlug,
-  );
+  return SECURITY_CRITICAL_TEMPLATES.some((slug) => slug === templateSlug);
 }
 
 /**
@@ -359,11 +394,8 @@ export async function resolveRecipients(
 
       if (!user) {
         // Try as a direct Convex ID
-        try {
-          user = await ctx.db.get(id as Id<"users">);
-        } catch {
-          // Invalid ID format - skip
-        }
+        const userId = ctx.db.normalizeId("users", id);
+        user = userId ? await ctx.db.get(userId) : null;
       }
 
       if (user && user.status === "active" && user.email) {
@@ -469,11 +501,39 @@ export async function isDuplicateEmail(
 
 // ─── Email Settings Reader ───────────────────────────────────────────────────
 
+const EMAIL_SETTINGS_SPEC: SettingsSpec<EmailSettings> = {
+  enabled: flagSetting,
+  resendApiKey: textSetting,
+  webhookSecret: textSetting,
+  fromAddress: textSetting,
+  fromName: textSetting,
+  replyTo: textSetting,
+  rateLimit: numberSetting,
+  dailyLimit: numberSetting,
+  batchWindow: numberSetting,
+  unsubscribeUrl: textSetting,
+  maxRetries: numberSetting,
+  retryDelay: numberSetting,
+  queueRetentionDays: numberSetting,
+  trackingEnabled: flagSetting,
+  digestEnabled: flagSetting,
+  digestDay: numberSetting,
+  digestHour: numberSetting,
+  includeUnsubscribeLink: flagSetting,
+};
+
+/** `path` on the site: absolute links work in every mail client; a bare path works in none. */
+export function absoluteSiteUrl(siteUrl: string, path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return siteUrl ? `${siteUrl.replace(/\/+$/, "")}${cleanPath}` : cleanPath;
+}
+
 /**
- * Read email settings from the Settings System.
- * Reads the "email" section from the settings table, falling back
- * to EMAIL_DEFAULTS for any missing values. Also reads the "general"
- * section for site name/URL.
+ * Read email settings from the Settings System: the "email" section over its
+ * defaults, field by field at its documented type, plus the site's name and
+ * URL from "general". The preferences link is absolute and, unless a site
+ * sets its own, follows the customer dashboard's base path.
  */
 export async function getEmailSettings(
   ctx: ReadCtx,
@@ -497,47 +557,43 @@ export async function getEmailSettings(
   digestHour: number;
   includeUnsubscribeLink: boolean;
 }> {
-  // Read general settings for site name/URL
-  const generalSettings = await ctx.db
-    .query("settings")
-    .withIndex("by_section", (q) => q.eq("section", "general"))
-    .unique();
+  const section = async (name: Doc<"settings">["section"]) =>
+    settingsRecord(
+      (await ctx.db.query("settings").withIndex("by_section", (q) => q.eq("section", name)).unique())?.values,
+    );
+  const general = await section("general");
+  const dashboard = await section("dashboard");
+  const email = readSettingsGroup(EMAIL_SETTINGS_SPEC, SETTINGS_EMAIL_DEFAULTS, await section("email"));
 
-  const generalValues = (generalSettings?.values ?? {}) as Record<
-    string,
-    unknown
-  >;
-
-  // Read the "email" section from the settings table
-  const emailSettings = await ctx.db
-    .query("settings")
-    .withIndex("by_section", (q) => q.eq("section", "email"))
-    .unique();
-
-  const emailValues = (emailSettings?.values ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const siteName = textSetting(general.siteTitle, "").trim() || "ConvexPress";
+  const siteUrl = textSetting(general.siteUrl, "").trim();
+  const dashboardBase = textSetting(dashboard.basePath, "").trim() || "/dashboard";
+  const preferencesPath =
+    email.unsubscribeUrl.trim() && email.unsubscribeUrl !== SETTINGS_EMAIL_DEFAULTS.unsubscribeUrl
+      ? email.unsubscribeUrl.trim()
+      : `${dashboardBase.replace(/\/+$/, "")}/settings`;
 
   return {
-    fromAddress: (emailValues.fromAddress as string) ?? EMAIL_DEFAULTS.from_address,
-    fromName: (emailValues.fromName as string) ?? EMAIL_DEFAULTS.from_name,
-    replyTo: (emailValues.replyTo as string) ?? EMAIL_DEFAULTS.reply_to,
-    rateLimit: (emailValues.rateLimit as number) ?? EMAIL_DEFAULTS.rate_limit,
-    dailyLimit: (emailValues.dailyLimit as number) ?? EMAIL_DEFAULTS.daily_limit,
-    batchWindow: (emailValues.batchWindow as number) ?? EMAIL_DEFAULTS.batch_window,
-    enabled: (emailValues.enabled as boolean) ?? EMAIL_DEFAULTS.enabled,
-    unsubscribeUrl: (emailValues.unsubscribeUrl as string) ?? EMAIL_DEFAULTS.unsubscribe_url,
-    siteName: (generalValues.siteTitle as string) ?? "ConvexPress",
-    siteUrl: (generalValues.siteUrl as string) ?? "",
-    maxRetries: (emailValues.maxRetries as number) ?? 3,
-    retryDelay: (emailValues.retryDelay as number) ?? 5,
-    queueRetentionDays: (emailValues.queueRetentionDays as number) ?? 30,
-    trackingEnabled: (emailValues.trackingEnabled as boolean) ?? false,
-    digestEnabled: (emailValues.digestEnabled as boolean) ?? true,
-    digestDay: (emailValues.digestDay as number) ?? 1,
-    digestHour: (emailValues.digestHour as number) ?? 8,
-    includeUnsubscribeLink: (emailValues.includeUnsubscribeLink as boolean) ?? true,
+    fromAddress: email.fromAddress,
+    // Unset, the sender is the site, not the platform.
+    fromName:
+      email.fromName.trim() && email.fromName !== SETTINGS_EMAIL_DEFAULTS.fromName ? email.fromName.trim() : siteName,
+    replyTo: email.replyTo,
+    rateLimit: email.rateLimit,
+    dailyLimit: email.dailyLimit,
+    batchWindow: email.batchWindow,
+    enabled: email.enabled,
+    unsubscribeUrl: absoluteSiteUrl(siteUrl, preferencesPath),
+    siteName,
+    siteUrl,
+    maxRetries: email.maxRetries,
+    retryDelay: email.retryDelay,
+    queueRetentionDays: email.queueRetentionDays,
+    trackingEnabled: email.trackingEnabled,
+    digestEnabled: email.digestEnabled,
+    digestDay: email.digestDay,
+    digestHour: email.digestHour,
+    includeUnsubscribeLink: email.includeUnsubscribeLink,
   };
 }
 

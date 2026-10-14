@@ -20,6 +20,7 @@
  */
 
 import { mutation } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { ConvexError, v } from "convex/values";
 import { requireCan, getCurrentUser, getUserIdentifier } from "../helpers/permissions";
@@ -135,7 +136,7 @@ export const updateTemplate = mutation({
     }
 
     // Build the patch object with only provided fields
-    const patch: Record<string, unknown> = {
+    const patch: Partial<Doc<"emailTemplates">> = {
       updatedAt: Date.now(),
     };
 
@@ -190,8 +191,8 @@ export const updateTemplate = mutation({
     }
 
     // Determine if the template is now customized
-    const newSubject = (patch.subjectTemplate as string) ?? template.subjectTemplate;
-    const newBody = (patch.bodyHtml as string) ?? template.bodyHtml;
+    const newSubject = args.subjectTemplate ?? template.subjectTemplate;
+    const newBody = args.bodyHtml ?? template.bodyHtml;
     const isCustomized =
       newSubject !== template.defaultSubjectTemplate ||
       newBody !== template.defaultBodyHtml;
