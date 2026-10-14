@@ -101,7 +101,7 @@ function SubscriptionsOverview() {
             icon={AlertTriangle}
             tone={metrics.pastDue > 0 ? "danger" : "default"}
           />
-          <StatCard label="Churn, 30 days" value={`${metrics.churnRate30d.toFixed(1)}%`} sub={`${metrics.cancelledLast30} ended`} icon={TrendingDown} />
+          <StatCard label="Churn, 30 days" value={`${metrics.churnRate30d.toFixed(1)}%`} sub={`${metrics.cancelledLast30} ended in 30 days`} icon={TrendingDown} />
         </div>
       )}
 

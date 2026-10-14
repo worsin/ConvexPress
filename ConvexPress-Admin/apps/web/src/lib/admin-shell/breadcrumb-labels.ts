@@ -38,4 +38,5 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   "email-notifications": "Email Notifications",
   "site-notifications": "Site Notifications",
   notifications: "Notifications",
+  dunning: "Failed Payments",
 };

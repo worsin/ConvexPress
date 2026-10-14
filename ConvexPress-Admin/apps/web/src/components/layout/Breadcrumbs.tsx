@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { BREADCRUMB_LABELS } from "@/lib/admin-shell/breadcrumb-labels";
+import { looksLikeRecordId, useBreadcrumbTitles } from "@/lib/admin-shell/breadcrumb-titles";
 import type { BreadcrumbSegment } from "@/lib/admin-shell/types";
 
 interface BreadcrumbsProps {
@@ -11,8 +12,9 @@ interface BreadcrumbsProps {
 export function Breadcrumbs({ segments: overrides }: BreadcrumbsProps) {
   const routerState = useRouterState();
   const pathname = routerState.location.pathname;
+  const titles = useBreadcrumbTitles();
 
-  const segments = overrides ?? deriveBreadcrumbs(pathname);
+  const segments = overrides ?? deriveBreadcrumbs(pathname, titles);
 
   if (segments.length <= 1) return null;
 
@@ -52,7 +54,7 @@ export function Breadcrumbs({ segments: overrides }: BreadcrumbsProps) {
  * Auto-derive breadcrumb segments from the current pathname.
  * Strips the admin prefix and maps segments to labels.
  */
-function deriveBreadcrumbs(pathname: string): BreadcrumbSegment[] {
+export function deriveBreadcrumbs(pathname: string, titles: ReadonlyMap<string, string> = new Map()): BreadcrumbSegment[] {
   const segments: BreadcrumbSegment[] = [
     { label: "Dashboard", to: "/dashboard" },
   ];
@@ -73,7 +75,7 @@ function deriveBreadcrumbs(pathname: string): BreadcrumbSegment[] {
     // Skip dynamic segments (start with $) - they would be resolved by the page
     if (part.startsWith("$")) continue;
 
-    const label = BREADCRUMB_LABELS[part] ?? formatSegment(part);
+    const label = titles.get(part) ?? BREADCRUMB_LABELS[part] ?? (looksLikeRecordId(part) ? "Details" : formatSegment(part));
     const isLast = i === parts.length - 1;
 
     segments.push({

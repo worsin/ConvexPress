@@ -123,3 +123,60 @@ export function invoiceStatusText(invoice: Pick<InvoiceRow, "status" | "totalAmo
   if (invoice.pendingRefundAmount > 0) parts.push(`${formatMoney(invoice.pendingRefundAmount, invoice.currencyCode)} refund pending`);
   return parts.join(" · ");
 }
+
+/** History events in an operator's words; anything unlisted is humanized. */
+const EVENT_LABEL: Record<string, string> = {
+  "subscription.created": "Subscribed",
+  "subscription.created_from_intent": "Subscribed",
+  "subscription_signup_paid": "First payment received",
+  "subscription.status_changed": "Status changed",
+  "subscription.renewed": "Renewed",
+  "subscription.payment_failed": "Payment failed",
+  "subscription.payment_method_updated": "Card updated",
+  "subscription.payment_after_close": "Payment arrived after it ended",
+  "subscription.billing_closed": "Unpaid billing closed",
+  "subscription.portal_cancel_now": "Customer cancelled",
+  "subscription.portal_cancel_scheduled": "Customer scheduled cancellation",
+  "subscription.portal_keep": "Customer kept subscription",
+  "subscription.portal_pause": "Customer paused",
+  "subscription.portal_resume": "Customer resumed",
+  "subscription.operator_cancel_now": "Cancelled by staff",
+  "subscription.operator_cancel_scheduled": "Cancellation scheduled by staff",
+  "subscription.operator_resume": "Resumed by staff",
+  "subscription.operator_retry_now": "Payment retried by staff",
+  "subscription.refund_requested": "Refund requested",
+  "subscription.refunded": "Refunded",
+  "subscription.refund_failed": "Refund failed",
+  "subscription.upgraded_via_proration": "Upgraded",
+  "subscription.downgrade_scheduled": "Downgrade scheduled",
+  "subscription.scheduled_offer_change_applied": "Plan changed at renewal",
+  "subscription.scheduled_offer_change_dropped": "Scheduled plan change dropped",
+  "subscription.proration_charge_scheduled": "Plan change charge scheduled",
+  "subscription.proration_charge_failed": "Plan change charge failed",
+  "subscription.coupon_applied": "Coupon applied",
+  "subscription.coupon_skipped": "Coupon not applied",
+  "subscription.entitlement_expired": "Access ended after grace",
+  "subscription.duplicate_purchase": "Duplicate purchase",
+  "subscription.bridge_failed": "Integration sync failed",
+  "subscription_invoice_created": "Invoice created",
+  "subscription_invoice_paid": "Invoice paid",
+  "subscription_invoice_payment_failed": "Invoice payment failed",
+};
+
+export function eventLabel(eventType: string): string {
+  return EVENT_LABEL[eventType] ?? humanize(eventType);
+}
+
+/** A machine reason (`customer_cancel_now`) in words; a typed reason as written. */
+export function reasonText(reason: string): string {
+  return /^[a-z0-9_.]+$/.test(reason) ? humanize(reason) : reason;
+}
+
+function isContractStatus(value: string): value is ContractStatus {
+  return Object.hasOwn(STATUS_LABEL, value);
+}
+
+/** A contract status as the status badge words it. */
+export function statusText(status: string): string {
+  return isContractStatus(status) ? STATUS_LABEL[status] : humanize(status);
+}

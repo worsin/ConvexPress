@@ -440,8 +440,11 @@ async function buildCustomerContract(
 		.query("commerce_subscription_items")
 		.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
 		.collect();
+	// An ended contract's items have ended with it; it still shows the plan it was on.
 	const activeItem =
-		items.find((item) => item.status === "active") ?? items.find((item) => item.status === "pending_cancel");
+		items.find((item) => item.status === "active") ??
+		items.find((item) => item.status === "pending_cancel") ??
+		items[items.length - 1];
 	const offer = activeItem?.sourceOfferId ? await ctx.db.get(activeItem.sourceOfferId) : null;
 	const scheduledOffer = contract.scheduledOfferChange
 		? await ctx.db.get(contract.scheduledOfferChange.toOfferId)

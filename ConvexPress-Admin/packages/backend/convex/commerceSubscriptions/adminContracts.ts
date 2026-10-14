@@ -101,8 +101,8 @@ async function billingIssue(ctx: QueryCtx, contract: SubscriptionDoc): Promise<B
 async function customerOf(ctx: QueryCtx, contract: SubscriptionDoc): Promise<{ email?: string; name?: string }> {
 	const user = contract.userId ? await ctx.db.get(contract.userId) : null;
 	if (!user) return {};
-	const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.displayName;
-	return { email: user.email, name: name || undefined };
+	const name = personName(user);
+	return { email: user.email, name: name === user.email ? undefined : name };
 }
 
 async function currentPlan(ctx: QueryCtx, contract: SubscriptionDoc) {
@@ -110,7 +110,7 @@ async function currentPlan(ctx: QueryCtx, contract: SubscriptionDoc) {
 		.query("commerce_subscription_items")
 		.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
 		.collect();
-	const item = items.find((row) => row.status === "active" || row.status === "pending_cancel") ?? items[0];
+	const item = items.find((row) => row.status === "active" || row.status === "pending_cancel") ?? items[items.length - 1];
 	const offer = item?.sourceOfferId ? await ctx.db.get(item.sourceOfferId) : null;
 	return { offerId: offer?._id, title: offer?.title ?? item?.titleSnapshot };
 }
@@ -129,6 +129,7 @@ const contractRowValidator = v.object({
 	billingIntervalCount: v.optional(v.number()),
 	nextChargeAt: v.optional(v.number()),
 	currentPeriodEndAt: v.optional(v.number()),
+	endedAt: v.optional(v.number()),
 	createdAt: v.number(),
 	card: v.union(v.null(), cardValidator),
 	billingIssue: v.union(v.null(), billingIssueValidator),
@@ -150,6 +151,7 @@ async function toContractRow(ctx: QueryCtx, contract: SubscriptionDoc): Promise<
 		billingIntervalCount: contract.billingIntervalCount,
 		nextChargeAt: contract.status === "active" || contract.status === "trialing" ? contract.nextBillingAt : undefined,
 		currentPeriodEndAt: contract.currentPeriodEndAt,
+		endedAt: isEnded(contract.status) ? contract.cancelledAt : undefined,
 		createdAt: contract.createdAt,
 		card: contract.paymentMethodSummary ?? null,
 		billingIssue: await billingIssue(ctx, contract),
@@ -309,19 +311,69 @@ const timelineValidator = v.object({
 	actor: v.optional(v.string()),
 });
 
+type HistoryRow = Doc<"commerce_subscription_history">;
+
+/**
+ * Every lifecycle action writes its own row (say `portal_cancel_now`) and the
+ * shared transition writes `status_changed` for the same move. Show the action
+ * once: drop a `status_changed` row that belongs to an action row (same
+ * correlation id, or the same move within a second), keeping its reason.
+ */
+function collapseStatusChanges(rows: HistoryRow[]): Array<{ entry: HistoryRow; statusReason?: string }> {
+	const isStatusRow = (row: HistoryRow) => row.eventType === "subscription.status_changed";
+	const sameMove = (a: HistoryRow, b: HistoryRow) => {
+		const correlation = metadataText(a.metadata, "correlationId");
+		if (correlation !== undefined && correlation === metadataText(b.metadata, "correlationId")) return true;
+		return (
+			Math.abs(a.createdAt - b.createdAt) <= 1000 &&
+			metadataText(a.metadata, "fromStatus") === metadataText(b.metadata, "fromStatus") &&
+			metadataText(a.metadata, "toStatus") === metadataText(b.metadata, "toStatus")
+		);
+	};
+	const absorbed = new Map<Id<"commerce_subscription_history">, string | undefined>();
+	const owner = new Map<Id<"commerce_subscription_history">, Id<"commerce_subscription_history">>();
+	for (const status of rows.filter(isStatusRow)) {
+		const action = rows.find((row) => !isStatusRow(row) && !owner.has(row._id) && sameMove(row, status));
+		if (!action) continue;
+		owner.set(action._id, status._id);
+		absorbed.set(status._id, metadataText(status.metadata, "reason"));
+	}
+	return rows
+		.filter((row) => !absorbed.has(row._id))
+		.map((row) => {
+			const statusId = owner.get(row._id);
+			return { entry: row, statusReason: statusId ? absorbed.get(statusId) : undefined };
+		});
+}
+
 function metadataText(metadata: unknown, key: string): string | undefined {
 	if (typeof metadata !== "object" || metadata === null) return undefined;
 	const value: unknown = Reflect.get(metadata, key);
 	return typeof value === "string" ? value : undefined;
 }
 
+function personName(user: Doc<"users">): string {
+	return [user.firstName, user.lastName].filter(Boolean).join(" ") || user.displayName || user.email;
+}
+
+/**
+ * Who acted, by name: the history row's user, or an `actorRef` from an operator
+ * action. A `users:<id>` ref resolves to that user; an integration's own ref
+ * (say a staff app's label) is shown as given.
+ */
 async function actorLabel(ctx: QueryCtx, row: Doc<"commerce_subscription_history">): Promise<string | undefined> {
 	if (row.actorUserId) {
 		const user = await ctx.db.get(row.actorUserId);
-		if (user) return user.displayName ?? user.email;
+		if (user) return personName(user);
 	}
 	const data: unknown = typeof row.metadata === "object" && row.metadata !== null ? Reflect.get(row.metadata, "data") : undefined;
-	return metadataText(data, "actorRef");
+	const ref = metadataText(data, "actorRef");
+	if (ref?.startsWith("users:")) {
+		const userId = ctx.db.normalizeId("users", ref.slice("users:".length));
+		const user = userId ? await ctx.db.get(userId) : null;
+		if (user) return personName(user);
+	}
+	return ref;
 }
 
 /** Everything the contract billing panel shows, and which actions apply now. */
@@ -386,15 +438,15 @@ export const getContractBilling = query({
 			.order("desc")
 			.take(200);
 		const timeline = [];
-		for (const row of history) {
+		for (const row of collapseStatusChanges(history)) {
 			timeline.push({
-				_id: row._id,
-				eventType: row.eventType,
-				createdAt: row.createdAt,
-				fromStatus: metadataText(row.metadata, "fromStatus"),
-				toStatus: metadataText(row.metadata, "toStatus"),
-				reason: metadataText(row.metadata, "reason"),
-				actor: await actorLabel(ctx, row),
+				_id: row.entry._id,
+				eventType: row.entry.eventType,
+				createdAt: row.entry.createdAt,
+				fromStatus: metadataText(row.entry.metadata, "fromStatus"),
+				toStatus: metadataText(row.entry.metadata, "toStatus"),
+				reason: metadataText(row.entry.metadata, "reason") ?? row.statusReason,
+				actor: await actorLabel(ctx, row.entry),
 			});
 		}
 		const status = contract.status;

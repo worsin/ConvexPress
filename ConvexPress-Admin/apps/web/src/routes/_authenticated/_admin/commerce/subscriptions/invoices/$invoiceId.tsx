@@ -11,6 +11,7 @@ import { ArrowLeft, RotateCcw } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";
 import { asId, cn } from "@/lib/utils";
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { RefundForm } from "@/components/subscriptions/RefundForm";
 import {
   describeFailure,
@@ -31,6 +32,7 @@ function InvoiceDetailPage() {
   const { invoiceId: rawId } = Route.useParams();
   const invoiceId = asId<"commerce_subscription_invoices">(rawId);
   const invoice = useQuery(api.commerceSubscriptions.adminContracts.getInvoiceDetail, { invoiceId });
+  useBreadcrumbTitle(rawId, invoice?.invoiceNumber);
   const [refunding, setRefunding] = useState(false);
 
   if (invoice === undefined) {
