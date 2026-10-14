@@ -81,6 +81,7 @@ export const commerceReturnsTables = {
     fromStatus: v.optional(v.string()),
     toStatus: v.optional(v.string()),
     note: v.optional(v.string()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   }).index("by_return_request", ["returnRequestId"]),

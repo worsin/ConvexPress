@@ -241,6 +241,7 @@ export const commerceTables = {
     /** Denormalised text (title, excerpt, description, categories, attributes) for full-text search. */
     searchText: v.optional(v.string()),
     /** Structured facts the assistant reasons over (fit, dimensions, compatibility, care, use cases). */
+    // v.any(): read through productAttributesOf; seeds and imports wrote varying shapes, so stored rows are unaudited.
     conversationalAttributes: v.optional(v.any()),
     /** One-line assistant summary shown under cards. */
     assistantSummary: v.optional(v.string()),
@@ -270,8 +271,11 @@ export const commerceTables = {
     isNonReturnable: v.optional(v.boolean()),
     taxClass: v.optional(v.string()),
     isTaxable: v.optional(v.boolean()),
+    // v.any(): legacy rows hold malformed entries (readOptionTypes drops them); tighten after a migration rewrites them.
     optionTypes: v.optional(v.any()),
+    // v.any(): no current writer; legacy rows may hold it (promotion refuses such products), so its stored shape is unknown.
     productAttributes: v.optional(v.any()),
+    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
     defaultAttributes: v.optional(v.any()),
     // Shipping class (PRD A2). undefined = no class (method default rate).
     shippingClassId: v.optional(v.id("commerce_shipping_classes")),
@@ -447,6 +451,7 @@ export const commerceTables = {
     dynamicPricingDescription: v.optional(v.string()),
     unitPriceAmount: v.number(),
     lineTotalAmount: v.number(),
+    // v.any(): line-item JSON carried from cart to order item (bundles, subscriptions, forms); keys differ by feature and rows are unaudited.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -517,8 +522,11 @@ export const commerceTables = {
     serviceCode: v.optional(v.string()),
     serviceName: v.optional(v.string()),
     accountId: v.optional(v.string()),
+    // v.any(): exact shape is the quote's packed boxes (rates/types.ts NormalizedShippingQuote.packages), but rows written before PR 008 are unaudited; tighten after a migration.
     packages: v.optional(v.any()),
+    // v.any(): exact shape is the quote's ship-from snapshot (quoteProvenance.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     origin: v.optional(v.any()),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawQuote: v.optional(v.any()),
     addressKey: v.optional(v.string()),
     cartKey: v.optional(v.string()),
@@ -592,6 +600,7 @@ export const commerceTables = {
     shippingCarrierName: v.optional(v.string()),
     shippingServiceCode: v.optional(v.string()),
     shippingServiceName: v.optional(v.string()),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     shippingQuoteRaw: v.optional(v.any()),
     // PRD A5 §4.3 — address validation snapshot at order-finalize.
     shippingAddressValidatedAt: v.optional(v.number()),
@@ -599,6 +608,7 @@ export const commerceTables = {
     shippingAddressValidationStatus: v.optional(v.string()),
     shippingAddressValidationFingerprint: v.optional(v.string()),
     shippingAddressIsResidential: v.optional(v.boolean()),
+    // v.any(): the address-validation provider's normalized address, kept as received.
     shippingAddressNormalized: v.optional(v.any()),
     // PRD D1 §6.10 — rate reconfirmation fingerprints snapshot at order-finalize.
     // Label purchase compares these to the current address+cart fingerprints
@@ -618,10 +628,12 @@ export const commerceTables = {
         carrierCode: v.optional(v.string()),
         serviceCode: v.optional(v.string()),
         accountId: v.optional(v.string()),
+        // v.any(): exact shape is the selected quote's packed boxes, but rows written before PR 008 are unaudited; tighten after a migration.
         packages: v.optional(v.any()),
         fingerprintAddressKey: v.optional(v.string()),
         fingerprintCartKey: v.optional(v.string()),
         expiresAt: v.optional(v.number()),
+        // v.any(): exact shape is the selected quote's ship-from snapshot (quoteProvenance.ts), but rows written before PR 008 are unaudited; tighten after a migration.
         origin: v.optional(v.any()),
         rateSource: v.optional(v.string()),
         snapshotAt: v.optional(v.number()),
@@ -694,6 +706,7 @@ export const commerceTables = {
     unitPriceAmount: v.number(),
     lineSubtotalAmount: v.number(),
     lineTotalAmount: v.number(),
+    // v.any(): line-item JSON copied from the cart item (bundles, subscriptions, courses); keys differ by feature and rows are unaudited.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   })
@@ -705,6 +718,7 @@ export const commerceTables = {
     eventType: v.string(),
     message: v.string(),
     actorUserId: v.optional(v.id("users")),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   }).index("by_order", ["orderId"]),
@@ -786,7 +800,14 @@ export const commerceTables = {
       ),
     ),
     auto: v.optional(v.boolean()),
-    autoConditions: v.optional(v.any()),
+    // Read by commerce/discounts.ts matchesAutoConditions. Nothing has ever
+    // written this column, so the exact shape holds for every stored row.
+    autoConditions: v.optional(v.object({
+      minSubtotal: v.optional(v.number()),
+      newCustomersOnly: v.optional(v.boolean()),
+      hasProductId: v.optional(v.string()),
+      hasCategoryId: v.optional(v.string()),
+    })),
     stripeCouponId: v.optional(v.string()),
     stripePromotionCodeId: v.optional(v.string()),
     tiers: v.optional(
@@ -857,6 +878,7 @@ export const commerceTables = {
     countryCodes: v.array(v.string()),
     automaticTaxes: v.boolean(),
     isDefault: v.optional(v.boolean()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -869,6 +891,7 @@ export const commerceTables = {
     description: v.optional(v.string()),
     isDefault: v.optional(v.boolean()),
     isDisabled: v.boolean(),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -890,6 +913,7 @@ export const commerceTables = {
   commerce_customer_groups: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -914,6 +938,7 @@ export const commerceTables = {
     type: v.union(v.literal("sale"), v.literal("override")),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -925,6 +950,7 @@ export const commerceTables = {
     title: v.optional(v.string()),
     productId: v.optional(v.id("commerce_products")),
     variantId: v.optional(v.id("commerce_product_variants")),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -942,6 +968,7 @@ export const commerceTables = {
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
     status: v.union(v.literal("draft"), v.literal("active"), v.literal("inactive")),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -962,6 +989,7 @@ export const commerceTables = {
       v.literal("gte"),
       v.literal("lte"),
     ),
+    // v.any(): exact shape is a string/number, or a list for in/not_in (commerce/pricing.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     value: v.any(),
     priority: v.number(),
     createdAt: v.number(),
@@ -1021,6 +1049,7 @@ export const commerceTables = {
       v.literal("failed"),
     ),
     completedAt: v.optional(v.number()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1045,10 +1074,13 @@ export const commerceTables = {
       v.literal("canceled"),
     ),
     amount: commerceMoneyValidator,
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     data: v.optional(v.any()),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     context: v.optional(v.any()),
     authorizedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1068,6 +1100,7 @@ export const commerceTables = {
     providerCaptureId: v.optional(v.string()),
     amount: commerceMoneyValidator,
     createdBy: v.optional(v.id("users")),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   })
@@ -1098,6 +1131,7 @@ export const commerceTables = {
     allocation: v.union(v.literal("cart"), v.literal("item"), v.literal("shipping")),
     amount: v.number(),
     currencyCode: v.string(),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   })
@@ -1118,6 +1152,7 @@ export const commerceTables = {
     status: v.string(),
     amount: commerceMoneyValidator,
     refundedAmount: v.optional(v.number()),
+    // v.any(): provider-specific payment details; keys differ by provider and rows are unaudited.
     metadata: v.optional(v.any()),
     failureCode: v.optional(v.string()),
     failureMessage: v.optional(v.string()),
@@ -1185,6 +1220,7 @@ export const commerceTables = {
     declinedAt: v.optional(v.number()),
     canceledAt: v.optional(v.number()),
     appliedAt: v.optional(v.number()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1199,6 +1235,7 @@ export const commerceTables = {
     action: v.string(),
     reference: v.optional(v.string()),
     referenceId: v.optional(v.string()),
+    // v.any(): any JSON value for a free-form action (taken as detailsJson); it has no fixed shape.
     details: v.any(),
     amount: v.optional(v.number()),
     ordering: v.optional(v.number()),
@@ -1277,7 +1314,9 @@ export const commerceTables = {
     ruleId: v.id("commerce_tax_rules"),
     changedBy: v.id("users"),
     changedAt: v.number(),
+    // v.any(): a snapshot of the tax rate row as it was; the row shape changed over time, so old snapshots differ.
     before: v.any(),
+    // v.any(): a snapshot of the tax rate row as it became; the row shape changed over time, so old snapshots differ.
     after: v.any(),
     reason: v.optional(v.string()),
   })
@@ -1312,6 +1351,7 @@ export const commerceTables = {
     allowBackorders: v.optional(v.boolean()),
     isActive: v.boolean(),
     externalInventoryItemId: v.optional(v.string()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1387,6 +1427,7 @@ export const commerceTables = {
     totalAmount: v.number(),
     orderId: v.optional(v.id("commerce_orders")),
     notes: v.optional(v.string()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdBy: v.optional(v.id("users")),
     completedAt: v.optional(v.number()),
@@ -1407,6 +1448,7 @@ export const commerceTables = {
     quantity: v.number(),
     unitPriceAmount: v.number(),
     lineTotalAmount: v.number(),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1426,7 +1468,9 @@ export const commerceTables = {
     ),
     entityType: v.optional(v.string()),
     entityId: v.optional(v.string()),
+    // v.any(): any JSON value; each workflow defines its own input (taken as inputJson).
     input: v.optional(v.any()),
+    // v.any(): any JSON value; each workflow defines its own result (replayed as resultJson).
     result: v.optional(v.any()),
     error: v.optional(v.string()),
     lockedUntil: v.optional(v.number()),
@@ -1460,6 +1504,7 @@ export const commerceTables = {
     provider: v.string(),
     eventType: v.string(),
     eventId: v.string(),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     payload: v.optional(v.any()),
     status: v.union(
       v.literal("received"),

@@ -119,7 +119,9 @@ export const postTables = {
       id: v.string(),
       name: v.string(),
       version: v.number(),
+      // v.any(): legacy (pre-canonical) block attrs, defined per block and imported from WordPress; recursive and unaudited.
       attrs: v.any(),
+      // v.any(): legacy (pre-canonical) nested blocks; recursive and unaudited.
       innerBlocks: v.optional(v.any()),
       layout: v.optional(v.object({
         tone: v.optional(v.union(

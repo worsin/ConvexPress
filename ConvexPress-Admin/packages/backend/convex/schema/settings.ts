@@ -24,6 +24,7 @@ export const settingsTables = {
   legacyAppearanceArchives: defineTable({
     sourceTable: v.union(v.literal("themes"), v.literal("layouts")),
     sourceId: v.string(),
+    // v.any(): a snapshot of pre-template appearance settings kept for recovery; the legacy shape is not fixed.
     snapshot: v.any(),
     archivedAt: v.number(),
   }).index("by_source", ["sourceTable", "sourceId"]),
@@ -32,6 +33,7 @@ export const settingsTables = {
     userId: v.id("users"),
     packId: v.string(),
     sourceRevision: v.string(),
+    // v.any(): exact shape is appearanceTemplateSettingsValidator's pack values (saveDraft now takes exactly that), but rows written before PR 008 are unaudited; tighten after a migration.
     values: v.any(),
     variants: v.record(v.string(), v.string()),
     updatedAt: v.number(),
@@ -92,6 +94,7 @@ export const settingsTables = {
      * Typed per-section via validators in mutation handlers.
      * Uses v.any() because each section has a different shape.
      */
+    // v.any(): each section has its own shape (settings/sectionValues.ts); one column holds every section.
     values: v.any(),
 
     /** Independent of values so resetting a template cannot revive legacy appearance. */

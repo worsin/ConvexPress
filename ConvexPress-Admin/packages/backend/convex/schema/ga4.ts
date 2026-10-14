@@ -46,6 +46,7 @@ export const ga4Tables = {
     dateRange: v.string(), // Human-readable key (e.g., "last7days", "2026-03-01:2026-03-31")
     queryType: queryTypeValidator, // Categorizes what kind of data this entry contains
     path: v.optional(v.string()), // Page path filter; omitted for site-wide queries
+    // v.any(): GA4 response JSON, whose shape differs per queryType; it is parsed per query when read.
     data: v.any(), // GA4 API response payload (typed per queryType at runtime)
     fetchedAt: v.number(), // Unix timestamp (ms) when data was fetched from GA4
     expiresAt: v.number(), // Unix timestamp (ms) when cache expires (fetchedAt + 3,600,000)

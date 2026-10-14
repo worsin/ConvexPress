@@ -93,6 +93,7 @@ export const supportTables = {
     ),
     label: v.string(),
     isActive: v.boolean(),
+    // v.any(): exact shape is supportChannelConfigValidator (support/inboundSecurity.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     config: v.optional(v.any()),
     webhookUrl: v.optional(v.string()),
     lastInboundAt: v.optional(v.number()),
@@ -112,6 +113,7 @@ export const supportTables = {
     channelId: v.id("support_channels"),
     externalId: v.string(),
     rawPayload: v.string(),
+    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
     parsedPayload: v.optional(v.any()),
     ticketId: v.optional(v.string()),
     status: v.union(

@@ -95,9 +95,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === "number" ? value : undefined;
 }
-function optionalString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
 function stringList(value: unknown): string[] | undefined {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : undefined;
 }
@@ -117,15 +114,6 @@ function pricingRulesOf(value: unknown) {
     minCostCents: optionalNumber(value.minCostCents),
     maxCostCents: optionalNumber(value.maxCostCents),
     roundToCents: optionalNumber(value.roundToCents),
-  };
-}
-
-/** Zone-method `presentationRules` — { labelOverride?, carrierNameOverride? }. */
-function presentationRulesOf(value: unknown) {
-  if (!isRecord(value)) return undefined;
-  return {
-    labelOverride: optionalString(value.labelOverride),
-    carrierNameOverride: optionalString(value.carrierNameOverride),
   };
 }
 
@@ -555,8 +543,8 @@ export const calculateRates = action({
                       return { ...q, amount: Math.max(0, amount) };
                     });
                   }
-                  // Zone-method presentationRules — { labelOverride?, carrierNameOverride?, sortPriority? }
-                  const pres = presentationRulesOf(m.presentationRules);
+                  // Zone-method presentationRules — { labelOverride?, carrierNameOverride? } (exact in the schema).
+                  const pres = m.presentationRules;
                   if (pres) {
                     quotes = quotes.map((q) => ({
                       ...q,

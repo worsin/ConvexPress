@@ -82,6 +82,7 @@ export const revisionTables = {
     sources: authoring.sources,
     tableOfContents: authoring.tableOfContents,
     featuredImageId: authoring.featuredImageId,
+    // v.any(): legacy page-section snapshots kept for history; recursive and unaudited.
     pageSections: v.optional(v.any()),
     pageTemplate: authoring.pageTemplate,
     hideHeader: authoring.hideHeader,

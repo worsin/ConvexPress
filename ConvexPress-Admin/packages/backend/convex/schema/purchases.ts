@@ -104,6 +104,7 @@ export const purchaseTables = {
 
     // Source-specific snapshots stay here so the ledger can preserve details
     // without forcing storefront, Forms, and subscription schemas together.
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
 
     createdAt: v.number(),
@@ -149,6 +150,7 @@ export const purchaseTables = {
     subscriptionInvoiceId: v.optional(
       v.id("commerce_subscription_invoices"),
     ),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   })
@@ -171,6 +173,7 @@ export const purchaseTables = {
     failureCode: v.optional(v.string()),
     failureMessage: v.optional(v.string()),
     rawStatus: v.optional(v.string()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -193,6 +196,7 @@ export const purchaseTables = {
     reason: v.optional(v.string()),
     failureCode: v.optional(v.string()),
     failureMessage: v.optional(v.string()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -209,6 +213,7 @@ export const purchaseTables = {
     eventType: v.string(),
     message: v.string(),
     actorUserId: v.optional(v.id("users")),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   })
