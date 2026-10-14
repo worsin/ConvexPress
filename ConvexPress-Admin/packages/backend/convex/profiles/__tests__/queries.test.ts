@@ -214,6 +214,38 @@ describe("profiles queries", () => {
     });
   });
 
+  test("never returns credential material, and accepts every stored column", async () => {
+    const t = createHarness();
+    const fixture = await seedUserDirectoryFixture(t);
+    await t.run(async (ctx) => {
+      for (const id of [fixture.managerUserId, fixture.viewerUserId]) {
+        await ctx.db.patch("users", id, {
+          passwordResetToken: "sha256-of-a-reset-token",
+          passwordResetTokenExpiresAt: Date.now() + 60_000,
+          postCountReady: true,
+        });
+      }
+    });
+    const manager = withLocalIdentity(t, fixture.managerUserId, "manager@example.com", "Manager");
+    const credentialFields = ["passwordHash", "passwordResetToken"];
+    const expectNoCredentials = (user: object | null) => {
+      expect(user).not.toBeNull();
+      for (const field of credentialFields) expect(Object.keys(user ?? {})).not.toContain(field);
+    };
+
+    const own = await manager.query(api.profiles.queries.getProfile, {});
+    expectNoCredentials(own);
+    expect(own).toMatchObject({ email: "manager@example.com", postCountReady: true });
+
+    const other = await manager.query(api.profiles.queries.getUser, { userId: fixture.viewerUserId });
+    expectNoCredentials(other);
+    expect(other).toMatchObject({ email: "viewer@example.com" });
+
+    const directory = await manager.query(api.profiles.queries.listUsers, { perPage: 10 });
+    expect(directory.users).toHaveLength(4);
+    for (const user of directory.users) expectNoCredentials(user);
+  });
+
   test("does not expose inactive users through public getUser fallback", async () => {
     const t = createHarness();
     const fixture = await seedUserDirectoryFixture(t);

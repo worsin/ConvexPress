@@ -40,7 +40,24 @@ import {
 import type { Capability } from "../types/capabilities";
 
 import { v } from "convex/values";
-import { userAuthSourceValidator } from "../schema/users";
+import type { Doc } from "../_generated/dataModel";
+import { usersDocs } from "../schema/users.docs.generated";
+
+/**
+ * A full user document as a client may see it: every stored field except
+ * credential material. Derived from the users table, so a new column cannot
+ * break these reads, and neither the password hash nor the reset-token hash
+ * can ever be returned.
+ */
+const clientUserValidator = usersDocs.users
+  .omit("passwordHash", "passwordResetToken")
+  .extend({ resolvedAvatarUrl: v.union(v.null(), v.string()) });
+
+/** The user document without credential material, plus the resolved avatar. */
+function toClientUser(user: Doc<"users">) {
+  const { passwordHash: _passwordHash, passwordResetToken: _passwordResetToken, ...rest } = user;
+  return { ...rest, resolvedAvatarUrl: resolveAvatarUrl(user) };
+}
 const USER_DIRECTORY_CAPABILITIES: Capability[] = [
   "profile.deactivate",
   "profile.delete_user",
@@ -62,80 +79,17 @@ async function currentUserCanReadUserDirectory(ctx: QueryCtx): Promise<boolean> 
  * Get current user's full profile.
  *
  * Auth: Required (any authenticated user).
- * Returns the full user document for the currently authenticated user.
+ * Returns the current user's document without credential material.
  * Returns null if not authenticated.
  */
 export const getProfile = query({
   args: {},
-  returns: v.union(v.null(), v.object({
-    resolvedAvatarUrl: v.union(v.null(), v.string()),
-    _id: v.id("users"),
-    _creationTime: v.number(),
-    authSource: v.optional(userAuthSourceValidator),
-    passwordHash: v.optional(v.string()),
-    clerkUserId: v.optional(v.string()),
-    email: v.string(),
-    emailVerified: v.boolean(),
-    firstName: v.optional(v.string()),
-    lastName: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    profilePictureUrl: v.optional(v.string()),
-    username: v.optional(v.string()),
-    nickname: v.optional(v.string()),
-    displayName: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    bio: v.optional(v.string()),
-    url: v.optional(v.string()),
-    avatarUrl: v.optional(v.string()),
-    avatarMediaId: v.optional(v.id("media")),
-    avatarStorageId: v.optional(v.string()),
-    socialLinks: v.optional(v.object({
-      twitter: v.optional(v.string()),
-      facebook: v.optional(v.string()),
-      instagram: v.optional(v.string()),
-      linkedin: v.optional(v.string()),
-      youtube: v.optional(v.string()),
-      github: v.optional(v.string()),
-      website: v.optional(v.string()),
-    })),
-    roleId: v.optional(v.id("roles")),
-    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
-    deactivatedAt: v.optional(v.number()),
-    deactivatedBy: v.optional(v.id("users")),
-    preferences: v.optional(v.object({
-      adminColorScheme: v.optional(v.string()),
-      showAdminBar: v.optional(v.boolean()),
-      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
-      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
-      notifyOnComment: v.optional(v.boolean()),
-      notifyOnReply: v.optional(v.boolean()),
-      notifyOnMention: v.optional(v.boolean()),
-    })),
-    locale: v.optional(v.string()),
-    timezone: v.optional(v.string()),
-    postCount: v.optional(v.number()),
-    commentCount: v.optional(v.number()),
-    registrationMethod: v.optional(v.string()),
-    invitedBy: v.optional(v.id("users")),
-    emailVerifiedAt: v.optional(v.number()),
-    registeredAt: v.optional(v.number()),
-    lastLoginAt: v.optional(v.number()),
-    lastPasswordChangedAt: v.optional(v.number()),
-    passwordResetRequestedAt: v.optional(v.number()),
-    passwordResetCount: v.optional(v.number()),
-    internalRole: v.optional(v.string()),
-    isInternal: v.optional(v.boolean()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })),
+  returns: v.union(v.null(), clientUserValidator),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    return {
-      ...user,
-      resolvedAvatarUrl: resolveAvatarUrl(user),
-    };
+    return toClientUser(user);
   },
 });
 
@@ -160,67 +114,7 @@ export const getUser = query({
     url: v.optional(v.string()),
     socialLinks: v.optional(v.record(v.string(), v.string())),
     status: v.optional(v.string()),
-  }), v.object({
-    resolvedAvatarUrl: v.union(v.null(), v.string()),
-    _id: v.id("users"),
-    _creationTime: v.number(),
-    authSource: v.optional(userAuthSourceValidator),
-    passwordHash: v.optional(v.string()),
-    clerkUserId: v.optional(v.string()),
-    email: v.string(),
-    emailVerified: v.boolean(),
-    firstName: v.optional(v.string()),
-    lastName: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    profilePictureUrl: v.optional(v.string()),
-    username: v.optional(v.string()),
-    nickname: v.optional(v.string()),
-    displayName: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    bio: v.optional(v.string()),
-    url: v.optional(v.string()),
-    avatarUrl: v.optional(v.string()),
-    avatarMediaId: v.optional(v.id("media")),
-    avatarStorageId: v.optional(v.string()),
-    socialLinks: v.optional(v.object({
-      twitter: v.optional(v.string()),
-      facebook: v.optional(v.string()),
-      instagram: v.optional(v.string()),
-      linkedin: v.optional(v.string()),
-      youtube: v.optional(v.string()),
-      github: v.optional(v.string()),
-      website: v.optional(v.string()),
-    })),
-    roleId: v.optional(v.id("roles")),
-    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
-    deactivatedAt: v.optional(v.number()),
-    deactivatedBy: v.optional(v.id("users")),
-    preferences: v.optional(v.object({
-      adminColorScheme: v.optional(v.string()),
-      showAdminBar: v.optional(v.boolean()),
-      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
-      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
-      notifyOnComment: v.optional(v.boolean()),
-      notifyOnReply: v.optional(v.boolean()),
-      notifyOnMention: v.optional(v.boolean()),
-    })),
-    locale: v.optional(v.string()),
-    timezone: v.optional(v.string()),
-    postCount: v.optional(v.number()),
-    commentCount: v.optional(v.number()),
-    registrationMethod: v.optional(v.string()),
-    invitedBy: v.optional(v.id("users")),
-    emailVerifiedAt: v.optional(v.number()),
-    registeredAt: v.optional(v.number()),
-    lastLoginAt: v.optional(v.number()),
-    lastPasswordChangedAt: v.optional(v.number()),
-    passwordResetRequestedAt: v.optional(v.number()),
-    passwordResetCount: v.optional(v.number()),
-    internalRole: v.optional(v.string()),
-    isInternal: v.optional(v.boolean()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })),
+  }), clientUserValidator),
   handler: async (ctx, args) => {
     // Resolve target user
     let targetUser;
@@ -243,18 +137,12 @@ export const getUser = query({
 
     // If current user is the target, return full document
     if (currentUser && currentUser._id === targetUser._id) {
-      return {
-        ...targetUser,
-        resolvedAvatarUrl: resolveAvatarUrl(targetUser),
-      };
+      return toClientUser(targetUser);
     }
 
     // If current user can manage the user directory, return full document.
     if (currentUser && (await currentUserCanReadUserDirectory(ctx))) {
-      return {
-        ...targetUser,
-        resolvedAvatarUrl: resolveAvatarUrl(targetUser),
-      };
+      return toClientUser(targetUser);
     }
 
     // Otherwise, return public fields for active users only.
@@ -319,88 +207,9 @@ export const getUserBySlug = query({
 export const listUsers = query({
   args: listUsersArgs,
   returns: v.object({
-    users: v.array(v.object({
-      resolvedAvatarUrl: v.union(v.null(), v.string()),
+    users: v.array(clientUserValidator.extend({
       roleName: v.optional(v.string()),
       roleLevel: v.optional(v.number()),
-      _id: v.id("users"),
-      _creationTime: v.number(),
-      authSource: v.optional(userAuthSourceValidator),
-      passwordHash: v.optional(v.string()),
-      clerkUserId: v.optional(v.string()),
-      clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
-      clerkProvisioningSource: v.optional(v.string()),
-      clerkProvisioningReason: v.optional(v.string()),
-      clerkProvisioningError: v.optional(v.string()),
-      clerkProvisionedAt: v.optional(v.number()),
-      clerkProvisioningAttemptedAt: v.optional(v.number()),
-      firstName: v.optional(v.string()),
-      lastName: v.optional(v.string()),
-      phone: v.optional(v.string()),
-      profilePictureUrl: v.optional(v.string()),
-      isTaxExempt: v.optional(v.boolean()),
-      taxExemptId: v.optional(v.string()),
-      taxExemptReason: v.optional(v.string()),
-      taxExemptVerifiedAt: v.optional(v.number()),
-      username: v.optional(v.string()),
-      nickname: v.optional(v.string()),
-      displayName: v.optional(v.string()),
-      slug: v.optional(v.string()),
-      bio: v.optional(v.string()),
-      url: v.optional(v.string()),
-      avatarUrl: v.optional(v.string()),
-      avatarMediaId: v.optional(v.id("media")),
-      avatarStorageId: v.optional(v.string()),
-      socialLinks: v.optional(v.object({
-        twitter: v.optional(v.string()),
-        facebook: v.optional(v.string()),
-        instagram: v.optional(v.string()),
-        linkedin: v.optional(v.string()),
-        youtube: v.optional(v.string()),
-        github: v.optional(v.string()),
-        website: v.optional(v.string()),
-      })),
-      roleId: v.optional(v.id("roles")),
-      deactivatedAt: v.optional(v.number()),
-      deactivatedBy: v.optional(v.id("users")),
-      preferences: v.optional(v.object({
-        adminColorScheme: v.optional(v.string()),
-        showAdminBar: v.optional(v.boolean()),
-        editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
-        emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
-        notifyOnComment: v.optional(v.boolean()),
-        notifyOnReply: v.optional(v.boolean()),
-        notifyOnMention: v.optional(v.boolean()),
-      })),
-      locale: v.optional(v.string()),
-      timezone: v.optional(v.string()),
-      postCount: v.optional(v.number()),
-      postCountReady: v.optional(v.boolean()),
-      commentCount: v.optional(v.number()),
-      registrationMethod: v.optional(v.string()),
-      invitedBy: v.optional(v.id("users")),
-      emailVerifiedAt: v.optional(v.number()),
-      registeredAt: v.optional(v.number()),
-      lastLoginAt: v.optional(v.number()),
-      lastPasswordChangedAt: v.optional(v.number()),
-      passwordResetRequestedAt: v.optional(v.number()),
-      passwordResetCount: v.optional(v.number()),
-      passwordResetToken: v.optional(v.string()),
-      passwordResetTokenExpiresAt: v.optional(v.number()),
-      internalRole: v.optional(v.string()),
-      isInternal: v.optional(v.boolean()),
-      wpUserId: v.optional(v.number()),
-      wpSourceSiteId: v.optional(v.id("wordpressSites")),
-      wpCredentialMigrationStatus: v.optional(v.union(v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"), v.literal("unsupported_hash"))),
-      wpCredentialMigrationReason: v.optional(v.string()),
-      wpCredentialPasswordHasher: v.optional(v.string()),
-      wpCredentialMigratedAt: v.optional(v.number()),
-      wpCredentialMigrationError: v.optional(v.string()),
-      updatedAt: v.number(),
-      createdAt: v.number(),
-      status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
-      email: v.string(),
-      emailVerified: v.boolean(),
     })),
     total: v.number(),
     page: v.number(),
@@ -545,8 +354,7 @@ export const listUsers = query({
         }
 
         return {
-          ...user,
-          resolvedAvatarUrl: resolveAvatarUrl(user),
+          ...toClientUser(user),
           roleName,
           roleLevel,
         };
