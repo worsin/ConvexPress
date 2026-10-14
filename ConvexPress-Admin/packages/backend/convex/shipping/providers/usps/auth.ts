@@ -12,6 +12,7 @@ import type { ActionCtx } from "../../../_generated/server";
 import { internal } from "../../../_generated/api";
 import { getShippingProviderSettings } from "../../helpers/settings";
 import { getDecryptedProviderPayload } from "../_shared/credentials";
+import { oauthAccessToken, oauthExpiresInMs, oauthTokenSchema, readExternalJson } from "../../../helpers/externalJson";
 
 export type UspsCredentials = {
   clientId: string;
@@ -97,14 +98,14 @@ export async function getUspsAccessTokenV2(
     });
   }
 
-  const tokenPayload = (await tokenResponse.json()) as {
-    access_token?: string;
-    accessToken?: string;
-    token?: string;
-    expires_in?: number;
-  };
-  const accessToken =
-    tokenPayload.access_token ?? tokenPayload.accessToken ?? tokenPayload.token;
+  const tokenPayload = await readExternalJson(tokenResponse, oauthTokenSchema);
+  if (!tokenPayload.ok) {
+    throw new ConvexError({
+      code: "USPS_AUTH_ERROR",
+      message: `USPS authentication response could not be read: ${tokenPayload.problem}.`,
+    });
+  }
+  const accessToken = oauthAccessToken(tokenPayload.value);
   if (!accessToken) {
     throw new ConvexError({
       code: "USPS_AUTH_ERROR",
@@ -112,7 +113,7 @@ export async function getUspsAccessTokenV2(
     });
   }
 
-  const expiresInMs = tokenPayload.expires_in ? tokenPayload.expires_in * 1000 : TOKEN_TTL_MS;
+  const expiresInMs = oauthExpiresInMs(tokenPayload.value) ?? TOKEN_TTL_MS;
 
   if (connection) {
     await ctx.runMutation(

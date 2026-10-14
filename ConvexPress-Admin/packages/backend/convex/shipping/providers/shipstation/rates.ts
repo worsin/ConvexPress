@@ -19,6 +19,7 @@
  */
 
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 
 import type { ActionCtx } from "../../../_generated/server";
 import { internal } from "../../../_generated/api";
@@ -28,6 +29,8 @@ import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
 import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getDecryptedProviderPayload } from "../_shared/credentials";
+import { readExternalJson } from "../../../helpers/externalJson";
+import { at, str } from "../../helpers/json";
 
 export type ShipStationRateInput = {
   sessionToken: string;
@@ -58,24 +61,31 @@ export type ShipStationRateInput = {
   persistQuotes?: boolean;
 };
 
-type ShipEngineRate = {
-  rate_id?: string;
-  carrier_id?: string;
-  carrier_code?: string;
-  carrier_friendly_name?: string;
-  service_code?: string;
-  service_type?: string;
-  shipping_amount?: { amount?: number; currency?: string } | number;
-  rate_details?: { shipping_amount?: { amount?: number; currency?: string } };
-  currency?: string;
-  delivery_days?: number;
-  estimated_delivery_date?: string;
-};
+/**
+ * One ShipEngine rate: the fields read below, at their documented types
+ * (ShipEngine sends null for absent optional fields). Other fields are kept,
+ * because the rate is stored as the quote's raw provider payload.
+ */
+const shipEngineAmountSchema = z.object({ amount: z.number(), currency: z.string().nullish() });
+const shipEngineRateSchema = z.looseObject({
+  rate_id: z.string().nullish(),
+  carrier_id: z.string().nullish(),
+  carrier_code: z.string().nullish(),
+  carrier_friendly_name: z.string().nullish(),
+  service_code: z.string().nullish(),
+  service_type: z.string().nullish(),
+  shipping_amount: z.union([shipEngineAmountSchema, z.number()]),
+  rate_details: z.unknown().optional(),
+  currency: z.string().nullish(),
+  delivery_days: z.number().nullish(),
+  estimated_delivery_date: z.string().nullish(),
+});
 
-type ShipEngineRateResponse = {
-  rate_response?: { rates?: ShipEngineRate[] };
-  rates?: ShipEngineRate[];
-};
+/** The rate list sits under `rate_response.rates` (documented) or `rates`. */
+const shipEngineRateResponseSchema = z.object({
+  rate_response: z.object({ rates: z.array(z.unknown()).nullish() }).nullish(),
+  rates: z.array(z.unknown()).nullish(),
+});
 
 export async function fetchShipStationRatesV2(
   ctx: ActionCtx,
@@ -222,15 +232,24 @@ export async function fetchShipStationRatesV2(
     });
   }
 
-  const data = (await response.json()) as ShipEngineRateResponse;
+  const data = await readExternalJson(response, shipEngineRateResponseSchema);
+  if (!data.ok) {
+    throw new ConvexError({
+      code: "SHIPSTATION_RATE_ERROR",
+      message: `ShipStation rate response could not be read: ${data.problem}.`,
+    });
+  }
 
   // Audit fix: rate_response.rates is the documented path. Legacy had this
   // inverted; the v2 port preserves the corrected order.
-  const rawRates: ShipEngineRate[] = Array.isArray(data.rate_response?.rates)
-    ? data.rate_response!.rates!
-    : Array.isArray(data.rates)
-      ? data.rates
-      : [];
+  const listed = data.value.rate_response?.rates ?? data.value.rates ?? [];
+  // A rate without a numeric amount cannot be quoted (it used to become a
+  // free quote); it is left out rather than offered.
+  const rawRates = listed.flatMap((entry) => {
+    const rate = shipEngineRateSchema.safeParse(entry);
+    if (!rate.success) console.warn("[ShipStation] Skipped a rate that does not match the documented shape:", rate.error.issues[0]?.message);
+    return rate.success ? [rate.data] : [];
+  });
 
   const ttlMs = Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000;
   const expiresAt = Date.now() + ttlMs;
@@ -243,13 +262,13 @@ export async function fetchShipStationRatesV2(
   const unranked = rawRates.map((rate, index) => {
     const amountValue =
       typeof rate.shipping_amount === "object"
-        ? rate.shipping_amount?.amount ?? 0
-        : (rate.shipping_amount ?? 0);
+        ? rate.shipping_amount.amount
+        : rate.shipping_amount;
     const currency =
       (typeof rate.shipping_amount === "object"
-        ? rate.shipping_amount?.currency
+        ? rate.shipping_amount.currency
         : undefined) ??
-      rate.rate_details?.shipping_amount?.currency ??
+      str(at(rate.rate_details, "shipping_amount", "currency")) ??
       rate.currency ??
       rateContext.cart.currencyCode ??
       "USD";
@@ -264,7 +283,7 @@ export async function fetchShipStationRatesV2(
       carrierName: rate.carrier_friendly_name ?? rate.carrier_code ?? "Carrier",
       serviceCode: rate.service_code ?? rate.service_type ?? "service",
       serviceName: rate.service_type ?? rate.service_code ?? "Service",
-      amount: Math.round(Number(amountValue) * 100) || 0,
+      amount: Math.round(amountValue * 100),
       currency,
       estimatedDaysMin:
         typeof rate.delivery_days === "number" ? rate.delivery_days : undefined,

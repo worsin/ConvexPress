@@ -12,6 +12,7 @@
  */
 
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 
 import type { ActionCtx } from "../../../_generated/server";
 import { internal } from "../../../_generated/api";
@@ -22,6 +23,7 @@ import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getUspsAccessTokenV2 } from "./auth";
 import { getUspsServiceName, parseUspsBusinessDays } from "./serviceCodes";
+import { readExternalJson } from "../../../helpers/externalJson";
 
 export type UspsRateInput = {
   sessionToken: string;
@@ -42,22 +44,35 @@ export type UspsRateInput = {
   persistQuotes?: boolean;
 };
 
-type UspsRate = {
-  mailClass?: string;
-  productCode?: string;
-  description?: string;
-  mailClassDescription?: string;
-  price?: number;
-  totalBasePrice?: number;
-  totalPrice?: number;
-  commercialPrice?: number;
-  basePrice?: number;
-  expectedDeliveryDays?: unknown;
-  serviceStandards?: unknown;
-  deliveryDays?: unknown;
-  currency?: string;
-  currencyCode?: string;
-};
+/**
+ * One USPS price: the fields read below at their documented types. Delivery
+ * standards vary in form and are parsed by parseUspsBusinessDays. Other
+ * fields are kept, because the rate is stored as the quote's raw payload.
+ */
+const uspsRateSchema = z.looseObject({
+  mailClass: z.string().nullish(),
+  productCode: z.string().nullish(),
+  description: z.string().nullish(),
+  mailClassDescription: z.string().nullish(),
+  price: z.number().nullish(),
+  totalBasePrice: z.number().nullish(),
+  totalPrice: z.number().nullish(),
+  commercialPrice: z.number().nullish(),
+  basePrice: z.number().nullish(),
+  expectedDeliveryDays: z.unknown().optional(),
+  serviceStandards: z.unknown().optional(),
+  deliveryDays: z.unknown().optional(),
+  currency: z.string().nullish(),
+  currencyCode: z.string().nullish(),
+});
+
+/** Prices sit under `rateOptions` (each option nesting `rates`, or itself a price), `prices` or `rates`. */
+const uspsRateResponseSchema = z.object({
+  rateOptions: z.array(z.unknown()).nullish(),
+  prices: z.array(z.unknown()).nullish(),
+  rates: z.array(z.unknown()).nullish(),
+});
+const uspsRateOptionSchema = z.object({ rates: z.array(z.unknown()) });
 
 export async function fetchUspsRatesV2(
   ctx: ActionCtx,
@@ -166,21 +181,31 @@ export async function fetchUspsRatesV2(
     });
   }
 
+  const data = await readExternalJson(response, uspsRateResponseSchema);
+  if (!data.ok) {
+    throw new ConvexError({
+      code: "USPS_RATE_ERROR",
+      message: `USPS rate response could not be read: ${data.problem}.`,
+    });
+  }
   // A rate option either nests its rates or is itself a rate.
-  const data = (await response.json()) as {
-    rateOptions?: Array<UspsRate & { rates?: UspsRate[] }>;
-    prices?: UspsRate[];
-    rates?: UspsRate[];
-  };
-  const rawRates: UspsRate[] = Array.isArray(data?.rateOptions)
-    ? data.rateOptions.flatMap((opt) =>
-        Array.isArray(opt?.rates) ? opt.rates : [opt],
-      )
-    : Array.isArray(data?.prices)
-      ? data.prices
-      : Array.isArray(data?.rates)
-        ? data.rates
-        : [];
+  const listed: unknown[] = data.value.rateOptions
+    ? data.value.rateOptions.flatMap((option) => {
+        const nested = uspsRateOptionSchema.safeParse(option);
+        return nested.success ? nested.data.rates : [option];
+      })
+    : (data.value.prices ?? data.value.rates ?? []);
+  // A price without a numeric amount cannot be quoted (it used to become a
+  // free quote); it is left out rather than offered.
+  const rawRates = listed.flatMap((entry) => {
+    const rate = uspsRateSchema.safeParse(entry);
+    if (!rate.success) {
+      console.warn("[USPS] Skipped a price that does not match the documented shape:", rate.error.issues[0]?.message);
+      return [];
+    }
+    const amount = rate.data.price ?? rate.data.totalBasePrice ?? rate.data.totalPrice ?? rate.data.commercialPrice ?? rate.data.basePrice;
+    return amount === null || amount === undefined ? [] : [{ rate: rate.data, amount }];
+  });
 
   const ttlMs = Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000;
   const expiresAt = Date.now() + ttlMs;
@@ -190,16 +215,9 @@ export async function fetchUspsRatesV2(
     .sort()
     .join(",");
 
-  const unranked = rawRates.map((rate, index) => {
+  const unranked = rawRates.map(({ rate, amount }, index) => {
     const serviceCode =
       rate.mailClass ?? rate.productCode ?? `usps-service-${index + 1}`;
-    const amount =
-      rate.price ??
-      rate.totalBasePrice ??
-      rate.totalPrice ??
-      rate.commercialPrice ??
-      rate.basePrice ??
-      0;
     const estimatedDays =
       parseUspsBusinessDays(rate.expectedDeliveryDays) ??
       parseUspsBusinessDays(rate.serviceStandards) ??
@@ -215,7 +233,7 @@ export async function fetchUspsRatesV2(
         rate.description ??
         rate.mailClassDescription ??
         getUspsServiceName(String(serviceCode)),
-      amount: Math.round(Number(amount || 0) * 100) || 0,
+      amount: Math.round(amount * 100),
       currency:
         rate.currency ??
         rate.currencyCode ??
