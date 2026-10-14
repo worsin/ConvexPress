@@ -26,6 +26,9 @@
  */
 
 import { useMemo } from "react";
+import { Check } from "lucide-react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -52,7 +55,14 @@ export interface PublicFormField {
   conditionalLogic?: string | null;
   parentFieldId?: string | null;
   menuOrder?: number;
+  /** The plan field of a subscription form: each choice's offer, for plan cards. */
+  planOffers?: PublicPlanOffer[];
 }
+
+/** One plan as a subscription form's plan field shows it (public fields only). */
+export type PublicPlanOffer = NonNullable<
+  NonNullable<FunctionReturnType<typeof api.extensions.forms.queries.getBySlug>>["fields"][number]["planOffers"]
+>[number];
 
 interface Choice {
   value: string;
@@ -152,13 +162,14 @@ export function FormFieldRenderer({
   const settings = useFieldSettings(field.settings);
   const describedById = field.instructions ? `${inputId}-desc` : undefined;
 
+  const labelId = `${inputId}-label`;
   const labelNode = (
-    <FieldLabel htmlFor={inputId} label={field.label} required={field.required} />
+    <FieldLabel id={labelId} htmlFor={inputId} label={field.label} required={field.required} />
   );
 
   const instructionsNode = field.instructions ? (
     <p id={describedById} className="text-xs text-muted-foreground">
-      {field.instructions}
+      <HelpText text={field.instructions} />
     </p>
   ) : null;
 
@@ -186,7 +197,7 @@ export function FormFieldRenderer({
         ) : null}
         {(settings.message || field.instructions) && (
           <p className="text-xs text-muted-foreground">
-            {settings.message ?? field.instructions}
+            <HelpText text={settings.message ?? field.instructions ?? ""} />
           </p>
         )}
       </div>
@@ -292,9 +303,24 @@ export function FormFieldRenderer({
 
       case "radio":
       case "button_group":
+        if (field.planOffers && field.planOffers.length > 0) {
+          return (
+            <PlanChoiceControl
+              name={inputId}
+              labelId={labelId}
+              settings={settings}
+              planOffers={field.planOffers}
+              value={value}
+              onChange={onChange}
+              describedById={describedById}
+              invalid={invalid}
+            />
+          );
+        }
         return (
           <RadioControl
             name={inputId}
+            labelId={labelId}
             settings={settings}
             value={value}
             onChange={onChange}
@@ -306,6 +332,7 @@ export function FormFieldRenderer({
         return (
           <CheckboxGroupControl
             name={inputId}
+            labelId={labelId}
             settings={settings}
             value={value}
             onChange={onChange}
@@ -390,17 +417,19 @@ export function FormFieldRenderer({
 // ─── Sub-controls ─────────────────────────────────────────────────────────────
 
 function FieldLabel({
+  id,
   htmlFor,
   label,
   required,
 }: {
+  id: string;
   htmlFor: string;
   label: string;
   required?: boolean;
 }) {
   if (!label) return null;
   return (
-    <Label htmlFor={htmlFor}>
+    <Label id={id} htmlFor={htmlFor}>
       {label}
       {required ? (
         <span className="text-destructive" aria-hidden="true">
@@ -437,6 +466,7 @@ function SelectControl({
     return (
       <CheckboxGroupControl
         name={inputId}
+        labelId={`${inputId}-label`}
         settings={settings}
         value={value}
         onChange={onChange}
@@ -467,12 +497,14 @@ function SelectControl({
 
 function RadioControl({
   name,
+  labelId,
   settings,
   value,
   onChange,
   describedById,
 }: {
   name: string;
+  labelId: string;
   settings: FieldSettings;
   value: string;
   onChange: (value: string) => void;
@@ -484,6 +516,7 @@ function RadioControl({
   return (
     <div
       role="radiogroup"
+      aria-labelledby={labelId}
       aria-describedby={describedById}
       className={cn("flex gap-2", horizontal ? "flex-row flex-wrap" : "flex-col")}
     >
@@ -509,12 +542,14 @@ function RadioControl({
 
 function CheckboxGroupControl({
   name,
+  labelId,
   settings,
   value,
   onChange,
   describedById,
 }: {
   name: string;
+  labelId: string;
   settings: FieldSettings;
   value: string;
   onChange: (value: string) => void;
@@ -535,30 +570,33 @@ function CheckboxGroupControl({
   return (
     <div
       role="group"
+      aria-labelledby={labelId}
       aria-describedby={describedById}
       className={cn("flex gap-2", horizontal ? "flex-row flex-wrap" : "flex-col")}
     >
-      {choices.map((choice) => (
+      {choices.map((choice, index) => (
         <label
           key={choice.value}
           className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
         >
+          {/* Base UI renders the visible checkbox apart from its hidden input, so it is named explicitly. */}
           <Checkbox
             name={name}
             checked={selected.includes(choice.value)}
             onCheckedChange={() => toggle(choice.value)}
+            aria-labelledby={`${name}-choice-${index}`}
           />
-          <ChoiceLabel choice={choice} />
+          <ChoiceLabel id={`${name}-choice-${index}`} choice={choice} />
         </label>
       ))}
     </div>
   );
 }
 
-function ChoiceLabel({ choice }: { choice: Choice }) {
+function ChoiceLabel({ id, choice }: { id?: string; choice: Choice }) {
   const price = choicePrice(choice);
   return (
-    <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+    <span id={id} className="flex min-w-0 flex-1 items-center justify-between gap-3">
       <span className="min-w-0 truncate">{choice.label}</span>
       {price !== null ? (
         <span className="shrink-0 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
@@ -592,15 +630,17 @@ function TrueFalseControl({
       htmlFor={inputId}
       className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
     >
+      {/* Base UI renders the visible checkbox apart from its hidden input, so it is named explicitly. */}
       <Checkbox
         id={inputId}
         checked={checked}
         onCheckedChange={(next) => onChange(next === true ? "1" : "0")}
+        aria-labelledby={`${inputId}-text`}
         aria-describedby={describedById}
         aria-required={required || undefined}
         aria-invalid={invalid || undefined}
       />
-      <span>
+      <span id={`${inputId}-text`}>
         {label}
         {required ? (
           <span className="text-destructive" aria-hidden="true">
@@ -727,3 +767,162 @@ function ProductControl({
     </div>
   );
 }
+
+// ─── Plan cards (subscription forms) ────────────────────────────────────────
+
+function planPrice(offer: PublicPlanOffer): { amount: string; cadence: string } {
+  let amount: string;
+  try {
+    amount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: offer.currencyCode,
+      maximumFractionDigits: offer.recurringAmount % 100 === 0 ? 0 : 2,
+    }).format(offer.recurringAmount / 100);
+  } catch {
+    amount = `${(offer.recurringAmount / 100).toFixed(2)} ${offer.currencyCode}`;
+  }
+  const count = offer.billingIntervalCount && offer.billingIntervalCount > 1 ? offer.billingIntervalCount : 1;
+  const interval = offer.billingInterval ?? "month";
+  return { amount, cadence: count === 1 ? `/ ${interval}` : `every ${count} ${interval}s` };
+}
+
+/**
+ * A subscription form's plan field as plan cards: the price and cadence, the
+ * summary, the features and any trial, one card per plan. A real radio group
+ * (arrow keys move between plans; the selected card is outlined). A choice
+ * without a matching offer still shows, as a plain card with its label.
+ */
+function PlanChoiceControl({
+  name,
+  labelId,
+  settings,
+  planOffers,
+  value,
+  onChange,
+  describedById,
+  invalid,
+}: {
+  name: string;
+  labelId: string;
+  settings: FieldSettings;
+  planOffers: PublicPlanOffer[];
+  value: string;
+  onChange: (value: string) => void;
+  describedById?: string;
+  invalid?: boolean;
+}) {
+  const byValue = new Map(planOffers.map((offer) => [offer.value, offer]));
+  const choices = settings.choices ?? planOffers.map((offer) => ({ value: offer.value, label: offer.title }));
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby={labelId}
+      aria-describedby={describedById}
+      aria-invalid={invalid || undefined}
+      data-slot="plan-choice"
+      className={cn("grid gap-3", choices.length >= 3 ? "md:grid-cols-3" : choices.length === 2 ? "sm:grid-cols-2" : "")}
+    >
+      {choices.map((choice) => {
+        const offer = byValue.get(choice.value);
+        const selected = value === choice.value;
+        const price = offer ? planPrice(offer) : null;
+        return (
+          <label
+            key={choice.value}
+            data-selected={selected || undefined}
+            className={cn(
+              "relative flex cursor-pointer flex-col gap-3 rounded-lg border bg-background p-4 text-left transition-colors",
+              "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+              selected ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50",
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={choice.value}
+              checked={selected}
+              onChange={() => onChange(choice.value)}
+              className="sr-only"
+            />
+            <span className="flex items-start justify-between gap-2">
+              <span className="text-base font-semibold text-foreground">{offer?.title ?? choice.label}</span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-5 shrink-0 items-center justify-center rounded-full border",
+                  selected ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                )}
+              >
+                {selected ? <Check className="size-3" /> : null}
+              </span>
+            </span>
+            {price ? (
+              <span className="flex items-baseline gap-1">
+                <span className="text-2xl font-semibold tabular-nums text-foreground">{price.amount}</span>
+                <span className="text-sm text-muted-foreground">{price.cadence}</span>
+              </span>
+            ) : null}
+            {offer?.publicSummary ? <span className="text-sm text-muted-foreground">{offer.publicSummary}</span> : null}
+            {offer && offer.features.length > 0 ? (
+              <ul className="flex flex-col gap-1.5 text-sm text-foreground">
+                {offer.features.slice(0, 6).map((feature) => (
+                  <li key={feature.text} className="flex items-start gap-2">
+                    <Check className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden="true" />
+                    <span className={feature.highlighted ? "font-medium" : undefined}>{feature.text}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {offer?.trialDays ? <span className="text-xs text-muted-foreground">{offer.trialDays}-day free trial</span> : null}
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Help text ───────────────────────────────────────────────────────────────
+
+const LINK_PATTERN = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"]|(?<=^|\s)\/[A-Za-z0-9][A-Za-z0-9/_-]*)/g;
+
+/**
+ * Field help as plain text with its links made clickable: full http(s) URLs
+ * and site paths like "/terms" ("Read the Terms of Service at /terms.").
+ * Never interprets HTML.
+ */
+/** Split help text into plain text and links (pure; see HelpText). */
+export function helpTextParts(text: string): Array<{ kind: "text" | "link"; value: string }> {
+  const parts: Array<{ kind: "text" | "link"; value: string }> = [];
+  let last = 0;
+  for (const match of text.matchAll(LINK_PATTERN)) {
+    const start = match.index ?? 0;
+    if (start > last) parts.push({ kind: "text", value: text.slice(last, start) });
+    parts.push({ kind: "link", value: match[0] });
+    last = start + match[0].length;
+  }
+  if (last < text.length) parts.push({ kind: "text", value: text.slice(last) });
+  return parts;
+}
+
+export function HelpText({ text }: { text: string }) {
+  const parts = helpTextParts(text);
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.kind === "link" ? (
+          <a
+            key={index}
+            href={part.value}
+            className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            {...(part.value.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          >
+            {part.value}
+          </a>
+        ) : (
+          <span key={index}>{part.value}</span>
+        ),
+      )}
+    </>
+  );
+}
+

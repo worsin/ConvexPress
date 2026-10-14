@@ -10,7 +10,7 @@ import { readCompletedFormCount } from "../../helpers/formSubmissionCounts";
  */
 
 import { query, type QueryCtx } from "../../_generated/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import type { PricingLineItem } from "./calc/recompute";
 import {
   parsePricingLineItems,
@@ -31,7 +31,7 @@ import {
   formRequiresLogin,
   publicFormSettingsJson,
 } from "./builderCore";
-import { actionPlan, withPlanPrefill } from "./planLinks";
+import { actionPlan, choiceForOffer, choiceValues, withPlanPrefill, type ActionPlan } from "./planLinks";
 import { loadSecuritySettings } from "./spam";
 import { isGeneratedResumeToken, computeResumeExpiry } from "./tokens";
 export { DEFAULT_RESUME_TTL_MS, computeResumeExpiry } from "./tokens";
@@ -295,6 +295,51 @@ export const getForm = query({
   },
 });
 
+// ─── Plan offers (subscription forms) ────────────────────────────────────────
+
+const planOfferValidator = v.object({
+  value: v.string(),
+  title: v.string(),
+  publicSummary: v.optional(v.string()),
+  currencyCode: v.string(),
+  recurringAmount: v.number(),
+  setupFeeAmount: v.optional(v.number()),
+  billingInterval: v.optional(v.union(v.literal("day"), v.literal("week"), v.literal("month"), v.literal("year"))),
+  billingIntervalCount: v.optional(v.number()),
+  trialDays: v.optional(v.number()),
+  features: v.array(v.object({ text: v.string(), highlighted: v.optional(v.boolean()) })),
+});
+type PlanOffer = Infer<typeof planOfferValidator>;
+
+/** Each choice of a plan field with the active offer it buys (choices without one are left out). */
+async function planOffersFor(
+  ctx: QueryCtx,
+  plan: Extract<ActionPlan, { mode: "fromField" }>,
+  values: string[],
+): Promise<PlanOffer[]> {
+  const out: PlanOffer[] = [];
+  for (const value of values) {
+    const mapped = plan.offerByChoice[value] ?? value;
+    const offerId = ctx.db.normalizeId("commerce_subscription_offers", mapped);
+    const offer = offerId ? await ctx.db.get(offerId) : null;
+    if (!offer || offer.status !== "active" || choiceForOffer(plan, offer._id) !== value) continue;
+    const template = await ctx.db.get(offer.templateId);
+    out.push({
+      value,
+      title: offer.title,
+      publicSummary: offer.publicSummary,
+      currencyCode: offer.currencyCode,
+      recurringAmount: offer.recurringAmount,
+      setupFeeAmount: offer.setupFeeAmount,
+      billingInterval: template?.billingInterval,
+      billingIntervalCount: template?.billingIntervalCount,
+      trialDays: offer.trialDaysOverride ?? template?.trialDays,
+      features: (offer.features ?? []).map((feature) => ({ text: feature.text, highlighted: feature.highlighted })),
+    });
+  }
+  return out;
+}
+
 // ─── Public: a published form + its field definitions (for rendering) ────────
 export const getBySlug = query({
   args: { slug: v.string(), contactPassword: v.optional(v.string()) },
@@ -334,6 +379,11 @@ export const getBySlug = query({
       conditionalLogic: v.optional(v.string()),
       parentFieldId: v.optional(v.id("fieldDefinitions")),
       menuOrder: v.number(),
+      /**
+       * The plan field of a subscription action: each choice's offer as
+       * customers see it, so the form can show plan cards. Public fields only.
+       */
+      planOffers: v.optional(v.array(planOfferValidator)),
     })),
   })),
   handler: async (ctx, { slug, contactPassword }) => {
@@ -363,10 +413,18 @@ export const getBySlug = query({
         .withIndex("by_form_enabled", (q) => q.eq("formId", form._id).eq("enabled", true))
         .collect()
     ).filter((action) => action.type === "subscription");
-    const planFieldKeys = new Set<string>();
+    const planFields = new Map<string, Extract<ActionPlan, { mode: "fromField" }>>();
     for (const action of subscriptionActions) {
       const plan = actionPlan(action.config);
-      if (plan?.mode === "fromField") planFieldKeys.add(plan.fieldKey);
+      if (plan?.mode === "fromField") planFields.set(plan.fieldKey, plan);
+    }
+    const planFieldKeys = new Set(planFields.keys());
+    const planOffersByField = new Map<string, PlanOffer[]>();
+    if (planFields.size > 0 && (await isPluginEnabled(ctx, "commerceSubscriptions"))) {
+      for (const definition of fieldDefs) {
+        const plan = planFields.get(definition.key);
+        if (plan) planOffersByField.set(definition.key, await planOffersFor(ctx, plan, choiceValues(definition.settings)));
+      }
     }
     const security = await loadSecuritySettings(ctx);
     const timeAvailability = evaluateFormTimeAvailability(settings, Date.now());
@@ -418,6 +476,7 @@ export const getBySlug = query({
         required: f.required,
         defaultValue: f.defaultValue,
         settings: planFieldKeys.has(f.key) ? withPlanPrefill(f.settings) : f.settings,
+        planOffers: planOffersByField.get(f.key),
         conditionalLogic: f.conditionalLogic,
         parentFieldId: f.parentFieldId,
         menuOrder: f.menuOrder,

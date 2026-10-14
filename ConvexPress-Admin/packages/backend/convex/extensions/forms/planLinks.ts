@@ -80,3 +80,19 @@ export function withPlanPrefill(fieldSettingsJson: string): string {
   if (param === null) return fieldSettingsJson;
   return JSON.stringify({ ...settings, allowDynamicPopulation: true, paramName: param });
 }
+
+/** The values of a choice field's options, in order. */
+export function choiceValues(fieldSettingsJson: string): string[] {
+  const settings = parseObject(fieldSettingsJson);
+  const choices = settings?.choices;
+  if (!Array.isArray(choices)) return [];
+  const values: string[] = [];
+  for (const choice of choices) {
+    if (choice && typeof choice === "object" && !Array.isArray(choice)) {
+      const value: unknown = Reflect.get(choice, "value");
+      if (typeof value === "string" && value) values.push(value);
+    }
+  }
+  return values;
+}
+

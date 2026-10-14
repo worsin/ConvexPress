@@ -130,4 +130,28 @@ describe("pricing cards lead into the signup form", () => {
     ).rejects.toThrow("must be published and have a subscription action");
     expect(await f.admin.query(api.commerceSubscriptions.adminCatalog.listSignupForms, {})).toEqual([]);
   });
+
+  test("the form's plan field carries each plan as customers see it, for plan cards", async () => {
+    const f = await fixture();
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch("commerce_subscription_offers", f.ids.growth, { features: [{ text: "Priority support", highlighted: true }], trialDaysOverride: 14 });
+    });
+    const form = await f.t.query(api.extensions.forms.queries.getBySlug, { slug: "signup" });
+    const planOffers = form?.fields.find((field) => field.key === "signup_package")?.planOffers;
+    expect(planOffers).toEqual([
+      {
+        value: "launch", title: "Launch", publicSummary: "For launch practices", currencyCode: "USD", recurringAmount: 29_900,
+        billingInterval: "month", billingIntervalCount: 1, features: [],
+      },
+      {
+        value: "growth", title: "Growth", publicSummary: "For growth practices", currencyCode: "USD", recurringAmount: 59_900,
+        billingInterval: "month", billingIntervalCount: 1, trialDays: 14, features: [{ text: "Priority support", highlighted: true }],
+      },
+    ]);
+    // An archived plan drops out of the cards (its choice stays a plain option).
+    await f.t.run((ctx) => ctx.db.patch("commerce_subscription_offers", f.ids.growth, { status: "archived" }));
+    const after = await f.t.query(api.extensions.forms.queries.getBySlug, { slug: "signup" });
+    expect(after?.fields[0]?.planOffers?.map((offer) => offer.value)).toEqual(["launch"]);
+  });
 });
+
