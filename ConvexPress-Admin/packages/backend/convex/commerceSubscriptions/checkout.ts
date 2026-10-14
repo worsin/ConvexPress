@@ -35,7 +35,7 @@ import {
 	type QueryCtx,
 } from "../_generated/server";
 import { getCurrentUser, requireAuth } from "../helpers/auth";
-import { findCouponByCode, initializeRedemption, validateCoupon } from "../helpers/coupons";
+import { couponRefusalMessage, firstChargeDiscount, initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { readMergedSettingsSection } from "../settings/read";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
@@ -191,7 +191,7 @@ async function insertCheckoutIntent(
 		recurringAmount,
 		setupFeeAmount,
 		currencyCode,
-		initialAmount,
+		initialAmount: initialAmountBeforeDiscount,
 	} = computeIntentPricing(offer, template);
 
 	const userId = owner?._id;
@@ -207,66 +207,25 @@ async function insertCheckoutIntent(
 		});
 	}
 
-	// Validate the coupon code up-front if provided. We don't persist the
-	// coupon id here — we just record the code so activation can re-validate
-	// before redemption (coupon state might change between steps).
+	// A coupon is checked now (everything except the per-customer limit when
+	// the customer isn't known yet; activation re-checks it all) and, unless
+	// the offer starts with a trial, discounts the first charge too: that
+	// charge is the coupon's first use.
 	let couponCodeNormalized: string | undefined;
+	let firstChargeDiscountAmount = 0;
 	if (args.couponCode && args.couponCode.trim().length > 0) {
-		const code = args.couponCode.trim();
-		// validateCoupon expects a userId for per-customer-limit checks. If
-		// anonymous, we check the non-customer-limit gates only (offer, expiry,
-		// status). The per-customer limit check is re-run at activation time
-		// once the real user is resolved.
-		if (userId) {
-			const validation = await validateCoupon(
-				ctx,
-				code,
-				null,
-				userId,
-				args.offerId,
-			);
-			if (!validation.valid) {
-				throw new ConvexError({
-					code: "COUPON_INVALID",
-					message: `Coupon cannot be applied: ${validation.reason}.`,
-					reason: validation.reason,
-				});
-			}
-		} else {
-			// Anonymous: check the non-customer-limit gates only.
-			const coupon = await findCouponByCode(ctx, code);
-			if (!coupon) {
-				throw new ConvexError({
-					code: "COUPON_INVALID",
-					message: "Coupon code not found.",
-					reason: "not_found",
-				});
-			}
-			if (coupon.status !== "active") {
-				throw new ConvexError({
-					code: "COUPON_INVALID",
-					message: "Coupon is not active.",
-					reason: "not_active",
-				});
-			}
-			if (typeof coupon.expiresAt === "number" && now > coupon.expiresAt) {
-				throw new ConvexError({
-					code: "COUPON_INVALID",
-					message: "Coupon has expired.",
-					reason: "expired",
-				});
-			}
-			const offerScope = coupon.offerIds ?? [];
-			if (offerScope.length > 0 && !offerScope.includes(args.offerId)) {
-				throw new ConvexError({
-					code: "COUPON_INVALID",
-					message: "Coupon is not valid for this offer.",
-					reason: "not_valid_for_offer",
-				});
-			}
+		const validation = await validateCoupon(ctx, args.couponCode, null, userId ?? null, args.offerId);
+		if (!validation.valid) {
+			throw new ConvexError({
+				code: "COUPON_INVALID",
+				message: couponRefusalMessage(validation.reason),
+				reason: validation.reason,
+			});
 		}
-		couponCodeNormalized = code;
+		couponCodeNormalized = validation.coupon.code;
+		if (trialDays <= 0) firstChargeDiscountAmount = firstChargeDiscount(recurringAmount, validation.coupon);
 	}
+	const initialAmount = initialAmountBeforeDiscount - firstChargeDiscountAmount;
 
 	const liveChargingEnabled = await isLiveSubscriptionChargingEnabled(ctx);
 	const paymentReady =
@@ -294,6 +253,8 @@ async function insertCheckoutIntent(
 				currencyCode,
 				trialDays,
 				couponCode: couponCodeNormalized,
+				// Discount taken off the first charge (that charge is the coupon's first use).
+				firstChargeDiscount: firstChargeDiscountAmount,
 				returnUrl,
 			},
 			initialAmount,
@@ -976,6 +937,15 @@ async function activateIntent(
 				subscriptionId,
 				validation.coupon._id,
 			);
+			// The signup charge already took the discount: that was the first use.
+			if ((snapshotNumber(intent.pricingSnapshot, "firstChargeDiscount") ?? 0) > 0) {
+				const redemption = await ctx.db.get(redemptionId);
+				if (redemption) {
+					await ctx.db.patch("commerce_subscription_coupon_redemptions", redemptionId, {
+						remainingApplications: Math.max(0, redemption.remainingApplications - 1),
+					});
+				}
+			}
 		}
 		// If the coupon became invalid between intent creation and activation
 		// (e.g. it was archived), we silently drop it rather than failing the
@@ -1130,7 +1100,7 @@ async function insertSignupInvoice(
 		status: "paid",
 		invoiceNumber: await allocateSubscriptionInvoiceNumber(ctx),
 		currencyCode: intent.currencyCode,
-		subtotalAmount: intent.initialAmount,
+		subtotalAmount: intent.initialAmount + (snapshotNumber(intent.pricingSnapshot, "firstChargeDiscount") ?? 0),
 		taxAmount: 0,
 		totalAmount: intent.initialAmount,
 		paymentProvider: args.settlement.provider,
@@ -1144,10 +1114,15 @@ async function insertSignupInvoice(
 		createdAt: now,
 		updatedAt: now,
 	});
+	const discount = snapshotNumber(intent.pricingSnapshot, "firstChargeDiscount") ?? 0;
+	const couponCode = snapshotString(intent.pricingSnapshot, "couponCode");
 	const lines: Array<{ description: string; amount: number; lineType: string }> = [];
 	if (setupFee > 0) lines.push({ description: `${args.offerTitle} setup fee`, amount: setupFee, lineType: "setup_fee" });
-	if (intent.initialAmount - setupFee > 0) {
-		lines.push({ description: args.offerTitle, amount: intent.initialAmount - setupFee, lineType: "recurring" });
+	if (intent.initialAmount - setupFee + discount > 0) {
+		lines.push({ description: args.offerTitle, amount: intent.initialAmount - setupFee + discount, lineType: "recurring" });
+	}
+	if (discount > 0) {
+		lines.push({ description: `Coupon discount (${couponCode ?? "coupon"})`, amount: -discount, lineType: "coupon_discount" });
 	}
 	for (const line of lines) {
 		await ctx.db.insert("commerce_subscription_invoice_items", {
