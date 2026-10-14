@@ -102,6 +102,12 @@ export interface FormSettings {
   entryLimit?: number | null;
   requireLogin?: boolean | null;
   loginRequired?: boolean | null;
+  /**
+   * Anyone can open and fill the form (drafts save without an account), but
+   * the final submit needs a signed-in account; the website asks for one in
+   * the form itself, before payment. Ignored when `requireLogin` is set.
+   */
+  requireAccountToSubmit?: boolean | null;
   confirmationRef?: string | null;
   notificationRefs?: string[] | null;
   [key: string]: unknown;
@@ -169,6 +175,51 @@ export function formRequiresLogin(settings: FormSettings): boolean {
   return settings.requireLogin === true || settings.loginRequired === true;
 }
 
+/**
+ * The settings a public form read may expose: what the website renders from
+ * (availability, sign-in requirements, order-form copy). Notification and
+ * confirmation references and any other administrative key stay private.
+ * Extracted key by key, so one malformed legacy value never hides the rest.
+ */
+export function publicFormSettingsJson(settings: FormSettings): string {
+  const out: Record<string, unknown> = {};
+  for (const key of ["disabled", "requireLogin", "loginRequired", "requireAccountToSubmit"] as const) {
+    if (typeof settings[key] === "boolean") out[key] = settings[key];
+  }
+  for (const key of ["scheduleStart", "scheduleEnd"] as const) {
+    if (isFiniteNumber(settings[key])) out[key] = settings[key];
+  }
+  const entryLimit = positiveIntegerOrNull(settings.entryLimit);
+  if (entryLimit !== null) out.entryLimit = entryLimit;
+  const schedule = settings.schedule;
+  if (schedule && typeof schedule === "object") {
+    const startsAt = finiteNumberOrNull(schedule.startsAt);
+    const endsAt = finiteNumberOrNull(schedule.endsAt);
+    if (startsAt !== null || endsAt !== null) {
+      out.schedule = { ...(startsAt !== null ? { startsAt } : {}), ...(endsAt !== null ? { endsAt } : {}) };
+    }
+  }
+  const orderForm: unknown = settings.orderForm;
+  if (orderForm && typeof orderForm === "object" && !Array.isArray(orderForm)) {
+    const picked: Record<string, unknown> = {};
+    for (const key of ["enabled", "showSummary"] as const) {
+      const value: unknown = Reflect.get(orderForm, key);
+      if (typeof value === "boolean") picked[key] = value;
+    }
+    for (const key of ["summaryTitle", "paymentTitle", "paymentDescription"] as const) {
+      const value: unknown = Reflect.get(orderForm, key);
+      if (typeof value === "string") picked[key] = value.slice(0, key === "paymentDescription" ? 4000 : 512);
+    }
+    out.orderForm = picked;
+  }
+  return JSON.stringify(out);
+}
+
+/** True when only the final submit needs an account (see `requireAccountToSubmit`). */
+export function formRequiresAccountToSubmit(settings: FormSettings): boolean {
+  return !formRequiresLogin(settings) && settings.requireAccountToSubmit === true;
+}
+
 /** Positive integer entry cap, or null when unlimited/invalid legacy data. */
 export function formEntryLimit(settings: FormSettings): number | null {
   return positiveIntegerOrNull(settings.entryLimit);
@@ -226,7 +277,7 @@ function validateFormSettings(parsed: unknown): string | null {
   }
   const settings = parsed as FormSettings;
 
-  const boolKeys = ["disabled", "requireLogin", "loginRequired"] as const;
+  const boolKeys = ["disabled", "requireLogin", "loginRequired", "requireAccountToSubmit"] as const;
   for (const key of boolKeys) {
     const value = settings[key];
     if (value !== undefined && value !== null && typeof value !== "boolean") {

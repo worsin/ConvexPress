@@ -34,12 +34,26 @@ interface FormSettings {
   entryLimit?: number | null;
   requireLogin?: boolean | null;
   loginRequired?: boolean | null;
+  requireAccountToSubmit?: boolean | null;
   [key: string]: unknown;
 }
 
+/** Who may use the form: anyone; anyone, with an account asked for at the end; signed-in visitors only. */
+type AccountMode = "none" | "at_end" | "required";
+
+const ACCOUNT_MODES: ReadonlyArray<{ value: AccountMode; title: string; description: string }> = [
+  { value: "none", title: "No account needed", description: "Anyone can fill in and submit the form." },
+  {
+    value: "at_end",
+    title: "Ask for an account at the end",
+    description: "Anyone can open and fill in the form; before submitting (and paying) they create an account or sign in, without leaving the form. Best for signups.",
+  },
+  { value: "required", title: "Signed-in visitors only", description: "Visitors must sign in before they can see the form." },
+];
+
 interface SettingsDraft {
   disabled: boolean;
-  requireLogin: boolean;
+  accountMode: AccountMode;
   orderFormEnabled: boolean;
   showOrderSummary: boolean;
   orderSummaryTitle: string;
@@ -81,7 +95,7 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   const [baseSettings, setBaseSettings] = useState<FormSettings>({});
   const [draft, setDraft] = useState<SettingsDraft>({
     disabled: false,
-    requireLogin: false,
+    accountMode: "none",
     orderFormEnabled: false,
     showOrderSummary: true,
     orderSummaryTitle: "Order summary",
@@ -102,7 +116,12 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
     setBaseSettings(parsed);
     setDraft({
       disabled: parsed.disabled === true,
-      requireLogin: parsed.requireLogin === true || parsed.loginRequired === true,
+      accountMode:
+        parsed.requireLogin === true || parsed.loginRequired === true
+          ? "required"
+          : parsed.requireAccountToSubmit === true
+            ? "at_end"
+            : "none",
       orderFormEnabled: orderForm.enabled,
       showOrderSummary: orderForm.showSummary,
       orderSummaryTitle: orderForm.summaryTitle,
@@ -250,26 +269,26 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
               </span>
             </label>
 
-            <label className="flex items-start gap-3 rounded-lg border border-border p-4">
-              <Checkbox
-                checked={draft.requireLogin}
-                onCheckedChange={(checked) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    requireLogin: checked === true,
-                  }))
-                }
-                disabled={!canUpdate || isSaving}
-              />
-              <span className="grid gap-1">
-                <span className="text-sm font-medium text-foreground">
-                  Require login
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Guests are prompted to sign in before submitting.
-                </span>
-              </span>
-            </label>
+            <fieldset className="grid gap-2 rounded-lg border border-border p-4 md:col-span-2">
+              <legend className="px-1 text-sm font-medium text-foreground">Accounts</legend>
+              {ACCOUNT_MODES.map((mode) => (
+                <label key={mode.value} className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-muted/40">
+                  <input
+                    type="radio"
+                    name="account-mode"
+                    value={mode.value}
+                    checked={draft.accountMode === mode.value}
+                    onChange={() => setDraft((prev) => ({ ...prev, accountMode: mode.value }))}
+                    disabled={!canUpdate || isSaving}
+                    className="mt-1"
+                  />
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-medium text-foreground">{mode.title}</span>
+                    <span className="text-xs text-muted-foreground">{mode.description}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -448,7 +467,9 @@ function buildSettings(base: FormSettings, draft: SettingsDraft): FormSettings {
   const next: FormSettings = { ...base };
   delete next.loginRequired;
   delete next.schedule;
-  next.requireLogin = draft.requireLogin;
+  next.requireLogin = draft.accountMode === "required";
+  if (draft.accountMode === "at_end") next.requireAccountToSubmit = true;
+  else delete next.requireAccountToSubmit;
 
   if (draft.disabled) next.disabled = true;
   else delete next.disabled;

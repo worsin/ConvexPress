@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@/lib/auth/clerk";
+import { useAuth, useUser } from "@/lib/auth/clerk";
 import { useAction, useConvex, useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -65,8 +65,10 @@ import {
   FormStateNotice,
   getFormClosedState,
   parsePublicFormSettings,
+  publicFormRequiresAccountToSubmit,
   publicFormRequiresLogin,
 } from "./StateNotices";
+import { FormAccountStep, type AccountPrefill } from "./FormAccountStep";
 import { FormSecurityControls } from "./SecurityControls";
 import {
   buildSubmitSecurityEnvelope,
@@ -335,6 +337,28 @@ export function buildWizardPayload(
   return out;
 }
 
+/**
+ * What the account step can start from: the first email field, and fields
+ * whose keys end in first_name / last_name.
+ */
+export function accountPrefillFrom(
+  fields: ReadonlyArray<{ key: string; type: string }>,
+  values: Record<string, string>,
+): AccountPrefill {
+  const valueOf = (match: (field: { key: string; type: string }) => boolean) => {
+    const field = fields.find((candidate) => match(candidate) && (values[candidate.key] ?? "").trim() !== "");
+    return field ? values[field.key]!.trim() : undefined;
+  };
+  return {
+    emailAddress: valueOf((field) => field.type === "email" || /(^|_)email$/.test(field.key)),
+    firstName: valueOf((field) => /(^|_)first_name$/.test(field.key)),
+    lastName: valueOf((field) => /(^|_)last_name$/.test(field.key)),
+  };
+}
+
+/** The account step's place in the progress bar (not a form page; no fields). */
+const ACCOUNT_STEP: WizardStep = { index: Number.MAX_SAFE_INTEGER, title: "Your account", fieldKeys: [], isSkippable: false };
+
 export function FormWizard({
   form,
   contactPassword,
@@ -346,6 +370,7 @@ export function FormWizard({
   options,
 }: FormWizardProps) {
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const opts = {
     autosave: options?.autosave ?? true,
     autosaveDelayMs: options?.autosaveDelayMs ?? DEFAULT_AUTOSAVE_DELAY_MS,
@@ -427,6 +452,8 @@ export function FormWizard({
   // Set when Stripe returned to this page after a redirect-based method.
   const [subscriptionReturn, setSubscriptionReturn] =
     useState<SubscriptionReturn | null>(null);
+  // The built-in account step (forms that ask for an account at the end).
+  const [accountStepOpen, setAccountStepOpen] = useState(false);
   const [honeypotValue, setHoneypotValue] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState<string | null>(null);
@@ -503,6 +530,10 @@ export function FormWizard({
   );
   const loginRequired = publicFormRequiresLogin(formSettings, form.availability);
   const loginBlocked = loginRequired && (!isLoaded || !isSignedIn);
+  const accountRequired = publicFormRequiresAccountToSubmit(formSettings, form.availability);
+  // Signed-out visitors (or anyone the server turned away for lack of an
+  // account) go through the account step after the last page.
+  const needsAccountStep = accountRequired && (!isLoaded || !isSignedIn || accountStepOpen);
 
   // ── Funnel analytics (Analytics System §12) ─────────────────────────────────
   // first VIEW on mount; first INTERACTION (started) on the first value change.
@@ -713,9 +744,12 @@ export function FormWizard({
   );
 
   // ── Final submit ────────────────────────────────────────────────────────────
-  const onFinalSubmit = useCallback(async () => {
-    const ok = rendererRef.current?.validate() ?? true;
-    if (!ok) return;
+  /** Submit the whole form; the current page is validated unless the account step submits. */
+  const submitFinal = useCallback(async (validateCurrentPage: boolean) => {
+    if (validateCurrentPage) {
+      const ok = rendererRef.current?.validate() ?? true;
+      if (!ok) return;
+    }
     if (timerRef.current) clearTimeout(timerRef.current);
     setSubmitError(null);
     const captchaProblem = captchaConfigProblem(form.security);
@@ -840,9 +874,16 @@ export function FormWizard({
     } catch (err: unknown) {
       // Map server field errors back to the step that owns each field, jump to
       // the FIRST offending step, and do NOT treat as complete.
-      const { message, serverFieldErrors } = parseSubmitError(err);
+      const { message, code, serverFieldErrors } = parseSubmitError(err);
       setSubmitError(message);
+      // The server wants an account (signed out meanwhile, or the site account
+      // is missing): the account step sorts it out, then submits again.
+      if (code === "ACCOUNT_REQUIRED" && accountRequired) {
+        setAccountStepOpen(true);
+        return;
+      }
       if (serverFieldErrors && serverFieldErrors.length > 0) {
+        setAccountStepOpen(false);
         const offendingKeys = new Set(serverFieldErrors.map((e) => e.fieldKey));
         let firstStep = -1;
         for (let i = 0; i < activeSteps.length; i++) {
@@ -881,7 +922,25 @@ export function FormWizard({
     honeypotValue,
     captchaToken,
     captchaError,
+    accountRequired,
   ]);
+  const onFinalSubmit = useCallback(() => {
+    void submitFinal(true);
+  }, [submitFinal]);
+
+  /** Last page of a form that asks for an account: check it, save it, then the account step. */
+  const continueToAccount = useCallback(() => {
+    const ok = rendererRef.current?.validate() ?? true;
+    if (!ok) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    void flushAutosave();
+    setSubmitError(null);
+    setAccountStepOpen(true);
+  }, [flushAutosave]);
+
+  const onAccountReady = useCallback(() => {
+    void submitFinal(false);
+  }, [submitFinal]);
 
   // ── Post-submit confirmation handoff ────────────────────────────────────────
   // Reuse the renderer's confirmation view. The wizard owns the submit lifecycle,
@@ -950,58 +1009,88 @@ export function FormWizard({
         <FormLoginRequiredNotice />
       ) : (
         <>
-          {opts.showProgress && !isSinglePage ? (
+          {opts.showProgress && (!isSinglePage || needsAccountStep) ? (
             <StepProgress
-              activeSteps={activeSteps}
-              currentIndex={clampedIndex}
-              furthestIndex={furthestStep}
+              activeSteps={needsAccountStep ? [...activeSteps, ACCOUNT_STEP] : activeSteps}
+              currentIndex={accountStepOpen ? activeSteps.length : clampedIndex}
+              furthestIndex={accountStepOpen ? activeSteps.length : furthestStep}
               allowBackNav={opts.allowBackNav}
-              onJumpTo={jumpTo}
+              onJumpTo={(target) => {
+                if (accountStepOpen) {
+                  setAccountStepOpen(false);
+                  setStepIndex(target);
+                  return;
+                }
+                jumpTo(target);
+              }}
             />
           ) : null}
 
           {submitError ? <div ref={submitErrorRef} data-slot="form-submit-error" tabIndex={-1}><AuthError message={submitError} /></div> : null}
 
-          <FormRenderer
-            // Re-mount the renderer per step so its internal field error state is
-            // scoped to the step (keyed on the step index).
-            key={`step-${current.index}`}
-            form={form}
-            step={{
-              index: clampedIndex,
-              total: activeSteps.length,
-              fieldKeys: current.fieldKeys,
-            }}
-            initialValues={values}
-            onValuesChange={onValuesChange}
-            hideSubmit
-            onReady={(handle) => {
-              rendererRef.current = handle;
-            }}
-          />
+          {accountStepOpen ? (
+            isSubmitting ? (
+              <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
+                Submitting your answers…
+              </p>
+            ) : (
+              <FormAccountStep
+                prefill={accountPrefillFrom(form.fields, values)}
+                returnTo={resumeTokenRef.current ? `/forms/${form.slug}/resume/${resumeTokenRef.current}` : `/forms/${form.slug}`}
+                onReady={onAccountReady}
+                onBack={() => setAccountStepOpen(false)}
+              />
+            )
+          ) : (
+            <>
+              <FormRenderer
+                // Re-mount the renderer per step so its internal field error state is
+                // scoped to the step (keyed on the step index).
+                key={`step-${current.index}`}
+                form={form}
+                step={{
+                  index: clampedIndex,
+                  total: activeSteps.length,
+                  fieldKeys: current.fieldKeys,
+                }}
+                initialValues={values}
+                onValuesChange={onValuesChange}
+                hideSubmit
+                onReady={(handle) => {
+                  rendererRef.current = handle;
+                }}
+              />
 
-          <FormSecurityControls
-            formId={form._id}
-            security={form.security}
-            honeypotValue={honeypotValue}
-            onHoneypotChange={setHoneypotValue}
-            onCaptchaTokenChange={setCaptchaToken}
-            onCaptchaErrorChange={setCaptchaError}
-          />
+              <FormSecurityControls
+                formId={form._id}
+                security={form.security}
+                honeypotValue={honeypotValue}
+                onHoneypotChange={setHoneypotValue}
+                onCaptchaTokenChange={setCaptchaToken}
+                onCaptchaErrorChange={setCaptchaError}
+              />
 
-          <StepNav
-            canBack={clampedIndex > 0 && opts.allowBackNav}
-            isFinal={isFinal}
-            onBack={goBack}
-            onNext={goNext}
-            onSubmit={onFinalSubmit}
-            isSubmitting={isSubmitting}
-            nextLabel={labels.nextLabel}
-            prevLabel={labels.prevLabel}
-            submitLabel={options?.submitLabel}
-          />
+              {isFinal && accountRequired && isLoaded && isSignedIn && user?.primaryEmailAddress?.emailAddress ? (
+                <p className="text-xs text-muted-foreground">
+                  Submitting as {user.primaryEmailAddress.emailAddress}.
+                </p>
+              ) : null}
 
-          <AutosaveIndicator saveState={saveState} savedAt={savedAt} />
+              <StepNav
+                canBack={clampedIndex > 0 && opts.allowBackNav}
+                isFinal={isFinal}
+                onBack={goBack}
+                onNext={goNext}
+                onSubmit={isFinal && needsAccountStep ? continueToAccount : onFinalSubmit}
+                isSubmitting={isSubmitting}
+                nextLabel={labels.nextLabel}
+                prevLabel={labels.prevLabel}
+                submitLabel={isFinal && needsAccountStep ? "Continue" : options?.submitLabel}
+              />
+
+              <AutosaveIndicator saveState={saveState} savedAt={savedAt} />
+            </>
+          )}
         </>
       )}
     </div>

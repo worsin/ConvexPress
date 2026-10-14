@@ -79,6 +79,7 @@ import {
   parseFormSettings,
   evaluateFormTimeAvailability,
   formEntryLimit,
+  formRequiresAccountToSubmit,
   formRequiresLogin,
   remapFieldReferences,
 } from "./builderCore";
@@ -261,6 +262,16 @@ async function assertFormAcceptsSubmission(
       code: "LOGIN_REQUIRED",
       message: "Please sign in to submit this form.",
     });
+  }
+  // Drafts save without an account; finishing needs one.
+  if (isComplete && formRequiresAccountToSubmit(settings)) {
+    const accountUser = identity ? await getCurrentUser(ctx) : null;
+    if (!accountUser || accountUser.status !== "active") {
+      throw new ConvexError({
+        code: "ACCOUNT_REQUIRED",
+        message: "Create an account or sign in to finish.",
+      });
+    }
   }
 
   const entryLimit = formEntryLimit(settings);
