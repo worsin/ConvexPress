@@ -192,6 +192,8 @@ export function failureMessage(reason: FailureReason): string {
   switch (reason) {
     case "sign_in_required":
       return "Sign in, then submit this form again to start your subscription.";
+    case "already_subscribed":
+      return "You already have an active subscription that includes this. To switch packages, change your plan from your account. You have not been charged.";
     case "unavailable":
       return "We couldn't start checkout for this form. Please try again later or contact us.";
     case "payment_failed":

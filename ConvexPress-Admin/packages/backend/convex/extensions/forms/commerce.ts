@@ -72,6 +72,7 @@ import {
   type ActionRunContext,
 } from "./actionRegistry";
 import { normalizeFormReturnUrl } from "./redirects";
+import { ALREADY_SUBSCRIBED_MESSAGE } from "../../commerceSubscriptions/ownership";
 
 // ─── Config + Zod boundary ───────────────────────────────────────────────────
 
@@ -270,6 +271,7 @@ export const SIGN_IN_REQUIRED_ERROR =
 
 /** Map a permanent ConvexError code → a non-retryable failure result. */
 const PERMANENT_CODES = new Set([
+  "ALREADY_SUBSCRIBED",
   "OFFER_ARCHIVED",
   "OFFER_UNAVAILABLE",
   "COUPON_INVALID",
@@ -494,6 +496,10 @@ async function runSubscriptionAction(
     // re-verifies the zero price server-side.
     if (msg.includes("no_charge_needed_free_initial_amount")) {
       return await activateFree(intentId);
+    }
+    // The buyer already holds this access (bought since checkout started).
+    if (errorCode(err) === "ALREADY_SUBSCRIBED") {
+      return { ok: false, retryable: false, error: ALREADY_SUBSCRIBED_MESSAGE };
     }
     // An activated/failed intent can never be charged again.
     if (msg.includes("checkout_intent_not_payable")) {

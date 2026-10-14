@@ -47,6 +47,29 @@ const modules = {
   "./convex/notifications/internals.ts": () => import("../../notifications/internals"),
 };
 
+/**
+ * Every convex-test instance a test created. Activation schedules a background
+ * card-summary refresh; it must finish while this file's Stripe fakes are still
+ * installed, so cleanup waits for it.
+ */
+const liveTests: Array<ReturnType<typeof convexTest>> = [];
+
+/**
+ * Let scheduled functions (runAfter(0)) start, then wait for them and anything
+ * they schedule. convex-test only waits for work already running, so give the
+ * timers a turn first.
+ */
+async function drainScheduled(t: ReturnType<typeof convexTest>): Promise<void> {
+  for (let round = 0; round < 5; round++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await t.finishInProgressScheduledFunctions();
+  }
+}
+async function settleScheduledWork(): Promise<void> {
+  const pending = liveTests.splice(0);
+  for (const t of pending) await drainScheduled(t);
+}
+
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const WEBHOOK_SECRET = "whsec_payment_trust_boundary";
 const stripe = new Stripe("sk_test_payment_trust_boundary");
@@ -62,6 +85,7 @@ type OfferPricing = {
 
 async function fixture() {
   const t = convexTest({ schema, modules });
+  liveTests.push(t);
   const ids = await t.run(async (ctx) => {
     const user = (email: string, emailVerified = true) =>
       ctx.db.insert("users", { authSource: "local", email, emailVerified, status: "active", createdAt: 1, updatedAt: 1 });
@@ -183,7 +207,8 @@ beforeEach(() => {
     card: { brand: "visa", last4: "4242", exp_month: 12, exp_year: 2030 },
   }));
 });
-afterEach(() => {
+afterEach(async () => {
+  await settleScheduledWork();
   const paymentMethodsApi: FakeablePaymentMethods = Object.getPrototypeOf(new Stripe("sk_test_summary").paymentMethods);
   const fn = paymentMethodsApi.retrieve;
   if ("mockRestore" in fn && typeof fn.mockRestore === "function") fn.mockRestore();

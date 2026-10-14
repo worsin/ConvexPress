@@ -118,6 +118,7 @@ function NewSubscriptionOfferPage() {
   const [trialDaysOverride, setTrialDaysOverride] = useState("");
   const [availableInCart, setAvailableInCart] = useState(true);
   const [availableInDirectForms, setAvailableInDirectForms] = useState(true);
+  const [limitOnePerCustomer, setLimitOnePerCustomer] = useState(false);
   const [availableForAdminProvisioning, setAvailableForAdminProvisioning] =
     useState(true);
   const [entitlementCodesText, setEntitlementCodesText] = useState("");
@@ -175,6 +176,7 @@ function NewSubscriptionOfferPage() {
           : undefined,
         availableInCart,
         availableInDirectForms,
+        limitOnePerCustomer,
         availableForAdminProvisioning,
         entitlementCodes: entitlementCodes.length ? entitlementCodes : undefined,
         features: features.length ? features : undefined,
@@ -409,6 +411,15 @@ function NewSubscriptionOfferPage() {
                 className="h-4 w-4 rounded border-border text-primary focus-visible:ring-2 focus-visible:ring-ring"
               />
               Available for admin provisioning
+            </label>
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={limitOnePerCustomer}
+                onChange={(e) => setLimitOnePerCustomer(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              One per customer (a customer who already has this access changes plan instead of buying again)
             </label>
             <label className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground">
               <input

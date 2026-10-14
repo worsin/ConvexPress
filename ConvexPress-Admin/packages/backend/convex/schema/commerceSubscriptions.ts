@@ -147,6 +147,10 @@ export const commerceSubscriptionTables = {
     availableForAdminProvisioning: v.boolean(),
     createNewSubscription: v.boolean(),
     allowAddToExistingSubscription: v.boolean(),
+    // One live subscription per customer: a customer who already holds a live
+    // contract with any of this offer's entitlement codes cannot buy it again
+    // (they change plan instead). See commerceSubscriptions/ownership.ts.
+    limitOnePerCustomer: v.optional(v.boolean()),
     currencyCode: v.string(),
     recurringAmount: v.number(),
     setupFeeAmount: v.optional(v.number()),
