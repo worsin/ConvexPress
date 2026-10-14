@@ -13,6 +13,7 @@ import type { SearchOverlaySurfaceData } from "@/templates/packs/core/surfaces/c
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Button, Container } from "../parts";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export default function DepotSearchOverlay({ data }: SurfaceProps<SearchOverlaySurfaceData>) {
   const { open, onClose } = data;
@@ -21,7 +22,7 @@ export default function DepotSearchOverlay({ data }: SurfaceProps<SearchOverlayS
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const settings = useSettings();
-  const target = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
+  const target = isPublicPluginEnabled("commerceStorefront", settings) ? "/products" : "/search";
 
   useEffect(() => {
     if (open) inputRef.current?.focus();

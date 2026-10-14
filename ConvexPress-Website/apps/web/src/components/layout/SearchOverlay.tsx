@@ -7,6 +7,7 @@ import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { Input } from "@/components/ui/input";
 import { SearchSuggestions } from "@/components/search/SearchSuggestions";
 import { useSettings } from "@/contexts/SettingsContext";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 /**
  * Full-width search input overlay that slides down from the header.
@@ -30,7 +31,7 @@ export function SearchOverlay({ open, onClose, placeholder = "Search..." }: Sear
   const navigate = useNavigate();
   const settings = useSettings();
   // Shops search the catalog first; the site-wide search stays a click away.
-  const searchTarget = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
+  const searchTarget = isPublicPluginEnabled("commerceStorefront", settings) ? "/products" : "/search";
 
   // Auto-focus input on open
   React.useEffect(() => {

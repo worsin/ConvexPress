@@ -19,6 +19,7 @@ import { useAssistantConfig, type AssistantConfig } from "@/hooks/useAssistantCo
 import { useShopLayout, type ShopLayout } from "@/hooks/useShopLayout";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { perPageFor, queryArgs, type SearchResponse, type ShopSearch } from "@/lib/commerce/shopSearch";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export interface ShopFacetChip {
   label: string;
@@ -63,7 +64,7 @@ export function useShopCatalogData(variant?: string): ShopCatalogData {
   const layout: ShopLayout = { ...layoutSetting, shopLayout };
   const shell = useShopShell();
   const q = search.q?.trim() || "";
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const args = queryArgs(search, perPageFor(layout.shopLayout, layout.gridDensity));
   const { data }: { data: SearchResponse | undefined } = useTanStackQuery(convexQuery(api.commerce.storefront.searchProducts, args));
   const facets: { chips: ShopFacetChip[] } | null | undefined = useQuery(api.commerce.storefront.facetsForQuery, q && assistant.searchFacets && sessionToken ? { q, sessionToken } : "skip");

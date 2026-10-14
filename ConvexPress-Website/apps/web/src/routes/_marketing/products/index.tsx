@@ -19,6 +19,7 @@ import { perPageFor, queryArgs, shopSearchSchema } from "@/lib/commerce/shopSear
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 import CoreCatalog from "@/templates/packs/core/surfaces/shop.catalog";
 import { Surface } from "@/templates/sdk/Surface";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/products/")({
   validateSearch: shopSearchSchema,
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/_marketing/products/")({
     const shop = { ...pack?.manifest.defaults?.shop, ...(savedShop && typeof savedShop === "object" ? savedShop as Record<string, unknown> : {}) };
     const shopLayout = resolveShopLayout(config?.variants ?? {}, shop, { layout });
     const perPage = perPageFor(shopLayout.shopLayout, shopLayout.gridDensity);
-    if (publicSettings?.plugins?.commerceEnabled === true) {
+    if (isPublicPluginEnabled("commerceStorefront", publicSettings)) {
       await queryClient.ensureQueryData(convexQuery(api.commerce.storefront.searchProducts, { ...args, perPage }));
     }
     const path = args.q ? `/products?q=${encodeURIComponent(args.q)}` : args.page > 1 ? `/products?page=${args.page}` : "/products";

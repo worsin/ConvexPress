@@ -14,6 +14,7 @@
  */
 
 import { internalQuery } from "../_generated/server";
+import { settingsRecord } from "../helpers/settingsReader";
 import { v } from "convex/values";
 import {
   getDefaults,
@@ -84,6 +85,7 @@ export const getPublicInternal = internalQuery({
     showPrivacyPolicyLink: v.optional(v.boolean()),
     plugins: v.object({
       commerceEnabled: v.optional(v.boolean()),
+      commerceStorefrontEnabled: v.optional(v.boolean()),
       commerceSubscriptionsEnabled: v.optional(v.boolean()),
       commerceDigitalEnabled: v.optional(v.boolean()),
       commerceReviewsEnabled: v.optional(v.boolean()),
@@ -128,7 +130,7 @@ export const getPublicInternal = internalQuery({
       .withIndex("by_section", (q) => q.eq("section", "plugins"))
       .unique();
     const plugins = pluginsDoc
-      ? { ...pluginsDefaults, ...(pluginsDoc.values as Record<string, unknown>) }
+      ? { ...pluginsDefaults, ...settingsRecord(pluginsDoc.values) }
       : { ...pluginsDefaults };
 
     return {
@@ -176,6 +178,7 @@ export const getPublicInternal = internalQuery({
       // Public plugin flags. These are feature visibility controls, not secrets.
       plugins: {
         commerceEnabled: publicBoolean(plugins.commerceEnabled),
+        commerceStorefrontEnabled: publicBoolean(plugins.commerceStorefrontEnabled),
         commerceSubscriptionsEnabled: publicBoolean(plugins.commerceSubscriptionsEnabled),
         commerceDigitalEnabled: publicBoolean(plugins.commerceDigitalEnabled),
         commerceReviewsEnabled: publicBoolean(plugins.commerceReviewsEnabled),

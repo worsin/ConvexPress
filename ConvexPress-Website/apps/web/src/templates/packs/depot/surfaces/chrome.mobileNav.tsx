@@ -20,6 +20,7 @@ import type { MobileNavSurfaceData } from "@/templates/packs/core/surfaces/chrom
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Label, buttonClasses } from "../parts";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceData>) {
   const { menu, siteIdentity, config, open, onClose } = data;
@@ -186,7 +187,7 @@ function AccountBlock({ onNavigate, userMenu }: { onNavigate: () => void; userMe
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();
   const settings = useSettings();
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
 
   return (
     <div className="flex flex-col gap-2 border-t border-border p-4">

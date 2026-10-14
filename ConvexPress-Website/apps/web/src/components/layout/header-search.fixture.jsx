@@ -40,13 +40,15 @@ for(const pack of ['core','journal','depot','aster-house']){
    const before=navigationEvents.length;
    await act(async()=>fireEvent.submit(input.closest('form')));
    assert.equal(navigationEvents.length,before,'empty query must not navigate');
-   for(const commerce of [false,true]){
-    settingsState.plugins.commerceEnabled=commerce;await act(async()=>render());
+   // A shop searches its catalog; a site without the storefront (e.g. subscriptions only) searches the site and shows no cart.
+   for(const {commerce,storefront,to} of [{commerce:false,storefront:undefined,to:'/search'},{commerce:true,storefront:undefined,to:'/products'},{commerce:true,storefront:false,to:'/search'}]){
+    settingsState.plugins.commerceEnabled=commerce;settingsState.plugins.commerceStorefrontEnabled=storefront;await act(async()=>render());
+    if(storefront===false)assert.equal(!!document.querySelector('button[aria-label^="Cart"]'),false,`${pack}/${variant}: no cart without the storefront`);
     if(variant!=='inline'&&!document.querySelector('input[type="search"]')) await act(async()=>trigger().click());
     const field=document.querySelector('input[type="search"]');
     await act(async()=>fireEvent.input(field,{target:{value:'  helpful guide  '}}));
     await act(async()=>fireEvent.submit(field.closest('form')));
-    assert.deepEqual(navigationEvents.at(-1),{to:commerce?'/products':'/search',search:{q:'helpful guide'}},`${pack}/${variant}: trim and correct search route`);
+    assert.deepEqual(navigationEvents.at(-1),{to,search:{q:'helpful guide'}},`${pack}/${variant}: trim and correct search route`);
     if(variant!=='inline')assert.equal(!!document.querySelector('input[type="search"]'),false,'submitted search closes');
    }
    if(variant!=='inline'){

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useSettings } from "../contexts/SettingsContext";
 import { idFromString } from "../lib/ids";
 import { useCommerceSessionToken } from "./useCommerceSessionToken";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export interface CartLineSummary {
   itemId: Id<"commerce_cart_items">;
@@ -62,7 +63,7 @@ function toSummary(raw: FunctionReturnType<typeof api.commerce.cart.getMine> | u
 
 export function useCart() {
   const settings = useSettings();
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const { sessionToken, isReady } = useCommerceSessionToken();
   const raw = useQuery(
     api.commerce.cart.getMine,

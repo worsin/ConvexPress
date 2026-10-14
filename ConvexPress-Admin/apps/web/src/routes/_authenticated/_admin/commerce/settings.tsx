@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
 import { CommerceSettingsTabs } from "@/components/commerce/CommerceSettingsTabs";
+import { usePluginSettings } from "@/hooks/usePluginSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/_admin/commerce/settings")
 });
 
 function CommerceSettingsPage() {
+  const storefront = usePluginSettings().isEnabled("commerceStorefront");
   const location = useLocation();
   const settings = useQuery(api.settings.queries.getBySection, {
     section: "commerce.general" as any,
@@ -329,18 +331,20 @@ function CommerceSettingsPage() {
         </section>
       </div>
 
-      <StorefrontPromisesSettings />
+      {storefront ? <StorefrontPromisesSettings /> : null}
 
       <div>
         <Button onClick={() => void handleSave()} disabled={isSaving}>
           {isSaving ? "Saving..." : "Save Commerce Settings"}
         </Button>
-        <Link
-          to="/commerce/settings/shipping"
-          className="ml-3 inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          Open Shipping Settings
-        </Link>
+        {storefront ? (
+          <Link
+            to="/commerce/settings/shipping"
+            className="ml-3 inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Open Shipping Settings
+          </Link>
+        ) : null}
       </div>
     </div>
   );

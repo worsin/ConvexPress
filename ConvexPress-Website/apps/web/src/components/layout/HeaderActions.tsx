@@ -16,6 +16,7 @@ import { Surface } from "@/templates/sdk/Surface";
 import { UserMenu } from "./UserMenu";
 import { WebsiteNotificationBell } from "./WebsiteNotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 interface HeaderActionsProps {
   className?: string;
@@ -30,7 +31,8 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const { isSignedIn, isLoaded } = useAuth();
   const [cartOpen, setCartOpen] = useState(false);
   const settings = useSettings();
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  // The cart belongs to the storefront; a subscription-only site has none.
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const { sessionToken, isReady } = useCommerceSessionToken();
   const cart: { itemCount?: number } | null | undefined = useQuery(
     api.commerce.cart.getMine,

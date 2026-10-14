@@ -16,6 +16,7 @@ import { extensionPlugins } from "../schema/_pluginIndex.generated";
 
 export type PluginId =
   | "commerce"
+  | "commerceStorefront"
   | "commerceDigital"
   | "commerceReviews"
   | "commerceWishlists"
@@ -35,6 +36,7 @@ export type PluginId =
 /** Maps pluginId → the key in the `plugins` settings section. */
 export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
   commerce: "commerceEnabled",
+  commerceStorefront: "commerceStorefrontEnabled",
   commerceDigital: "commerceDigitalEnabled",
   commerceReviews: "commerceReviewsEnabled",
   commerceWishlists: "commerceWishlistsEnabled",
@@ -53,6 +55,7 @@ export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
 
 /** Parent plugin dependency chain. Sub-extension inherits its parent's enablement. */
 export const PLUGIN_PARENT: Partial<Record<PluginId, PluginId>> = {
+  commerceStorefront: "commerce",
   commerceDigital: "commerce",
   commerceReviews: "commerce",
   commerceWishlists: "commerce",
@@ -64,6 +67,9 @@ export const PLUGIN_PARENT: Partial<Record<PluginId, PluginId>> = {
 /** Baseline defaults used when the `plugins` settings section is absent. */
 export const PLUGIN_DEFAULTS: Record<PluginId, boolean> = {
   commerce: false,
+  // The shop (products, cart, checkout) is on wherever Commerce is, unless a
+  // site sells only subscriptions and turns it off.
+  commerceStorefront: true,
   commerceDigital: false,
   commerceReviews: false,
   commerceWishlists: false,

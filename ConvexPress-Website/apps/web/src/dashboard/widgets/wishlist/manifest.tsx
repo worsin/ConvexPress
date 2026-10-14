@@ -20,6 +20,7 @@ import type {
 import { WidgetEmpty, WidgetSkeleton } from "../../grid/WidgetCard";
 import { useDashboardShell } from "../../shell/DashboardShellContext";
 import { ViewAllLink, rowsForSize } from "../_shared";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 function WishlistWidget(props: DashboardWidgetProps) {
 	const settings = useSettings(),
@@ -27,7 +28,7 @@ function WishlistWidget(props: DashboardWidgetProps) {
 		convexAuth = useConvexAuth(),
 		instanceKey = getSiteRuntime().instanceKey;
 	const enabled =
-		settings?.plugins?.commerceEnabled === true &&
+		isPublicPluginEnabled("commerceStorefront", settings) &&
 		settings?.plugins?.commerceWishlistsEnabled === true;
 	if (!enabled) return <WidgetEmpty icon="heart" title="Wishlists are off" />;
 	if (!auth.isLoaded || convexAuth.isLoading)

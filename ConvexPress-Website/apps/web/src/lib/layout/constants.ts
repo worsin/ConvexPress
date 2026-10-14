@@ -162,7 +162,7 @@ export const DASHBOARD_EXTENSION_NAV_ITEMS: DashboardNavItem[] = [
     to: "/dashboard/orders",
     icon: ShoppingBag,
     iconName: "shopping-bag",
-    plugin: "commerce",
+    plugin: "commerceStorefront",
     badge: "orders.active",
   },
   {
@@ -211,7 +211,7 @@ export const DASHBOARD_EXTENSION_NAV_ITEMS: DashboardNavItem[] = [
     to: "/dashboard/addresses",
     icon: MapPin,
     iconName: "map-pin",
-    plugin: "commerce",
+    plugin: "commerceStorefront",
   },
   {
     id: "membership",

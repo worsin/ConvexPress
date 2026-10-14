@@ -6,6 +6,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { SearchSuggestions } from "@/components/search/SearchSuggestions";
 import type { HeaderConfig } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 type SearchConfig = HeaderConfig["search"];
 type Pack = "core" | "journal" | "depot" | "aster-house";
@@ -45,7 +46,7 @@ function HeaderSearchField({ placeholder, pack, onClose, className }: { placehol
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const settings = useSettings();
-  const target = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
+  const target = isPublicPluginEnabled("commerceStorefront", settings) ? "/products" : "/search";
   const editorial = pack === "journal" || pack === "aster-house";
   useEffect(() => { if (onClose) inputRef.current?.focus(); }, [onClose]);
   return <div data-slot="header-search-field" data-customize="header.search.placeholder" className={cn("relative min-w-0 items-center gap-2", className)}>

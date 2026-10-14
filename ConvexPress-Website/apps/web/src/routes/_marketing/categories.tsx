@@ -5,14 +5,14 @@ import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 
 export const Route = createFileRoute("/_marketing/categories")({
   loader: async ({ context: { queryClient } }) => {
-    await requirePublicPluginEnabled(queryClient, "commerce");
+    await requirePublicPluginEnabled(queryClient, "commerceStorefront");
   },
   component: CategoriesLayout,
 });
 
 function CategoriesLayout() {
   return (
-    <PublicPluginGate pluginId="commerce">
+    <PublicPluginGate pluginId="commerceStorefront">
       <Outlet />
     </PublicPluginGate>
   );
