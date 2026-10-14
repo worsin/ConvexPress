@@ -24,12 +24,10 @@ function DownloadsWidget({ size }: DashboardWidgetProps) {
   const { to } = useDashboardShell();
   const settings = useSettings();
   const enabled = settings?.plugins?.commerceDigitalEnabled === true;
-  const downloads = useQuery(api.commerceDigital.queries.getMyDownloads, enabled ? {} : "skip") as
-    | DownloadRow[]
-    | undefined;
+  const downloads: DownloadRow[] | null | undefined = useQuery(api.commerceDigital.queries.getMyDownloads, enabled ? {} : "skip");
   if (!enabled) return <WidgetEmpty icon="download" title="Digital products are off" />;
   if (downloads === undefined) return <WidgetSkeleton rows={3} />;
-  const active = downloads.filter((row) => row.isActive);
+  const active = (downloads ?? []).filter((row) => row.isActive);
   if (active.length === 0) {
     return <WidgetEmpty icon="download" title="No downloads yet" description="Files from digital purchases appear here." />;
   }

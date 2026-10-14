@@ -206,7 +206,7 @@ export default function DepotDashboardOrder({ data }: SurfaceProps<DashboardOrde
                   </tr>
                 </thead>
                 <tbody>
-                  {existingReturns.map((ret: any) => (
+                  {existingReturns.map((ret) => (
                     <tr key={ret._id} className="border-t border-border">
                       <Td className="whitespace-nowrap font-semibold tabular-nums text-foreground">{ret.returnNumber}</Td>
                       <Td className="whitespace-nowrap text-muted-foreground">{dateOrDash(ret.createdAt)}</Td>

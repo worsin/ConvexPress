@@ -64,7 +64,7 @@ function CourseRow({ course, hrefs }: { course: DashboardLearningCourse; hrefs: 
       <Link to={continueHref} className="block overflow-hidden rounded-2xl bg-muted" tabIndex={-1} aria-hidden="true">
         <div className="aspect-[3/2] w-full">
           {course.featuredImageId ? (
-            <MediaImage mediaId={course.featuredImageId as any} alt={course.title} className="h-full w-full object-cover" preferredSize="medium" sizes="(max-width: 640px) 100vw, 160px" />
+            <MediaImage mediaId={course.featuredImageId} alt={course.title} className="h-full w-full object-cover" preferredSize="medium" sizes="(max-width: 640px) 100vw, 160px" />
           ) : (
             <CourseImageFallback title={course.title} subtitle={`${percent}% complete`} />
           )}

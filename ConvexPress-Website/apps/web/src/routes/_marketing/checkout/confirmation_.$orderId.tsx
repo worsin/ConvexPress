@@ -9,6 +9,7 @@ import CoreCheckoutConfirmation, {
   type CheckoutConfirmationSurfaceData,
 } from "@/templates/packs/core/surfaces/checkout.confirmation";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 export const Route = createFileRoute(
   "/_marketing/checkout/confirmation_/$orderId",
@@ -22,14 +23,14 @@ function CheckoutConfirmationPage() {
   const { sessionToken, isReady } = useCommerceSessionToken();
   const { orderId } = Route.useParams();
   const order = useQuery(
-    (api as any).commerce.orders.getByCheckoutSession,
+    api.commerce.orders.getByCheckoutSession,
     isReady && sessionToken
       ? {
-          orderId: orderId as any,
+          orderId: idFromString<"commerce_orders">(orderId),
           sessionToken,
         }
       : "skip",
-  ) as any;
+  );
 
   if (order === null) {
     return <NotFoundPage />;

@@ -38,7 +38,7 @@ export default function DepotShopCategory({ data }: SurfaceProps<CategoryArchive
       {category.thumbnailMediaId ? (
         <Card className="overflow-hidden">
           <div className="h-40 w-full bg-muted md:h-56">
-            <MediaImage mediaId={category.thumbnailMediaId as any} alt={category.name} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" />
+            <MediaImage mediaId={category.thumbnailMediaId} alt={category.name} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" />
           </div>
         </Card>
       ) : null}
@@ -85,7 +85,7 @@ function ProductTile({ product, currencyCode }: { product: CategoryArchiveProduc
       <Link to="/products/$slug" params={{ slug: product.slug }} className="flex flex-1 flex-col">
         <div className="aspect-square bg-muted/40">
           {product.featuredMediaId ? (
-            <MediaImage mediaId={product.featuredMediaId as any} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 20vw" />
+            <MediaImage mediaId={product.featuredMediaId} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 20vw" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <PackageOpen className="size-8" aria-hidden="true" />

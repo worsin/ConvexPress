@@ -30,7 +30,7 @@ export interface TicketDetailProps {
 export function TicketDetail({ ticketNumber, backHref, newTicketHref }: TicketDetailProps) {
   const settings = useSettings();
   const siteName = settings?.siteTitle;
-  const data = useQuery(api.tickets.queries.getMyTicketThread, { ticketNumber }) as TicketThreadData | null | undefined;
+  const data: TicketThreadData | null | undefined = useQuery(api.tickets.queries.getMyTicketThread, { ticketNumber });
   const reply = useMutation(api.tickets.mutations.reply);
   const requestUploadUrl = useMutation(api.tickets.attachments.generateUploadUrl);
   const markRead = useMutation(api.tickets.mutations.markReadByCustomer);

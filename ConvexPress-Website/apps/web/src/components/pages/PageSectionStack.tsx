@@ -223,7 +223,7 @@ function MediaPanel({ mediaId, alt }: { mediaId: string; alt: string }) {
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-[color:var(--cp-border-soft)] bg-card shadow-[var(--cp-shadow-soft)]">
       <MediaImage
-        mediaId={mediaId as never}
+        mediaId={mediaId}
         alt={alt}
         className="aspect-[4/3] w-full object-cover"
         sizes="(max-width: 1024px) 100vw, 50vw"

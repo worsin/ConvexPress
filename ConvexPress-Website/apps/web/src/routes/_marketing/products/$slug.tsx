@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
     const publicSettings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
     const siteUrl = normalizeSiteUrl((publicSettings as { siteUrl?: string | null })?.siteUrl);
     const siteTitle = (publicSettings as { siteTitle?: string | null })?.siteTitle || "Shop";
-    if ((publicSettings as any)?.plugins?.commerceEnabled !== true) {
+    if (publicSettings?.plugins?.commerceEnabled !== true) {
       throw notFound();
     }
 
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
 
 function ProductDetailPage() {
   const { slug } = Route.useParams();
-  const { data: product } = useSuspenseQuery(convexQuery(api.commerce.products.getBySlug, { slug }) as any) as { data: ProductDetail | null };
+  const { data: product }: { data: ProductDetail | null } = useSuspenseQuery(convexQuery(api.commerce.products.getBySlug, { slug }));
   const {optionType,optionValue} = Route.useSearch();
   const state = useProductPage(product,{optionType,optionValue});
   useRecordProductView(product?._id ?? null);

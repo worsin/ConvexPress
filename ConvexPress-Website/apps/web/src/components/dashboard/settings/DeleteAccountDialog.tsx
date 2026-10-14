@@ -53,7 +53,7 @@ export function DeleteAccountDialog({
   const emailMatches =
     confirmEmail.toLowerCase() === user.email.toLowerCase();
 
-  const deleteOwnAccount = useAction((api as any).profiles.actions.deleteOwnAccount);
+  const deleteOwnAccount = useAction(api.profiles.actions.deleteOwnAccount);
 
   const handleDelete = useCallback(async () => {
     if (!emailMatches) return;

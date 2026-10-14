@@ -14,6 +14,7 @@ import CoreSignupOffer, {
   type SignupOfferSurfaceData,
 } from "@/templates/packs/core/surfaces/signup.offer";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 /**
  * Direct-signup landing page for a single subscription offer (Wave 5 Task 5.2).
@@ -39,8 +40,8 @@ export const Route = createFileRoute("/signup/$offerId")({
   loader: async ({ context: { queryClient }, params }) => {
     await requirePublicPluginEnabled(queryClient, "commerceSubscriptions");
     const offer = await queryClient.ensureQueryData(
-      convexQuery((api as any).commerceSubscriptions.portal.getPublicOffer, {
-        offerId: params.offerId as any,
+      convexQuery(api.commerceSubscriptions.portal.getPublicOffer, {
+        offerId: idFromString<"commerce_subscription_offers">(params.offerId),
       }),
     );
     if (!offer) {
@@ -62,10 +63,10 @@ export const Route = createFileRoute("/signup/$offerId")({
 function SignupOfferPage() {
   const { offerId } = Route.useParams();
 
-  const offer = useQuery(
-    (api as any).commerceSubscriptions.portal.getPublicOffer,
-    { offerId: offerId as any },
-  ) as SignupOfferPublicOffer | null | undefined;
+  const offer: SignupOfferPublicOffer | null | undefined = useQuery(
+    api.commerceSubscriptions.portal.getPublicOffer,
+    { offerId: idFromString<"commerce_subscription_offers">(offerId) },
+  );
 
   const surfaceData: SignupOfferSurfaceData = { offer };
 

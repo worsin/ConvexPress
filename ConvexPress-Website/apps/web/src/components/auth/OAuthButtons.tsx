@@ -81,6 +81,8 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   microsoft: MicrosoftIcon,
 };
 
+type RedirectStrategy = Parameters<NonNullable<ReturnType<typeof useSignIn>["signIn"]>["authenticateWithRedirect"]>[0]["strategy"];
+
 export function OAuthButtons({ mode, returnTo = "/dashboard", disabled = false, className }: OAuthButtonsProps) {
   const capabilities = useAuthCapabilities();
   const providers = socialProviders(capabilities);
@@ -104,7 +106,9 @@ export function OAuthButtons({ mode, returnTo = "/dashboard", disabled = false, 
     }
     const safeReturn = returnTo.startsWith("/") && !/^\/[\\/]/.test(returnTo) ? returnTo : "/dashboard";
     const options = {
-      strategy: strategy as never,
+      // Kept (narrowed from `as never`): the strategy names come from Clerk's own
+      // environment settings, so they are Clerk strategies by construction.
+      strategy: strategy as RedirectStrategy,
       redirectUrl: `${origin}/api/auth/callback`,
       redirectUrlComplete: `${origin}${safeReturn}`,
     };

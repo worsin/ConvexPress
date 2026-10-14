@@ -5,6 +5,7 @@ import { Download, FileText } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn } from "@/lib/utils";
+import { idFromString } from "@/lib/ids";
 
 /**
  * Renders the current user's subscription invoice history across all their
@@ -106,13 +107,13 @@ export function InvoiceHistoryTable({
   limit = 100,
   className,
 }: InvoiceHistoryTableProps) {
-  const invoices = useQuery(
-    (api as any).commerceSubscriptions.portal.listMyInvoices,
+  const invoices: Invoice[] | undefined = useQuery(
+    api.commerceSubscriptions.portal.listMyInvoices,
     { limit },
-  ) as Invoice[] | undefined;
+  );
 
   const getInvoicePdf = useAction(
-    (api as any).commerceSubscriptions.portal.getInvoicePdf,
+    api.commerceSubscriptions.portal.getInvoicePdf,
   );
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -125,7 +126,7 @@ export function InvoiceHistoryTable({
   async function handleDownload(invoiceId: string) {
     setDownloadingId(invoiceId);
     try {
-      const result = await getInvoicePdf({ invoiceId: invoiceId as any });
+      const result = await getInvoicePdf({ invoiceId: idFromString<"commerce_subscription_invoices">(invoiceId) });
       downloadFile(
         result.filename,
         result.content,

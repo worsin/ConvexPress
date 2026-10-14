@@ -17,10 +17,10 @@ export interface DashboardMenuResult {
 
 export function useDashboardMenu(location: string, basePath: string, enabled: boolean = true): DashboardMenuResult {
   const slug = location.trim();
-  const data = useQuery(
+  const data: MenuPayload | null | undefined = useQuery(
     api.menus.queries.getMenuForLocation,
     enabled && slug ? { locationSlug: slug } : "skip",
-  ) as MenuPayload | null | undefined;
+  );
   return useMemo(() => {
     if (!enabled || !slug) return { nav: null, isLoading: false };
     if (data === undefined) return { nav: undefined, isLoading: true };

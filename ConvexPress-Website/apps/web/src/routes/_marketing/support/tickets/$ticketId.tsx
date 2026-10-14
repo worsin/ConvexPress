@@ -3,7 +3,7 @@ import { createFileRoute, ErrorComponent, useNavigate } from "@tanstack/react-ro
 import { useQuery } from "convex/react";
 import { useAuth } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { idFromString } from "@/lib/ids";
 
 import { buildSeoHead } from "@/lib/seo/head";
 import { useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
@@ -36,9 +36,8 @@ function TicketThreadPage() {
 
   const isNumber = looksLikeTicketNumber(ticketId);
   // Resolve a legacy document id to its ticket number.
-  // A legacy URL segment that is not a ticket number is a document id; the
-  // backend's v.id validator is the authority on its shape.
-  const byId = useQuery(api.tickets.queries.getById, isLoaded && isSignedIn && !isNumber ? { ticketId: ticketId as Id<"ticket_tickets"> } : "skip");
+  // A legacy URL segment that is not a ticket number is a document id.
+  const byId = useQuery(api.tickets.queries.getById, isLoaded && isSignedIn && !isNumber ? { ticketId: idFromString<"ticket_tickets">(ticketId) } : "skip");
   const ticketNumber = isNumber ? ticketId.toUpperCase() : byId?.ticketNumber;
 
   const shouldRedirect = isLoaded && isSignedIn && dashboardEnabled === true && Boolean(ticketNumber);

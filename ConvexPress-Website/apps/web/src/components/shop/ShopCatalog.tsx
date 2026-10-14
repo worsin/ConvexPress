@@ -34,11 +34,8 @@ export function ShopCatalog({ variant }: { variant?: string }) {
   const marketplace = layout.shopLayout === "marketplace";
   const args = queryArgs(search, perPageFor(layout.shopLayout, layout.gridDensity));
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
-  const { data } = useTanStackQuery(convexQuery((api as any).commerce.storefront.searchProducts, args) as any) as { data: SearchResponse | undefined };
-  const facets = useQuery((api as any).commerce.storefront.facetsForQuery, q && config.searchFacets && sessionToken ? { q, sessionToken } : "skip") as
-    | { chips: Array<{ label: string; query?: string; categorySlug?: string }> }
-    | null
-    | undefined;
+  const { data }: { data: SearchResponse | undefined } = useTanStackQuery(convexQuery(api.commerce.storefront.searchProducts, args));
+  const facets: { chips: Array<{ label: string; query?: string; categorySlug?: string }> } | null | undefined = useQuery(api.commerce.storefront.facetsForQuery, q && config.searchFacets && sessionToken ? { q, sessionToken } : "skip");
   const [draft, setDraft] = useState(q);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const currency = settings?.commerceConfig?.currencyCode || "USD";

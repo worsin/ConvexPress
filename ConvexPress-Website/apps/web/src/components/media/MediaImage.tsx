@@ -16,14 +16,19 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { idFromString } from "@/lib/ids";
 
 import { cn } from "@/lib/utils";
 import { ImagePlaceholder } from "./ImagePlaceholder";
 
 interface MediaImageProps {
-  /** The media record ID from Convex. */
-  mediaId: Id<"media">;
+  /**
+   * The media document id. Surface data, block attributes and storefront
+   * cards carry media ids as plain strings, so this is the one place they
+   * are branded; the media queries' `v.id("media")` validators are the
+   * authority on whether the string is a real id.
+   */
+  mediaId: string;
   /** Override alt text (falls back to media's altText, then title). */
   alt?: string;
   /** CSS class for the <img> element. */
@@ -77,11 +82,12 @@ export function MediaImage({
   onLoad,
   onError,
 }: MediaImageProps) {
+  const id = idFromString<"media">(mediaId);
   // Fetch the full media record with all sizes
-  const media = useQuery(api.media.queries.getPublic, { mediaId });
+  const media = useQuery(api.media.queries.getPublic, { mediaId: id });
 
   // Fetch the srcset string for responsive images
-  const srcSet = useQuery(api.media.queries.getSrcSet, { mediaId });
+  const srcSet = useQuery(api.media.queries.getSrcSet, { mediaId: id });
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (media === undefined) {

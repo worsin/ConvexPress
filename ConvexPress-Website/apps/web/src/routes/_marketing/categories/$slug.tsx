@@ -79,9 +79,9 @@ function ProductCategoryArchivePage() {
   const settings = useSettings();
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
 
-  const { data: category } = useSuspenseQuery(
-    convexQuery(api.commerce.categories.getBySlug, { slug }) as any,
-  ) as { data: CategoryArchiveCategory | null };
+  const { data: category }: { data: CategoryArchiveCategory | null } = useSuspenseQuery(
+    convexQuery(api.commerce.categories.getBySlug, { slug }),
+  );
 
   if (!category) {
     return <NotFoundPage />;
@@ -95,13 +95,13 @@ function ProductCategoryArchivePage() {
 function CategoryProducts({category,slug,page,currencyCode}: {
   category: CategoryArchiveCategory; slug: string; page: number; currencyCode: string;
 }) {
-  const { data } = useSuspenseQuery(
+  const { data }: { data: CategoryArchiveSurfaceData["results"] } = useSuspenseQuery(
     convexQuery(api.commerce.products.listPublished, {
       page,
       perPage: 12,
       categorySlug: slug,
-    }) as any,
-  ) as { data: CategoryArchiveSurfaceData["results"] };
+    }),
+  );
 
   const surfaceData: CategoryArchiveSurfaceData = { slug, category, currencyCode, results: data };
 

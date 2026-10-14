@@ -1,3 +1,7 @@
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@convexpress-website/backend/generated/api";
+import { z } from "zod";
+
 export type CartLineMetadata = {
   lineType?: string;
   bundleName?: string;
@@ -11,6 +15,32 @@ export type CartLineMetadata = {
     quantity: number;
   }>;
 };
+
+const cartLineMetadataSchema = z.object({
+  lineType: z.string().optional(),
+  bundleName: z.string().optional(),
+  variantTitle: z.string().optional(),
+  optionSummary: z.string().optional(),
+  variantSku: z.string().optional(),
+  selections: z.array(z.object({
+    componentId: z.string(),
+    componentLabel: z.string().optional(),
+    productTitle: z.string(),
+    quantity: z.number(),
+  })).optional(),
+});
+
+/** Cart item metadata is free-form on the backend (`v.any()`); read only the
+ * display fields this module understands. Malformed metadata reads as none. */
+export function parseCartLineMetadata(value: unknown): CartLineMetadata | undefined {
+  const parsed = cartLineMetadataSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/** The mine-cart query result with each line's free-form metadata parsed. */
+export function parseCartLinesMetadata(cart: NonNullable<FunctionReturnType<typeof api.commerce.cart.getMine>>) {
+  return { ...cart, items: cart.items.map((item) => ({ ...item, metadata: parseCartLineMetadata(item.metadata) })) };
+}
 
 export type CartLineProduct = {
   title?: string;

@@ -187,7 +187,7 @@ function CourseTile({ course }: { course: CourseCard }) {
     <Card as="article" className="flex flex-col overflow-hidden">
       <Link to="/courses/$slug" params={{ slug: course.slug }} className="relative block aspect-[4/3] bg-muted/40">
         {course.featuredImageId ? (
-          <MediaImage mediaId={course.featuredImageId as any} alt={course.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
+          <MediaImage mediaId={course.featuredImageId} alt={course.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
         ) : (
           <CourseImageFallback title={course.title} subtitle={accessLabel(course)} />
         )}

@@ -6,30 +6,39 @@
  */
 
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
+import { redirectMatchTypeValidator, redirectStatusCodeValidator } from "../schema/routing";
 
-type RedirectResult = {
-  _id: string;
-  sourceUrl: string;
-  targetUrl: string;
-  statusCode: number;
-  matchType: "exact" | "prefix" | "regex";
-  _resolvedTargetUrl?: string;
-} | null;
+/** The public projection of a matched rule. Never the stored document: hit
+ * counts, notes and authorship stay private. `_resolvedTargetUrl` is present
+ * for prefix and regex matches. */
+const resolvedRedirectValidator = v.object({
+  _id: v.id("redirects"),
+  sourceUrl: v.string(),
+  targetUrl: v.string(),
+  statusCode: redirectStatusCodeValidator,
+  matchType: redirectMatchTypeValidator,
+  _resolvedTargetUrl: v.optional(v.string()),
+});
+
+function publicRedirect(rule: Doc<"redirects">, resolvedTargetUrl?: string) {
+  return {
+    _id: rule._id,
+    sourceUrl: rule.sourceUrl,
+    targetUrl: rule.targetUrl,
+    statusCode: rule.statusCode,
+    matchType: rule.matchType,
+    ...(resolvedTargetUrl === undefined ? {} : { _resolvedTargetUrl: resolvedTargetUrl }),
+  };
+}
 
 export const resolveRedirect = query({
   args: {
     url: v.string(),
   },
-  returns: v.union(v.null(), v.object({
-    _id: v.string(),
-    sourceUrl: v.string(),
-    targetUrl: v.string(),
-    statusCode: v.number(),
-    matchType: v.union(v.literal("exact"), v.literal("prefix"), v.literal("regex")),
-    _resolvedTargetUrl: v.optional(v.string()),
-  })),
-  handler: async (ctx, args): Promise<RedirectResult> => {
+  returns: v.union(v.null(), resolvedRedirectValidator),
+  handler: async (ctx, args) => {
     const url = args.url;
 
     const exactMatches = await ctx.db
@@ -40,9 +49,9 @@ export const resolveRedirect = query({
       .collect();
 
     const exactMatch = exactMatches.find(
-      (r: any) => r.enabled && r.matchType === "exact",
+      (r) => r.enabled && r.matchType === "exact",
     );
-    if (exactMatch) return exactMatch;
+    if (exactMatch) return publicRedirect(exactMatch);
 
     const enabledRedirects = await ctx.db
       .query("redirects")
@@ -52,29 +61,23 @@ export const resolveRedirect = query({
       .collect();
 
     const prefixMatches = enabledRedirects
-      .filter((r: any) => r.matchType === "prefix" && url.startsWith(r.sourceUrl))
-      .sort((a: any, b: any) => b.sourceUrl.length - a.sourceUrl.length);
+      .filter((r) => r.matchType === "prefix" && url.startsWith(r.sourceUrl))
+      .sort((a, b) => b.sourceUrl.length - a.sourceUrl.length);
 
     if (prefixMatches.length > 0) {
       const bestPrefix = prefixMatches[0];
       const remainder = url.slice(bestPrefix.sourceUrl.length);
-      return {
-        ...bestPrefix,
-        _resolvedTargetUrl: bestPrefix.targetUrl + remainder,
-      };
+      return publicRedirect(bestPrefix, bestPrefix.targetUrl + remainder);
     }
 
     const regexRedirects = enabledRedirects.filter(
-      (r: any) => r.matchType === "regex",
+      (r) => r.matchType === "regex",
     );
     for (const redirect of regexRedirects) {
       try {
         const regex = new RegExp(redirect.sourceUrl);
         if (regex.test(url)) {
-          return {
-            ...redirect,
-            _resolvedTargetUrl: url.replace(regex, redirect.targetUrl),
-          };
+          return publicRedirect(redirect, url.replace(regex, redirect.targetUrl));
         }
       } catch {
         continue;

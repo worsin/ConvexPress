@@ -20,15 +20,15 @@ import { Surface } from "@/templates/sdk/Surface";
 export function DashboardDownloadsPage() {
   const settings = useSettings();
   const digitalEnabled = settings?.plugins?.commerceDigitalEnabled === true;
-  const downloads = useQuery(
-    (api as any).commerceDigital.queries.getMyDownloads,
+  const downloads: DashboardDownloadEntry[] | null | undefined = useQuery(
+    api.commerceDigital.queries.getMyDownloads,
     digitalEnabled ? {} : "skip",
-  ) as DashboardDownloadEntry[] | undefined;
+  );
 
-  const licenseKeys = useQuery(
-    (api as any).commerceDigital.queries.getMyLicenseKeys,
+  const licenseKeys: DashboardLicenseKeyEntry[] | null | undefined = useQuery(
+    api.commerceDigital.queries.getMyLicenseKeys,
     digitalEnabled ? {} : "skip",
-  ) as DashboardLicenseKeyEntry[] | undefined;
+  );
 
   const downloadsHost = useDownloadPurchase();
   async function download(token: string) {
@@ -46,8 +46,9 @@ export function DashboardDownloadsPage() {
   }
 
   const data: DashboardDownloadsSurfaceData = {
-    downloads,
-    licenseKeys,
+    // null: the backend reports none available; the surface reads undefined as loading.
+    downloads: downloads === null ? [] : downloads,
+    licenseKeys: licenseKeys === null ? [] : licenseKeys,
     actions: { download, copyLicenseKey },
   };
 

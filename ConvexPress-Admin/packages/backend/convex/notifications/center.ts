@@ -281,9 +281,10 @@ export function computeCounts(rows: CenterStateInput[], now: number): CenterCoun
 
 // ─── Items ───────────────────────────────────────────────────────────────────
 
-/** Public-safe projection of a siteNotifications row. */
-export interface CenterItem {
-  id: string;
+/** Public-safe projection of a siteNotifications row. `TId` is the row id
+ * type: `Id<"siteNotifications">` in Convex functions, plain strings in tests. */
+export interface CenterItem<TId extends string = string> {
+  id: TId;
   title: string;
   message: string;
   type: "info" | "success" | "warning" | "error";
@@ -308,8 +309,8 @@ export interface CenterItem {
   ticketId?: string;
 }
 
-export interface CenterSourceRow {
-  _id: string;
+export interface CenterSourceRow<TId extends string = string> {
+  _id: TId;
   title: string;
   message: string;
   type: "info" | "success" | "warning" | "error";
@@ -353,7 +354,7 @@ export function ticketRefsFromMetadata(
   }
 }
 
-export function toCenterItem(row: CenterSourceRow): CenterItem {
+export function toCenterItem<TId extends string>(row: CenterSourceRow<TId>): CenterItem<TId> {
   const refs = ticketRefsFromMetadata(row.metadata);
   return {
     id: row._id,
@@ -398,10 +399,10 @@ export interface CenterFilter {
 export const CENTER_DEFAULT_LIMIT = 100;
 export const CENTER_MAX_LIMIT = 250;
 
-export function filterForCenter(items: CenterItem[], filter: CenterFilter, now: number): CenterItem[] {
+export function filterForCenter<Item extends CenterItem<string>>(items: Item[], filter: CenterFilter, now: number): Item[] {
   const q = (filter.search ?? "").trim().toLowerCase();
   const limit = Math.max(1, Math.min(filter.limit ?? CENTER_DEFAULT_LIMIT, CENTER_MAX_LIMIT));
-  const out: CenterItem[] = [];
+  const out: Item[] = [];
   for (const item of items) {
     if (!matchesView(item, filter.view, now)) continue;
     if (filter.kind && filter.kind !== "all" && item.kind !== filter.kind) continue;

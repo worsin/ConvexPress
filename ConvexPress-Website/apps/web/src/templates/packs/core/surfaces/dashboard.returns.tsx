@@ -276,7 +276,7 @@ export default function CoreDashboardReturns({ data }: SurfaceProps<DashboardRet
         </div>
       ) : (
         <div className="space-y-4">
-          {returns.map((ret: any) => (
+          {returns.map((ret) => (
             <ReturnCard key={ret._id} ret={ret} href={hrefs.returnDetail(ret._id)} />
           ))}
           {status === "CanLoadMore" || status === "LoadingMore" ? (

@@ -54,7 +54,7 @@ export function AlbumTile({ album }: { album: AlbumTileData }) {
         <div className="aspect-[3/2] w-full">
           {album.coverMedia?._id ? (
             <MediaImage
-              mediaId={album.coverMedia._id as any}
+              mediaId={album.coverMedia._id}
               alt={album.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               preferredSize="large"
@@ -115,7 +115,7 @@ export function RecipeCard({ recipe, className }: { recipe: RecipeCardData; clas
         <div className="aspect-[3/2] w-full">
           {recipe.featuredImageId ? (
             <MediaImage
-              mediaId={recipe.featuredImageId as any}
+              mediaId={recipe.featuredImageId}
               alt={recipe.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               preferredSize="large"

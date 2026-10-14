@@ -14,6 +14,7 @@ import CoreDashboardAddresses, {
   type DashboardAddressesSurfaceData,
 } from "@/templates/packs/core/surfaces/dashboard.addresses";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 function optionalFields(data: DashboardAddressFormData) {
   return {
@@ -28,14 +29,14 @@ function optionalFields(data: DashboardAddressFormData) {
 
 export function DashboardAddressesPage() {
   const addresses = useQuery(
-    (api as any).commerce.customers.getMyAddresses,
+    api.commerce.customers.getMyAddresses,
     {},
-  ) as any[] | undefined;
+  );
 
-  const addAddress = useMutation((api as any).commerce.customers.addAddress);
-  const updateAddress = useMutation((api as any).commerce.customers.updateAddress);
-  const deleteAddress = useMutation((api as any).commerce.customers.deleteAddress);
-  const setDefaultAddress = useMutation((api as any).commerce.customers.setDefaultAddress);
+  const addAddress = useMutation(api.commerce.customers.addAddress);
+  const updateAddress = useMutation(api.commerce.customers.updateAddress);
+  const deleteAddress = useMutation(api.commerce.customers.deleteAddress);
+  const setDefaultAddress = useMutation(api.commerce.customers.setDefaultAddress);
 
   const [busy, setBusy] = useState(false);
 
@@ -69,7 +70,7 @@ export function DashboardAddressesPage() {
     setBusy(true);
     try {
       await updateAddress({
-        addressId: addressId as any,
+        addressId: idFromString<"commerce_customer_addresses">(addressId),
         addressType: data.addressType,
         label: data.label,
         line1: data.line1,
@@ -93,7 +94,7 @@ export function DashboardAddressesPage() {
 
   async function remove(addressId: string) {
     try {
-      await deleteAddress({ addressId: addressId as any });
+      await deleteAddress({ addressId: idFromString<"commerce_customer_addresses">(addressId) });
       toast.success("Address deleted");
     } catch (error) {
       toast.error(
@@ -106,7 +107,7 @@ export function DashboardAddressesPage() {
   async function setDefault(addressId: string, type: "billing" | "shipping") {
     try {
       await setDefaultAddress({
-        addressId: addressId as any,
+        addressId: idFromString<"commerce_customer_addresses">(addressId),
         addressType: type,
       });
       toast.success(`Set as default ${type} address`);

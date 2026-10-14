@@ -44,11 +44,11 @@ export default function DepotDashboardAddresses({ data }: SurfaceProps<Dashboard
     if (ok) setEditingId(null);
   }
 
-  const shippingAddresses = addresses?.filter((address: any) => address.addressType === "shipping") ?? [];
-  const billingAddresses = addresses?.filter((address: any) => address.addressType === "billing") ?? [];
+  const shippingAddresses = addresses?.filter((address) => address.addressType === "shipping") ?? [];
+  const billingAddresses = addresses?.filter((address) => address.addressType === "billing") ?? [];
 
   const renderGroup = (list: any[], fallbackType: "billing" | "shipping") =>
-    list.map((address: any) =>
+    list.map((address) =>
       editingId === address._id ? (
         <Card key={address._id} className="flex flex-col gap-3 border-primary p-4 md:col-span-2 xl:col-span-3">
           <h3 className="text-sm font-semibold text-foreground">Edit address</h3>

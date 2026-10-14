@@ -87,7 +87,8 @@ export function readServerSiteRuntime(): SiteRuntimeConfig {
 }
 
 function readBuildTimeFallback(): SiteRuntimeConfig {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+  // Vite types `import.meta.env`; it is absent outside a Vite/Bun runtime.
+  const env: Partial<Record<string, string>> = import.meta.env ?? {};
   const convexUrl = env.VITE_CONVEX_URL ?? "";
   return {
     convexUrl,

@@ -502,7 +502,7 @@ export function ProductCard({ product: sourceProduct, className }: { product: Pr
         <div className="aspect-[3/4] w-full">
           {product.featuredMediaId ? (
             <MediaImage
-              mediaId={product.featuredMediaId as any}
+              mediaId={product.featuredMediaId}
               alt={product.title}
               className="h-full w-full object-cover transition-transform duration-700 motion-safe:group-hover:scale-[1.04]"
               preferredSize="large"

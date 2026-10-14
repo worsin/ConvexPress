@@ -27,13 +27,13 @@ export function PublicPluginGate({
   children,
   pendingFallback = null,
 }: PublicPluginGateProps) {
-  const { data: settings } = useTanStackQuery(
-    convexQuery(api.settings.queries.getPublic, {}) as any,
-  ) as { data: Record<string, unknown> | null | undefined };
+  const { data: settings }: { data: Record<string, unknown> | null | undefined } = useTanStackQuery(
+    convexQuery(api.settings.queries.getPublic, {}),
+  );
 
   if (settings === undefined) return <>{pendingFallback}</>;
   if (!settings) return <NotFoundPage />;
-  if (!isPublicPluginEnabled(pluginId, settings as any)) {
+  if (!isPublicPluginEnabled(pluginId, settings)) {
     return <NotFoundPage />;
   }
 

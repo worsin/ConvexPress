@@ -30,8 +30,8 @@ export function WebsiteNotificationBell() {
   const actions = useNotificationActions({ quiet: true });
 
   // One cheap subscription for the badge; the list only while open.
-  const countsResult = useQuery(api.notifications.queries.listForCenter, { view: "inbox", limit: 1 }) as CenterResult | undefined;
-  const peek = useQuery(api.notifications.queries.listForCenter, open ? { view: "inbox", limit: PEEK_LIMIT } : "skip") as CenterResult | undefined;
+  const countsResult: CenterResult | undefined = useQuery(api.notifications.queries.listForCenter, { view: "inbox", limit: 1 });
+  const peek: CenterResult | undefined = useQuery(api.notifications.queries.listForCenter, open ? { view: "inbox", limit: PEEK_LIMIT } : "skip");
 
   const counts = countsResult?.counts ?? EMPTY_COUNTS;
   const unread = counts.unread;

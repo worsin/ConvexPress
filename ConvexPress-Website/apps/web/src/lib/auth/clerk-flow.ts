@@ -149,7 +149,7 @@ export function nextSignInStep(
           kind: "second_code",
           strategy,
           factor,
-          alternatives: available.filter((item) => item !== strategy && SECOND_FACTOR_ORDER.includes(item as never)),
+          alternatives: available.filter((item) => item !== strategy && SECOND_FACTOR_ORDER.some((known) => known === item)),
         };
       }
     }

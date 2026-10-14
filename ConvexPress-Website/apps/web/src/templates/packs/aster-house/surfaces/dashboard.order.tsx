@@ -163,7 +163,7 @@ export default function AsterDashboardOrder({ data }: SurfaceProps<DashboardOrde
 
             {existingReturns?.length ? (
               <RowList>
-                {existingReturns.map((ret: any) => (
+                {existingReturns.map((ret) => (
                   <Row key={ret._id} className="flex-row flex-wrap items-center justify-between gap-4">
                     <div className="flex min-w-0 flex-col gap-1">
                       <p className="text-base font-medium text-foreground">{ret.returnNumber}</p>

@@ -388,7 +388,7 @@ export default function CoreDashboardOrder({ data }: SurfaceProps<DashboardOrder
 
             {existingReturns?.length ? (
               <div className="mt-4 space-y-3">
-                {existingReturns.map((ret: any) => (
+                {existingReturns.map((ret) => (
                   <div
                     key={ret._id}
                     className="rounded-2xl border border-border px-4 py-4 text-sm"

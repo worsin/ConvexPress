@@ -72,8 +72,8 @@ export function renderContent(
   // Use Zod-validated parsing for type safety
   const validatedDoc = parseTipTapDocument(json);
   if (!validatedDoc || !validatedDoc.content) return "";
-  // Cast to internal TipTapNode type for rendering
-  const doc = validatedDoc as unknown as TipTapNode;
+  // The validated document is a TipTapNode.
+  const doc: TipTapNode = validatedDoc;
   if (doc.type !== "doc" || !doc.content) return "";
   return doc.content.map((node) => renderNode(node, opts)).join("");
 }
@@ -556,7 +556,7 @@ export function extractTableOfContents(
   // Use Zod-validated parsing for type safety
   const validatedDoc = parseTipTapDocument(json);
   if (!validatedDoc || !validatedDoc.content) return [];
-  const doc = validatedDoc as unknown as TipTapNode;
+  const doc: TipTapNode = validatedDoc;
   const entries: TocEntry[] = [];
   for (const node of doc.content ?? []) {
     if (node.type === "heading") {

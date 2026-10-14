@@ -17,8 +17,8 @@ interface GalleryItem {
   };
 }
 
-interface GalleryEmbedProps {
-  album: {
+/** The album shape the embed renders (gallery.queries.getBySlug and friends). */
+export interface GalleryEmbedAlbum {
     _id: string;
     title: string;
     slug: string;
@@ -35,7 +35,10 @@ interface GalleryEmbedProps {
       showTitle?: boolean;
       showDescription?: boolean;
     };
-  };
+}
+
+interface GalleryEmbedProps {
+  album: GalleryEmbedAlbum;
   className?: string;
 }
 
@@ -96,7 +99,7 @@ export function GalleryEmbed({ album, className }: GalleryEmbedProps) {
               className="mb-4 block w-full break-inside-avoid overflow-hidden rounded-[1.5rem] border border-border/60 bg-card text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
             >
               <MediaImage
-                mediaId={item.mediaId as never}
+                mediaId={item.mediaId}
                 alt={item.altText ?? item.media.title ?? ""}
                 preferredSize="medium_large"
                 className="h-auto w-full object-cover"
@@ -128,7 +131,7 @@ export function GalleryEmbed({ album, className }: GalleryEmbedProps) {
               className="group overflow-hidden rounded-[1.5rem] border border-border/60 bg-card text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
             >
               <MediaImage
-                mediaId={item.mediaId as never}
+                mediaId={item.mediaId}
                 alt={item.altText ?? item.media.title ?? ""}
                 preferredSize="medium_large"
                 className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"

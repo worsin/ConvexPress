@@ -21,15 +21,15 @@ export function DashboardSubscriptionsPage() {
   const subscriptionsEnabled =
     settings?.plugins?.commerceSubscriptionsEnabled === true;
 
-  const contracts = useQuery(
-    (api as any).commerceSubscriptions.portal.getMyActiveContracts,
+  const contracts: DashboardSubscriptionContract[] | undefined = useQuery(
+    api.commerceSubscriptions.portal.getMyActiveContracts,
     subscriptionsEnabled ? {} : "skip",
-  ) as DashboardSubscriptionContract[] | undefined;
+  );
 
-  const offers = useQuery(
-    (api as any).commerceSubscriptions.offers.listOffersForPricing,
+  const offers: DashboardSubscriptionOffer[] | undefined = useQuery(
+    api.commerceSubscriptions.offers.listOffersForPricing,
     subscriptionsEnabled ? {} : "skip",
-  ) as DashboardSubscriptionOffer[] | undefined;
+  );
 
   const data: DashboardSubscriptionsSurfaceData = { contracts, offers };
 

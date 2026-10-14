@@ -30,138 +30,18 @@ import { convexQuery } from "@convex-dev/react-query";
 
 import { rememberSiteName } from "@/lib/seo/head";
 import { useQuery } from "@tanstack/react-query";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@convexpress-website/backend/generated/api";
-import type { DashboardConfig } from "@/lib/layout/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
- * Public settings values exposed to the website frontend.
- * These are the fields returned by the getPublic query.
- * Sensitive fields (adminEmail, moderationWordList, etc.) are excluded.
+ * Public settings values exposed to the website frontend: exactly what the
+ * `settings.queries.getPublic` query returns (its return validator is the
+ * contract). Sensitive fields (adminEmail, moderationWordList, etc.) are
+ * excluded by that query.
  */
-export interface PublicSettings {
-  // General
-  siteTitle: string;
-  tagline: string;
-  siteUrl: string;
-  homeUrl: string;
-  logoUrl?: string;
-  siteLogo?: string;
-  membershipEnabled: boolean;
-  siteLanguage: string;
-  timezone: string;
-  dateFormat: string;
-  timeFormat: string;
-  weekStartsOn: number;
-
-  // Reading
-  homepageDisplays: "latest_posts" | "static_page" | "shop";
-  homepageId: string | null;
-  postsPageId: string | null;
-  postsPerPage: number;
-  feedItemCount: number;
-  feedContentDisplay: "full" | "summary";
-  searchEngineVisibility: boolean;
-
-  // Discussion
-  allowComments: boolean;
-  requireNameEmail: boolean;
-  requireRegistration: boolean;
-  enableThreadedComments: boolean;
-  threadedCommentsDepth: number;
-  commentOrder: "asc" | "desc";
-  showAvatars: boolean;
-  avatarRating: "G" | "PG" | "R" | "X";
-  defaultAvatar: string;
-
-  // Permalinks
-  permalinkStructure: string;
-  categoryBase: string;
-  tagBase: string;
-
-  // Privacy
-  privacyPolicyPageId: string | null;
-  showPrivacyPolicyLink: boolean;
-
-  // Website Appearance - Header & Footer configs
-  headerConfig: Record<string, unknown> | null;
-  footerConfig: Record<string, unknown> | null;
-
-  // Public plugin flags
-  plugins: {
-    commerceEnabled?: boolean;
-    commerceSubscriptionsEnabled?: boolean;
-    commerceDigitalEnabled?: boolean;
-    commerceReviewsEnabled?: boolean;
-    commerceWishlistsEnabled?: boolean;
-    commerceBundlesEnabled?: boolean;
-    commerceReturnsEnabled?: boolean;
-    membershipEnabled?: boolean;
-    knowledgeBaseEnabled?: boolean;
-    ticketsEnabled?: boolean;
-    customFieldsEnabled?: boolean;
-    recipesEnabled?: boolean;
-    galleryEnabled?: boolean;
-    lmsEnabled?: boolean;
-    formsEnabled?: boolean;
-    dashboardEnabled?: boolean;
-    [key: string]: boolean | undefined;
-  };
-
-  // Customer dashboard shell configuration (Dashboard extension). Partial on
-  // the wire; `useDashboardConfig()` merges it over the defaults.
-  dashboardConfig?: Partial<DashboardConfig> | null;
-
-  // Block editor runtime config. The front-end renderer uses this to
-  // suppress blocks that an admin has disabled in Settings -> Blocks.
-  blocksConfig: {
-    disabledBlockNames: string[];
-  } | null;
-
-  // Commerce runtime config (currency, tax, shipping toggles, etc.)
-  commerceConfig: {
-    storeName?: string;
-    storeEmail?: string;
-    currencyCode?: string;
-    currencySymbol?: string;
-    pricesIncludeTax?: boolean;
-    defaultCountryCode?: string;
-    defaultState?: string;
-    checkoutRequiresPhone?: boolean;
-    allowGuestCheckout?: boolean;
-    shippingEnabled?: boolean;
-    shippingMethods?: Array<{ code: string; label: string }>;
-    paymentMethods?: Array<{ code: string; label: string; enabled: boolean }>;
-    preferredProvider?: string;
-    liveRatesEnabled?: boolean;
-    fallbackToManualRates?: boolean;
-    fallbackMessage?: string;
-    cheapestBadgeLabel?: string;
-    fastestBadgeLabel?: string;
-    bestOptionBadgeLabel?: string;
-    [key: string]: unknown;
-  } | null;
-
-  // Shopping assistant rail configuration (Settings > Shop assistant).
-  assistantConfig?: Record<string, unknown> | null;
-
-  // Derived compatibility response for older storefront integrations.
-  layoutConfig?: {
-    shopLayout?: string;
-    productLayout?: string;
-    cartPanel?: "persistent" | "drawer";
-    gridDensity?: "comfortable" | "dense";
-  } | null;
-
-  // Brand inputs (Settings > Brand): fonts, corner radius, density, industry.
-  brandConfig?: {
-    typography?: { display?: string; body?: string; scale?: "compact" | "comfortable" | "spacious" };
-    density?: "compact" | "comfortable" | "spacious";
-    radius?: "sharp" | "subtle" | "rounded" | "pill";
-    industry?: string;
-  } | null;
-}
+export type PublicSettings = FunctionReturnType<typeof api.settings.queries.getPublic>;
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
@@ -180,9 +60,7 @@ interface SettingsProviderProps {
  * Place this as high as possible in the component tree (root layout).
  */
 export function SettingsProvider({ children }: SettingsProviderProps) {
-  const { data: settings } = useQuery(
-    convexQuery(api.settings.queries.getPublic, {}) as any,
-  ) as { data: PublicSettings | null | undefined };
+  const { data: settings } = useQuery(convexQuery(api.settings.queries.getPublic, {}));
 
   // Titles built outside React (route heads) read the site name from here.
   if (settings?.siteTitle) rememberSiteName(settings.siteTitle);

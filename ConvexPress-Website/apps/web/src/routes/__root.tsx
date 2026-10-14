@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     try {
       authConfig = coerceAuthConfig(
         await queryClient.ensureQueryData(
-          convexQuery((api as any).auth.clerkPublic.getWebsiteAuthConfig, {}),
+          convexQuery(api.auth.clerkPublic.getWebsiteAuthConfig, {}),
         ),
       );
     } catch {

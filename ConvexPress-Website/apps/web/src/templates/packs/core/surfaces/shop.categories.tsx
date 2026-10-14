@@ -96,7 +96,7 @@ function CategoryCard({ category }: { category: CategoryDirectoryItem }) {
       <div className="aspect-[5/3] bg-muted">
         {category.thumbnailMediaId ? (
           <MediaImage
-            mediaId={category.thumbnailMediaId as any}
+            mediaId={category.thumbnailMediaId}
             alt={category.name}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             preferredSize="large"

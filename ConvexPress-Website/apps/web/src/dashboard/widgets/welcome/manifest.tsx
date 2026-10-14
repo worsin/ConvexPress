@@ -30,9 +30,7 @@ function WelcomeWidget({ size }: DashboardWidgetProps) {
   const { config, badges, to } = useDashboardShell();
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
-  const addresses = useQuery(api.commerce.customers.getMyAddresses, commerceEnabled ? {} : "skip") as
-    | unknown[]
-    | undefined;
+  const addresses: unknown[] | undefined = useQuery(api.commerce.customers.getMyAddresses, commerceEnabled ? {} : "skip");
 
   if (!user) return <WidgetSkeleton rows={3} />;
 

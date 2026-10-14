@@ -61,7 +61,7 @@ export default function CoreRecipeDetail({ data }: SurfaceProps<RecipeDetailSurf
             <div className="aspect-[16/10] bg-muted/40">
               {recipe.featuredImageId ? (
                 <MediaImage
-                  mediaId={recipe.featuredImageId as any}
+                  mediaId={recipe.featuredImageId}
                   alt={recipe.title}
                   className="h-full w-full object-cover"
                   sizes="(max-width: 1024px) 100vw, 60vw"

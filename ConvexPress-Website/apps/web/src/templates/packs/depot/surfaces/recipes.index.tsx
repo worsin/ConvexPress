@@ -52,7 +52,7 @@ export function RecipeTile({ recipe }: { recipe: RecipeCard }) {
     <Card as="article" className="flex flex-col overflow-hidden">
       <Link to="/recipes/$slug" params={{ slug: recipe.slug }} className="block aspect-square bg-muted/40">
         {recipe.featuredImageId ? (
-          <MediaImage mediaId={recipe.featuredImageId as any} alt={recipe.title} className="h-full w-full object-cover" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 20vw" />
+          <MediaImage mediaId={recipe.featuredImageId} alt={recipe.title} className="h-full w-full object-cover" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 20vw" />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <UtensilsCrossed className="size-8" aria-hidden="true" />

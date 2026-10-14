@@ -86,7 +86,7 @@ export default function CoreRecipesIndex({ data }: SurfaceProps<RecipesIndexSurf
                 <div className="aspect-[4/3] bg-muted/40">
                   {recipe.featuredImageId ? (
                     <MediaImage
-                      mediaId={recipe.featuredImageId as any}
+                      mediaId={recipe.featuredImageId}
                       alt={recipe.title}
                       className="h-full w-full object-cover"
                       sizes="(max-width: 768px) 100vw, 33vw"

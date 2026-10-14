@@ -28,5 +28,5 @@ export function GalleryShortcodeEmbed({ attrs }: GalleryShortcodeEmbedProps) {
     return null;
   }
 
-  return <GalleryEmbed album={album as any} className="my-3" />;
+  return <GalleryEmbed album={album} className="my-3" />;
 }

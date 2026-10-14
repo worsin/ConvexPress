@@ -16,7 +16,9 @@ mock.module("@tanstack/react-query", () => ({ ...query, useSuspenseQuery: option
 const convex = await import("convex/react");
 mock.module("convex/react", () => ({ ...convex, useMutation: () => async () => {} }));
 const router = await import("@tanstack/react-router");
-mock.module("@tanstack/react-router", () => ({ ...router, Link: ({ to, children, activeProps: _activeProps, ...props }) => createElement("a", { ...props, href: to }, children) }));
+// Interpolate route params the way the router does, so typed route links render their real href.
+const href = (to, params = {}) => to.replace(/\$(\w*)/g, (_, name) => String(params[name || "_splat"] ?? ""));
+mock.module("@tanstack/react-router", () => ({ ...router, Link: ({ to, params, children, activeProps: _activeProps, ...props }) => createElement("a", { ...props, href: href(to, params) }, children) }));
 const { FOOTER_DEFAULTS } = await import("@/templates/sdk/chromeDefinitions");
 const { convertLegacyFooterToRows: clientConvert } = await import("../../../../../../ConvexPress-Admin/apps/web/src/components/appearance/footerRowsHelpers.ts");
 const { convertLegacyFooterToRows: serverConvert } = await import("../../../../../../ConvexPress-Admin/packages/backend/convex/settings/footerRows.ts");

@@ -37,11 +37,9 @@ export const Route = createFileRoute("/_marketing/help/collections/$slug")({
 
 function CollectionView() {
   const { slug } = Route.useParams();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
-  const { data: collection } = useSuspenseQuery(
-    convexQuery(api.kb.collections.getBySlug, { slug }) as any,
-  ) as { data: KbCollection | null };
+  const { data: collection }: { data: KbCollection | null } = useSuspenseQuery(
+    convexQuery(api.kb.collections.getBySlug, { slug }),
+  );
 
   const data: HelpCollectionSurfaceData = { collection };
 

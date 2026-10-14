@@ -20,7 +20,6 @@ import {
   type TicketCategory,
   sortCategories,
   validateTicketDraft,
-  type TicketCategoriesResult,
   type TicketDraftErrors,
 } from "@/lib/support-tickets";
 import { uploadTicketAttachments } from "@/lib/support-tickets-upload";
@@ -80,8 +79,8 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
   const navigate = useNavigate();
   const settings = useSettings();
   const kbEnabled = isPublicPluginEnabled("kb", settings);
-  const categoriesResult = useQuery(api.tickets.queries.getCustomerCategories, {}) as TicketCategoriesResult | null | undefined;
-  const widgetConfig = useQuery(api.support.widget.getConfig, {}) as { aiEnabled?: boolean } | null | undefined;
+  const categoriesResult = useQuery(api.tickets.queries.getCustomerCategories, {});
+  const widgetConfig: { aiEnabled?: boolean } | null | undefined = useQuery(api.support.widget.getConfig, {});
   const aiEnabled = widgetConfig?.aiEnabled === true;
   const createTicket = useMutation(api.tickets.mutations.create);
   const requestUploadUrl = useMutation(api.tickets.attachments.generateUploadUrl);
@@ -89,7 +88,11 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
   const logInteraction = useMutation(api.support.deflection.logInteraction);
   const { sessionId } = useSessionId();
 
-  const categories = useMemo(() => sortCategories(categoriesResult?.categories ?? []), [categoriesResult]);
+  // Only categories the create mutation accepts are offered.
+  const categories = useMemo(
+    () => sortCategories((categoriesResult?.categories ?? []).flatMap((option) => (isTicketCategory(option.value) ? [{ ...option, value: option.value }] : []))),
+    [categoriesResult],
+  );
   const [category, setCategory] = useState<TicketCategory | "">(isTicketCategory(prefill?.category) ? prefill.category : "");
   const [subject, setSubject] = useState(prefill?.subject ?? "");
   const [description, setDescription] = useState(prefill?.context ? `\n\n---\n${prefill.context}` : "");
@@ -109,10 +112,10 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
   }, [categories, category]);
 
   const debouncedSubject = useDebounced(subject.trim(), 350);
-  const suggestions = useQuery(
+  const suggestions: { results: KbSuggestion[] } | null | undefined = useQuery(
     api.kb.search.search,
     kbEnabled && debouncedSubject.length >= 4 ? { query: debouncedSubject, limit: 4 } : "skip",
-  ) as { results: KbSuggestion[] } | null | undefined;
+  );
   const suggested = suggestions?.results ?? [];
 
   const selected = categories.find((c) => c.value === category);

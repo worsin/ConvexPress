@@ -35,11 +35,11 @@ export function NotificationsPage() {
   const preferencesOpen = search.tab === "preferences";
   const [query, setQuery] = useState("");
 
-  const live = useQuery(api.notifications.queries.listForCenter, {
+  const live: CenterResult | undefined = useQuery(api.notifications.queries.listForCenter, {
     view,
     kind: kind === "all" ? undefined : kind,
     search: query.trim() || undefined,
-  }) as CenterResult | undefined;
+  });
 
   // Keep the last answer on screen while a new view/kind/search subscription
   // loads, so switching tabs or typing never flashes skeletons. The center

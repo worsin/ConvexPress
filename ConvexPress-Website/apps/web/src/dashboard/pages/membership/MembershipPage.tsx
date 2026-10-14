@@ -30,14 +30,8 @@ export function DashboardMembershipPage() {
 
 function MembershipContent() {
   const { to } = useDashboardPath();
-  const myMembership = useQuery(api.membership.queries.getMyMembership, {}) as
-    | MyMembershipResponse
-    | null
-    | undefined;
-  const plans = useQuery(api.membership.queries.listPublicPlans, {}) as
-    | DashboardMembershipPublicPlan[]
-    | null
-    | undefined;
+  const myMembership: MyMembershipResponse | null | undefined = useQuery(api.membership.queries.getMyMembership, {});
+  const plans: DashboardMembershipPublicPlan[] | null | undefined = useQuery(api.membership.queries.listPublicPlans, {});
 
   const isLoading = myMembership === undefined || plans === undefined;
 

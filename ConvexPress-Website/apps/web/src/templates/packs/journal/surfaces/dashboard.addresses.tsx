@@ -61,12 +61,12 @@ export default function JournalDashboardAddresses({ data }: SurfaceProps<Dashboa
     if (ok) setEditingId(null);
   }
 
-  const shippingAddresses = addresses?.filter((address: any) => address.addressType === "shipping") ?? [];
-  const billingAddresses = addresses?.filter((address: any) => address.addressType === "billing") ?? [];
+  const shippingAddresses = addresses?.filter((address) => address.addressType === "shipping") ?? [];
+  const billingAddresses = addresses?.filter((address) => address.addressType === "billing") ?? [];
 
   const renderGroup = (list: any[], fallbackType: "billing" | "shipping") => (
     <RowList>
-      {list.map((address: any) =>
+      {list.map((address) =>
         editingId === address._id ? (
           <Row key={address._id} className="gap-6 py-8">
             <SmallCaps as="h3">Edit address</SmallCaps>

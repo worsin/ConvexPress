@@ -59,7 +59,7 @@ interface Offer {
   }>;
   template?: {
     _id: string;
-    billingInterval: "week" | "month" | "year";
+    billingInterval: "day" | "week" | "month" | "year";
     billingIntervalCount: number;
     trialDays?: number;
     gracePeriodDays?: number;
@@ -84,7 +84,7 @@ function billingSummary(offer: Offer): string {
   const interval = offer.template?.billingInterval ?? "month";
   const count = offer.template?.billingIntervalCount ?? 1;
   const short =
-    interval === "year" ? "yr" : interval === "week" ? "wk" : "mo";
+    interval === "year" ? "yr" : interval === "week" ? "wk" : interval === "day" ? "day" : "mo";
   if (count === 1) return `/ ${short}`;
   return `/ ${count} ${short}`;
 }

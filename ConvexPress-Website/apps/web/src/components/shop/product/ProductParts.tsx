@@ -80,7 +80,7 @@ export function ProductGallery({
       {displayMediaId ? (
         <MediaImage
           key={displayMediaId}
-          mediaId={displayMediaId as any}
+          mediaId={displayMediaId}
           alt={product.title}
           className="h-full w-full object-cover"
           preferredSize="large"
@@ -106,7 +106,7 @@ export function ProductGallery({
                 id === displayMediaId ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50",
               )}
             >
-              <MediaImage mediaId={id as any} alt="" className="size-full object-cover" preferredSize="thumbnail" sizes="64px" />
+              <MediaImage mediaId={id} alt="" className="size-full object-cover" preferredSize="thumbnail" sizes="64px" />
             </button>
           </li>
         ))}
@@ -303,7 +303,7 @@ export function ProductBuyBox({ product, state, className, showPrice = true, fra
       <StockLine state={state} />
       {!state.access.allowed ? (
         <UpgradeCTA
-          matchingPlanIds={state.access.matchingPlanIds as any}
+          matchingPlanIds={state.access.matchingPlanIds}
           title="Members-only product"
           description="This product is available to members only. Upgrade your plan to purchase."
         />

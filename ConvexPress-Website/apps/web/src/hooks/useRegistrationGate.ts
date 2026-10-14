@@ -25,16 +25,9 @@ interface UseRegistrationGateResult {
 }
 
 export function useRegistrationGate(): UseRegistrationGateResult {
-  const statusResult = useQuery(
-    (api as any).registration.queries.getRegistrationStatus,
-  ) as
-    | {
-        status: RegistrationStatus;
-        canRegister: boolean;
-        inviteOnly: boolean;
-        defaultRole: string;
-      }
-    | undefined;
+  const statusResult: { status: RegistrationStatus; canRegister: boolean; inviteOnly: boolean; defaultRole: string; } | undefined = useQuery(
+    api.registration.queries.getRegistrationStatus,
+  );
 
   return useMemo(() => {
     // Still loading from Convex

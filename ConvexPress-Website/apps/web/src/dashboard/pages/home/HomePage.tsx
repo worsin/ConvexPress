@@ -15,7 +15,7 @@ import { useDashboardShell } from "../../shell/DashboardShellContext";
 import { DEFAULT_DASHBOARD_GRID, type MyLayoutPayload } from "../../types";
 
 export function DashboardHomePage() {
-  const layout = useQuery(api.extensions.dashboard.queries.myLayout, {}) as MyLayoutPayload | null | undefined;
+  const layout: MyLayoutPayload | null | undefined = useQuery(api.extensions.dashboard.queries.myLayout, {});
   const { registry } = useDashboardShell();
   const grid = layout?.grid ?? registry?.grid ?? DEFAULT_DASHBOARD_GRID;
   const widgets = useMemo(() => registry?.widgets ?? [], [registry?.widgets]);

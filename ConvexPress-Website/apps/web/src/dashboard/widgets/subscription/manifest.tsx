@@ -30,9 +30,7 @@ function SubscriptionWidget({ size }: DashboardWidgetProps) {
   const { to } = useDashboardShell();
   const settings = useSettings();
   const enabled = settings?.plugins?.commerceSubscriptionsEnabled === true;
-  const contracts = useQuery(api.commerceSubscriptions.portal.getMyActiveContracts, enabled ? {} : "skip") as
-    | Contract[]
-    | undefined;
+  const contracts: Contract[] | undefined = useQuery(api.commerceSubscriptions.portal.getMyActiveContracts, enabled ? {} : "skip");
   if (!enabled) return <WidgetEmpty icon="repeat" title="Subscriptions are off" />;
   if (contracts === undefined) return <WidgetSkeleton rows={3} />;
   const current = contracts.find((c) => c.status === "active" || c.status === "trialing") ?? contracts[0];

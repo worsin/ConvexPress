@@ -220,7 +220,7 @@ export default function CoreCoursesIndex({ data }: SurfaceProps<CoursesIndexSurf
                     <div className="aspect-[4/3] bg-muted/40">
                       {course.featuredImageId ? (
                         <MediaImage
-                          mediaId={course.featuredImageId as any}
+                          mediaId={course.featuredImageId}
                           alt={course.title}
                           className="h-full w-full object-cover"
                           preferredSize="large"

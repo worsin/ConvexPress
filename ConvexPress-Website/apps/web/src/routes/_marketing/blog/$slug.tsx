@@ -22,7 +22,6 @@ import type {
 	PostTag,
 } from "@/lib/blog/types";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
-import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 import {
 	buildArticleJsonLd,
@@ -154,7 +153,9 @@ function SinglePost() {
 		rawPost?._id ? { postId: rawPost._id as Id<"posts"> } : "skip",
 	);
 	// Fetch global SEO settings (for title templates, social defaults, schema config)
-	const seoSettings = useQuery(api.seo.queries.getSettings, {});
+	const seoSettingsResult = useQuery(api.seo.queries.getSettings, {});
+	// Without a `key` the query returns every section, never a single-section record.
+	const seoSettings = seoSettingsResult && "titles" in seoSettingsResult ? seoSettingsResult : null;
 	// Password verification for protected posts
 	const verifiedPost = useQuery(
 		api.posts.queries.verifyPostPassword,
@@ -331,8 +332,8 @@ function SinglePost() {
 						featuredImageUrl: post.featuredImageUrl,
 						publishedAt: post.publishedAt,
 					},
-					postSeoData as PostSeoData,
-					seoSettings as unknown as SeoSettings,
+					postSeoData,
+					seoSettings,
 					siteUrl,
 				)
 			: createFallbackSeo(post.title, siteUrl || `/blog/${slug}`);
@@ -350,7 +351,7 @@ function SinglePost() {
 						publishedAt: post.publishedAt,
 					},
 					resolvedSeo,
-					seoSettings as unknown as SeoSettings,
+					seoSettings,
 					siteUrl,
 					{
 						name: post.author.displayName,

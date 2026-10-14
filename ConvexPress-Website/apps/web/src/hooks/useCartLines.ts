@@ -9,21 +9,22 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import { useCallback, useState } from "react";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type { CartLineMetadata, CartLineProduct, CartLineVariant } from "@/components/commerce/cartLine";
+import { parseCartLinesMetadata, type CartLineMetadata, type CartLineProduct, type CartLineVariant } from "@/components/commerce/cartLine";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 
 export interface CartLine {
-  _id: string;
+  _id: Id<"commerce_cart_items">;
   quantity: number;
   unitPriceAmount: number;
   lineTotalAmount: number;
   metadata?: CartLineMetadata;
-  product?: (CartLineProduct & { _id: string; slug: string; featuredMediaId?: string }) | null;
-  variant?: (CartLineVariant & { _id: string; featuredMediaId?: string }) | null;
+  product?: (CartLineProduct & { _id: string; slug: string; featuredMediaId?: Id<"media"> }) | null;
+  variant?: (CartLineVariant & { _id: string; featuredMediaId?: Id<"media"> }) | null;
 }
 
 export interface CartLines {
@@ -40,16 +41,20 @@ export function useCartLines() {
   const enabled = settings?.plugins?.commerceEnabled === true;
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const { sessionToken, isReady } = useCommerceSessionToken();
-  const cart = useQuery(
-    (api as any).commerce.cart.getMine,
+  const raw = useQuery(
+    api.commerce.cart.getMine,
     enabled && isReady && sessionToken ? { sessionToken } : "skip",
-  ) as CartLines | null | undefined;
-  const updateItemQuantity = useMutation((api as any).commerce.cart.updateItemQuantity);
-  const removeItem = useMutation((api as any).commerce.cart.removeItem);
+  );
+  const cart = useMemo<CartLines | null | undefined>(
+    () => raw && parseCartLinesMetadata(raw),
+    [raw],
+  );
+  const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
+  const removeItem = useMutation(api.commerce.cart.removeItem);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const updateQuantity = useCallback(
-    async (itemId: string, quantity: number) => {
+    async (itemId: Id<"commerce_cart_items">, quantity: number) => {
       if (!sessionToken) return;
       setBusyAction(`quantity:${itemId}`);
       try {
@@ -64,7 +69,7 @@ export function useCartLines() {
   );
 
   const remove = useCallback(
-    async (itemId: string) => {
+    async (itemId: Id<"commerce_cart_items">) => {
       if (!sessionToken) return;
       setBusyAction(`remove:${itemId}`);
       try {

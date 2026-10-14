@@ -69,10 +69,10 @@ export function TicketListView({
   onNewTicket,
 }: TicketListViewProps) {
   const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
-  const tickets = useQuery(
+  const tickets: RecentTicket[] | null | undefined = useQuery(
     api.support.widget.getRecentTickets,
     isAuthenticated ? { limit: 10 } : "skip",
-  ) as RecentTicket[] | undefined;
+  );
 
   if (isAuthLoading) {
     return (
@@ -117,7 +117,7 @@ export function TicketListView({
       </button>
 
       {/* Ticket List */}
-      {tickets.length === 0 ? (
+      {!tickets || tickets.length === 0 ? (
         <div className="py-6 text-center">
           <MessageSquare className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">

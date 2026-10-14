@@ -43,7 +43,7 @@ export default function DepotGalleryAlbum({ data }: SurfaceProps<GalleryAlbumSur
         </Card>
       ) : null}
 
-      <GalleryEmbed album={album as any} />
+      <GalleryEmbed album={album} />
     </Container>
   );
 }

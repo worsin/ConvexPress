@@ -3,9 +3,10 @@
  * (dashboard/pages/courses/CoursePlayerPage.tsx), which computes the view
  * model, and the `dashboard.lesson` surface, which renders it.
  */
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 export type PlayerCourse = {
-  _id: string;
+  _id: Id<"lms_courses">;
   title: string;
   slug: string;
   progressionMode?: string;
@@ -50,7 +51,7 @@ export type LessonDetail = {
     _id: string;
     title: string;
     videoUrl?: string;
-    videoMediaId?: string;
+    videoMediaId?: Id<"media">;
     requireVideoWatch?: boolean;
     minTimeSeconds?: number;
     showMarkComplete?: boolean;
@@ -71,12 +72,14 @@ export type CompletionGate = {
   allowed: boolean;
   reason: string;
   requiresLogin?: boolean;
-  watchedFraction?: number;
-  requiredWatchedFraction?: number;
-  timeSpentSec?: number;
-  minTimeSeconds?: number;
-  videoRemainingFraction?: number;
-  timeRemainingSec?: number;
+  /** Numeric fields are null when the gate does not apply (no video, no minimum time). */
+  watchedFraction?: number | null;
+  requiredWatchedFraction?: number | null;
+  timeSpentSec?: number | null;
+  minTimeSeconds?: number | null;
+  videoRemainingFraction?: number | null;
+  timeRemainingSec?: number | null;
+  unlockAt?: number | null;
 };
 
 export type CertificateIssue = {

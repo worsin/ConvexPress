@@ -15,10 +15,6 @@
  *
  * Multi-step, calculations, merge-tags, save-and-continue, confirmations, and
  * spam/captcha all layer onto this renderer without forking the field contract.
- *
- * `api` is imported the same way the rest of the Website imports it (from
- * `@convexpress-website/backend/generated/api`) and cast to `any` for the
- * loosely-typed extension function path, mirroring `SignupForm.tsx`.
  */
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -27,6 +23,7 @@ import { useAction, useMutation, useConvex } from "convex/react";
 import DOMPurify from "@/lib/html-sanitizer";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 import { Button } from "@/components/ui/button";
 import { AuthError } from "@/components/auth/AuthError";
@@ -67,7 +64,7 @@ import {
 } from "@/extensions/forms/security";
 
 export interface PublicForm {
-  _id: string;
+  _id: Id<"forms">;
   title: string;
   slug: string;
   description?: string | null;
@@ -156,9 +153,9 @@ export function FormRenderer({
   onReady,
 }: FormRendererProps) {
   const { isLoaded, isSignedIn } = useAuth();
-  const submit = useMutation((api as any).extensions.forms.mutations.submit);
+  const submit = useMutation(api.extensions.forms.mutations.submit);
   const submitWithCaptcha = useAction(
-    (api as any).extensions.forms.mutations.submitWithCaptcha,
+    api.extensions.forms.mutations.submitWithCaptcha,
   );
   const convex = useConvex();
 
@@ -220,7 +217,7 @@ export function FormRenderer({
   // repeater rows and surface the derived value for `calculation`/`product`
   // fields below. Memoized on [fields, values]; full recompute is fine for v1.
   const computedValues = useMemo(() => {
-    const calcDefs = fields as unknown as CalcFieldDef[];
+    const calcDefs: CalcFieldDef[] = fields;
     const repeaters: Record<string, RepeaterRow[]> = {};
     for (const field of fields) {
       if (field.type !== "repeater") continue;
@@ -326,7 +323,7 @@ export function FormRenderer({
         ? submitWithCaptcha
         : submit;
       const res = await submitComplete({
-        formId: form._id as any,
+        formId: form._id,
         values: payloadValues,
         isComplete: true,
         ...securityEnvelope,
@@ -337,8 +334,8 @@ export function FormRenderer({
       // thank-you below.
       try {
         const ref = await convex.query(
-          (api as any).extensions.forms.confirmations.resolveConfirmation,
-          { formId: form._id as any, submissionId: res.submissionId, confirmationToken: res.confirmationToken },
+          api.extensions.forms.confirmations.resolveConfirmation,
+          { formId: form._id, submissionId: res.submissionId, confirmationToken: res.confirmationToken },
         );
 
         if (ref?.type === "redirect" && ref.redirectUrl) {

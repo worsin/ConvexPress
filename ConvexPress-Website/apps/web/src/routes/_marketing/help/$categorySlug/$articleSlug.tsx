@@ -42,11 +42,9 @@ export const Route = createFileRoute(
 
 function ArticleReader() {
   const { categorySlug, articleSlug } = Route.useParams();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
-  const { data: article } = useSuspenseQuery(
-    convexQuery(api.kb.queries.getBySlug, { slug: articleSlug }) as any,
-  ) as { data: KbArticle | null };
+  const { data: article }: { data: KbArticle | null } = useSuspenseQuery(
+    convexQuery(api.kb.queries.getBySlug, { slug: articleSlug }),
+  );
 
   // Session ID — initialized client-side only to avoid SSR hydration mismatches
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
@@ -81,10 +79,10 @@ function ArticleReader() {
   }, [art?._id, sessionId, trackView]);
 
   // Get existing feedback to show which button is already selected
-  const userFeedback = useQuery(
+  const userFeedback: KbUserFeedback = useQuery(
     api.kb.feedback.getUserFeedback,
     sessionId && art?._id ? { articleId: art._id, sessionId } : "skip",
-  ) as KbUserFeedback;
+  );
 
   async function handleFeedback(isHelpful: boolean) {
     if (!art?._id || !sessionId) return;

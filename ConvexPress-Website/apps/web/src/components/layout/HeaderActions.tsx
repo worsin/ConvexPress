@@ -32,10 +32,10 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const { sessionToken, isReady } = useCommerceSessionToken();
-  const cart = useQuery(
-    (api as any).commerce.cart.getMine,
+  const cart: { itemCount?: number } | null | undefined = useQuery(
+    api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
-  ) as { itemCount?: number } | null | undefined;
+  );
 
   // Config-driven visibility (defaults to showing everything if no config)
   const showDarkMode = headerConfig?.darkModeToggle?.enabled !== false;

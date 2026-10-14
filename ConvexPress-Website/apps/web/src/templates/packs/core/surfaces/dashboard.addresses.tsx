@@ -438,12 +438,12 @@ export default function CoreDashboardAddresses({ data }: SurfaceProps<DashboardA
   }
 
   const shippingAddresses =
-    addresses?.filter((a: any) => a.addressType === "shipping") ?? [];
+    addresses?.filter((a) => a.addressType === "shipping") ?? [];
   const billingAddresses =
-    addresses?.filter((a: any) => a.addressType === "billing") ?? [];
+    addresses?.filter((a) => a.addressType === "billing") ?? [];
 
   const renderGroup = (list: any[], fallbackType: "billing" | "shipping") =>
-    list.map((addr: any) =>
+    list.map((addr) =>
       editingId === addr._id ? (
         <div
           key={addr._id}

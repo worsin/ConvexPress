@@ -7,23 +7,26 @@
  */
 
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useSettings } from "../contexts/SettingsContext";
+import { idFromString } from "../lib/ids";
 import { useCommerceSessionToken } from "./useCommerceSessionToken";
 
 export interface CartLineSummary {
-  itemId: string;
-  productId: string;
-  variantId: string | null;
+  itemId: Id<"commerce_cart_items">;
+  productId: Id<"commerce_products">;
+  variantId: Id<"commerce_product_variants"> | null;
   quantity: number;
   title: string;
   slug: string;
   unitPriceAmount: number;
   lineTotalAmount: number;
-  featuredMediaId: string | null;
+  featuredMediaId: Id<"media"> | null;
 }
 
 export interface CartSummary {
@@ -35,18 +38,18 @@ export interface CartSummary {
   items: CartLineSummary[];
 }
 
-function toSummary(raw: any): CartSummary | null {
+function toSummary(raw: FunctionReturnType<typeof api.commerce.cart.getMine> | undefined): CartSummary | null {
   if (!raw) return null;
   return {
-    itemCount: raw.itemCount ?? 0,
-    subtotalAmount: raw.subtotalAmount ?? 0,
-    totalAmount: raw.totalAmount ?? 0,
-    discountAmount: raw.discountAmount ?? 0,
-    currencyCode: raw.currencyCode ?? "USD",
-    items: (raw.items ?? []).map((item: any) => ({
-      itemId: String(item._id),
-      productId: String(item.productId),
-      variantId: item.variantId ? String(item.variantId) : null,
+    itemCount: raw.itemCount,
+    subtotalAmount: raw.subtotalAmount,
+    totalAmount: raw.totalAmount,
+    discountAmount: raw.discountAmount,
+    currencyCode: raw.currencyCode || "USD",
+    items: raw.items.map((item) => ({
+      itemId: item._id,
+      productId: item.productId,
+      variantId: item.variantId ?? null,
       quantity: item.quantity,
       title: item.product?.title ?? "Item",
       slug: item.product?.slug ?? "",
@@ -62,12 +65,12 @@ export function useCart() {
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const { sessionToken, isReady } = useCommerceSessionToken();
   const raw = useQuery(
-    (api as any).commerce.cart.getMine,
+    api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
   );
-  const addItem = useMutation((api as any).commerce.cart.addItem);
-  const updateItemQuantity = useMutation((api as any).commerce.cart.updateItemQuantity);
-  const removeItem = useMutation((api as any).commerce.cart.removeItem);
+  const addItem = useMutation(api.commerce.cart.addItem);
+  const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
+  const removeItem = useMutation(api.commerce.cart.removeItem);
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
 
   const cart = useMemo(() => toSummary(raw), [raw]);
@@ -89,8 +92,8 @@ export function useCart() {
       try {
         await addItem({
           sessionToken,
-          productId,
-          variantId: options?.variantId ?? undefined,
+          productId: idFromString<"commerce_products">(productId),
+          variantId: options?.variantId ? idFromString<"commerce_product_variants">(options.variantId) : undefined,
           quantity: Math.max(1, options?.quantity ?? 1),
         });
         toast.success(options?.label ? `Added ${options.label}` : "Added to cart");

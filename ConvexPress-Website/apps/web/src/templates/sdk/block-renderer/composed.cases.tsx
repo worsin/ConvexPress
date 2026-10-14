@@ -119,7 +119,8 @@ test("mixed dynamic Library and composed views share the definition-bound grant 
 
 test("already-mounted custom content clears on grant invalidation without a parent render", async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: "https://example.invalid" });
-  const previous = { window: globalThis.window, document: globalThis.document, HTMLElement: globalThis.HTMLElement, IS_REACT_ACT_ENVIRONMENT: (globalThis as any).IS_REACT_ACT_ENVIRONMENT };
+  const previousAct: unknown = Reflect.get(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+  const previous = { window: globalThis.window, document: globalThis.document, HTMLElement: globalThis.HTMLElement, IS_REACT_ACT_ENVIRONMENT: previousAct };
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
   const { createRoot } = await import("react-dom/client");
   const root = createRoot(document.getElementById("root")!);

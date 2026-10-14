@@ -547,7 +547,7 @@ export function ProductCard({ product: sourceProduct, className }: { product: Pr
       <Link to="/products/$slug" params={{ slug: product.slug }} className="relative block aspect-square bg-muted/40">
         {product.featuredMediaId ? (
           <MediaImage
-            mediaId={product.featuredMediaId as any}
+            mediaId={product.featuredMediaId}
             alt={product.title}
             className="h-full w-full object-cover"
             preferredSize="large"

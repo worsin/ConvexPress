@@ -30,11 +30,15 @@
  * called from server middleware or route loaders.
  */
 
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface ResolvedRedirect {
   /** The redirect record ID (for hit tracking). */
-  redirectId: string;
+  redirectId: Id<"redirects">;
   /** The target URL to redirect to. */
   targetUrl: string;
   /** HTTP status code (301, 302, 307, or 308). */
@@ -55,14 +59,7 @@ export interface ResolvedRedirect {
  * @returns ResolvedRedirect if a match was found, null otherwise
  */
 export function processRedirectResult(
-  redirectRecord: {
-    _id?: string;
-    sourceUrl: string;
-    targetUrl: string;
-    statusCode: number;
-    _resolvedTargetUrl?: string;
-    matchType?: "exact" | "prefix" | "regex";
-  } | null,
+  redirectRecord: FunctionReturnType<typeof api.routing.public.resolveRedirect>,
 ): ResolvedRedirect | null {
   if (!redirectRecord) return null;
 
@@ -73,10 +70,10 @@ export function processRedirectResult(
     redirectRecord._resolvedTargetUrl || redirectRecord.targetUrl;
 
   return {
-    redirectId: redirectRecord._id ?? "",
+    redirectId: redirectRecord._id,
     targetUrl,
-    statusCode: redirectRecord.statusCode as 301 | 302 | 307 | 308,
-    matchType: redirectRecord.matchType ?? "exact",
+    statusCode: redirectRecord.statusCode,
+    matchType: redirectRecord.matchType,
   };
 }
 

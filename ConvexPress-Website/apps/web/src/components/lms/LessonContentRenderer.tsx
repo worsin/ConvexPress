@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 import { MediaImage } from "@/components/media/MediaImage";
 import { cn } from "@/lib/utils";
@@ -228,7 +227,7 @@ function LessonImage({ attrs }: { attrs?: Record<string, unknown> }) {
     return (
       <figure className="space-y-2">
         <MediaImage
-          mediaId={mediaId as Id<"media">}
+          mediaId={mediaId}
           alt={alt}
           preferredSize="large"
           sizes="(max-width: 768px) 100vw, 720px"

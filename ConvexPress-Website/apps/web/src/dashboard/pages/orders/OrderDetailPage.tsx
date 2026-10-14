@@ -10,36 +10,39 @@ import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { useDashboardPath } from "@/hooks/useDashboardConfig";
 import CoreDashboardOrder, { type DashboardOrderSurfaceData } from "@/templates/packs/core/surfaces/dashboard.order";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 export function DashboardOrderDetailPage({ orderId }: { orderId: string }) {
   const { to } = useDashboardPath();
-  const settings = useQuery(api.settings.queries.getPublic) as any;
+  const settings = useQuery(api.settings.queries.getPublic);
   const returnsEnabled =
     settings !== undefined &&
     settings?.plugins?.commerceReturnsEnabled === true;
-  const purchase = useQuery((api as any).purchases.queries.getMineByAnyId, {
+  const purchase = useQuery(api.purchases.queries.getMineByAnyId, {
     id: orderId,
-  }) as any;
+  });
   const storefrontOrderId =
     purchase?.commerceOrderId ??
     (purchase?.sourceType === "storefront_order" ? purchase.sourceId : null) ??
     (purchase === null ? orderId : null);
+  // Either a purchase-ledger reference or the URL segment itself.
+  const orderDocId = storefrontOrderId ? idFromString<"commerce_orders">(storefrontOrderId) : null;
   const order = useQuery(
     api.commerce.orders.getMineById,
-    storefrontOrderId ? { orderId: storefrontOrderId as any } : "skip",
-  ) as any;
+    orderDocId ? { orderId: orderDocId } : "skip",
+  );
   const eligibility = useQuery(
     api.commerceReturns.queries.getMyOrderEligibility,
-    returnsEnabled && storefrontOrderId
-      ? { orderId: storefrontOrderId as any }
+    returnsEnabled && orderDocId
+      ? { orderId: orderDocId }
       : "skip",
-  ) as any;
+  );
   const existingReturns = useQuery(
     api.commerceReturns.queries.getMineByOrder,
-    returnsEnabled && storefrontOrderId
-      ? { orderId: storefrontOrderId as any }
+    returnsEnabled && orderDocId
+      ? { orderId: orderDocId }
       : "skip",
-  ) as any;
+  );
 
   const data: DashboardOrderSurfaceData = {
     orderId,

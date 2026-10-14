@@ -30,10 +30,10 @@ function gridClass(columns: number) {
 }
 
 function CategoryTilesRenderer({ attrs }: BlockRendererProps<CategoryTilesAttrs>) {
-  const tiles = useQuery((api as any).commerce.storefront.categoryTiles, {
+  const tiles: CategoryTile[] | undefined = useQuery(api.commerce.storefront.categoryTiles, {
     slugs: attrs.categorySlugs.length ? attrs.categorySlugs : undefined,
     limit: attrs.limit,
-  }) as CategoryTile[] | undefined;
+  });
 
   return (
     <section data-block="commerce/category-tiles" className="space-y-8">
@@ -57,7 +57,7 @@ function CategoryTilesRenderer({ attrs }: BlockRendererProps<CategoryTilesAttrs>
             >
               {tile.coverMediaId ? (
                 <MediaImage
-                  mediaId={tile.coverMediaId as any}
+                  mediaId={tile.coverMediaId}
                   alt={tile.coverTitle ?? tile.name}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   preferredSize="large"

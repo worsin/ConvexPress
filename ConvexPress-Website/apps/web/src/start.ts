@@ -102,14 +102,14 @@ const redirectMiddleware = createMiddleware().server(async ({ request, next }) =
 
   try {
     const redirectRecord = await client.query(
-      (api as any).routing.public.resolveRedirect,
+      api.routing.public.resolveRedirect,
       { url: pathname + url.search },
     );
     const redirect = processRedirectResult(redirectRecord);
     if (!redirect) return next();
 
     if (redirect.redirectId) {
-      void client.mutation((api as any).routing.public.recordRedirectHit, {
+      void client.mutation(api.routing.public.recordRedirectHit, {
         redirectId: redirect.redirectId,
       });
     }

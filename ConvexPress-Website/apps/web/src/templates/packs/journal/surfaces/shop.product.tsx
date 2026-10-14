@@ -131,7 +131,7 @@ function Gallery({ product, state, className, aspect = "aspect-[4/5]", thumbs = 
     <div className={cn("flex flex-col gap-3", className)}>
       <div className={cn("relative overflow-hidden rounded-2xl bg-muted", aspect)}>
         {displayMediaId ? (
-          <MediaImage key={displayMediaId} mediaId={displayMediaId as any} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 1024px) 100vw, 58vw" loading="eager" />
+          <MediaImage key={displayMediaId} mediaId={displayMediaId} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 1024px) 100vw, 58vw" loading="eager" />
         ) : (
           <div className="flex h-full items-center justify-center px-8 text-center font-display text-2xl text-muted-foreground">{product.title}</div>
         )}
@@ -146,7 +146,7 @@ function Gallery({ product, state, className, aspect = "aspect-[4/5]", thumbs = 
                 aria-pressed={id === displayMediaId}
                 className={cn("block size-16 overflow-hidden rounded-xl border transition-colors", id === displayMediaId ? "border-foreground" : "border-transparent hover:border-border")}
               >
-                <MediaImage mediaId={id as any} alt="" className="size-full object-cover" preferredSize="thumbnail" sizes="64px" />
+                <MediaImage mediaId={id} alt="" className="size-full object-cover" preferredSize="thumbnail" sizes="64px" />
               </button>
             </li>
           ))}
@@ -184,7 +184,7 @@ function BuyBox({ product, state, className }: PartProps) {
       {state.currentVariant?.description ? <p className="text-sm leading-6 text-muted-foreground">{state.currentVariant.description}</p> : null}
       <StockLine state={state} />
       {!state.access.allowed ? (
-        <UpgradeCTA matchingPlanIds={state.access.matchingPlanIds as any} title="Members-only product" description="This product is available to members only. Upgrade your plan to purchase." />
+        <UpgradeCTA matchingPlanIds={state.access.matchingPlanIds} title="Members-only product" description="This product is available to members only. Upgrade your plan to purchase." />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <Stepper state={state} />

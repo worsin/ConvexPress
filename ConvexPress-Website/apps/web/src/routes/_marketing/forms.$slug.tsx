@@ -32,14 +32,12 @@ import { Surface } from "@/templates/sdk/Surface";
  *      autosave, degrading to a single page (with a plain Submit) when the form
  *      has no `page_break`.
  *
- * The Forms backend functions live under a loosely-typed (`anyApi`) extension
- * path, so the function references are read off `(api as any).extensions.forms`
- * — matching how the Website calls other extension/plugin Convex functions.
+ * The Forms backend functions are read off `api.extensions.forms`.
  *
  * SSR-safe: `parsePrefill` runs identically in the SSR loader and the browser.
  */
 
-const getBySlugFn = (api as any).extensions.forms.queries.getBySlug;
+const getBySlugFn = api.extensions.forms.queries.getBySlug;
 
 /** Payment-return keys; prefill keys ride along untyped (see validateSearch). */
 type FormRouteSearch = { payment?: string; redirect_status?: string };
@@ -111,8 +109,8 @@ function FormPage() {
 function FormPageInner() {
   const { slug } = Route.useParams();
   const search = Route.useSearch();
-  const query = convexQuery(getBySlugFn, { slug }) as any;
-  const { data: form } = useSuspenseQuery(query) as { data: PublicForm | null };
+  const query = convexQuery(getBySlugFn, { slug });
+  const { data: form }: { data: PublicForm | null } = useSuspenseQuery(query);
 
   if (!form) {
     return <NotFoundPage />;

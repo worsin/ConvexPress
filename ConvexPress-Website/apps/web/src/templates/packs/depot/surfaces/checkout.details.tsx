@@ -30,7 +30,7 @@ export default function DepotCheckoutDetails({ data }: SurfaceProps<CheckoutDeta
       ) : (
         <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
           <Card as="form" onSubmit={(event: FormEvent<HTMLFormElement>) => void onSubmit(event)} className="flex flex-col gap-4 p-4 xl:col-span-8">
-            <CheckoutNotice status={(session as any)?.status} failureReason={(session as any)?.failureReason} />
+            <CheckoutNotice status={session?.status} failureReason={session?.failureReason} />
             <h2 className="text-lg font-semibold text-foreground">Contact email</h2>
             <Field label="Email address" type="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="you@example.com" autoComplete="email" required className="max-w-md" hint="Order updates and receipts go to this address." />
             <div>

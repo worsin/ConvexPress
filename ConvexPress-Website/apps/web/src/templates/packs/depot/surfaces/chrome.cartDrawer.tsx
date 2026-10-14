@@ -168,7 +168,7 @@ function DrawerRow({
         <div className="flex gap-2.5">
           <Link to="/products/$slug" params={{ slug: line.slug }} onClick={onNavigate} className="size-12 shrink-0 overflow-hidden rounded-md bg-muted/40">
             {line.featuredMediaId ? (
-              <MediaImage mediaId={line.featuredMediaId as any} alt={line.title} className="h-full w-full object-cover" preferredSize="thumbnail" sizes="48px" />
+              <MediaImage mediaId={line.featuredMediaId} alt={line.title} className="h-full w-full object-cover" preferredSize="thumbnail" sizes="48px" />
             ) : (
               <span className="flex h-full items-center justify-center text-muted-foreground">
                 <ShoppingBag className="size-4" aria-hidden="true" />

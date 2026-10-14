@@ -42,10 +42,10 @@ export function NotificationPreferencesSection({ defaultExpanded = false }: { de
   >(new Map());
 
   // Real Convex queries
-  const preferences = useQuery(
+  const preferences: NotificationPreference[] | undefined = useQuery(
     api.notifications.queries.getPreferences,
     {},
-  ) as NotificationPreference[] | undefined;
+  );
 
   const updatePreferences = useMutation(
     api.notifications.mutations.updatePreferences,

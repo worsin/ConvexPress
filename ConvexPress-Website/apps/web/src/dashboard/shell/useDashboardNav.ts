@@ -24,16 +24,12 @@ import { buildDashboardNavItems } from "@/lib/layout/dashboardNav";
 export { useDashboardMenu, type DashboardMenuResult } from "./useDashboardMenu";
 
 export function useDashboardRegistry(): DashboardRegistryPayload | null {
-  const data = useQuery(api.extensions.dashboard.queries.registry, {}) as
-    | DashboardRegistryPayload
-    | undefined;
+  const data: DashboardRegistryPayload | undefined = useQuery(api.extensions.dashboard.queries.registry, {});
   return data ?? null;
 }
 
 export function useDashboardBadges(enabled: boolean = true): Record<string, number> | null {
-  const data = useQuery(api.extensions.dashboard.queries.myBadges, enabled ? {} : "skip") as
-    | Record<string, number>
-    | undefined;
+  const data: Record<string, number> | undefined = useQuery(api.extensions.dashboard.queries.myBadges, enabled ? {} : "skip");
   return data ?? null;
 }
 

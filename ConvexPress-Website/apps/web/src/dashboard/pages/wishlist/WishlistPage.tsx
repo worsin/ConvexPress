@@ -30,6 +30,7 @@ import CoreDashboardWishlist, {
 } from "@/templates/packs/core/surfaces/dashboard.wishlist";
 import type { SavedProduct } from "@/templates/sdk/block-renderer/wishlist";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 const dashboardQuery = makeFunctionReference<
 	"query",
 	WishlistPageArgs,
@@ -122,19 +123,19 @@ function DashboardWishlistContent({ instanceKey }: { instanceKey: string }) {
 	const retained = useRef<DashboardWishlistSummary[]>([]);
 	if (lease.fresh) retained.current = lease.fresh.page;
 	const createWishlist = useMutation(
-		(api as any).commerceWishlists.mutations.createWishlist,
+		api.commerceWishlists.mutations.createWishlist,
 	);
 	const removeItem = useMutation(
-		(api as any).commerceWishlists.mutations.removeItem,
+		api.commerceWishlists.mutations.removeItem,
 	);
 	const moveToCart = useMutation(
-		(api as any).commerceWishlists.mutations.moveToCart,
+		api.commerceWishlists.mutations.moveToCart,
 	);
 	const toggleShare = useMutation(
-		(api as any).commerceWishlists.mutations.toggleShare,
+		api.commerceWishlists.mutations.toggleShare,
 	);
 	const deleteWishlist = useMutation(
-		(api as any).commerceWishlists.mutations.deleteWishlist,
+		api.commerceWishlists.mutations.deleteWishlist,
 	);
 	const { sessionToken, isReady } = useCommerceSessionToken();
 
@@ -208,7 +209,7 @@ function DashboardWishlistContent({ instanceKey }: { instanceKey: string }) {
 			removeItem: async (itemId) => {
 				if (!hasCurrentItem(itemId)) return;
 				try {
-					await removeItem({ itemId: itemId as any });
+					await removeItem({ itemId: idFromString<"commerce_wishlist_items">(itemId) });
 					toast.success("Item removed from wishlist");
 				} catch (error) {
 					toast.error(
@@ -221,7 +222,7 @@ function DashboardWishlistContent({ instanceKey }: { instanceKey: string }) {
 				if (!isReady || !sessionToken || !hasCurrentItem(itemId, true)) return;
 				try {
 					await moveToCart({
-						itemId: itemId as any,
+						itemId: idFromString<"commerce_wishlist_items">(itemId),
 						sessionToken,
 						quantity: 1,
 					});
@@ -235,8 +236,8 @@ function DashboardWishlistContent({ instanceKey }: { instanceKey: string }) {
 			},
 			toggleShare: async (wishlistId) => {
 				try {
-					const result = await toggleShare({ wishlistId: wishlistId as any });
-					if ((result as any)?.isPublic) {
+					const result = await toggleShare({ wishlistId: idFromString<"commerce_wishlists">(wishlistId) });
+					if (result?.isPublic) {
 						toast.success("Wishlist is now public");
 					} else {
 						toast.success("Wishlist is now private");
@@ -251,7 +252,7 @@ function DashboardWishlistContent({ instanceKey }: { instanceKey: string }) {
 			deleteWishlist: async (wishlistId) => {
 				if (!confirm("Delete this wishlist and all its items?")) return;
 				try {
-					await deleteWishlist({ wishlistId: wishlistId as any });
+					await deleteWishlist({ wishlistId: idFromString<"commerce_wishlists">(wishlistId) });
 					toast.success("Wishlist deleted");
 				} catch (error) {
 					toast.error(

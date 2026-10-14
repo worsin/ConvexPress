@@ -107,7 +107,7 @@ export function GalleryLightbox({
           <div className="flex flex-col gap-4">
             <div className="overflow-hidden rounded-[1.5rem] bg-black/40">
               <MediaImage
-                mediaId={item.mediaId as never}
+                mediaId={item.mediaId}
                 alt={item.altText ?? item.media.title ?? ""}
                 preferredSize="large"
                 loading="eager"

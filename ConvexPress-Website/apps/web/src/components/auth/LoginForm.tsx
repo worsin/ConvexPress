@@ -92,7 +92,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
         redirectUrl: `${window.location.origin}/login?returnTo=${encodeURIComponent(returnTo)}`,
       })
         .then(async (result) => {
-          await advance(nextSignInStep(result as never, { passwordEntered: false, preferOtp: true }));
+          await advance(nextSignInStep(result, { passwordEntered: false, preferOtp: true }));
         })
         .catch((cause) => setError(clerkErrorMessage(cause, "The sign-in link could not be verified.")));
       return;
@@ -165,7 +165,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
     setIsSubmitting(true);
     try {
       const result = await signIn.create(sendPassword ? { identifier: id, password } : { identifier: id });
-      await advance(nextSignInStep(result as never, { passwordEntered: sendPassword, preferOtp }));
+      await advance(nextSignInStep(result, { passwordEntered: sendPassword, preferOtp }));
     } catch (cause) {
       reportFailure(cause);
       setError(clerkErrorMessage(cause, "Sign in failed. Please check your details."));
@@ -182,7 +182,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
     setIsSubmitting(true);
     try {
       const result = await signIn.attemptFirstFactor({ strategy: "password", password });
-      await advance(nextSignInStep(result as never, { passwordEntered: true, preferOtp }));
+      await advance(nextSignInStep(result, { passwordEntered: true, preferOtp }));
     } catch (cause) {
       reportFailure(cause);
       setError(clerkErrorMessage(cause, "That password did not work."));
@@ -203,7 +203,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
           ? await signIn.attemptFirstFactor({ strategy: step.strategy as "email_code" | "phone_code", code: code.trim() })
           : await signIn.attemptSecondFactor({ strategy: step.strategy, code: code.trim() });
       setCode("");
-      await advance(nextSignInStep(result as never, { passwordEntered: true, preferOtp }));
+      await advance(nextSignInStep(result, { passwordEntered: true, preferOtp }));
     } catch (cause) {
       reportFailure(cause);
       setError(clerkErrorMessage(cause, "That code did not work. Please try again."));
@@ -222,7 +222,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
     setIsSubmitting(true);
     try {
       const result = await signIn.resetPassword({ password: newPassword, signOutOfOtherSessions: true });
-      await advance(nextSignInStep(result as never, { passwordEntered: true, preferOtp }));
+      await advance(nextSignInStep(result, { passwordEntered: true, preferOtp }));
     } catch (cause) {
       setError(clerkErrorMessage(cause, "The new password was not accepted."));
     } finally {

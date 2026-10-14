@@ -61,7 +61,7 @@ export function useSignUpFlow(): SignUpFlow {
   /** Prepare whatever Clerk still needs after a create/update, then classify. */
   const settle = useCallback(async (): Promise<SignUpNext> => {
     if (!signUp) return { kind: "unknown", status: "not_loaded" };
-    const next = nextSignUpStep(signUp as never, capabilities);
+    const next = nextSignUpStep(signUp, capabilities);
     if (next.kind === "verify_email") {
       const pending = signUp.verifications?.emailAddress;
       const alreadyPrepared = pending?.status === "unverified" && pending?.strategy === next.strategy;
@@ -84,7 +84,7 @@ export function useSignUpFlow(): SignUpFlow {
   const create = useCallback(
     async (values: SignUpValues) => {
       if (!signUp) throw new Error("Sign-up is not ready yet.");
-      await signUp.create(toClerkParams(values) as never);
+      await signUp.create(toClerkParams(values));
       return settle();
     },
     [settle, signUp],
@@ -93,7 +93,7 @@ export function useSignUpFlow(): SignUpFlow {
   const update = useCallback(
     async (values: SignUpValues) => {
       if (!signUp) throw new Error("Sign-up is not ready yet.");
-      await signUp.update(toClerkParams(values) as never);
+      await signUp.update(toClerkParams(values));
       return settle();
     },
     [settle, signUp],
@@ -101,7 +101,7 @@ export function useSignUpFlow(): SignUpFlow {
 
   const resend = useCallback(async () => {
     if (!signUp) throw new Error("Sign-up is not ready yet.");
-    const next = nextSignUpStep(signUp as never, capabilities);
+    const next = nextSignUpStep(signUp, capabilities);
     if (next.kind === "verify_email") {
       await signUp.prepareEmailAddressVerification(
         next.strategy === "email_link"
@@ -135,7 +135,7 @@ export function useSignUpFlow(): SignUpFlow {
   const refresh = useCallback(async () => {
     if (!signUp) return { kind: "unknown", status: "not_loaded" } as SignUpNext;
     await signUp.reload();
-    return nextSignUpStep(signUp as never, capabilities);
+    return nextSignUpStep(signUp, capabilities);
   }, [capabilities, signUp]);
 
   const complete = useCallback(
@@ -148,7 +148,7 @@ export function useSignUpFlow(): SignUpFlow {
 
   const current = useCallback(() => {
     if (!signUp || !signUp.status) return null;
-    return nextSignUpStep(signUp as never, capabilities);
+    return nextSignUpStep(signUp, capabilities);
   }, [capabilities, signUp]);
 
   return useMemo(

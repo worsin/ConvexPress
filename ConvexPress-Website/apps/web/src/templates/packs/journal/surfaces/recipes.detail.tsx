@@ -51,7 +51,7 @@ export default function JournalRecipeDetail({ data }: SurfaceProps<RecipeDetailS
         <figure className="w-full max-w-4xl overflow-hidden rounded-2xl bg-muted">
           <div className="aspect-[3/2] w-full">
             {recipe.featuredImageId ? (
-              <MediaImage mediaId={recipe.featuredImageId as any} alt={recipe.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 1024px) 100vw, 896px" loading="eager" />
+              <MediaImage mediaId={recipe.featuredImageId} alt={recipe.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 1024px) 100vw, 896px" loading="eager" />
             ) : (
               <div className="flex h-full items-center justify-center px-6 text-center font-display text-2xl text-muted-foreground">{recipe.title}</div>
             )}

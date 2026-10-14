@@ -41,9 +41,7 @@ export function DashboardCoursesPage() {
 }
 
 function DashboardCoursesContent({ hrefs }: { hrefs: DashboardCoursesSurfaceData["hrefs"] }) {
-  const courses = useQuery((api as any).lms.enrollment.queries.listMyLearning, {}) as
-    | DashboardLearningCourse[]
-    | undefined;
+  const courses: DashboardLearningCourse[] | undefined = useQuery(api.lms.enrollment.queries.listMyLearning, {});
 
   const data: DashboardCoursesSurfaceData = { courses, hrefs };
   return <Surface name="dashboard.courses" data={data} fallback={CoreDashboardCourses} />;

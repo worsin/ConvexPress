@@ -44,7 +44,7 @@ export default function DepotRecipeDetail({ data }: SurfaceProps<RecipeDetailSur
           <Card className="overflow-hidden">
             <div className="aspect-video bg-muted/40">
               {recipe.featuredImageId ? (
-                <MediaImage mediaId={recipe.featuredImageId as any} alt={recipe.title} className="h-full w-full object-cover" sizes="(max-width: 1024px) 100vw, 60vw" loading="eager" />
+                <MediaImage mediaId={recipe.featuredImageId} alt={recipe.title} className="h-full w-full object-cover" sizes="(max-width: 1024px) 100vw, 60vw" loading="eager" />
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
                   <UtensilsCrossed className="size-8" aria-hidden="true" />
