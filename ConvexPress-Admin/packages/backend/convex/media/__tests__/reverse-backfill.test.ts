@@ -66,6 +66,20 @@ test("completed index observes atomic new references and rejects corrupt or disa
   await expect(t.run(ctx => readIndexedReferences(ctx, mediaId))).rejects.toThrow("indexing must complete");
 }));
 
+test("a stored edge whose owner table is not a media reference owner is refused, not followed", async () => fixture(async ({ t, operator, userId, mediaId }) => {
+  await complete(operator);
+  await t.run(ctx => patchWithMediaReferences(ctx, "users", userId, { avatarMediaId: mediaId }));
+  const edge = await t.run(ctx => ctx.db.query("media_reference_edges").first());
+  // ownerTable is a plain string column: a renamed or unknown table must close
+  // readiness instead of being read as some other table's document.
+  for (const ownerTable of ["acme_users", "media"]) {
+    await t.run(ctx => ctx.db.patch("media_reference_edges", edge!._id, { ownerTable }));
+    await expect(t.run(ctx => readIndexedReferences(ctx, mediaId))).rejects.toThrow("indexing must complete");
+  }
+  await t.run(ctx => ctx.db.patch("media_reference_edges", edge!._id, { ownerTable: "users" }));
+  expect((await t.run(ctx => readIndexedReferences(ctx, mediaId)))?.references).toMatchObject([{ table: "users", documentId: userId }]);
+}));
+
 test("external import epoch invalidates a restored ready state before the next deletion and backfill restarts", async () => fixture(async ({ t, operator, mediaId }) => {
   const before = await complete(operator);
   process.env[MEDIA_REVERSE_EPOCH_VARIABLE] = "new_import_epoch_2026";

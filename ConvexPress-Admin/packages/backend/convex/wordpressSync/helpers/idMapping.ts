@@ -16,6 +16,7 @@ import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import type { FindingCode } from "../validators";
+import type { MappedEntityTable } from "../internals";
 
 import { wordpressSyncDocs } from "../../schema/wordpressSync.docs.generated";
 // ─── Object Type Validator ─────────────────────────────────────────────────
@@ -513,7 +514,7 @@ export async function createFinding(
     message: string;
     sourceType?: string;
     sourceId?: string;
-    destinationTable?: string;
+    destinationTable?: MappedEntityTable;
     wpId?: number;
     objectType?: string;
     convexId?: string;

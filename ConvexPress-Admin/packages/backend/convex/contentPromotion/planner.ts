@@ -23,12 +23,14 @@ import {
 import { promotionAuthorization } from "./authorization";
 import type {
 	ContentPromotionManifest,
+	PromotionDependency,
 	PromotionIssue,
 	PromotionRecord,
 	PromotionKind,
 } from "@convexpress/site-contract/content-promotion";
 import { promotionDataSchemas, PROMOTION_URL_PREFIX } from "@convexpress/site-contract/content-promotion";
 import type { QueryCtx } from "../_generated/server";
+import type { TableNames } from "../_generated/dataModel";
 import {
 	assertTarget,
 	fail,
@@ -43,6 +45,15 @@ import { pageRouteWarning } from "../helpers/pageRoutePolicy";
 import { countBlockNames } from "../blocks/helpers";
 import type { StoredBlock } from "../blocks/helpers";
 
+/** The target table that pins each mapped (not copied) dependency kind. */
+const DEPENDENCY_TABLES = {
+	product: "commerce_products",
+	course: "lms_courses",
+	plan: "membership_plans",
+	form: "forms",
+	mailingList: "mailingLists",
+	role: "roles",
+} as const satisfies Record<Exclude<PromotionDependency["kind"], "plugin" | "catalog">, TableNames>;
 export type Bindings = {
 	mediaBindings: Array<{ key: string; storageId: string }>;
 	dependencyBindings: Array<{ key: string; targetId: string }>;
@@ -58,7 +69,7 @@ export type Plan = {
 	}>;
 	dependencies: Array<{
 		key: string;
-		table: string;
+		table: TableNames;
 		targetId: string;
 		revision: string;
 	}>;
@@ -311,14 +322,7 @@ export async function planPromotion(
 				});
 			continue;
 		}
-		const table = {
-			product: "commerce_products",
-			course: "lms_courses",
-			plan: "membership_plans",
-			form: "forms",
-      mailingList: "mailingLists",
-			role: "roles",
-		}[dep.kind];
+		const table = DEPENDENCY_TABLES[dep.kind];
 		let binding = bindings.dependencyBindings.find(
 			(item) => item.key === dep.key,
 		);
@@ -336,7 +340,7 @@ export async function planPromotion(
 			);
 			continue;
 		}
-		const normalized = ctx.db.normalizeId(table as never, binding.targetId);
+		const normalized = ctx.db.normalizeId(table, binding.targetId);
 		const row = normalized
 			? ((await ctx.db.get(normalized)) as Row | null)
 			: null;
@@ -353,7 +357,7 @@ export async function planPromotion(
 			key: dep.key,
 			table,
 			targetId: row._id,
-			revision: table === "terms" ? recordRevision("term", row) : hash(row),
+			revision: hash(row),
 		});
 	}
 	const allBindingKeys = [

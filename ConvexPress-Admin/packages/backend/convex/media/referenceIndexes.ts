@@ -1,3 +1,4 @@
+import type { TableNames } from "../_generated/dataModel";
 import * as generatedInventory from "./referenceInventory.generated";
 type Index = { indexDescriptor: string; fields: readonly string[] };
 type IndexTable = {
@@ -11,13 +12,14 @@ export function chooseMediaReferenceIndex(indexes: readonly Index[], field: stri
     .sort((a, b) => a.fields.length - b.fields.length || a.indexDescriptor.localeCompare(b.indexDescriptor))[0]?.indexDescriptor;
 }
 /** Generated, immutable table+field lookup; works without evaluating schema.ts. */
-export function mediaReferenceIndex(table: string, field: string): string {
-  const indexes: Readonly<Record<string, Readonly<Record<string, string>>>> = generatedInventory.mediaReferenceIndexes;
-  const name = Object.prototype.hasOwnProperty.call(indexes, table) && Object.prototype.hasOwnProperty.call(indexes[table], field) ? indexes[table][field] : undefined;
+export function mediaReferenceIndex(table: TableNames, field: string): string {
+  const indexes: Readonly<Partial<Record<TableNames, Readonly<Record<string, string>>>>> = generatedInventory.mediaReferenceIndexes;
+  const fields = indexes[table];
+  const name = fields && Object.prototype.hasOwnProperty.call(fields, field) ? fields[field] : undefined;
   if (!name) throw new Error(`Missing generated media reference index: ${table}.${field}`);
   return name;
 }
-export function ensureMediaReferenceIndex(definition: IndexTable, field: string, table: string): string {
+export function ensureMediaReferenceIndex(definition: IndexTable, field: string, table: TableNames): string {
   const exported = definition.export();
   const existing = chooseMediaReferenceIndex(exported.indexes, field);
   if (existing) return existing;
@@ -31,10 +33,12 @@ export function ensureMediaReferenceIndex(definition: IndexTable, field: string,
   return name;
 }
 export function withMediaReferenceIndexes<T extends Record<string, unknown>>(tables: T): T {
-  for (const [table, descriptors] of Object.entries(generatedInventory.typedMediaReferences)) {
-    if (table === "mediaMeta" || table === "mediaSizes") continue;
-    for (const descriptor of descriptors) {
-      if ((descriptor.path as readonly string[]).includes("*")) continue;
+  const typed: Readonly<Partial<Record<TableNames, readonly { readonly path: readonly string[] }[]>>> = generatedInventory.typedMediaReferences;
+  // Reference owners exclude the media item's own dependents (mediaMeta and
+  // mediaSizes), which are read through their existing by_media index.
+  for (const table of generatedInventory.mediaReferenceOwners) {
+    for (const descriptor of typed[table] ?? []) {
+      if (descriptor.path.includes("*")) continue;
       const field = descriptor.path.join(".");
       // Schema decisions derive from these actual TableDefinitions. The offline
       // generator records the same selection for independently loaded query modules.

@@ -3,7 +3,7 @@ import { recordSyncedConsumerWrite } from "../syncedBlocks/consumerWrites";
 import { insertCountedProgress, patchCountedProgress, deleteCountedProgress } from "../lms/progress/counts";
 import { adjustCurriculumCounts, readCurriculumCounts, CURRICULUM_COUNT_FIELDS } from "../lms/curriculumCounts";
 import { syncCourseCatalog, COURSE_CATALOG_FIELDS } from "../lms/courseCatalog";
-import { recordCatalogWrite, CATALOG_SOURCE_FIELDS, CATALOG_POLICY_FIELDS, type CatalogSourceTable, type CatalogPolicyTable } from "../commerce/catalogRevision";
+import { recordCatalogWrite, CATALOG_SOURCE_TABLES, CATALOG_POLICY_TABLES, type CatalogPolicyTable } from "../commerce/catalogRevision";
 import {reconcileProductSaleWrite, PRODUCT_SALE_FIELDS, VARIANT_SALE_FIELDS} from "../commerce/productSaleIndex";
 import {insertCountedReview, patchCountedReview, deleteCountedReview} from "../commerceReviews/ratingIndex";
 import { syncProductDiscovery, PRODUCT_DISCOVERY_FIELDS } from "../commerce/productDiscovery";
@@ -18,7 +18,7 @@ import { assertAuthoringWrite, authoringWriteNeedsPrevious, type CanonicalAuthor
 import { reconcileOwnerReferences } from "./reverseIndex";
 /** Same-transaction foreign-reference validation. Maintains reverse edges when the deployment index epoch is configured. */
 import { ConvexError, getDocumentSize } from "convex/values";
-import type { WithoutSystemFields } from "convex/server";
+import type { WithOptionalSystemFields, WithoutSystemFields } from "convex/server";
 import type { Doc, Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { inventory, referenceTables } from "./referenceScan";
@@ -31,7 +31,7 @@ export async function requireAttachableMedia(ctx: Pick<QueryCtx, "db">, id: Id<"
   if (!media || (media.status !== "active" && media.status !== "processing")) throw new ConvexError({ code: "MEDIA_UNAVAILABLE", message: "A selected media item is missing or unavailable. Choose an available item before saving." });
   return media;
 }
-export async function assertMediaAttachments(ctx: Pick<QueryCtx, "db">, table: string, candidate: Record<string, unknown>, ledger?: RequestReadLedger, requiredMediaIds?: readonly string[]) {
+export async function assertMediaAttachments(ctx: Pick<QueryCtx, "db">, table: TableNames, candidate: Record<string, unknown>, ledger?: RequestReadLedger, requiredMediaIds?: readonly string[]) {
   const references = collectMediaReferenceCandidates(ctx, table, candidate, requiredMediaIds);
   let readBytes = 0;
   for (const reference of references) {
@@ -85,7 +85,10 @@ export async function patchWithMediaReferences<Table extends ReferenceTable>(ctx
   assertAuthoringWrite({ table, operation: "patch", id, previous: existing, value }, permit);
   if (mediaRelevant && !existing) throw new ConvexError({ code: "NOT_FOUND", message: "Document not found." });
   if (mediaRelevant) await assertMediaAttachments(ctx, table, { ...existing, ...value }, ledger);
-  await (ctx.db as any).patch(table, id, value);
+  // The union view of the same table and id: a generic Table's patch value
+  // cannot be related to Convex's PatchValue<Doc<Table>> by the checker.
+  const ownerTable: ReferenceTable = table, ownerId: Id<ReferenceTable> = id;
+  await ctx.db.patch(ownerTable, ownerId, value);
   if (table === "posts" && (Object.prototype.hasOwnProperty.call(value, "blocks") || Object.prototype.hasOwnProperty.call(value, "blocksVersion")))
     await recordSyncedConsumerWrite(ctx, id as Id<"posts">, { ...existing, ...value }, ledger);
   if (curriculumRelevant || table === "lms_courses") await reconcileCurriculumWrite(ctx, table, id, existing, { ...existing, ...value }, ledger);
@@ -103,14 +106,14 @@ export async function patchWithMediaReferences<Table extends ReferenceTable>(ctx
     await ctx.db.patch("commerce_products", id as Id<"commerce_products">, {collectionIndexVersion:1});
   }
 }
-export async function replaceWithMediaReferences<Table extends ReferenceTable>(ctx: Pick<MutationCtx, "db">, table: Table, id: Id<Table>, value: NoInfer<WithoutSystemFields<Doc<Table>>>, permit?: CanonicalAuthoringWritePermit, ledger?: RequestReadLedger): Promise<void> {
+export async function replaceWithMediaReferences<Table extends ReferenceTable>(ctx: Pick<MutationCtx, "db">, table: Table, id: Id<Table>, value: NoInfer<WithOptionalSystemFields<Doc<Table>>>, permit?: CanonicalAuthoringWritePermit, ledger?: RequestReadLedger): Promise<void> {
   const needsPrevious = table === "lms_nodes" || table === "posts" || table === "commerce_product_variants" || authoringWriteNeedsPrevious(table, "replace", value as Record<string, unknown>);
   if (needsPrevious) ledger?.beforeRead();
   const previous = needsPrevious ? await ctx.db.get(table, id) : null;
   if (needsPrevious) ledger?.record(previous);
   assertAuthoringWrite({ table, operation: "replace", id, previous, value: value as Record<string, unknown> }, permit);
   await assertMediaAttachments(ctx, table, value as Record<string, unknown>, ledger);
-  await (ctx.db as any).replace(table, id, value);
+  await ctx.db.replace(table, id, value);
   await reconcileCurriculumWrite(ctx, table, id, previous, value as Record<string, unknown>, ledger);
   await recordCatalogWrite(ctx, table, "replace", value as Record<string, unknown>, ledger);
   await reconcileProductSaleWrite(ctx,table,id,previous,value as Record<string,unknown>,ledger);
@@ -156,7 +159,7 @@ async function applyAuthorCounts(ctx: Pick<MutationCtx, "db">, updates: AuthorCo
 }
 
 /** Explicit companion for the reviewed promotion/rollback write boundaries. */
-export async function reconcilePostAuthorCounts(ctx: Pick<MutationCtx, "db">, table: string,
+export async function reconcilePostAuthorCounts(ctx: Pick<MutationCtx, "db">, table: TableNames,
   previous: Record<string, unknown> | null, next: Record<string, unknown> | null) {
   if (table === "posts") await applyAuthorCounts(ctx, await adjustAuthorPostCounts(ctx, previous, next));
 }
@@ -164,8 +167,7 @@ export async function reconcilePostAuthorCounts(ctx: Pick<MutationCtx, "db">, ta
 /** Legacy dynamic IDs are classified by Convex table identity, never by field names
  * or an untrusted table hint. normalizeId performs no database scan. */
 function referenceOwner(ctx: Pick<MutationCtx, "db">, id: string): { table: ReferenceTable; id: Id<ReferenceTable> } | null {
-  for (const owner of new Set([...referenceTables, ...Object.keys(CATALOG_POLICY_FIELDS)])) {
-    const table = owner as ReferenceTable;
+  for (const table of new Set<ReferenceTable>([...referenceTables, ...CATALOG_POLICY_TABLES])) {
     const normalized = ctx.db.normalizeId(table, id);
     if (normalized) return { table, id: normalized };
   }
@@ -190,7 +192,7 @@ export async function patchDynamicWithMediaReferences(ctx: Pick<MutationCtx, "db
   const previous = relation ? await ctx.db.get("termRelationships", relation) : null;
   if (relation) ledger?.record(previous);
   await ctx.db.patch(id as Id<TableNames>, value);
-  for (const table of Object.keys(CATALOG_SOURCE_FIELDS) as CatalogSourceTable[]) if (ctx.db.normalizeId(table, id)) await recordCatalogWrite(ctx, table, "patch", value, ledger);
+  for (const table of CATALOG_SOURCE_TABLES) if (ctx.db.normalizeId(table, id)) await recordCatalogWrite(ctx, table, "patch", value, ledger);
   if (relation) await refreshTermDiscovery(ctx, relation, ledger, previous);
   const term = ctx.db.normalizeId("terms", id);
   if (term) await adjustTermCount(ctx, term, null, ledger);
@@ -211,18 +213,21 @@ export async function deleteDynamicWithMediaReferences(ctx: Pick<MutationCtx, "d
   const relation = ctx.db.normalizeId("termRelationships", id);
   if (relation) return deleteTermRelationship(ctx, relation, ledger);
   await ctx.db.delete(id as Id<TableNames>);
-  for (const table of Object.keys(CATALOG_SOURCE_FIELDS) as CatalogSourceTable[]) if (ctx.db.normalizeId(table, id)) await recordCatalogWrite(ctx, table, "delete", {}, ledger);
+  for (const table of CATALOG_SOURCE_TABLES) if (ctx.db.normalizeId(table, id)) await recordCatalogWrite(ctx, table, "delete", {}, ledger);
 }
 
 /** Schema-validated dynamic adapters still enforce the same attachment and authoring rules. */
-export async function insertDynamicWithMediaReferences(ctx: Pick<MutationCtx, "db">, table: string, value: Record<string, unknown>, permit?: CanonicalAuthoringWritePermit, ledger?: RequestReadLedger): Promise<string> {
+export async function insertDynamicWithMediaReferences<Table extends TableNames>(ctx: Pick<MutationCtx, "db">, table: Table, value: NoInfer<WithoutSystemFields<Doc<Table>>>, permit?: CanonicalAuthoringWritePermit, ledger?: RequestReadLedger): Promise<string> {
   assertAuthoringWrite({ table, operation: "insert", value }, permit);
   await assertMediaAttachments(ctx, table, value, ledger);
-  if (table === "commerce_wishlists") return insertCountedWishlist(ctx, value as WithoutSystemFields<Doc<"commerce_wishlists">>);
-  if (table === "commerce_wishlist_items") return insertCountedWishlistItem(ctx, value as WithoutSystemFields<Doc<"commerce_wishlist_items">>);
-  if (table === "lms_progress") return insertCountedProgress(ctx, value as WithoutSystemFields<Doc<"lms_progress">>);
-  if (table === "commerce_review_items") return insertCountedReview(ctx, value as WithoutSystemFields<Doc<"commerce_review_items">>);
-  const id: string = await (ctx.db as any).insert(table, value);
+  // Narrowing `table` does not narrow a generic Table's `value`; the counted
+  // writers below receive it as the record of the table just matched.
+  const fields: Record<string, unknown> = value;
+  if (table === "commerce_wishlists") return insertCountedWishlist(ctx, fields as WithoutSystemFields<Doc<"commerce_wishlists">>);
+  if (table === "commerce_wishlist_items") return insertCountedWishlistItem(ctx, fields as WithoutSystemFields<Doc<"commerce_wishlist_items">>);
+  if (table === "lms_progress") return insertCountedProgress(ctx, fields as WithoutSystemFields<Doc<"lms_progress">>);
+  if (table === "commerce_review_items") return insertCountedReview(ctx, fields as WithoutSystemFields<Doc<"commerce_review_items">>);
+  const id: string = await ctx.db.insert(table, value);
   await reconcileCurriculumWrite(ctx, table, id, null, value, ledger);
   await recordCatalogWrite(ctx, table, "insert", value, ledger);
   await reconcileProductSaleWrite(ctx,table,id,null,value,ledger);
@@ -248,7 +253,7 @@ export async function insertDynamicWithMediaReferences(ctx: Pick<MutationCtx, "d
 
 /** Shared with promotion and rollback so imports cannot copy derived counts or
  * count-version markers without applying this installation's contribution. */
-export async function reconcileCurriculumWrite(ctx: Pick<MutationCtx, "db">, table: string, id: string,
+export async function reconcileCurriculumWrite(ctx: Pick<MutationCtx, "db">, table: TableNames, id: string,
   previous: Record<string, unknown> | null, next: Record<string, unknown> | null, ledger?: RequestReadLedger) {
   if (table !== "lms_nodes" && table !== "lms_courses") return;
   const courses = table === "lms_nodes" ? await adjustCurriculumCounts(ctx, previous, next, ledger) : [id as Id<"lms_courses">];

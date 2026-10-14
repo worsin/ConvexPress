@@ -1,12 +1,12 @@
 /** Shared lossless media-ID discovery for writes and reverse-index backfill. */
 import { ConvexError, getDocumentSize } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Id, TableNames } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import type { RequestReadLedger } from "../helpers/requestReadLedger";
 import { inventory } from "./referenceScan";
 import { opaqueMediaContainers } from "./referencePolicy";
 export type MediaReferenceCandidate = { id: Id<"media">; required: boolean };
-export function collectMediaReferenceCandidates(ctx: Pick<QueryCtx, "db">, table: string, candidate: Record<string, unknown>, requiredMediaIds: readonly string[] = []): MediaReferenceCandidate[] {
+export function collectMediaReferenceCandidates(ctx: Pick<QueryCtx, "db">, table: TableNames, candidate: Record<string, unknown>, requiredMediaIds: readonly string[] = []): MediaReferenceCandidate[] {
   const ids = new Map<Id<"media">, boolean>();
   let nodes = 0, bytes = 0, candidates = 0;
   function budget(depth: number) { if (++nodes > 20000 || depth > 64 || bytes > 4 * 1024 * 1024 || ids.size > 100) throw new ConvexError({ code: "MEDIA_ATTACHMENT_BUDGET", message: "Media attachments exceed the supported save budget." }); }
@@ -59,14 +59,14 @@ export function collectMediaReferenceCandidates(ctx: Pick<QueryCtx, "db">, table
 }
 
 /** Keep the synchronous discovery API for callers that inspect candidates only. */
-export function collectMediaReferenceIds(ctx: Pick<QueryCtx, "db">, table: string, candidate: Record<string, unknown>): Id<"media">[] {
+export function collectMediaReferenceIds(ctx: Pick<QueryCtx, "db">, table: TableNames, candidate: Record<string, unknown>): Id<"media">[] {
   return collectMediaReferenceCandidates(ctx, table, candidate).map(reference => reference.id);
 }
 
 /** Ambiguous legacy text only becomes an edge when it names an existing image.
  * Typed and canonical dangling references remain evidence during index backfill.
  */
-export async function resolveMediaReferenceIds(ctx: Pick<QueryCtx, "db">, table: string, candidate: Record<string, unknown>, ledger?: RequestReadLedger): Promise<Id<"media">[]> {
+export async function resolveMediaReferenceIds(ctx: Pick<QueryCtx, "db">, table: TableNames, candidate: Record<string, unknown>, ledger?: RequestReadLedger): Promise<Id<"media">[]> {
   const ids: Id<"media">[] = [];
   let bytes = 0;
   for (const reference of collectMediaReferenceCandidates(ctx, table, candidate)) {

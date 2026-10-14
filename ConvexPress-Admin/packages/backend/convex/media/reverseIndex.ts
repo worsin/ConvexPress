@@ -4,7 +4,7 @@ import { ConvexError, getDocumentSize } from "convex/values";
 import type { Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { resolveMediaReferenceIds } from "./referenceExtraction";
-import { referenceTables, scanReferences, beforeReferenceRead, addReferenceBudget, type ScannedReference } from "./referenceScan";
+import { referenceTables, isMediaReferenceTable, scanReferences, beforeReferenceRead, addReferenceBudget, type ScannedReference } from "./referenceScan";
 import { MEDIA_REVERSE_EPOCH_VARIABLE, MEDIA_REVERSE_INDEX_VERSION, MEDIA_REVERSE_WRITERS_COMPLETE } from "./reverseIndexVersion";
 
 export type ReferenceGeneration = { epoch: string; version: string; generation: string };
@@ -27,15 +27,15 @@ export async function requireReferenceIndexReady(ctx: Pick<QueryCtx, "db">, budg
   if (!MEDIA_REVERSE_WRITERS_COMPLETE || !state || state.status !== "ready" || state.generation !== current.generation || state.version !== current.version || state.epoch !== current.epoch || state.ownerIndex !== referenceTables.length || state.cursor !== null || state.endCursor !== null || state.pendingRanges.length !== 0) indexUnavailable();
   return current;
 }
-export async function ownerReferences(ctx: Pick<QueryCtx, "db">, table: string, id: string, candidate: Record<string, unknown>, ledger?: RequestReadLedger): Promise<ScannedReference[]> {
-  if (!referenceTables.includes(table)) return [];
+export async function ownerReferences(ctx: Pick<QueryCtx, "db">, table: TableNames, id: string, candidate: Record<string, unknown>, ledger?: RequestReadLedger): Promise<ScannedReference[]> {
+  if (!isMediaReferenceTable(table)) return [];
   const mediaIds = await resolveMediaReferenceIds(ctx, table, candidate, ledger);
   const refs = scanReferences(table, { ...candidate, _id: id }, mediaIds, value => ctx.db.normalizeId("media", value));
   return refs.filter((ref, i) => refs.findIndex(other => other.path === ref.path && other.mediaId === ref.mediaId && other.opaque === ref.opaque) === i);
 }
-export async function reconcileOwnerReferences(ctx: Pick<MutationCtx, "db">, table: string, id: string, candidate: Record<string, unknown> | null, ledger?: RequestReadLedger): Promise<void> {
+export async function reconcileOwnerReferences(ctx: Pick<MutationCtx, "db">, table: TableNames, id: string, candidate: Record<string, unknown> | null, ledger?: RequestReadLedger): Promise<void> {
   const current = currentReferenceGeneration();
-  if (!current || !referenceTables.includes(table)) return;
+  if (!current || !isMediaReferenceTable(table)) return;
   const refs = candidate ? await ownerReferences(ctx, table, id, candidate, ledger) : [];
   ledger?.beforeRead();
   const previous = await ctx.db.query("media_reference_edges").withIndex("by_owner_generation", q => q.eq("ownerId", id).eq("generation", current.generation)).take(101);
@@ -66,9 +66,12 @@ export async function readIndexedReferences(ctx: Pick<QueryCtx, "db">, mediaId: 
   const references: ScannedReference[] = [];
   const seen = new Set<string>();
   for (const edge of edges) {
-    if (!referenceTables.includes(edge.ownerTable) || seen.has(edge.ownerId)) indexUnavailable();
+    // The stored owner table is a plain string column; only a current reference
+    // owner table is a valid edge.
+    const ownerTable = edge.ownerTable;
+    if (!isMediaReferenceTable(ownerTable) || seen.has(edge.ownerId)) indexUnavailable();
     seen.add(edge.ownerId);
-    const ownerId = ctx.db.normalizeId(edge.ownerTable as TableNames, edge.ownerId);
+    const ownerId = ctx.db.normalizeId(ownerTable, edge.ownerId);
     if (!ownerId) indexUnavailable();
     beforeReferenceRead(budget);
     const owner = await ctx.db.get(ownerId);
@@ -79,7 +82,7 @@ export async function readIndexedReferences(ctx: Pick<QueryCtx, "db">, mediaId: 
     if (bytes > 512 * 1024) throw new ConvexError({ code: "MEDIA_REFERENCE_BUDGET", message: "Media references exceed the safe deletion budget; nothing was deleted." });
     // This read already has the target ID: inspect it directly without resolving
     // unrelated legacy-shaped strings or spending unaccounted media reads.
-    const scanned = scanReferences(edge.ownerTable, owner, [mediaId], value => ctx.db.normalizeId("media", value));
+    const scanned = scanReferences(ownerTable, owner, [mediaId], value => ctx.db.normalizeId("media", value));
     const actual = scanned.filter((ref, i) => scanned.findIndex(other => other.path === ref.path && other.mediaId === ref.mediaId && other.opaque === ref.opaque) === i);
     const evidenceKey = (ref: { field: string; path: string; opaque: boolean }) => JSON.stringify([ref.field, ref.path, ref.opaque]);
     if (!actual.length || JSON.stringify(actual.map(evidenceKey).sort()) !== JSON.stringify(edge.references.map(evidenceKey).sort())) indexUnavailable();

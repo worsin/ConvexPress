@@ -6,7 +6,8 @@
  * Built for the AlaskaWoods customer demo on 2026-04-27 — clears the
  * Hearth & Sage seed so the live import shows only the customer's data.
  */
-import { internalMutation } from "./_generated/server";
+import { internalMutation, type MutationCtx } from "./_generated/server";
+import type { TableNames } from "./_generated/dataModel";
 import { ConvexError, v } from "convex/values";
 import { invalidateMediaReferenceIndex } from "./media/reverseIndex";
 import { deleteDynamicWithMediaReferences } from "./media/attachmentGuard";
@@ -22,7 +23,7 @@ function assertDevInternalsEnabled() {
   }
 }
 
-async function wipeTable(ctx: any, table: string): Promise<number> {
+async function wipeTable(ctx: MutationCtx, table: TableNames): Promise<number> {
   let n = 0;
   while (true) {
     const batch = await ctx.db.query(table).take(500);
@@ -34,20 +35,16 @@ async function wipeTable(ctx: any, table: string): Promise<number> {
   return n;
 }
 
-async function wipeStorageRows(
-  ctx: any,
-  table: string,
-  storageIdField: string,
-): Promise<number> {
+/** Media rows own a storage blob; delete it with the row. */
+async function wipeStorageRows(ctx: MutationCtx, table: "media" | "mediaSizes"): Promise<number> {
   let n = 0;
   while (true) {
     const batch = await ctx.db.query(table).take(200);
     if (batch.length === 0) break;
     for (const row of batch) {
-      const sid = (row as any)[storageIdField];
-      if (sid) {
+      if (row.storageId) {
         try {
-          await ctx.storage.delete(sid);
+          await ctx.storage.delete(row.storageId);
         } catch {}
       }
       await deleteDynamicWithMediaReferences(ctx, row._id);
@@ -135,9 +132,9 @@ export const purgeAllContent = internalMutation({
     } catch {}
 
     // Media — also delete the blob in storage
-    out.mediaSizes = await wipeStorageRows(ctx, "mediaSizes", "storageId");
+    out.mediaSizes = await wipeStorageRows(ctx, "mediaSizes");
     out.mediaMeta = await wipeTable(ctx, "mediaMeta");
-    out.media = await wipeStorageRows(ctx, "media", "storageId");
+    out.media = await wipeStorageRows(ctx, "media");
 
     return out;
   },
@@ -151,14 +148,16 @@ export const purgeWordPressSyncState = internalMutation({
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     const out: Record<string, number> = {};
+    // Every WordPress sync table. (This list named two tables that do not exist,
+    // "wordpressSyncFindings" and "wordpressSyncMappings"; their wipes failed into
+    // the catch, so ID mappings survived a "clean" re-import.)
     const tables = [
-      "wordpressSyncFindings",
       "wordpressSyncReconciliationFindings",
       "wordpressSyncReports",
-      "wordpressSyncMappings",
+      "wpIdMappings",
       "wordpressSyncJobs",
       "wordpressSites",
-    ];
+    ] as const satisfies readonly TableNames[];
     for (const t of tables) {
       try {
         out[t] = await wipeTable(ctx, t);

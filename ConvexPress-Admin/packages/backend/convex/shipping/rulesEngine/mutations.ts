@@ -6,7 +6,7 @@ import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
 import { validateRuleAST } from "./validator";
 import { ruleAstValidator } from "./astValidator";
-import { METHOD_TYPES, listAllMethodRows, methodTableFor } from "../methods/tables";
+import { METHOD_TYPES, listAllMethodRows, methodTableFor, type MethodTable } from "../methods/tables";
 
 const RULE_SCHEMA_VERSION = 1;
 
@@ -94,7 +94,7 @@ export const deleteRule = mutation({
     // Guard: every B1-B9 method table may reference this rule via `ruleId`.
     // Refuse delete when any method still depends on it so admins don't
     // silently break rate calculation.
-    const refs: Array<{ table: string; methodId: string; name?: string }> = [];
+    const refs: Array<{ table: MethodTable; methodId: string; name?: string }> = [];
     for (const methodType of METHOD_TYPES) {
       const table = methodTableFor(methodType);
       for (const row of await listAllMethodRows(ctx, methodType)) {

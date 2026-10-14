@@ -3,12 +3,12 @@ import { v } from "convex/values";
 import type { RegisteredQuery } from "convex/server";
 import { internalQuery } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { inventory, referenceTables, referenceValidator, scanReferences, completeReferencePage, referenceFailure, type ScannedReference } from "./referenceScan";
+import { inventory, referenceTables, referenceValidator, mediaReferenceTableValidator, scanReferences, completeReferencePage, referenceFailure, type MediaReferenceTable, type ScannedReference } from "./referenceScan";
 import { MEDIA_REFERENCE_PAGE, opaqueMediaContainers } from "./referencePolicy";
 import { mediaReferenceIndex } from "./referenceIndexes";
 import { readIndexedReferences, requireReferenceIndexReady } from "./reverseIndex";
 import { addReferenceBudget } from "./referenceScan";
-type Args = { table: string; mediaIds: Id<"media">[]; field?: string };
+type Args = { table: MediaReferenceTable; mediaIds: Id<"media">[]; field?: string };
 type Result = { rows: number; bytes: number; references: ScannedReference[] };
 export const indexed: RegisteredQuery<"internal", { mediaIds: Id<"media">[] }, Promise<Result | null>> = internalQuery({
   args: { mediaIds: v.array(v.id("media")) },
@@ -26,7 +26,7 @@ export const indexed: RegisteredQuery<"internal", { mediaIds: Id<"media">[] }, P
   },
 });
 export const scan: RegisteredQuery<"internal", Args, Promise<Result>> = internalQuery({
-  args: { table: v.string(), mediaIds: v.array(v.id("media")), field: v.optional(v.string()) },
+  args: { table: mediaReferenceTableValidator, mediaIds: v.array(v.id("media")), field: v.optional(v.string()) },
   returns: v.object({ rows: v.number(), bytes: v.number(), references: v.array(referenceValidator) }),
   handler: async (ctx, args): Promise<Result> => {
     if (!referenceTables.includes(args.table) || !args.mediaIds.length || args.mediaIds.length > 100) referenceFailure();

@@ -9,7 +9,7 @@ import type { RegisteredQuery, RegisteredMutation } from "convex/server";
 import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { v, ConvexError, type Infer, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Id, Doc, TableNames } from "../_generated/dataModel";
+import type { Id, Doc } from "../_generated/dataModel";
 import { decryptSecret } from "../api/crypto_helpers";
 import {
   type SyncPhase,
@@ -416,13 +416,13 @@ export const getPostById = internalQuery({
  */
 export const patchEntity = internalMutation({
   args: {
-    table: v.string(),
+    table: mappedEntityTableValidator,
     id: v.string(),
     fields: v.any(),
   },
   returns: v.null(),
   handler: async (ctx, { table, id, fields }) => {
-    const normalized = ctx.db.normalizeId(table as TableNames, id);
+    const normalized = ctx.db.normalizeId(table, id);
     if (!normalized) throw new ConvexError({ code: "INVALID_ENTITY_ID", message: "The reconciliation ID does not belong to the requested table." });
     // A concurrently deleted entity needs no repair. Other errors must abort the
     // transaction so unavailable attachments never appear successfully repaired.
@@ -687,14 +687,15 @@ const insertFindingArgs = {
     message: v.string(),
     sourceType: v.optional(v.string()),
     sourceId: v.optional(v.string()),
-    destinationTable: v.optional(v.string()),
+    // Stored as a plain string column; written only from typed mapped tables.
+    destinationTable: v.optional(mappedEntityTableValidator),
     wpId: v.optional(v.number()),
     objectType: v.optional(v.string()),
     convexId: v.optional(v.string()),
     metadata: v.optional(v.string()),
     createdAt: v.number(),
   };
-export const insertFinding: RegisteredMutation<"internal", Omit<Doc<"wordpressSyncReconciliationFindings">, "_id" | "_creationTime">, void> = internalMutation({
+export const insertFinding: RegisteredMutation<"internal", ObjectType<typeof insertFindingArgs>, void> = internalMutation({
   args: insertFindingArgs,
   returns: v.null(),
   handler: async (ctx, args) => {

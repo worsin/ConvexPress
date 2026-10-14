@@ -1,47 +1,55 @@
 import { ConvexError } from "convex/values";
+import type { TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { RequestReadLedger } from "../helpers/requestReadLedger";
 
 /** Coordinates that can change category selection or product eligibility.
  * Stock/price-only writes do not change counts. Policy changes have a separate
  * revision domain; neither revision by itself authorizes a visitor. */
-export const CATALOG_SOURCE_FIELDS = {
+export const CATALOG_SOURCE_TABLES = ["commerce_products", "commerce_product_brands", "commerce_product_categories", "commerce_product_variants", "commerce_bundles"] as const satisfies readonly TableNames[];
+export type CatalogSourceTable = (typeof CATALOG_SOURCE_TABLES)[number];
+export const CATALOG_SOURCE_FIELDS: Readonly<Record<CatalogSourceTable, readonly string[]>> = {
   commerce_products: ["status", "slug", "productType", "categoryIds", "brandId", "publishedAt", "createdAt", "title", "sku", "excerpt", "description"],
   commerce_product_brands: ["name", "slug", "status", "sortOrder"],
   commerce_product_categories: ["name", "slug", "parentId", "isVisible", "sortOrder"],
   commerce_product_variants: ["productId", "status", "isDefault"],
   commerce_bundles: ["productId"],
-} as const;
-export type CatalogSourceTable = keyof typeof CATALOG_SOURCE_FIELDS;
-export const CATALOG_POLICY_FIELDS = {
+};
+export const CATALOG_POLICY_TABLES = ["users", "roles", "membership_plans", "membership_grants", "membership_restriction_rules", "settings"] as const satisfies readonly TableNames[];
+export type CatalogPolicyTable = (typeof CATALOG_POLICY_TABLES)[number];
+/** null: every write to the table changes policy. */
+export const CATALOG_POLICY_FIELDS: Readonly<Record<CatalogPolicyTable, readonly string[] | null>> = {
   users: ["authSource", "clerkUserId", "roleId", "internalRole", "status"],
   roles: ["slug", "status", "type", "level", "capabilities"],
   membership_plans: ["status", "linkedRoleId", "linkedCapabilities"],
   membership_grants: ["userId", "planId", "status", "startsAt", "endsAt", "graceEndsAt", "revokedAt"],
   membership_restriction_rules: null,
   settings: null,
-} as const;
-export type CatalogPolicyTable = keyof typeof CATALOG_POLICY_FIELDS;
+};
 export type CatalogRevisionDomain = "source" | "policy";
 type WriteOperation = "insert" | "patch" | "replace" | "delete";
 type RevisionCtx = Pick<MutationCtx, "db">;
+const sourceTables: ReadonlySet<TableNames> = new Set(CATALOG_SOURCE_TABLES);
+const policyTables: ReadonlySet<TableNames> = new Set(CATALOG_POLICY_TABLES);
+function isCatalogSourceTable(table: TableNames): table is CatalogSourceTable { return sourceTables.has(table); }
+function isCatalogPolicyTable(table: TableNames): table is CatalogPolicyTable { return policyTables.has(table); }
 
-export function changesCatalogSource(table: string, operation: WriteOperation, value: Record<string, unknown> = {}): boolean {
-  if (!Object.prototype.hasOwnProperty.call(CATALOG_SOURCE_FIELDS, table)) return false;
+export function changesCatalogSource(table: TableNames, operation: WriteOperation, value: Record<string, unknown> = {}): boolean {
+  if (!isCatalogSourceTable(table)) return false;
   if (operation !== "patch") return true;
-  return CATALOG_SOURCE_FIELDS[table as CatalogSourceTable].some(field => Object.prototype.hasOwnProperty.call(value, field));
+  return CATALOG_SOURCE_FIELDS[table].some(field => Object.prototype.hasOwnProperty.call(value, field));
 }
 
-export function changesCatalogPolicy(table: string, operation: WriteOperation, value: Record<string, unknown> = {}): boolean {
-  if (!Object.prototype.hasOwnProperty.call(CATALOG_POLICY_FIELDS, table)) return false;
+export function changesCatalogPolicy(table: TableNames, operation: WriteOperation, value: Record<string, unknown> = {}): boolean {
+  if (!isCatalogPolicyTable(table)) return false;
   if (operation !== "patch") return true;
-  const fields = CATALOG_POLICY_FIELDS[table as CatalogPolicyTable];
+  const fields = CATALOG_POLICY_FIELDS[table];
   return fields === null || fields.some(field => Object.prototype.hasOwnProperty.call(value, field));
 }
 
 /** The row identity prevents an absent/recreated counter from matching an old
  * continuation. Bumps commit or roll back with the originating source write. */
-export async function recordCatalogWrite(ctx: RevisionCtx, table: string, operation: WriteOperation,
+export async function recordCatalogWrite(ctx: RevisionCtx, table: TableNames, operation: WriteOperation,
   value: Record<string, unknown> = {}, budget?: RequestReadLedger): Promise<void> {
   const domain = changesCatalogSource(table, operation, value) ? "source" : changesCatalogPolicy(table, operation, value) ? "policy" : null;
   if (!domain) return;
