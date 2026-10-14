@@ -189,7 +189,7 @@ async function insertRenewalInvoice(
 		await ctx.db.insert("commerce_subscription_invoice_items", {
 			invoiceId,
 			subscriptionItemId: item._id,
-			description: "Recurring subscription charge",
+			description: item.titleSnapshot ?? "Recurring subscription charge",
 			quantity: item.quantity,
 			unitAmount: item.unitAmount,
 			lineType: "recurring",
@@ -1332,7 +1332,7 @@ export const getMyInvoiceForPdf = internalQuery({
 		const activeItem =
 			subItems.find((it) => it.status === "active") ??
 			subItems.find((it) => it.status === "pending_cancel") ??
-			subItems[0];
+			subItems[subItems.length - 1];
 		if (activeItem?.sourceOfferId) {
 			const offer = await ctx.db.get(activeItem.sourceOfferId);
 			if (offer) {

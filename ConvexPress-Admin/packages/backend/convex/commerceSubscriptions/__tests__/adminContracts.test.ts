@@ -13,6 +13,8 @@ const modules = {
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/commerceSubscriptions/adminContracts.ts": () => import("../adminContracts"),
   "./convex/commerceSubscriptions/queries.ts": () => import("../queries"),
+  "./convex/commerceSubscriptions/portal.ts": () => import("../portal"),
+  "./convex/commerceSubscriptions/mutations.ts": () => import("../mutations"),
   "./convex/commerceSubscriptions/internals.ts": () => import("../internals"),
   "./convex/commerceSubscriptions/operator.ts": () => import("../operator"),
   "./convex/commerceSubscriptions/refunds.ts": () => import("../refunds"),
@@ -173,7 +175,7 @@ describe("admin contracts", () => {
     const billing = await f.admin.query(api.commerceSubscriptions.adminContracts.getContractBilling, { subscriptionId: f.ids.subscriptionId });
     expect(billing?.billingIssue).toBeNull();
     expect(billing?.timeline.map((row) => row.eventType)).toContain("subscription.operator_retry_now");
-    expect(billing?.timeline.find((row) => row.eventType === "subscription.operator_retry_now")?.actor).toBe(`users:${f.ids.admin}`);
+    expect(billing?.timeline.find((row) => row.eventType === "subscription.operator_retry_now")?.actor).toBe("Avery Admin");
     const recent = await f.admin.query(api.commerceSubscriptions.adminContracts.listRecentAttempts, {});
     expect(recent[0]).toMatchObject({ status: "succeeded", amount: 10_000, customerEmail: "customer@example.invalid", customerName: "Casey Customer" });
     expect(recent.map((row) => row.status)).toContain("failed");
@@ -287,6 +289,31 @@ describe("admin contracts", () => {
       lines: [{ title: "basic", quantity: 1, totalAmount: 10_000 }],
     });
     expect(detail?.attempts.map((row) => [row.attemptNumber, row.status])).toEqual([[1, "failed"], [2, "scheduled"]]);
+  });
+
+  test("a customer's cancellation shows once in the timeline, and the contract's items end with it", async () => {
+    const f = await fixture();
+    await f.customer.mutation(api.commerceSubscriptions.portal.requestCancelContract, {
+      contractId: f.ids.subscriptionId, immediate: true, reason: "Closing the practice",
+    });
+    const billing = await f.admin.query(api.commerceSubscriptions.adminContracts.getContractBilling, { subscriptionId: f.ids.subscriptionId });
+    const cancels = billing?.timeline.filter((row) => row.toStatus === "cancelled") ?? [];
+    expect(cancels).toHaveLength(1);
+    expect(cancels[0]).toMatchObject({ eventType: "subscription.portal_cancel_now", fromStatus: "active", actor: "Casey Customer" });
+    expect(billing?.timeline.map((row) => row.eventType)).not.toContain("subscription.status_changed");
+    expect(billing?.actions).toEqual({ pause: false, resume: false, scheduleCancel: false, cancelNow: false, retryPayment: false, changePlan: false });
+    const items = await f.t.run((ctx) =>
+      ctx.db.query("commerce_subscription_items").withIndex("by_subscription", (q) => q.eq("subscriptionId", f.ids.subscriptionId)).collect(),
+    );
+    expect(items.map((item) => item.status)).toEqual(["cancelled"]);
+
+    // An operator's cancel (no separate action row) still shows, with its reason.
+    const g = await fixture();
+    await g.admin.mutation(api.commerceSubscriptions.mutations.cancelNow, { subscriptionId: g.ids.subscriptionId, reason: "Chargeback" });
+    const operator = await g.admin.query(api.commerceSubscriptions.adminContracts.getContractBilling, { subscriptionId: g.ids.subscriptionId });
+    expect(operator?.timeline.filter((row) => row.toStatus === "cancelled")).toEqual([
+      expect.objectContaining({ eventType: "subscription.status_changed", reason: "Chargeback", actor: "Avery Admin" }),
+    ]);
   });
 });
 

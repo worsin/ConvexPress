@@ -90,9 +90,9 @@ function ContractsIndex() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Active" value={metrics ? String(metrics.active) : "—"} hint={metrics ? `${metrics.startedLast30} started in 30 days` : undefined} icon={Activity} />
-        <MetricCard label="Past due" value={metrics ? String(metrics.pastDue) : "—"} hint="Card payment failed; retrying" icon={AlertTriangle} tone={metrics && metrics.pastDue > 0 ? "danger" : "default"} />
+        <MetricCard label="Past due" value={metrics ? String(metrics.pastDue) : "—"} hint={metrics && metrics.pastDue > 0 ? "Card payment failed; retrying" : "Every card is current"} icon={AlertTriangle} tone={metrics && metrics.pastDue > 0 ? "danger" : "default"} />
         <MetricCard label="Monthly recurring" value={metrics ? formatMoney(metrics.mrr) : "—"} hint={metrics ? `${formatMoney(metrics.arr)} a year` : undefined} icon={TrendingUp} />
-        <MetricCard label="Churn, 30 days" value={metrics ? `${metrics.churnRate30d.toFixed(1)}%` : "—"} hint={metrics ? `${metrics.cancelledLast30} cancelled` : undefined} icon={CalendarClock} />
+        <MetricCard label="Churn, 30 days" value={metrics ? `${metrics.churnRate30d.toFixed(1)}%` : "—"} hint={metrics ? `${metrics.cancelledLast30} ended in 30 days` : undefined} icon={CalendarClock} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -217,7 +217,9 @@ function BillingCell({ row }: { row: ContractRow }) {
       </div>
     );
   }
+  if (row.endedAt) return <p className="text-xs text-muted-foreground">Ended {formatDate(row.endedAt)}</p>;
   if (row.nextChargeAt) return <p className="text-xs text-muted-foreground">Next charge {formatDate(row.nextChargeAt)}</p>;
+  if (row.status === "paused") return <p className="text-xs text-muted-foreground">Paused · no charges</p>;
   if (row.status === "pending_cancel") return <p className="text-xs text-muted-foreground">Ends {formatDate(row.currentPeriodEndAt)}</p>;
   return <p className="text-xs text-muted-foreground">Since {formatDate(row.createdAt)}</p>;
 }

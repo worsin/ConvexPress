@@ -46,7 +46,7 @@ export function canTransition(from: SubscriptionStatus, to: SubscriptionStatus):
 }
 
 /** A contract that has ended: no access, nothing further to bill. */
-export function isEnded(status: SubscriptionStatus): boolean {
+export function isEnded(status: SubscriptionStatus): status is "cancelled" | "expired" {
 	return status === "cancelled" || status === "expired";
 }
 
@@ -271,6 +271,23 @@ const UNPAID_INVOICE_STATUSES: ReadonlySet<Doc<"commerce_subscription_invoices">
 	"failed",
 ]);
 
+/** An ended contract's live items end with it (cancelled or expired, as the contract). */
+async function endLiveItems(
+	ctx: MutationCtx,
+	subscriptionId: Id<"commerce_subscriptions">,
+	status: "cancelled" | "expired",
+	now: number,
+): Promise<void> {
+	const items = await ctx.db
+		.query("commerce_subscription_items")
+		.withIndex("by_subscription", (q) => q.eq("subscriptionId", subscriptionId))
+		.collect();
+	for (const item of items) {
+		if (item.status === "cancelled" || item.status === "expired") continue;
+		await ctx.db.patch("commerce_subscription_items", item._id, { status, cancelledAt: now, updatedAt: now });
+	}
+}
+
 /**
  * A contract that ended owes nothing further: its unpaid invoices are voided
  * and its pending dunning retries aborted, so no sweep charges it again.
@@ -389,6 +406,7 @@ export async function transitionSubscription(ctx: MutationCtx, args: TransitionA
 	await syncEntitlementsForStatus(ctx, updated, now, terms.gracePeriodDays);
 
 	if (isEnded(args.toStatus)) {
+		await endLiveItems(ctx, updated._id, args.toStatus, now);
 		const closed = await closeUnpaidBilling(ctx, updated._id, `subscription_${args.toStatus}`, now);
 		if (closed.voidedInvoices > 0 || closed.abortedRetries > 0) {
 			await writeHistory(ctx, {

@@ -16,11 +16,13 @@ import { AlertTriangle, ArrowLeft, CreditCard, History, ListTree, Receipt, Rotat
 
 import { api } from "@backend/convex/_generated/api";
 import { asId } from "@/lib/utils";
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { ContractActions } from "@/components/subscriptions/ContractActions";
 import { ContractStatusBadge } from "@/components/subscriptions/ContractStatusBadge";
 import { RefundForm } from "@/components/subscriptions/RefundForm";
 import {
   describeFailure,
+  eventLabel,
   formatCadence,
   formatDate,
   formatDateTime,
@@ -28,6 +30,8 @@ import {
   humanize,
   INVOICE_KIND_LABEL,
   invoiceStatusText,
+  reasonText,
+  statusText,
   type AdminInvoice,
 } from "@/components/subscriptions/billingFormat";
 
@@ -52,6 +56,7 @@ function ContractDetailPage() {
   const subscriptionId = asId<"commerce_subscriptions">(contractId);
   const contract = useQuery(api.commerceSubscriptions.queries.getById, subscriptionId ? { subscriptionId } : "skip");
   const billing = useQuery(api.commerceSubscriptions.adminContracts.getContractBilling, subscriptionId ? { subscriptionId } : "skip");
+  useBreadcrumbTitle(contractId, billing ? (billing.customerName ?? billing.customerEmail) : undefined);
 
   if (!subscriptionId || contract === null || billing === null) {
     return (
@@ -73,6 +78,8 @@ function ContractDetailPage() {
   }
 
   const issue = billing.billingIssue;
+  const ended = contract.status === "cancelled" || contract.status === "expired";
+  const anyAction = Object.values(billing.actions).some(Boolean);
   return (
     <div className="space-y-6">
       <BackLink />
@@ -112,22 +119,33 @@ function ContractDetailPage() {
                 <dt className="text-xs text-muted-foreground">Card on file</dt>
                 <dd>{billing.card ? `${humanize(billing.card.brand)} •••• ${billing.card.last4} (exp ${String(billing.card.expMonth).padStart(2, "0")}/${billing.card.expYear})` : "Not recorded"}</dd>
               </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Current period</dt>
-                <dd>
-                  {formatDate(contract.currentPeriodStartAt)} – {formatDate(contract.currentPeriodEndAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{contract.status === "pending_cancel" ? "Ends" : "Next charge"}</dt>
-                <dd>
-                  {contract.status === "pending_cancel"
-                    ? formatDate(contract.currentPeriodEndAt)
-                    : contract.status === "active" || contract.status === "trialing"
-                      ? formatDate(contract.nextBillingAt)
-                      : "—"}
-                </dd>
-              </div>
+              {ended ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">Ended</dt>
+                  <dd>{formatDate(contract.cancelledAt)}</dd>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Current period</dt>
+                    <dd>
+                      {formatDate(contract.currentPeriodStartAt)} – {formatDate(contract.currentPeriodEndAt)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">{contract.status === "pending_cancel" ? "Ends" : "Next charge"}</dt>
+                    <dd>
+                      {contract.status === "pending_cancel"
+                        ? formatDate(contract.currentPeriodEndAt)
+                        : contract.status === "active" || contract.status === "trialing"
+                          ? formatDate(contract.nextBillingAt)
+                          : contract.status === "paused"
+                            ? "Paused"
+                            : "After the payment is collected"}
+                    </dd>
+                  </div>
+                </>
+              )}
               {contract.trialEndsAt ? (
                 <div>
                   <dt className="text-xs text-muted-foreground">Trial ends</dt>
@@ -195,15 +213,15 @@ function ContractDetailPage() {
               {billing.timeline.map((entry) => (
                 <li key={entry._id} className="text-sm">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">{humanize(entry.eventType)}</span>
+                    <span className="font-medium">{eventLabel(entry.eventType)}</span>
                     <span className="text-xs text-muted-foreground">{formatDateTime(entry.createdAt)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {[
                       entry.fromStatus && entry.toStatus && entry.fromStatus !== entry.toStatus
-                        ? `${humanize(entry.fromStatus)} → ${humanize(entry.toStatus)}`
+                        ? `${statusText(entry.fromStatus)} → ${statusText(entry.toStatus)}`
                         : undefined,
-                      entry.reason,
+                      entry.reason ? reasonText(entry.reason) : undefined,
                       entry.actor ? `by ${entry.actor}` : undefined,
                     ]
                       .filter(Boolean)
@@ -218,7 +236,15 @@ function ContractDetailPage() {
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Actions</h2>
-            <ContractActions contract={contract} billing={billing} />
+            {anyAction ? (
+              <ContractActions contract={contract} billing={billing} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {ended
+                  ? `This subscription ended on ${formatDate(contract.cancelledAt)}. Paid invoices can still be refunded below.`
+                  : "Nothing can be changed in this state."}
+              </p>
+            )}
           </div>
           {billing.dunningAttempts.length > 0 ? (
             <div className="rounded-2xl border border-border bg-card p-4 text-sm">
