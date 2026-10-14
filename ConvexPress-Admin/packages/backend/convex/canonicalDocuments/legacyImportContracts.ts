@@ -28,6 +28,11 @@ export const legacyImportSourceValidator = v.object({
   blocks: v.optional(legacyBlockArrayValidator),
   /** A block-mode page's sections, serialized exactly as stored. */
   pageSectionsJson: v.optional(v.string()),
+  /** How the source site authored the bodies of its version 1 `core/rich-text`
+   * blocks. "plain" (the default) is prose split on blank lines. "html" is for a
+   * site that rendered them as HTML: they are parsed with the article importer's
+   * HTML allow-list, and each list becomes its own `core/list` block. */
+  richTextFormat: v.optional(v.union(v.literal("plain"), v.literal("html"))),
 });
 
 export const legacyImportArgs = {

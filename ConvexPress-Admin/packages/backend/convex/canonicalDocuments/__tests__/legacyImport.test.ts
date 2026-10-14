@@ -266,3 +266,93 @@ test("an imported post is not announced to subscribers as new", async () => {
   const queued = await f.t.run((ctx) => ctx.db.query("emailQueue").collect());
   expect(queued.map((row) => row.to).sort()).toEqual(["author@example.invalid", "reader@example.invalid"]);
 });
+
+const CASEMEDIX_RICH_TEXT = "<p><strong>Title</strong></p><p>Text about complete records.</p><ul><li>a</li><li>b</li></ul><p>More with <a href=\"/terms\">Terms</a> and <a href=\"mailto:x@y.z\">mail</a><br/>next line</p>";
+const richTextPage = (f: Fixture, source: Partial<LegacyDocumentImportArgs["source"]> = {}, patch: Partial<LegacyDocumentImportArgs> = {}): LegacyDocumentImportArgs => ({
+  type: "page", title: "About", slug: "about", status: "publish", publishedAt: ORIGINAL_DATE, authorId: f.ids.author, sourceRef: "fixture:page-about",
+  source: { contentMode: "blocks", blocks: [{ id: "about-intro", name: "core/rich-text", version: 1, attrs: { eyebrow: "About", heading: "Who we are", body: CASEMEDIX_RICH_TEXT } }], richTextFormat: "html", ...source },
+  ...patch,
+});
+const richDoc = (...content: unknown[]) => ({ type: "doc", content });
+const richParagraph = (...content: unknown[]) => ({ type: "paragraph", content });
+const listItem = (value: string) => ({ text: richDoc(richParagraph(text(value))) });
+
+test("rich-text bodies declared as HTML import as rich text and lists, and a repeated import changes nothing", async () => {
+  const f = await fixture();
+  const args = richTextPage(f);
+  const result = await f.importDocument(args);
+  expect(result).toEqual({ ok: true, postId: createdId(result), created: true });
+  const page = await f.post(createdId(result));
+  expect(page.blocks).toEqual([
+    { id: "about-intro", name: "core/rich-text", version: 2, attrs: { eyebrow: "About", heading: "Who we are", body: richDoc(richParagraph(text("Title", [{ type: "bold" }])), richParagraph(text("Text about complete records."))) } },
+    { id: "about-intro-2", name: "core/list", version: 2, attrs: { style: "bullet", items: [listItem("a"), listItem("b")] } },
+    { id: "about-intro-3", name: "core/rich-text", version: 2, attrs: { eyebrow: "", heading: "", body: richDoc(richParagraph(
+      text("More with "), { type: "text", text: "Terms", marks: [{ type: "link", attrs: { href: "/terms" } }] }, text(" and "),
+      { type: "text", text: "mail", marks: [{ type: "link", attrs: { href: "mailto:x@y.z" } }] }, { type: "hardBreak" }, text("next line"),
+    )) } },
+  ]);
+  expect(JSON.stringify(page.blocks)).not.toMatch(/<\/?(p|strong|ul|li|a|br)\b/u);
+  const rendered = await f.t.query(api.canonicalDocuments.getForRender, { postId: page._id });
+  expect(rendered?.state).toBe("ready");
+  if (rendered?.state === "ready") expect(rendered.document.blocks).toEqual(page.blocks!);
+  // The archive keeps the declared format with the exact source body.
+  expect(JSON.parse((await f.meta(page._id, "_convexpress_legacy_source"))!)).toEqual({ ...args, hasPassword: false });
+  const receipt = JSON.parse((await f.meta(page._id, "_convexpress_legacy_import:fixture:page-about"))!);
+  expect(receipt).toMatchObject({ contract: "convexpress-legacy-import-v1", sourceRef: "fixture:page-about" });
+  const before = await f.state();
+  expect(await f.importDocument(args)).toEqual({ ok: true, postId: page._id, created: false, sourceChanged: false });
+  const { richTextFormat: _format, ...plainSource } = args.source;
+  expect(await f.importDocument({ ...args, source: plainSource })).toEqual({ ok: true, postId: page._id, created: false, sourceChanged: true });
+  expect(await f.state()).toEqual(before);
+});
+
+test("ordered and nested lists in an HTML rich-text body become canonical lists in place", async () => {
+  const f = await fixture();
+  const result = await f.importDocument(richTextPage(f, { blocks: [
+    { id: "steps", name: "core/rich-text", version: 1, attrs: { heading: "How it works", body: "<p>Three steps:</p>\n<ol>\n  <li>Request</li>\n  <li>Review</li>\n  <li>Receive</li>\n</ol>" } },
+    { id: "scope", name: "core/rich-text", version: 1, attrs: { body: "<ul><li>Records<ul><li><em>Hospital</em></li><li>Clinic</li></ul></li><li>Summaries</li></ul>" } },
+  ] }));
+  expect(result).toEqual({ ok: true, postId: createdId(result), created: true });
+  const blocks = (await f.post(createdId(result))).blocks!;
+  expect(blocks.map((block) => [block.id, block.name])).toEqual([["steps", "core/rich-text"], ["steps-2", "core/list"], ["scope", "core/list"]]);
+  expect(blocks[1].attrs).toEqual({ style: "ordered", items: [listItem("Request"), listItem("Review"), listItem("Receive")] });
+  const groups = blocks[2].children!;
+  expect(groups.map((group) => [group.id, group.name, group.children?.map((child) => [child.id, child.name])])).toEqual([
+    ["scope-2", "core/group", [["scope-3", "core/paragraph"], ["scope-4", "core/list"]]],
+    ["scope-5", "core/group", [["scope-6", "core/paragraph"]]],
+  ]);
+  expect(groups[0].children![1].attrs).toEqual({ style: "bullet", items: [{ text: richDoc(richParagraph({ type: "text", text: "Hospital", marks: [{ type: "italic" }] })) }, listItem("Clinic")] });
+  const rendered = await f.t.query(api.canonicalDocuments.getForRender, { postId: createdId(result) });
+  expect(rendered?.state).toBe("ready");
+});
+
+test("without a declared format a rich-text body keeps the plain conversion", async () => {
+  const f = await fixture();
+  const { richTextFormat: _format, ...plainSource } = richTextPage(f).source;
+  const plain = createdId(await f.importDocument(richTextPage(f, {}, { source: plainSource })));
+  const explicit = createdId(await f.importDocument(richTextPage(f, { richTextFormat: "plain" }, { slug: "about-plain", sourceRef: "fixture:page-about-plain" })));
+  const blocks = (await f.post(plain)).blocks!;
+  expect(blocks).toEqual([{ id: "about-intro", name: "core/rich-text", version: 2, attrs: { eyebrow: "About", heading: "Who we are", body: richDoc(richParagraph(text(CASEMEDIX_RICH_TEXT))) } }]);
+  expect((await f.post(explicit)).blocks).toEqual(blocks);
+});
+
+test("HTML rich text the converters cannot represent is refused at its path, and nothing is written", async () => {
+  const f = await fixture();
+  const before = await f.state();
+  const body = ["blocks", 0, "attrs", "body"];
+  const refusals: [string, (string | number)[]][] = [
+    ["<p>Intro</p><script>alert(1)</script>", body],
+    ["<style>p{}</style><p>Intro</p>", body],
+    ["<p class=\"lead\">Intro</p>", body],
+    ["<p><a href=\"/terms\" rel=\"nofollow\">Terms</a></p>", body],
+    ["<ul>Loose text<li>a</li></ul>", body],
+    ["<p>See <a href=\"javascript:alert(1)\">this</a></p>", [...body, 0, "content", 1, "marks", 0, "attrs", "href"]],
+    ["<p>Intro</p><p></p>", [...body, 1]],
+  ];
+  for (const [value, path] of refusals) {
+    const result = await f.importDocument(richTextPage(f, { blocks: [{ id: "refused", name: "core/rich-text", version: 1, attrs: { body: value } }] }, { slug: "refused", status: "draft", publishedAt: undefined }));
+    expect([value, result]).toMatchObject([value, { ok: false, code: "LEGACY_CONVERSION_REQUIRED", path }]);
+    if (!result.ok) expect(result.message.length).toBeGreaterThan(0);
+  }
+  expect(await f.state()).toEqual(before);
+});
