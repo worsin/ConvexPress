@@ -26,6 +26,7 @@ import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
+import { activationResultValidator, type ActivationResult } from "./validators";
 
 // ─── Charge result shape ────────────────────────────────────────────────────
 
@@ -51,7 +52,8 @@ async function isLiveChargingEnabled(ctx: Pick<ActionCtx, "runQuery">): Promise<
   return settings.subscriptionChargingEnabled;
 }
 
-async function getStripeSecretKey(ctx: Pick<ActionCtx, "runQuery">): Promise<string | undefined> {
+/** The Stripe secret key: `commerce.payments` settings first, then the env. */
+export async function getStripeSecretKey(ctx: Pick<ActionCtx, "runQuery">): Promise<string | undefined> {
   const settings = await ctx.runQuery(
     internal.commerceSubscriptions.internals.getPaymentChargingSettings,
     {},
@@ -250,8 +252,9 @@ async function writeResult(
  * Customer (or finds by email) and a PaymentIntent with
  * `setup_future_usage: "off_session"` so the same payment method can be
  * used for renewals. Returns the client_secret for Stripe Elements to
- * confirm client-side. On `payment_intent.succeeded`, the webhook activates
- * the checkout intent into a real subscription.
+ * confirm client-side. Once Stripe settles, the checkout intent is activated
+ * by whichever verified path arrives first: the `payment_intent.succeeded` /
+ * `setup_intent.succeeded` webhook, or `publicCharge.confirmFirstCharge`.
  */
 export const beginSubscriptionFirstCharge = internalAction({
   args: {
@@ -388,11 +391,14 @@ export const beginSubscriptionFirstCharge = internalAction({
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Called from the signature-verified `setup_intent.succeeded` webhook.
- * `checkoutIntentRef` is the SetupIntent's `checkoutIntentId` metadata, which
- * the server set in `beginSubscriptionFirstCharge`. Records the saved card,
- * then (for `subscription_setup` SetupIntents) activates the intent through
- * the internal activation, which re-checks the intent is a $0-now intent.
+ * Called with a verified SetupIntent: from the signature-verified
+ * `setup_intent.succeeded` webhook, or from `publicCharge.confirmFirstCharge`
+ * after it retrieved the SetupIntent from Stripe. `checkoutIntentRef` is the
+ * SetupIntent's `checkoutIntentId` metadata, which the server set in
+ * `beginSubscriptionFirstCharge`. Records the saved card, then (for
+ * `subscription_setup` SetupIntents) activates the intent through the internal
+ * activation, which re-checks the intent is a $0-now intent. Returns the
+ * activation, or null when nothing was activated.
  */
 export const saveSetupIntentResult = internalAction({
   args: {
@@ -402,8 +408,8 @@ export const saveSetupIntentResult = internalAction({
     setupIntentId: v.optional(v.string()),
     activateCheckout: v.optional(v.boolean()),
   },
-  returns: v.null(),
-  handler: async (ctx, args): Promise<null> => {
+  returns: v.union(v.null(), activationResultValidator),
+  handler: async (ctx, args): Promise<ActivationResult | null> => {
     await ctx.runMutation(
       internal.commerceSubscriptions.internals.recordSavedPaymentMethod,
       {
@@ -412,17 +418,15 @@ export const saveSetupIntentResult = internalAction({
         paymentMethodId: args.paymentMethodId,
       },
     );
-    if (args.activateCheckout && args.setupIntentId) {
-      await ctx.runMutation(
-        internal.commerceSubscriptions.internals.activateCheckoutIntentFromStripeSetup,
-        {
-          checkoutIntentRef: args.checkoutIntentRef,
-          stripeCustomerId: args.stripeCustomerId,
-          paymentMethodId: args.paymentMethodId,
-          setupIntentId: args.setupIntentId,
-        },
-      );
-    }
-    return null;
+    if (!args.activateCheckout || !args.setupIntentId) return null;
+    return await ctx.runMutation(
+      internal.commerceSubscriptions.internals.activateCheckoutIntentFromStripeSetup,
+      {
+        checkoutIntentRef: args.checkoutIntentRef,
+        stripeCustomerId: args.stripeCustomerId,
+        paymentMethodId: args.paymentMethodId,
+        setupIntentId: args.setupIntentId,
+      },
+    );
   },
 });

@@ -16,12 +16,14 @@
  *   - `require_existing` + anonymous: surface a "must be signed in" message; no
  *     charge can activate.
  *
- * The client cannot activate the paid path — paid activation is server-only
- * and owned by the signature-verified Stripe webhook. On card success Stripe
- * redirects to `returnUrl`.
+ * The client cannot activate the paid path. After the card confirms, the
+ * wizard asks the server to verify the payment with Stripe and activate
+ * (`commerceSubscriptions.publicCharge.confirmFirstCharge`); the
+ * signature-verified webhook activates too if it arrives first.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FunctionReturnType } from "convex/server";
 import { useAuth } from "@/lib/auth/clerk";
 import { useSignUpFlow } from "@/hooks/useSignUpFlow";
 import { useQuery } from "convex/react";
@@ -32,19 +34,10 @@ import {
   writePendingVerificationContext,
 } from "@/lib/auth/verification";
 
-export interface PendingPaymentDescriptor {
-  runId: string;
-  formActionId: string;
-  intentId: string | null;
-  clientSecret: string | null;
-  publishableKey: string | null;
-  mode: "payment" | "setup";
-  amount: number;
-  recurringAmount: number;
-  currency: string;
-  accountPolicy: "require_existing" | "create_on_website" | string;
-  returnUrl?: string;
-}
+/** The card-step descriptor stored on the `awaiting_payment` action run. */
+export type PendingPaymentDescriptor = NonNullable<
+  FunctionReturnType<typeof api.extensions.forms.actions.getPendingPayment>
+>;
 
 export interface UseFormSubscriptionPaymentResult {
   /** The pending-payment descriptor, or null when none is pending. */
@@ -55,8 +48,8 @@ export interface UseFormSubscriptionPaymentResult {
   canPay: boolean;
   /** Set when the flow needs a signed-in user it does not have. */
   blockedReason: string | null;
-  /** The return URL to hand Stripe after confirm. */
-  returnUrl: string;
+  /** The action's configured post-payment destination, if any. */
+  afterPaymentUrl: string | null;
   /**
    * For anon + create_on_website: complete Clerk signup before the card step.
    * Resolves true when the session is active (safe to mount Elements), false
@@ -84,7 +77,7 @@ export function useFormSubscriptionPayment(
   const flow = useSignUpFlow();
   const signUpLoaded = flow.isLoaded;
 
-  const pendingRaw: PendingPaymentDescriptor | null | undefined = useQuery(
+  const pendingRaw = useQuery(
     api.extensions.forms.actions.getPendingPayment,
     enabled && submissionId ? { submissionId: submissionId } : "skip",
   );
@@ -93,14 +86,6 @@ export function useFormSubscriptionPayment(
 
   const pending = pendingRaw ?? null;
   const isWaiting = enabled && !!submissionId && pendingRaw === undefined;
-
-  const returnUrl = useMemo(() => {
-    if (pending?.returnUrl) return pending.returnUrl;
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}/dashboard/subscriptions?welcome=1`;
-    }
-    return "/dashboard/subscriptions?welcome=1";
-  }, [pending?.returnUrl]);
 
   // Enforce account policy once a descriptor + auth state are known.
   useEffect(() => {
@@ -193,7 +178,7 @@ export function useFormSubscriptionPayment(
     isWaiting,
     canPay,
     blockedReason,
-    returnUrl,
+    afterPaymentUrl: pending?.returnUrl ?? null,
     signUpThenPay,
   };
 }

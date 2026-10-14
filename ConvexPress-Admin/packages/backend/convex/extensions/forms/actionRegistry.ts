@@ -36,9 +36,10 @@ export interface ActionResult {
   /**
    * Non-terminal "pending external settlement" signal. When true the runner
    * records the run as `awaiting_payment` (NO retry, NO `form.action_failed`).
-   * The Commerce subscription action returns this for the paid path, where the
-   * Stripe webhook owns activation. `ok` is false and `error` carries the
-   * sentinel ("AWAITING_PAYMENT") in that case.
+   * The Commerce subscription action returns this for the paid path, which the
+   * server-verified activation (Stripe webhook or `confirmFirstCharge`)
+   * completes later. `ok` is false and `error` carries the sentinel
+   * ("AWAITING_PAYMENT") in that case.
    */
   awaitingPayment?: boolean;
 }
