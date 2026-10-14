@@ -1,5 +1,6 @@
 import { typeScale } from "./type-scale.mjs";
 import { canonicalBlockWatch } from "./canonical-block-watch.mjs";
+import { sanitizerPostcssStub, sanitizerPostcssStubEsbuild } from "./sanitizer-postcss-stub.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -56,7 +57,11 @@ export default defineConfig(() => {
       dedupe: ["react", "react-dom", "zod"],
     },
     css: { postcss: { plugins: [typeScale()] } },
+    optimizeDeps: {
+      esbuildOptions: { plugins: [sanitizerPostcssStubEsbuild] },
+    },
     plugins: [
+      sanitizerPostcssStub(),
       canonicalBlockWatch({root:canonicalBlocksDir,discoveryId:path.join(appDir,"src/templates/sdk/block-renderer/discovery.ts")}),
       tsconfigPaths(),
       tailwindcss(),
