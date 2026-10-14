@@ -88,8 +88,11 @@ export const subscriptionConfigSchema = z
     offerFieldName: z.string().min(1).optional(),
     /** optionValue -> offerId remap (when fromField). */
     offerFieldMap: z.record(z.string(), z.string()).optional(),
-    /** fieldKey carrying the customer email. */
-    emailFieldName: z.string().min(1),
+    /**
+     * fieldKey carrying the customer email. Only a signed-out buyer needs it
+     * (`create_on_website`); a signed-in buyer's account supplies the email.
+     */
+    emailFieldName: z.string().min(1).optional(),
     couponMode: z.enum(["none", "fixed", "fromField"]).optional(),
     couponFieldName: z.string().min(1).optional(),
     couponCode: z.string().min(1).optional(),
@@ -116,7 +119,19 @@ export const subscriptionConfigSchema = z
       message: "A from-field offer requires offerFieldName.",
       path: ["offerFieldName"],
     },
-  );
+  )
+  .refine((c) => c.accountPolicy !== "create_on_website" || Boolean(c.emailFieldName), {
+    message: "Choose the email field: a buyer who isn't signed in is identified by the email they enter.",
+    path: ["emailFieldName"],
+  })
+  .refine((c) => c.couponMode !== "fixed" || Boolean(c.couponCode?.trim()), {
+    message: "Enter the coupon code to apply.",
+    path: ["couponCode"],
+  })
+  .refine((c) => c.couponMode !== "fromField" || Boolean(c.couponFieldName), {
+    message: "Choose the field that holds the coupon code.",
+    path: ["couponFieldName"],
+  });
 
 export type SubscriptionActionConfig = z.infer<typeof subscriptionConfigSchema>;
 
@@ -143,7 +158,7 @@ export function resolveInputs(
     }
   }
 
-  const customerEmail = (values[config.emailFieldName] ?? "").trim() || undefined;
+  const customerEmail = config.emailFieldName ? (values[config.emailFieldName] ?? "").trim() || undefined : undefined;
 
   let couponCode: string | undefined;
   const mode = config.couponMode ?? "none";
@@ -282,16 +297,24 @@ const PERMANENT_CODES = new Set([
   "INTENT_ALREADY_PROCESSED",
 ]);
 
+/** A string field of a ConvexError's data, if the error carries one. */
+function errorDataString(err: unknown, key: "code" | "message"): string | undefined {
+  if (typeof err !== "object" || err === null || !("data" in err)) return undefined;
+  const data: unknown = err.data;
+  if (typeof data !== "object" || data === null) return undefined;
+  const value: unknown = Reflect.get(data, key);
+  return typeof value === "string" ? value : undefined;
+}
+
 /** Extract a ConvexError `data.code`, if any. */
 function errorCode(err: unknown): string | undefined {
-  const e = err as { data?: { code?: string } };
-  return e?.data?.code;
+  return errorDataString(err, "code");
 }
 
 /** Extract a human message from a ConvexError / Error. */
 function errorMessage(err: unknown): string {
-  const e = err as { data?: { message?: string } };
-  if (e?.data?.message) return e.data.message;
+  const message = errorDataString(err, "message");
+  if (message) return message;
   if (err instanceof Error) return err.message;
   return String(err);
 }

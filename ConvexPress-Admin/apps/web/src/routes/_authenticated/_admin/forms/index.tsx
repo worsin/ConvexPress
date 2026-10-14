@@ -24,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  * Local wrapper for Forms capability strings. Mirrors the backend helper and
  * keeps the list authorization surface explicit.
  */
-const formCap = (cap: string): Capability => cap as Capability;
+const formCap = (cap: Capability): Capability => cap;
 type FormStatus = "draft" | "published" | "archived";
 type StatusFilter = "active" | FormStatus;
 type PendingAction =

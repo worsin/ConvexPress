@@ -32,7 +32,7 @@ import {
  * Local wrapper for Forms capability strings. Mirrors the backend helper and
  * keeps the settings authorization surface explicit.
  */
-const formCap = (cap: string): Capability => cap as Capability;
+const formCap = (cap: Capability): Capability => cap;
 
 export const Route = createFileRoute("/_authenticated/_admin/forms/settings")({
   component: FormsSettingsPage,

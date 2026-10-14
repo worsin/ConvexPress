@@ -43,7 +43,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 
-const formCap = (cap: string): Capability => cap as Capability;
+const formCap = (cap: Capability): Capability => cap;
 
 type ConfirmationType = "message" | "redirect" | "page";
 
@@ -292,7 +292,11 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
               onCancel={() => setEditingId(null)}
               onSave={async (values) => {
                 try {
-                  await updateRow({ confirmationId: row._id, patch: values });
+                  // No rules left removes the condition (null).
+                  await updateRow({
+                    confirmationId: row._id,
+                    patch: { ...values, conditionalLogic: values.conditionalLogic ?? null },
+                  });
                   toast.success("Confirmation saved.");
                   setEditingId(null);
                 } catch (error) {
@@ -635,6 +639,8 @@ function ConfirmationEditor({
           value={conditionalLogic}
           onChange={setConditionalLogic}
           siblingFields={siblingFields}
+          subject="this confirmation"
+          verbs={{ show: "Use", hide: "Don't use" }}
         />
       </div>
 

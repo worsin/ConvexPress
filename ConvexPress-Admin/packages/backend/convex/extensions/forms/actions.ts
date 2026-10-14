@@ -26,8 +26,7 @@
  * `./commerce` (subscription). Importing them here guarantees both the CRUD
  * validator and the runner see a fully populated registry.
  *
- * Capability: form.manage_actions. `formCap(...)` keeps the Forms authorization
- * surface explicit at each requireCan call site.
+ * Capability: form.manage_actions (`MANAGE_ACTIONS`) on every query and mutation.
  */
 
 import {
@@ -36,6 +35,7 @@ import {
   internalQuery,
   internalMutation,
   internalAction,
+  type MutationCtx,
   type QueryCtx,
 } from "../../_generated/server";
 import { internal } from "../../_generated/api";
@@ -56,8 +56,11 @@ import {
 // validator and the runner depend on these having run at module load.
 import "./actionTypes";
 // Also registers the commerce action types (module side effect).
-import { SIGN_IN_REQUIRED_ERROR } from "./commerce";
+import { SIGN_IN_REQUIRED_ERROR, subscriptionConfigSchema } from "./commerce";
 import { normalizeFormReturnUrl } from "./redirects";
+import { formRequiresAccountToSubmit, formRequiresLogin, parseFormSettings } from "./builderCore";
+import { choiceOptions } from "./planLinks";
+import { settingsRecord } from "../../helpers/settingsReader";
 import { getCurrentUser } from "../../helpers/auth";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
@@ -66,13 +69,8 @@ import { addBillingPeriod, addDays } from "../../commerceSubscriptions/lifecycle
 import { snapshotNumber, snapshotString } from "../../commerceSubscriptions/snapshot";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
-/**
- * Local wrapper for Forms capability strings. Centralizing it keeps the
- * authorization surface explicit and greppable.
- */
-function formCap(cap: string): Capability {
-  return cap as Capability;
-}
+/** The capability every action screen and mutation requires. */
+const MANAGE_ACTIONS: Capability = "form.manage_actions";
 
 const runStatusValidator = v.union(
   v.literal("pending"),
@@ -122,6 +120,58 @@ function validateConfigOrThrow(type: string, config: string): void {
   }
 }
 
+/**
+ * A checkout action must name things that exist for this form: plans that
+ * exist and aren't archived, and plan, email and coupon fields that are on the
+ * form. Checked on save, so a broken action is refused in the editor instead
+ * of failing at a customer's checkout.
+ */
+async function assertCheckoutActionFits(
+  ctx: MutationCtx,
+  formId: Id<"forms">,
+  type: string,
+  configJson: string,
+): Promise<void> {
+  if (!CHECKOUT_ACTION_TYPES.has(type)) return;
+  const parsed = subscriptionConfigSchema.safeParse(parseConfigOrThrow(configJson));
+  if (!parsed.success) return; // validateConfigOrThrow has already refused it
+  const config = parsed.data;
+  const refuse = (message: string): never => {
+    throw new ConvexError({ code: "INVALID_CONFIG", message });
+  };
+
+  const form = await ctx.db.get(formId);
+  const groupId = form?.fieldGroupId;
+  const fieldKeys = new Set(
+    groupId
+      ? (
+          await ctx.db
+            .query("fieldDefinitions")
+            .withIndex("by_group", (q) => q.eq("groupId", groupId))
+            .collect()
+        ).map((field) => field.key)
+      : [],
+  );
+  const usableOffer = async (raw: string | undefined) => {
+    const offerId = raw ? ctx.db.normalizeId("commerce_subscription_offers", raw) : null;
+    const offer = offerId ? await ctx.db.get(offerId) : null;
+    return offer !== null && offer.status !== "archived";
+  };
+
+  if (config.offerMode === "fixed") {
+    if (!(await usableOffer(config.offerId))) refuse("Choose a plan that exists and isn't archived.");
+  } else {
+    if (!config.offerFieldName || !fieldKeys.has(config.offerFieldName)) refuse("The plan field isn't on this form.");
+    for (const [choice, offerId] of Object.entries(config.offerFieldMap ?? {})) {
+      if (!(await usableOffer(offerId))) refuse(`The choice "${choice}" leads to a plan that doesn't exist or is archived.`);
+    }
+  }
+  if (config.emailFieldName && !fieldKeys.has(config.emailFieldName)) refuse("The email field isn't on this form.");
+  if (config.couponMode === "fromField" && config.couponFieldName && !fieldKeys.has(config.couponFieldName)) {
+    refuse("The coupon field isn't on this form.");
+  }
+}
+
 // ─── Admin queries (gated) ───────────────────────────────────────────────────
 
 /** All action types available to the editor's type picker. */
@@ -129,9 +179,102 @@ export const availableActionTypes = query({
   args: {},
   returns: v.array(v.object({ type: v.string(), label: v.string() })),
   handler: async (ctx) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
     return listActionTypes().map((d) => ({ type: d.type, label: d.label }));
+  },
+});
+
+const actionSetupFieldValidator = v.object({
+  _id: v.id("fieldDefinitions"),
+  key: v.string(),
+  name: v.string(),
+  label: v.string(),
+  type: v.string(),
+  choices: v.array(v.object({ value: v.string(), label: v.string() })),
+});
+
+/**
+ * What the action editor offers to choose from, for one form: its fields (with
+ * the choices of choice fields, for the plan mapping), the subscription offers
+ * a form can sell (with their prices), and how the form handles accounts.
+ */
+export const actionEditorSetup = query({
+  args: { formId: v.id("forms") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      account: v.union(v.literal("none"), v.literal("at_end"), v.literal("required")),
+      fields: v.array(actionSetupFieldValidator),
+      offers: v.array(
+        v.object({
+          _id: v.id("commerce_subscription_offers"),
+          title: v.string(),
+          status: v.string(),
+          availableInDirectForms: v.boolean(),
+          currencyCode: v.string(),
+          recurringAmount: v.number(),
+          setupFeeAmount: v.number(),
+          billingInterval: v.union(v.literal("day"), v.literal("week"), v.literal("month"), v.literal("year")),
+          billingIntervalCount: v.number(),
+          trialDays: v.number(),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, { formId }) => {
+    await requireCan(ctx, MANAGE_ACTIONS);
+    await requirePluginEnabled(ctx, "forms");
+    const form = await ctx.db.get(formId);
+    if (!form) return null;
+
+    const settings = parseFormSettings(form.settings);
+    const account: "none" | "at_end" | "required" = formRequiresLogin(settings)
+      ? "required"
+      : formRequiresAccountToSubmit(settings)
+        ? "at_end"
+        : "none";
+
+    const groupId = form.fieldGroupId;
+    const definitions = groupId
+      ? await ctx.db
+          .query("fieldDefinitions")
+          .withIndex("by_group", (q) => q.eq("groupId", groupId))
+          .collect()
+      : [];
+    const fields = definitions
+      .sort((a, b) => a.menuOrder - b.menuOrder)
+      .map((field) => ({
+        _id: field._id,
+        key: field.key,
+        name: field.name,
+        label: field.label,
+        type: field.type,
+        choices: choiceOptions(field.settings ?? ""),
+      }));
+
+    const offers = [];
+    if (await isPluginEnabled(ctx, "commerceSubscriptions")) {
+      for (const offer of await ctx.db.query("commerce_subscription_offers").collect()) {
+        if (offer.status === "archived") continue;
+        const template = await ctx.db.get(offer.templateId);
+        if (!template) continue;
+        offers.push({
+          _id: offer._id,
+          title: offer.title,
+          status: offer.status,
+          availableInDirectForms: offer.availableInDirectForms,
+          currencyCode: offer.currencyCode,
+          recurringAmount: offer.recurringAmount,
+          setupFeeAmount: offer.setupFeeAmount ?? 0,
+          billingInterval: template.billingInterval,
+          billingIntervalCount: template.billingIntervalCount,
+          trialDays: offer.trialDaysOverride ?? template.trialDays ?? 0,
+        });
+      }
+    }
+    offers.sort((a, b) => a.recurringAmount - b.recurringAmount || a.title.localeCompare(b.title));
+    return { account, fields, offers };
   },
 });
 
@@ -140,7 +283,7 @@ export const listActions = query({
   args: { formId: v.id("forms") },
   returns: v.array(formsExtensionDocs.form_actions),
   handler: async (ctx, { formId }) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
     return await ctx.db
       .query("form_actions")
@@ -154,7 +297,7 @@ export const listRunsForSubmission = query({
   args: { submissionId: v.id("form_submissions") },
   returns: v.array(formsExtensionDocs.form_action_runs),
   handler: async (ctx, { submissionId }) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
     return await ctx.db
       .query("form_action_runs")
@@ -395,7 +538,7 @@ export const listRecentRuns = query({
   },
   returns: v.array(formsExtensionDocs.form_action_runs),
   handler: async (ctx, { formId, status, limit }) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
     const take = Math.min(limit ?? 50, 200);
     if (status) {
@@ -428,7 +571,7 @@ export const createAction = mutation({
   },
   returns: v.union(v.null(), formsExtensionDocs.form_actions),
   handler: async (ctx, args) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const label = args.label.trim();
@@ -439,6 +582,7 @@ export const createAction = mutation({
       });
     }
     validateConfigOrThrow(args.type, args.config);
+    await assertCheckoutActionFits(ctx, args.formId, args.type, args.config);
     if (args.conditionalLogic !== undefined) {
       try {
         JSON.parse(args.conditionalLogic);
@@ -475,12 +619,13 @@ export const updateAction = mutation({
     actionId: v.id("form_actions"),
     label: v.optional(v.string()),
     config: v.optional(v.string()),
-    conditionalLogic: v.optional(v.string()),
+    /** A JSON rule set; null removes the condition so the action always runs. */
+    conditionalLogic: v.optional(v.union(v.string(), v.null())),
     enabled: v.optional(v.boolean()),
   },
   returns: v.union(v.null(), formsExtensionDocs.form_actions),
   handler: async (ctx, args) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const action = await ctx.db.get(args.actionId);
@@ -488,7 +633,7 @@ export const updateAction = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Action not found." });
     }
 
-    const patch: Record<string, unknown> = {};
+    const patch: Partial<Doc<"form_actions">> = {};
     if (args.label !== undefined) {
       const label = args.label.trim();
       if (!label) {
@@ -501,9 +646,12 @@ export const updateAction = mutation({
     }
     if (args.config !== undefined) {
       validateConfigOrThrow(action.type, args.config);
+      await assertCheckoutActionFits(ctx, action.formId, action.type, args.config);
       patch.config = args.config;
     }
-    if (args.conditionalLogic !== undefined) {
+    if (args.conditionalLogic === null) {
+      patch.conditionalLogic = undefined;
+    } else if (args.conditionalLogic !== undefined) {
       try {
         JSON.parse(args.conditionalLogic);
       } catch {
@@ -531,13 +679,13 @@ export const reorderActions = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, orderedIds }) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
-    for (let i = 0; i < orderedIds.length; i++) {
-      const row = await ctx.db.get(orderedIds[i]!);
+    for (const [order, actionId] of orderedIds.entries()) {
+      const row = await ctx.db.get(actionId);
       // Only reorder rows that belong to this form (defensive).
-      if (row && row.formId === formId && row.order !== i) {
-        await ctx.db.patch("form_actions", orderedIds[i]!, { order: i });
+      if (row && row.formId === formId && row.order !== order) {
+        await ctx.db.patch("form_actions", actionId, { order });
       }
     }
     return { success: true };
@@ -548,7 +696,7 @@ export const deleteAction = mutation({
   args: { actionId: v.id("form_actions") },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { actionId }) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
     const action = await ctx.db.get(actionId);
     if (!action) {
@@ -568,7 +716,7 @@ export const replayRun = mutation({
   args: { runId: v.id("form_action_runs") },
   returns: v.object({ replayed: v.boolean() }),
   handler: async (ctx, { runId }) => {
-    await requireCan(ctx, formCap("form.manage_actions"));
+    await requireCan(ctx, MANAGE_ACTIONS);
     await requirePluginEnabled(ctx, "forms");
     const run = await ctx.db.get(runId);
     if (!run) {
@@ -607,7 +755,7 @@ async function readSubmissionValues(
     .withIndex("by_entity", (q) =>
       q
         .eq("entityType", "form_submission")
-        .eq("entityId", submissionId as string),
+        .eq("entityId", submissionId),
     )
     .collect();
   const map: Record<string, string> = {};
@@ -747,15 +895,14 @@ export const runActions = internalMutation({
 
     let payload: Record<string, unknown>;
     try {
-      payload = JSON.parse(event.payload) as Record<string, unknown>;
+      payload = settingsRecord(JSON.parse(event.payload));
     } catch {
       return;
     }
 
-    const formId = payload.formId as Id<"forms"> | undefined;
-    const submissionId = payload.submissionId as
-      | Id<"form_submissions">
-      | undefined;
+    const formId = typeof payload.formId === "string" ? ctx.db.normalizeId("forms", payload.formId) : null;
+    const submissionId =
+      typeof payload.submissionId === "string" ? ctx.db.normalizeId("form_submissions", payload.submissionId) : null;
     const isComplete = payload.isComplete === true;
     if (!formId || !submissionId) return;
     // Only completed submissions run actions; partial saves are skipped.
@@ -943,7 +1090,7 @@ export const dispatchAction = internalAction({
           values,
           attempt,
         },
-        parsedConfig as Record<string, unknown>,
+        settingsRecord(parsedConfig),
       );
     } catch (err) {
       // A thrown error is transient by default (network/unknown).

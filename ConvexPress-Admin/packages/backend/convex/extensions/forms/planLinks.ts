@@ -83,16 +83,24 @@ export function withPlanPrefill(fieldSettingsJson: string): string {
 
 /** The values of a choice field's options, in order. */
 export function choiceValues(fieldSettingsJson: string): string[] {
+  return choiceOptions(fieldSettingsJson).map((choice) => choice.value);
+}
+
+/** A choice field's options (value and label, label falling back to the value), in order. */
+export function choiceOptions(fieldSettingsJson: string): Array<{ value: string; label: string }> {
   const settings = parseObject(fieldSettingsJson);
   const choices = settings?.choices;
   if (!Array.isArray(choices)) return [];
-  const values: string[] = [];
+  const options: Array<{ value: string; label: string }> = [];
   for (const choice of choices) {
     if (choice && typeof choice === "object" && !Array.isArray(choice)) {
       const value: unknown = Reflect.get(choice, "value");
-      if (typeof value === "string" && value) values.push(value);
+      const label: unknown = Reflect.get(choice, "label");
+      if (typeof value === "string" && value) {
+        options.push({ value, label: typeof label === "string" && label.trim() ? label : value });
+      }
     }
   }
-  return values;
+  return options;
 }
 

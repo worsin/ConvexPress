@@ -16,8 +16,7 @@
  *     do NOT invent new keys there — see PLAN Ground Truth #5).
  * Selection/iteration glue is the only orchestration this file owns.
  *
- * Capability: form.manage_notifications. `formCap(...)` keeps the Forms
- * authorization surface explicit at each requireCan call site.
+ * Capability: form.manage_notifications (`MANAGE_NOTIFICATIONS`) on every query and mutation.
  */
 
 import {
@@ -29,7 +28,7 @@ import {
 } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import { resolveNotificationRecipients } from "../../helpers/notification";
@@ -41,13 +40,8 @@ import { formsExtensionDocs } from "./schema.docs.generated";
 import { readMergedSettingsSection } from "../../settings/read";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
-/**
- * Local wrapper for Forms capability strings. Centralizing it keeps the
- * authorization surface explicit and greppable.
- */
-function formCap(cap: string): Capability {
-  return cap as Capability;
-}
+/** The capability every screen and mutation here requires. */
+const MANAGE_NOTIFICATIONS: Capability = "form.manage_notifications";
 
 const channelValidator = v.union(v.literal("email"), v.literal("site"));
 const recipientTypeValidator = v.union(
@@ -243,7 +237,7 @@ export const listForForm = query({
   args: { formId: v.id("forms") },
   returns: v.array(formsExtensionDocs.form_notifications),
   handler: async (ctx, { formId }) => {
-    await requireCan(ctx, formCap("form.manage_notifications"));
+    await requireCan(ctx, MANAGE_NOTIFICATIONS);
     await requirePluginEnabled(ctx, "forms");
     const rows = await ctx.db
       .query("form_notifications")
@@ -270,7 +264,7 @@ export const create = mutation({
   },
   returns: v.union(v.null(), formsExtensionDocs.form_notifications),
   handler: async (ctx, args) => {
-    await requireCan(ctx, formCap("form.manage_notifications"));
+    await requireCan(ctx, MANAGE_NOTIFICATIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const name = args.name.trim();
@@ -317,13 +311,14 @@ export const update = mutation({
       subjectTemplate: v.optional(v.string()),
       messageTemplate: v.optional(v.string()),
       triggerEventCode: v.optional(triggerEventCodeValidator),
-      conditionalLogic: v.optional(v.string()),
+      /** A JSON rule set; null removes the condition so it always fires. */
+      conditionalLogic: v.optional(v.union(v.string(), v.null())),
       enabled: v.optional(v.boolean()),
     }),
   },
   returns: v.union(v.null(), formsExtensionDocs.form_notifications),
   handler: async (ctx, { notificationId, patch }) => {
-    await requireCan(ctx, formCap("form.manage_notifications"));
+    await requireCan(ctx, MANAGE_NOTIFICATIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(notificationId);
@@ -334,7 +329,7 @@ export const update = mutation({
       });
     }
 
-    const update: Record<string, unknown> = {};
+    const update: Partial<Doc<"form_notifications">> = {};
     if (patch.name !== undefined) {
       const name = patch.name.trim();
       if (!name) {
@@ -361,7 +356,9 @@ export const update = mutation({
     if (patch.triggerEventCode !== undefined) {
       update.triggerEventCode = patch.triggerEventCode;
     }
-    if (patch.conditionalLogic !== undefined) {
+    if (patch.conditionalLogic === null) {
+      update.conditionalLogic = undefined;
+    } else if (patch.conditionalLogic !== undefined) {
       assertParseableLogic(patch.conditionalLogic);
       update.conditionalLogic = patch.conditionalLogic;
     }
@@ -381,7 +378,7 @@ export const reorder = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, orderedIds }) => {
-    await requireCan(ctx, formCap("form.manage_notifications"));
+    await requireCan(ctx, MANAGE_NOTIFICATIONS);
     await requirePluginEnabled(ctx, "forms");
     const rows = await Promise.all(orderedIds.map((id) => ctx.db.get(id)));
     if (rows.some((row) => !row || row.formId !== formId)) {
@@ -401,7 +398,7 @@ export const remove = mutation({
   args: { notificationId: v.id("form_notifications") },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { notificationId }) => {
-    await requireCan(ctx, formCap("form.manage_notifications"));
+    await requireCan(ctx, MANAGE_NOTIFICATIONS);
     await requirePluginEnabled(ctx, "forms");
     await ctx.db.delete("form_notifications", notificationId);
     return { success: true };

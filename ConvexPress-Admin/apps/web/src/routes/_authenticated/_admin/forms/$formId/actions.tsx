@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
+import type { FunctionReturnType } from "convex/server";
 import {
   DndContext,
   closestCenter,
@@ -31,71 +32,56 @@ import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import type { Capability } from "@backend/convex/types/capabilities";
 import { ConditionalLogicBuilder } from "@/components/custom-fields/ConditionalLogicBuilder";
+import {
+  parseConfig,
+  readSubscriptionConfig,
+  stringMapOf,
+  subscriptionConfigProblems,
+  textOf,
+  withConfig,
+  writeSubscriptionConfig,
+  type ConfigBag,
+  type SubscriptionConfig,
+} from "@/components/forms/actions/actionConfig";
+import {
+  SubscriptionActionEditor,
+  offerSummary,
+  type ActionEditorSetup,
+} from "@/components/forms/actions/SubscriptionActionEditor";
 import { PluginGuard } from "@/components/plugins/PluginGuard";
+import { Field, inputClass } from "@/components/subscriptions/catalog/fields";
 import { useCan } from "@/hooks/useCan";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { asId, cn, getErrorMessage } from "@/lib/utils";
 
 /**
  * Form Actions & Feeds — admin editor.
  *
- * Full-page (no modal editors; confirm dialog only for delete). Mirrors the
- * notifications screen conventions: PluginGuard, useCan, cache useQuery, Base
- * UI components, CSS-variable colors, dnd-kit reorder. Each action type renders
- * its own config editor driven by the type key. Includes a run-history panel
- * with status chips and a replay button on failed rows.
+ * Full-page (no modal editors; confirm dialog only for delete): PluginGuard,
+ * useCan, cache useQuery, dnd-kit reorder. Each action type has its own config
+ * editor; the subscription/payment editor picks plans by name and price, maps
+ * a choice field to plans, and reads the form's account setting. Configs are
+ * read and written with their types (`actionConfig.ts`). A run-history panel
+ * shows recent runs and replays failed ones.
  */
 
-/** Local wrapper for Forms capability strings. */
-const formCap = (cap: string): Capability => cap as Capability;
+type ActionRow = FunctionReturnType<typeof api.extensions.forms.actions.listActions>[number];
+type RunRow = FunctionReturnType<typeof api.extensions.forms.actions.listRecentRuns>[number];
+type SetupField = ActionEditorSetup["fields"][number];
 
-type RunStatus = "pending" | "completed" | "failed" | "awaiting_payment";
-
-interface ActionRow {
-  _id: Id<"form_actions">;
-  formId: Id<"forms">;
-  type: string;
-  label: string;
-  config: string;
-  conditionalLogic?: string;
-  enabled: boolean;
-  order: number;
-}
-
-interface RunRow {
-  _id: Id<"form_action_runs">;
-  submissionId: Id<"form_submissions">;
-  formActionId: Id<"form_actions">;
-  type: string;
-  status: RunStatus;
-  attempts: number;
-  error?: string;
-  result?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface SiblingField {
-  _id: string;
-  label: string;
-  name: string;
-  key: string;
-  type: string;
-}
+const CHECKOUT_TYPES = new Set(["subscription", "payment"]);
+const DEFAULT_LABELS: Record<string, string> = {
+  subscription: "Start subscription",
+  payment: "Take payment",
+  webhook: "Send to webhook",
+  lead_capture: "Send lead to CRM",
+  email_marketing: "Add to mailing list",
+};
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/forms/$formId/actions",
@@ -107,32 +93,19 @@ function ActionsPage() {
   const { formId } = Route.useParams();
   return (
     <PluginGuard pluginId="forms">
-      <ActionsContent formId={formId as Id<"forms">} />
+      <ActionsContent formId={asId<"forms">(formId)} />
     </PluginGuard>
   );
 }
 
 function ActionsContent({ formId }: { formId: Id<"forms"> }) {
-  const canManage = useCan(formCap("form.manage_actions"));
+  const canManage = useCan("form.manage_actions");
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
-  const fieldGroupId = form?.fieldGroupId;
-  const fields = useQuery(
-    api.customFields.queries.getFieldsByGroup,
-    fieldGroupId ? { groupId: fieldGroupId } : "skip",
-  );
-  const rows = useQuery(
-    api.extensions.forms.actions.listActions,
-    canManage ? { formId } : "skip",
-  ) as ActionRow[] | undefined;
-  const actionTypes = useQuery(
-    api.extensions.forms.actions.availableActionTypes,
-    canManage ? {} : "skip",
-  ) as Array<{ type: string; label: string }> | undefined;
-  const recentRuns = useQuery(
-    api.extensions.forms.actions.listRecentRuns,
-    canManage ? { formId } : "skip",
-  ) as RunRow[] | undefined;
+  const setup = useQuery(api.extensions.forms.actions.actionEditorSetup, canManage ? { formId } : "skip");
+  const rows = useQuery(api.extensions.forms.actions.listActions, canManage ? { formId } : "skip");
+  const actionTypes = useQuery(api.extensions.forms.actions.availableActionTypes, canManage ? {} : "skip");
+  const recentRuns = useQuery(api.extensions.forms.actions.listRecentRuns, canManage ? { formId } : "skip");
 
   const createAction = useMutation(api.extensions.forms.actions.createAction);
   const updateAction = useMutation(api.extensions.forms.actions.updateAction);
@@ -145,22 +118,10 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   const [pendingDelete, setPendingDelete] = useState<ActionRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const siblingFields: SiblingField[] = useMemo(
-    () =>
-      (fields ?? []).map((f: any) => ({
-        _id: f._id,
-        label: f.label,
-        name: f.name,
-        key: f.key,
-        type: f.type,
-      })),
-    [fields],
-  );
-
   const typeLabels = useMemo(() => {
-    const m: Record<string, string> = {};
-    for (const t of actionTypes ?? []) m[t.type] = t.label;
-    return m;
+    const labels: Record<string, string> = {};
+    for (const t of actionTypes ?? []) labels[t.type] = t.label;
+    return labels;
   }, [actionTypes]);
 
   const sensors = useSensors(
@@ -170,7 +131,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
 
   if (!canManage) return <PermissionDenied />;
 
-  if (form === undefined || rows === undefined) {
+  if (form === undefined || rows === undefined || setup === undefined) {
     return (
       <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
         <Skeleton className="h-8 w-64" />
@@ -180,13 +141,11 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
     );
   }
 
-  if (form === null) {
+  if (form === null || setup === null) {
     return (
       <div className="mx-auto max-w-4xl p-6">
         <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">
-            Form not found
-          </h1>
+          <h1 className="text-xl font-semibold text-foreground">Form not found</h1>
           <Link to="/forms" className="mt-4 inline-block">
             <Button variant="outline">Back to Forms</Button>
           </Link>
@@ -195,8 +154,6 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
     );
   }
 
-  const sortedIds = rows.map((r) => r._id);
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -204,20 +161,15 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
     const newIndex = rows.findIndex((r) => r._id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(rows, oldIndex, newIndex);
-    void reorderActions({
-      formId,
-      orderedIds: reordered.map((r) => r._id),
-    }).catch(() => toast.error("Failed to reorder actions."));
+    void reorderActions({ formId, orderedIds: reordered.map((r) => r._id) }).catch(() =>
+      toast.error("Couldn't reorder the actions."),
+    );
   };
 
   const toggleEnabled = (row: ActionRow, enabled: boolean) => {
     void updateAction({ actionId: row._id, enabled })
-      .then(() => toast.success(enabled ? "Action enabled." : "Action disabled."))
-      .catch(() => toast.error("Failed to update action."));
-  };
-
-  const handleDelete = (row: ActionRow) => {
-    setPendingDelete(row);
+      .then(() => toast.success(enabled ? "Action turned on." : "Action turned off."))
+      .catch((error: unknown) => toast.error(getErrorMessage(error, "Couldn't update the action.")));
   };
 
   const confirmDelete = async () => {
@@ -228,8 +180,8 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
       toast.success("Action deleted.");
       if (editingId === pendingDelete._id) setEditingId(null);
       setPendingDelete(null);
-    } catch {
-      toast.error("Failed to delete action.");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Couldn't delete the action."));
     } finally {
       setIsDeleting(false);
     }
@@ -241,9 +193,8 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Actions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Run automated actions when &ldquo;{form.title}&rdquo; is submitted.
-            Each action evaluates its conditional logic, runs in order, and is
-            retried on transient failures.
+            What happens when &ldquo;{form.title}&rdquo; is submitted: start a subscription, take a payment, or send the answers
+            on. Actions run in order; each can have conditions, and failures are retried.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -264,75 +215,63 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
 
       {isCreating ? (
         <ActionEditor
+          formId={formId}
           availableTypes={actionTypes ?? []}
-          siblingFields={siblingFields}
+          setup={setup}
           onCancel={() => setIsCreating(false)}
           onSave={async (values) => {
-            try {
-              await createAction({ formId, ...values });
-              toast.success("Action created.");
-              setIsCreating(false);
-            } catch (error) {
-              toast.error(
-                error instanceof Error ? error.message : "Failed to create action.",
-              );
-            }
+            await createAction({
+              formId,
+              type: values.type,
+              label: values.label,
+              config: values.config,
+              conditionalLogic: values.conditionalLogic ?? undefined,
+            });
+            toast.success("Action created.");
+            setIsCreating(false);
           }}
         />
       ) : null}
 
       {rows.length === 0 && !isCreating ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            No actions yet. Click &ldquo;Add Action&rdquo; to create one.
-          </p>
+          <p className="text-sm text-muted-foreground">No actions yet. Choose &ldquo;Add Action&rdquo; to create one.</p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={rows.map((r) => r._id)} strategy={verticalListSortingStrategy}>
             <div className="flex flex-col gap-3">
               {rows.map((row) =>
                 editingId === row._id ? (
                   <ActionEditor
                     key={row._id}
+                    formId={formId}
                     availableTypes={actionTypes ?? []}
-                    siblingFields={siblingFields}
+                    setup={setup}
                     initial={row}
                     onCancel={() => setEditingId(null)}
                     onSave={async (values) => {
-                      try {
-                        await updateAction({
-                          actionId: row._id,
-                          label: values.label,
-                          config: values.config,
-                          conditionalLogic: values.conditionalLogic,
-                          enabled: values.enabled,
-                        });
-                        toast.success("Action saved.");
-                        setEditingId(null);
-                      } catch (error) {
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "Failed to save action.",
-                        );
-                      }
+                      await updateAction({
+                        actionId: row._id,
+                        label: values.label,
+                        config: values.config,
+                        conditionalLogic: values.conditionalLogic,
+                      });
+                      toast.success("Action saved.");
+                      setEditingId(null);
                     }}
                   />
                 ) : (
                   <SortableActionRow
                     key={row._id}
                     row={row}
+                    setup={setup}
                     typeLabel={typeLabels[row.type] ?? row.type}
                     onEdit={() => {
                       setEditingId(row._id);
                       setIsCreating(false);
                     }}
-                    onDelete={() => handleDelete(row)}
+                    onDelete={() => setPendingDelete(row)}
                     onToggleEnabled={(enabled) => toggleEnabled(row, enabled)}
                   />
                 ),
@@ -347,12 +286,8 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
         typeLabels={typeLabels}
         onReplay={(runId) =>
           void replayRun({ runId })
-            .then((r) =>
-              r?.replayed
-                ? toast.success("Run re-queued.")
-                : toast.info("Completed runs are not replayed."),
-            )
-            .catch(() => toast.error("Failed to replay run."))
+            .then((r) => (r?.replayed ? toast.success("Run queued again.") : toast.info("Completed runs aren't replayed.")))
+            .catch((error: unknown) => toast.error(getErrorMessage(error, "Couldn't replay the run.")))
         }
       />
 
@@ -363,7 +298,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
         }}
         onConfirm={() => void confirmDelete()}
         title="Delete this action?"
-        message={`Delete "${pendingDelete?.label ?? "this action"}"? Run history is retained.`}
+        message={`Delete "${pendingDelete?.label ?? "this action"}"? Its run history is kept.`}
         confirmLabel="Delete"
         destructive
         isExecuting={isDeleting}
@@ -372,34 +307,50 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   );
 }
 
+/** One line under an action's name saying what it does. */
+function actionSummary(row: ActionRow, setup: ActionEditorSetup): string {
+  const config = parseConfig(row.config);
+  if (CHECKOUT_TYPES.has(row.type)) {
+    const subscription = readSubscriptionConfig(config);
+    if (subscription.offerMode === "fixed") {
+      const offer = setup.offers.find((o) => o._id === subscription.offerId);
+      return offer ? offerSummary(offer) : "Plan missing: edit to choose one";
+    }
+    const field = setup.fields.find((f) => f.key === subscription.offerFieldName);
+    return field ? `The plan picked in "${field.label || field.name}"` : "Plan field missing: edit to choose one";
+  }
+  if (row.type === "webhook") return textOf(config, "url") || "No URL yet";
+  if (row.type === "email_marketing") return textOf(config, "listId") ? `List ${textOf(config, "listId")}` : "No list yet";
+  if (row.type === "lead_capture") return textOf(config, "endpoint") || "Stored as a lead";
+  return "";
+}
+
 function SortableActionRow({
   row,
+  setup,
   typeLabel,
   onEdit,
   onDelete,
   onToggleEnabled,
 }: {
   row: ActionRow;
+  setup: ActionEditorSetup;
   typeLabel: string;
   onEdit: () => void;
   onDelete: () => void;
   onToggleEnabled: (enabled: boolean) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: row._id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row._id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 50 : undefined,
   };
+  const enabledId = `action-enabled-${row._id}`;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
-    >
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
       <button
         type="button"
         className="shrink-0 cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
@@ -412,33 +363,31 @@ function SortableActionRow({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">
-            {row.label}
-          </span>
+          <span className="truncate text-sm font-medium text-foreground">{row.label}</span>
           <Badge variant="secondary">{typeLabel}</Badge>
+          {row.conditionalLogic ? <Badge variant="outline">Conditional</Badge> : null}
         </div>
-        <span className="text-xs text-muted-foreground">
-          Order {row.order + 1}
-          {row.conditionalLogic ? " · conditional" : ""}
-        </span>
+        <span className="truncate text-xs text-muted-foreground">{actionSummary(row, setup)}</span>
       </div>
 
-      <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
         <Checkbox
+          id={enabledId}
           checked={row.enabled}
           onCheckedChange={(checked) => onToggleEnabled(checked === true)}
+          aria-labelledby={`${enabledId}-label`}
         />
-        {row.enabled ? "Enabled" : "Disabled"}
-      </label>
+        <span id={`${enabledId}-label`}>{row.enabled ? "On" : "Off"}</span>
+      </div>
 
-      <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label="Edit action">
+      <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={`Edit ${row.label}`}>
         <PencilIcon className="size-3.5" />
       </Button>
       <Button
         variant="ghost"
         size="icon-sm"
         onClick={onDelete}
-        aria-label="Delete action"
+        aria-label={`Delete ${row.label}`}
         className="text-muted-foreground hover:text-destructive"
       >
         <TrashIcon className="size-3.5" />
@@ -451,55 +400,63 @@ interface EditorValues {
   type: string;
   label: string;
   config: string;
-  conditionalLogic?: string;
-  enabled?: boolean;
+  /** null removes the conditions (always run). */
+  conditionalLogic: string | null;
 }
 
 function ActionEditor({
+  formId,
   availableTypes,
-  siblingFields,
+  setup,
   initial,
   onCancel,
   onSave,
 }: {
+  formId: Id<"forms">;
   availableTypes: Array<{ type: string; label: string }>;
-  siblingFields: SiblingField[];
+  setup: ActionEditorSetup;
   initial?: ActionRow;
   onCancel: () => void;
   onSave: (values: EditorValues) => Promise<void>;
 }) {
-  const [type, setType] = useState(
-    initial?.type ?? availableTypes[0]?.type ?? "webhook",
-  );
+  const [type, setType] = useState(initial?.type ?? availableTypes[0]?.type ?? "subscription");
   const [label, setLabel] = useState(initial?.label ?? "");
-  const [config, setConfig] = useState<Record<string, unknown>>(() => {
-    if (initial?.config) {
-      try {
-        return JSON.parse(initial.config) as Record<string, unknown>;
-      } catch {
-        return {};
-      }
-    }
-    return {};
-  });
-  const [conditionalLogic, setConditionalLogic] = useState<string | undefined>(
-    initial?.conditionalLogic,
+  const [config, setConfig] = useState<ConfigBag>(() => parseConfig(initial?.config));
+  const [subscription, setSubscription] = useState<SubscriptionConfig>(() =>
+    readSubscriptionConfig(parseConfig(initial?.config)),
   );
+  const [conditionalLogic, setConditionalLogic] = useState<string | undefined>(initial?.conditionalLogic);
+  const [showProblems, setShowProblems] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const isCheckout = CHECKOUT_TYPES.has(type);
+  const planField = setup.fields.find((field) => field.key === subscription.offerFieldName);
+  const problems = isCheckout ? subscriptionConfigProblems(subscription, planField?.choices.length ?? 0) : {};
+  const hasProblems = Object.keys(problems).length > 0;
+
   const handleSave = async () => {
-    if (!label.trim()) {
-      toast.error("Action label is required.");
+    const name = label.trim() || DEFAULT_LABELS[type] || "";
+    if (!name) {
+      setError("Give the action a name.");
+      return;
+    }
+    if (hasProblems) {
+      setShowProblems(true);
+      setError("Some settings need attention before this action can be saved.");
       return;
     }
     setIsSaving(true);
+    setError(null);
     try {
       await onSave({
         type,
-        label: label.trim(),
-        config: JSON.stringify(config),
-        conditionalLogic,
+        label: name,
+        config: JSON.stringify(isCheckout ? writeSubscriptionConfig(subscription) : config),
+        conditionalLogic: conditionalLogic ?? null,
       });
+    } catch (saveError) {
+      setError(getErrorMessage(saveError, "Couldn't save the action."));
     } finally {
       setIsSaving(false);
     }
@@ -507,69 +464,75 @@ function ActionEditor({
 
   return (
     <section className="rounded-lg border border-primary/40 bg-card p-5">
-      <h2 className="text-lg font-medium text-foreground">
-        {initial ? "Edit action" : "New action"}
-      </h2>
+      <h2 className="text-lg font-medium text-foreground">{initial ? "Edit action" : "New action"}</h2>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div className="grid gap-2">
-          <label className="text-sm font-medium" htmlFor="action-label">
-            Label
-          </label>
-          <Input
+        <Field label="Name" htmlFor="action-label" helper="Shown in this list and in the run history.">
+          <input
             id="action-label"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Send to CRM"
+            placeholder={DEFAULT_LABELS[type] ?? "Name this action"}
+            className={inputClass}
           />
-        </div>
+        </Field>
 
-        <div className="grid gap-2">
-          <span className="text-sm font-medium">Type</span>
-          <Select
+        <Field label="Type" htmlFor="action-type" locked={initial ? "The type is fixed once the action exists." : undefined}>
+          <select
+            id="action-type"
             value={type}
-            onValueChange={(v) => {
-              setType(v ?? "");
-              // Reset config when switching types so a stale shape isn't saved.
-              if (!initial) setConfig({});
+            onChange={(e) => {
+              setType(e.target.value);
+              // A new action starts its config over, so a stale shape isn't saved.
+              setConfig({});
+              setSubscription(readSubscriptionConfig({}));
+              setShowProblems(false);
             }}
-            disabled={!!initial}
+            disabled={Boolean(initial)}
+            className={inputClass}
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {availableTypes.map((t) => (
-                <SelectItem key={t.type} value={t.type}>
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            {availableTypes.map((t) => (
+              <option key={t.type} value={t.type}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
 
       <div className="mt-5 border-t border-border pt-4">
-        <ActionConfigEditor
-          type={type}
-          config={config}
-          onChange={setConfig}
-          siblingFields={siblingFields}
-        />
+        {isCheckout ? (
+          <SubscriptionActionEditor
+            formId={formId}
+            setup={setup}
+            config={subscription}
+            problems={showProblems ? problems : {}}
+            onChange={setSubscription}
+          />
+        ) : (
+          <FeedConfigEditor type={type} config={config} onChange={setConfig} fields={setup.fields} />
+        )}
       </div>
 
       <div className="mt-5 border-t border-border pt-4">
-        <h3 className="text-sm font-medium text-foreground">Conditional logic</h3>
+        <h3 className="text-sm font-medium text-foreground">Conditions</h3>
         <p className="mb-3 text-xs text-muted-foreground">
-          Only run this action when the submitted answers match these rules.
-          Leave empty to always run.
+          Run this action only when the answers match these rules. With no rules it always runs.
         </p>
         <ConditionalLogicBuilder
           value={conditionalLogic}
           onChange={setConditionalLogic}
-          siblingFields={siblingFields}
+          siblingFields={setup.fields}
+          subject="this action"
+          verbs={{ show: "Run", hide: "Skip" }}
         />
       </div>
+
+      {error ? (
+        <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <div className="mt-5 flex items-center justify-end gap-2">
         <Button variant="outline" onClick={onCancel} disabled={isSaving}>
@@ -590,48 +553,53 @@ function ActionEditor({
   );
 }
 
-// ─── Per-type config editors ─────────────────────────────────────────────────
+// ─── Feed config editors (webhook, CRM, mailing list) ─────────────────────────
 
-function ActionConfigEditor({
+function FeedConfigEditor({
   type,
   config,
   onChange,
-  siblingFields,
+  fields,
 }: {
   type: string;
-  config: Record<string, unknown>;
-  onChange: (c: Record<string, unknown>) => void;
-  siblingFields: SiblingField[];
+  config: ConfigBag;
+  onChange: (next: ConfigBag) => void;
+  fields: SetupField[];
 }) {
-  const set = (patch: Record<string, unknown>) => onChange({ ...config, ...patch });
+  const set = (patch: Record<string, string | Record<string, string> | undefined>) => onChange(withConfig(config, patch));
+  const text = (key: string, label: string, options: { placeholder?: string; helper?: string; secret?: boolean } = {}) => (
+    <Field label={label} htmlFor={`action-${key}`} helper={options.helper}>
+      <input
+        id={`action-${key}`}
+        type={options.secret ? "password" : "text"}
+        autoComplete="off"
+        value={textOf(config, key)}
+        onChange={(e) => set({ [key]: e.target.value })}
+        placeholder={options.placeholder}
+        className={inputClass}
+      />
+    </Field>
+  );
 
   if (type === "webhook") {
     return (
       <div className="grid gap-4">
-        <h3 className="text-sm font-medium text-foreground">Webhook config</h3>
-        <Field label="URL (https)">
-          <Input
-            value={(config.url as string) ?? ""}
-            onChange={(e) => set({ url: e.target.value })}
-            placeholder="https://example.com/hook"
-          />
-        </Field>
-        <Field label="Secret (optional — signs body as x-convexpress-signature)">
-          <Input
-            value={(config.secret as string) ?? ""}
-            onChange={(e) => set({ secret: e.target.value || undefined })}
-            placeholder="shared secret"
-          />
-        </Field>
-        <Field label="Body template (optional — {field_key} tokens; default = all values JSON)">
-          <Textarea
+        {text("url", "URL", { placeholder: "https://example.com/hook", helper: "An https address that receives the answers as JSON." })}
+        {text("secret", "Signing secret", {
+          secret: true,
+          helper: "Optional. Signs each request in the x-convexpress-signature header.",
+        })}
+        <Field label="Body" htmlFor="action-bodyTemplate" helper="Optional. {field_key} tokens are replaced by answers; empty sends every answer.">
+          <textarea
+            id="action-bodyTemplate"
             rows={4}
-            value={(config.bodyTemplate as string) ?? ""}
-            onChange={(e) => set({ bodyTemplate: e.target.value || undefined })}
+            value={textOf(config, "bodyTemplate")}
+            onChange={(e) => set({ bodyTemplate: e.target.value })}
             placeholder={'{"email":"{email}","name":"{name}"}'}
+            className={cn(inputClass, "font-mono text-xs")}
           />
         </Field>
-        <FieldKeyHint siblingFields={siblingFields} />
+        <FieldKeyHint fields={fields} />
       </div>
     );
   }
@@ -639,25 +607,13 @@ function ActionConfigEditor({
   if (type === "lead_capture") {
     return (
       <div className="grid gap-4">
-        <h3 className="text-sm font-medium text-foreground">Lead capture config</h3>
-        <Field label="CRM endpoint (optional)">
-          <Input
-            value={(config.endpoint as string) ?? ""}
-            onChange={(e) => set({ endpoint: e.target.value || undefined })}
-            placeholder="https://crm.example.com/api/contacts"
-          />
-        </Field>
-        <Field label="API key (optional)">
-          <Input
-            value={(config.apiKey as string) ?? ""}
-            onChange={(e) => set({ apiKey: e.target.value || undefined })}
-          />
-        </Field>
+        {text("endpoint", "CRM endpoint", { placeholder: "https://crm.example.com/api/contacts", helper: "Optional. Empty stores the lead here only." })}
+        {text("apiKey", "API key", { secret: true, helper: "Optional. Sent as a bearer token." })}
         <FieldMapEditor
-          label="Field → CRM property map"
-          value={(config.fieldMap as Record<string, string>) ?? {}}
-          onChange={(m) => set({ fieldMap: m })}
-          siblingFields={siblingFields}
+          label="Answers to CRM properties"
+          value={stringMapOf(config, "fieldMap")}
+          onChange={(fieldMap) => set({ fieldMap })}
+          fields={fields}
         />
       </div>
     );
@@ -666,282 +622,82 @@ function ActionConfigEditor({
   if (type === "email_marketing") {
     return (
       <div className="grid gap-4">
-        <h3 className="text-sm font-medium text-foreground">
-          Email marketing config
-        </h3>
-        <Field label="Provider endpoint (optional)">
-          <Input
-            value={(config.endpoint as string) ?? ""}
-            onChange={(e) => set({ endpoint: e.target.value || undefined })}
-            placeholder="https://provider.example.com/api/subscribe"
-          />
+        {text("endpoint", "Provider endpoint", { placeholder: "https://provider.example.com/api/subscribe" })}
+        {text("apiKey", "API key", { secret: true })}
+        {text("listId", "List or audience id")}
+        <Field label="Email field" htmlFor="action-emailFieldKey">
+          <select
+            id="action-emailFieldKey"
+            value={textOf(config, "emailFieldKey")}
+            onChange={(e) => set({ emailFieldKey: e.target.value })}
+            className={inputClass}
+          >
+            <option value="">Choose a field</option>
+            {fields.map((field) => (
+              <option key={field.key} value={field.key}>
+                {field.label || field.name}
+              </option>
+            ))}
+          </select>
         </Field>
-        <Field label="API key (optional)">
-          <Input
-            value={(config.apiKey as string) ?? ""}
-            onChange={(e) => set({ apiKey: e.target.value || undefined })}
-          />
-        </Field>
-        <Field label="List / audience id">
-          <Input
-            value={(config.listId as string) ?? ""}
-            onChange={(e) => set({ listId: e.target.value })}
-          />
-        </Field>
-        <FieldSelect
-          label="Email field"
-          value={(config.emailFieldKey as string) ?? ""}
-          onChange={(k) => set({ emailFieldKey: k })}
-          siblingFields={siblingFields}
-        />
         <FieldMapEditor
-          label="Merge fields (field → provider merge tag)"
-          value={(config.mergeFields as Record<string, string>) ?? {}}
-          onChange={(m) => set({ mergeFields: m })}
-          siblingFields={siblingFields}
+          label="Answers to merge tags"
+          value={stringMapOf(config, "mergeFields")}
+          onChange={(mergeFields) => set({ mergeFields })}
+          fields={fields}
         />
       </div>
     );
   }
 
-  if (type === "subscription" || type === "payment") {
-    return (
-      <SubscriptionConfigEditor
-        config={config}
-        onChange={onChange}
-        siblingFields={siblingFields}
-      />
-    );
-  }
-
-  return (
-    <p className="text-sm text-muted-foreground">
-      No editor available for type &ldquo;{type}&rdquo;.
-    </p>
-  );
-}
-
-function SubscriptionConfigEditor({
-  config,
-  onChange,
-  siblingFields,
-}: {
-  config: Record<string, unknown>;
-  onChange: (c: Record<string, unknown>) => void;
-  siblingFields: SiblingField[];
-}) {
-  const set = (patch: Record<string, unknown>) => onChange({ ...config, ...patch });
-  const offerMode = (config.offerMode as string) ?? "fixed";
-  const couponMode = (config.couponMode as string) ?? "none";
-
-  return (
-    <div className="grid gap-4">
-      <h3 className="text-sm font-medium text-foreground">Subscription config</h3>
-
-      <Field label="Offer mode">
-        <Select value={offerMode} onValueChange={(v) => set({ offerMode: v })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="fixed">Fixed offer</SelectItem>
-            <SelectItem value="fromField">From a field value</SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
-
-      {offerMode === "fixed" ? (
-        <Field label="Offer id">
-          <Input
-            value={(config.offerId as string) ?? ""}
-            onChange={(e) => set({ offerId: e.target.value })}
-            placeholder="commerce_subscription_offers id"
-          />
-        </Field>
-      ) : (
-        <FieldSelect
-          label="Offer field (its value is the offer id, or remapped below)"
-          value={(config.offerFieldName as string) ?? ""}
-          onChange={(k) => set({ offerFieldName: k })}
-          siblingFields={siblingFields}
-        />
-      )}
-
-      <FieldSelect
-        label="Email field"
-        value={(config.emailFieldName as string) ?? ""}
-        onChange={(k) => set({ emailFieldName: k })}
-        siblingFields={siblingFields}
-      />
-
-      <Field label="Coupon mode">
-        <Select value={couponMode} onValueChange={(v) => set({ couponMode: v })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            <SelectItem value="fixed">Fixed code</SelectItem>
-            <SelectItem value="fromField">From a field</SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
-
-      {couponMode === "fixed" ? (
-        <Field label="Coupon code">
-          <Input
-            value={(config.couponCode as string) ?? ""}
-            onChange={(e) => set({ couponCode: e.target.value })}
-          />
-        </Field>
-      ) : null}
-      {couponMode === "fromField" ? (
-        <FieldSelect
-          label="Coupon field"
-          value={(config.couponFieldName as string) ?? ""}
-          onChange={(k) => set({ couponFieldName: k })}
-          siblingFields={siblingFields}
-        />
-      ) : null}
-
-      <Field label="Account policy">
-        <Select
-          value={(config.accountPolicy as string) ?? "require_existing"}
-          onValueChange={(v) => set({ accountPolicy: v })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="require_existing">
-              Require existing account
-            </SelectItem>
-            <SelectItem value="create_on_website">
-              Create account on website
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
-
-      <Field label="Return URL (optional)">
-        <Input
-          value={(config.returnUrl as string) ?? ""}
-          onChange={(e) => set({ returnUrl: e.target.value || undefined })}
-          placeholder="https://site.example.com/welcome"
-        />
-      </Field>
-
-      <Field label="Max initial amount in cents (optional cap)">
-        <Input
-          type="number"
-          value={
-            config.maxInitialAmount === undefined
-              ? ""
-              : String(config.maxInitialAmount)
-          }
-          onChange={(e) =>
-            set({
-              maxInitialAmount:
-                e.target.value === ""
-                  ? undefined
-                  : Math.max(0, Math.floor(Number(e.target.value))),
-            })
-          }
-          placeholder="e.g. 5000"
-        />
-      </Field>
-    </div>
-  );
-}
-
-// ─── Small editor primitives ─────────────────────────────────────────────────
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-2">
-      <span className="text-sm font-medium text-foreground">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function FieldSelect({
-  label,
-  value,
-  onChange,
-  siblingFields,
-}: {
-  label: string;
-  value: string;
-  onChange: (key: string) => void;
-  siblingFields: SiblingField[];
-}) {
-  return (
-    <Field label={label}>
-      <Select value={value || undefined} onValueChange={(v) => onChange(v ?? "")}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select a field" />
-        </SelectTrigger>
-        <SelectContent>
-          {siblingFields.map((f) => (
-            <SelectItem key={f.key} value={f.key}>
-              {f.label} ({f.key})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Field>
-  );
+  return <p className="text-sm text-muted-foreground">There is no editor for &ldquo;{type}&rdquo; actions.</p>;
 }
 
 function FieldMapEditor({
   label,
   value,
   onChange,
-  siblingFields,
+  fields,
 }: {
   label: string;
   value: Record<string, string>;
-  onChange: (m: Record<string, string>) => void;
-  siblingFields: SiblingField[];
+  onChange: (next: Record<string, string>) => void;
+  fields: SetupField[];
 }) {
-  const entries = Object.entries(value);
-  const addRow = () => {
-    const firstUnused = siblingFields.find((f) => !(f.key in value));
-    if (!firstUnused) return;
-    onChange({ ...value, [firstUnused.key]: "" });
+  const fieldLabel = (key: string) => {
+    const field = fields.find((f) => f.key === key);
+    return field ? field.label || field.name : key;
   };
-  const setProp = (key: string, prop: string) =>
-    onChange({ ...value, [key]: prop });
-  const removeRow = (key: string) => {
-    const next = { ...value };
-    delete next[key];
-    onChange(next);
-  };
-
+  const unused = fields.filter((f) => !(f.key in value));
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-medium text-foreground">{label}</span>
-      {entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No mappings yet.</p>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {Object.keys(value).length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nothing mapped yet.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {entries.map(([key, prop]) => (
+          {Object.entries(value).map(([key, prop]) => (
             <div key={key} className="flex items-center gap-2">
-              <code className="rounded-md bg-muted px-1.5 py-1 text-[11px] text-foreground">
-                {key}
-              </code>
-              <span className="text-muted-foreground">→</span>
-              <Input
+              <span className="w-40 shrink-0 truncate text-sm text-foreground">{fieldLabel(key)}</span>
+              <span className="text-muted-foreground" aria-hidden>
+                →
+              </span>
+              <input
+                aria-label={`${fieldLabel(key)} maps to`}
                 value={prop}
-                onChange={(e) => setProp(key, e.target.value)}
+                onChange={(e) => onChange({ ...value, [key]: e.target.value })}
                 placeholder="property name"
+                className={inputClass}
               />
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => removeRow(key)}
-                aria-label="Remove mapping"
+                onClick={() => {
+                  const next = { ...value };
+                  delete next[key];
+                  onChange(next);
+                }}
+                aria-label={`Remove ${fieldLabel(key)}`}
                 className="text-muted-foreground hover:text-destructive"
               >
                 <TrashIcon className="size-3.5" />
@@ -953,8 +709,11 @@ function FieldMapEditor({
       <Button
         variant="outline"
         size="sm"
-        onClick={addRow}
-        disabled={siblingFields.every((f) => f.key in value)}
+        onClick={() => {
+          const first = unused[0];
+          if (first) onChange({ ...value, [first.key]: "" });
+        }}
+        disabled={unused.length === 0}
       >
         <PlusIcon className="size-3.5" data-icon="inline-start" />
         Add mapping
@@ -963,18 +722,15 @@ function FieldMapEditor({
   );
 }
 
-function FieldKeyHint({ siblingFields }: { siblingFields: SiblingField[] }) {
-  if (siblingFields.length === 0) return null;
+function FieldKeyHint({ fields }: { fields: SetupField[] }) {
+  if (fields.length === 0) return null;
   return (
     <div className="rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2">
-      <p className="text-[11px] font-medium text-foreground">Field keys</p>
+      <p className="text-[11px] font-medium text-foreground">Tokens for this form's fields</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {siblingFields.map((f) => (
-          <code
-            key={f.key}
-            className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-foreground"
-          >
-            {f.key}
+        {fields.map((f) => (
+          <code key={f.key} title={f.label} className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-foreground">
+            {`{${f.key}}`}
           </code>
         ))}
       </div>
@@ -984,23 +740,19 @@ function FieldKeyHint({ siblingFields }: { siblingFields: SiblingField[] }) {
 
 // ─── Run history panel ───────────────────────────────────────────────────────
 
-const STATUS_VARIANTS: Record<
-  string,
-  "secondary" | "outline" | "destructive" | "default"
-> = {
-  pending: "outline",
-  completed: "secondary",
-  failed: "destructive",
-  awaiting_payment: "default",
+type BadgeVariant = "secondary" | "outline" | "destructive" | "default";
+
+const RUN_STATUS: Record<RunRow["status"], { label: string; variant: BadgeVariant }> = {
+  pending: { label: "Pending", variant: "outline" },
+  completed: { label: "Done", variant: "secondary" },
+  failed: { label: "Failed", variant: "destructive" },
+  awaiting_payment: { label: "Awaiting payment", variant: "default" },
 };
 
+const SKIPPED_STATUS: { label: string; variant: BadgeVariant } = { label: "Skipped (conditions)", variant: "outline" };
+
 function isSkipped(run: RunRow): boolean {
-  if (!run.result) return false;
-  try {
-    return (JSON.parse(run.result) as { skipped?: boolean }).skipped === true;
-  } catch {
-    return false;
-  }
+  return parseConfig(run.result).skipped === true;
 }
 
 function RunHistoryPanel({
@@ -1015,9 +767,7 @@ function RunHistoryPanel({
   return (
     <section className="rounded-lg border border-border bg-card p-5">
       <h2 className="text-lg font-medium text-foreground">Recent runs</h2>
-      <p className="mt-1 text-xs text-muted-foreground">
-        The latest action runs for this form. Failed runs can be replayed.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">The latest runs for this form. A failed run can be replayed.</p>
       {runs === undefined ? (
         <div className="mt-4 flex flex-col gap-2">
           <Skeleton className="h-10 w-full" />
@@ -1028,29 +778,16 @@ function RunHistoryPanel({
       ) : (
         <div className="mt-4 flex flex-col gap-2">
           {runs.map((run) => {
-            const skipped = isSkipped(run);
+            const status = isSkipped(run) ? SKIPPED_STATUS : RUN_STATUS[run.status];
             return (
-              <div
-                key={run._id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
-              >
+              <div key={run._id} className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
                 <Badge variant="secondary">{typeLabels[run.type] ?? run.type}</Badge>
-                <Badge variant={STATUS_VARIANTS[run.status] ?? "outline"}>
-                  {skipped ? "skipped" : run.status}
-                </Badge>
+                <Badge variant={status.variant}>{status.label}</Badge>
                 <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                  {run.error
-                    ? run.error
-                    : `attempts: ${run.attempts} · ${new Date(
-                        run.updatedAt,
-                      ).toLocaleString()}`}
+                  {run.error ?? `${run.attempts} ${run.attempts === 1 ? "attempt" : "attempts"} · ${new Date(run.updatedAt).toLocaleString()}`}
                 </span>
                 {run.status === "failed" ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onReplay(run._id)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onReplay(run._id)}>
                     <RotateCcwIcon className="size-3.5" data-icon="inline-start" />
                     Replay
                   </Button>
@@ -1069,12 +806,8 @@ function PermissionDenied() {
     <div className="mx-auto max-w-3xl p-6">
       <div className="rounded-lg border border-border bg-card p-8 text-center">
         <ShieldOff className="mx-auto mb-3 size-8 text-muted-foreground/40" />
-        <h1 className="text-lg font-semibold text-foreground">
-          Insufficient permissions
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          You don&apos;t have permission to manage form actions.
-        </p>
+        <h1 className="text-lg font-semibold text-foreground">Insufficient permissions</h1>
+        <p className="mt-2 text-sm text-muted-foreground">You don&apos;t have permission to manage form actions.</p>
         <Link to="/forms" className="mt-4 inline-block">
           <Button variant="outline">Back to Forms</Button>
         </Link>

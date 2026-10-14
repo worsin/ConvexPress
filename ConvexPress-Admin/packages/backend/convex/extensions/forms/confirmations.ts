@@ -28,7 +28,7 @@ import { RequestReadLedger } from "../../helpers/requestReadLedger";
 
 import { query, mutation, type MutationCtx, type QueryCtx } from "../../_generated/server";
 import { v, ConvexError } from "convex/values";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import { sanitizeCommentContent } from "../../helpers/comment";
@@ -38,10 +38,8 @@ import { evaluateConditionalLogic } from "./conditionalLogic";
 import { formsExtensionDocs } from "./schema.docs.generated";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
-/** Local wrapper for Forms capability strings. */
-function formCap(cap: string): Capability {
-  return cap as Capability;
-}
+/** The capability every screen and mutation here requires. */
+const MANAGE_CONFIRMATIONS: Capability = "form.manage_confirmations";
 
 const confirmationTypeValidator = v.union(
   v.literal("message"),
@@ -312,7 +310,7 @@ export const listConfirmations = query({
   args: { formId: v.id("forms") },
   returns: v.array(formsExtensionDocs.form_confirmations),
   handler: async (ctx, { formId }) => {
-    await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const rows = await ctx.db
@@ -334,7 +332,7 @@ export const ensureDefaultConfirmation = mutation({
   args: { formId: v.id("forms") },
   returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, { formId }) => {
-    const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    const user = await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
     await ensureDefault(ctx, formId, user._id);
     return await ctx.db
@@ -358,7 +356,7 @@ export const createConfirmation = mutation({
   },
   returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, args) => {
-    const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    const user = await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
     await ensureDefault(ctx, args.formId, user._id);
 
@@ -406,12 +404,13 @@ export const updateConfirmation = mutation({
       content: v.optional(v.string()),
       redirectUrl: v.optional(v.string()),
       pageId: v.optional(v.string()),
-      conditionalLogic: v.optional(v.string()),
+      /** A JSON rule set; null removes the condition. */
+      conditionalLogic: v.optional(v.union(v.string(), v.null())),
     }),
   },
   returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, { confirmationId, patch }) => {
-    const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    const user = await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(confirmationId);
@@ -422,7 +421,7 @@ export const updateConfirmation = mutation({
       });
     }
 
-    const update: Record<string, unknown> = {};
+    const update: Partial<Doc<"form_confirmations">> = {};
     if (patch.name !== undefined) {
       const name = patch.name.trim();
       if (!name) {
@@ -442,7 +441,9 @@ export const updateConfirmation = mutation({
       update.content = sanitizeMessage(patch.content);
     }
     if (patch.pageId !== undefined) update.pageId = patch.pageId;
-    if (patch.conditionalLogic !== undefined) {
+    if (patch.conditionalLogic === null) {
+      update.conditionalLogic = undefined;
+    } else if (patch.conditionalLogic !== undefined) {
       update.conditionalLogic = patch.conditionalLogic;
     }
 
@@ -460,7 +461,7 @@ export const reorderConfirmations = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, order }) => {
-    await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
     const rows = await Promise.all(order.map((id) => ctx.db.get(id)));
     if (rows.some((row) => !row || row.formId !== formId)) {
@@ -483,7 +484,7 @@ export const setDefaultConfirmation = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, confirmationId }) => {
-    const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    const user = await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const target = await ctx.db.get(confirmationId);
@@ -524,7 +525,7 @@ export const deleteConfirmation = mutation({
   args: { confirmationId: v.id("form_confirmations") },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { confirmationId }) => {
-    await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requireCan(ctx, MANAGE_CONFIRMATIONS);
     await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(confirmationId);

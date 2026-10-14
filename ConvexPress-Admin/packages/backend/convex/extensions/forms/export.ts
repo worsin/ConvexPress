@@ -48,8 +48,8 @@ const submissionStatus = v.union(
   v.literal("deleted"),
 );
 
-function formCap(cap: string): Capability {
-  return cap as Capability;
+function formCap(cap: Capability): Capability {
+  return cap;
 }
 
 // ─── Module-local helpers ───────────────────────────────────────────────────

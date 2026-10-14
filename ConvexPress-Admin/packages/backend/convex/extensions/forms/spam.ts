@@ -73,8 +73,8 @@ export interface SubmissionSecurityVerdict {
  * Local wrapper for Forms capability strings. Centralizing it keeps the
  * authorization surface explicit and greppable.
  */
-function formCap(cap: string): Capability {
-  return cap as Capability;
+function formCap(cap: Capability): Capability {
+  return cap;
 }
 
 // ─── Settings defaults + loader ─────────────────────────────────────────────
