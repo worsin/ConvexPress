@@ -141,7 +141,19 @@ function displayAmount(amount: number, currencyCode: string): string {
   }
 }
 
+/**
+ * A subscription's own charges (its signup and each invoice). The subscription
+ * tells the customer about these itself, by email (welcome with the first
+ * receipt, renewal receipt, payment failed, refund) and on its page in the
+ * customer dashboard, where invoices and the card live. The purchase record
+ * keeps the ledger and alerts admins; it sends the customer no second email.
+ */
+function isSubscriptionCharge(purchase: PurchaseOrderDoc): boolean {
+  return purchase.sourceType === "subscription_signup" || purchase.sourceType === "subscription_invoice";
+}
+
 function purchaseCustomerUrl(purchase: PurchaseOrderDoc): string {
+  if (isSubscriptionCharge(purchase)) return "/dashboard/subscriptions";
   if (purchase.commerceOrderId) return `/dashboard/orders/${purchase.commerceOrderId}`;
   return `/dashboard/orders/${purchase._id}`;
 }
@@ -503,7 +515,10 @@ async function queuePurchaseNotifications(
   });
 
   const customerUserId = await getUserIdentifierForPurchase(ctx, purchase);
-  if (customerUserId) {
+  // A declined card at signup is answered on the checkout itself, where the
+  // buyer is; a lasting "Payment failed" would outlive the retry that succeeds.
+  const declinedAtSignup = code === PURCHASE_EVENTS.PAYMENT_FAILED && purchase.sourceType === "subscription_signup";
+  if (customerUserId && !declinedAtSignup) {
     await ctx.scheduler.runAfter(0, internal.notifications.internals.send, {
       userId: customerUserId,
       notificationKey,
@@ -514,7 +529,7 @@ async function queuePurchaseNotifications(
       message,
       icon: code === PURCHASE_EVENTS.PAYMENT_SUCCEEDED ? "BadgeCheck" : "ShoppingBag",
       actionUrl: purchaseCustomerUrl(purchase),
-      actionLabel: "View Purchase",
+      actionLabel: isSubscriptionCharge(purchase) ? "View subscription" : "View Purchase",
       metadata,
       persistent: code === PURCHASE_EVENTS.PAYMENT_FAILED,
       groupKey: `${code}:${purchase._id}`,
@@ -566,14 +581,20 @@ async function queuePurchaseEmails(
     adminUrl: purchaseAdminUrl(purchase),
   };
 
-  if (code === PURCHASE_EVENTS.PAYMENT_SUCCEEDED && purchase.email) {
-    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PURCHASE_RECEIPT, {
-      recipientEmail: purchase.email,
-      recipientName: purchase.customerName,
-      recipientUserId: customerUserIdentifier ?? undefined,
-      variables,
-      eventId,
-    });
+  // Subscription charges are told to the customer by the subscription's own
+  // emails (see isSubscriptionCharge); everything else gets a receipt here.
+  const customerEmail = purchase.email && !isSubscriptionCharge(purchase) ? purchase.email : null;
+
+  if (code === PURCHASE_EVENTS.PAYMENT_SUCCEEDED) {
+    if (customerEmail) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PURCHASE_RECEIPT, {
+        recipientEmail: customerEmail,
+        recipientName: purchase.customerName,
+        recipientUserId: customerUserIdentifier ?? undefined,
+        variables,
+        eventId,
+      });
+    }
     for (const admin of admins) {
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PURCHASE_ADMIN_ALERT, {
         recipientEmail: admin.email,
@@ -585,9 +606,9 @@ async function queuePurchaseEmails(
     }
   }
 
-  if (code === PURCHASE_EVENTS.PAYMENT_FAILED && purchase.email) {
+  if (code === PURCHASE_EVENTS.PAYMENT_FAILED && customerEmail) {
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PURCHASE_PAYMENT_FAILED, {
-      recipientEmail: purchase.email,
+      recipientEmail: customerEmail,
       recipientName: purchase.customerName,
       recipientUserId: customerUserIdentifier ?? undefined,
       variables,

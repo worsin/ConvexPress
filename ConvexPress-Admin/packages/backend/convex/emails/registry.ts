@@ -431,6 +431,13 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
     description: "A payment went through after a failed one.",
   },
   {
+    slug: "subscription-refunded",
+    category: "subscription",
+    triggerKind: "event",
+    canonicalEventCode: "commerce.subscription_invoice_refunded",
+    description: "A subscription charge was refunded.",
+  },
+  {
     slug: "lms-course-enrolled",
     category: "lms",
     triggerKind: "event",

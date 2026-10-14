@@ -1293,8 +1293,9 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
       { name: "offer_title", description: "Plan name", required: true },
-      { name: "billing_note", description: "What they pay and when (written for the subscription's state)", required: false },
-      { name: "amount", description: "Price, formatted", required: false },
+      { name: "billing_note", description: "The first charge's receipt, then what they pay and when (written for the subscription's state)", required: false },
+      { name: "amount", description: "Plan price, formatted", required: false },
+      { name: "next_charge_amount", description: "The next charge, with any discount", required: false },
       { name: "cadence", description: "per month, every 3 months, …", required: false },
       { name: "next_billing_at", description: "Next charge date", required: false },
       { name: "portal_url", description: "Absolute link to the customer's subscriptions page", required: false, defaultValue: "/dashboard/subscriptions" },
@@ -1395,7 +1396,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     preheaderText: "Your first charge is coming up",
     bodyHtml: wrapHtml(`
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
-      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your free trial of <strong>{offer_title}</strong> ends on {trial_ends_at}. Your first charge of {amount} runs that day, then {amount} {cadence}.</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your free trial of <strong>{offer_title}</strong> ends on {trial_ends_at}. {charge_note}</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Nothing to do if you'd like to continue. You can change plans or cancel before then.</p>
       <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
     `),
@@ -1403,7 +1404,9 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
       { name: "offer_title", description: "Plan name", required: true },
       { name: "trial_ends_at", description: "Trial end date", required: true },
-      { name: "amount", description: "Price, formatted", required: false },
+      { name: "charge_note", description: "The first charge (with any discount) and the plan price", required: false },
+      { name: "amount", description: "Plan price, formatted", required: false },
+      { name: "next_charge_amount", description: "The first charge, with any discount", required: false },
       { name: "cadence", description: "per month, every 3 months, …", required: false },
       { name: "portal_url", description: "Absolute link to the customer's subscriptions page", required: false, defaultValue: "/dashboard/subscriptions" },
     ],
@@ -1496,12 +1499,39 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { name: "offer_title", description: "Plan name", required: true },
       { name: "resume_note", description: "What changed and the next charge", required: false },
       { name: "next_billing_at", description: "Next charge date", required: false },
+      { name: "next_charge_amount", description: "The next charge, with any discount", required: false },
       { name: "portal_url", description: "Absolute link to the customer's subscriptions page", required: false, defaultValue: "/dashboard/subscriptions" },
     ],
     priority: "immediate",
     recipientType: "customer",
     category: "subscription",
     eventCode: "commerce.subscription_resumed",
+  },
+
+  {
+    slug: "subscription-refunded",
+    name: "Subscription Refund",
+    description: "Sent when a subscription charge is refunded",
+    subjectTemplate: "Refund of {refund_amount} for {offer_title}",
+    preheaderText: "Your refund is on its way",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">{refund_note}</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Refunds usually take 5 to 10 business days to appear on your statement.</p>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View your invoices</a>
+    `),
+    availableVariables: [
+      { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
+      { name: "offer_title", description: "Plan name", required: true },
+      { name: "refund_amount", description: "Amount refunded, formatted", required: true },
+      { name: "refund_note", description: "What was refunded, for which invoice, and whether it was the whole charge", required: false },
+      { name: "invoice_number", description: "Invoice the refund belongs to", required: false },
+      { name: "portal_url", description: "Absolute link to the customer's subscriptions page", required: false, defaultValue: "/dashboard/subscriptions" },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "subscription",
+    eventCode: "commerce.subscription_invoice_refunded",
   },
 
   // ═══ LMS ════════════════════════════════════════════════════════════════════
