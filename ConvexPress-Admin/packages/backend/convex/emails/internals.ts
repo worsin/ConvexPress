@@ -1448,6 +1448,9 @@ export const onPasswordChanged = internalMutation({
 
 /**
  * Handler: post.published -> Author Notification + Subscriber Notification
+ *
+ * Imported posts were already published on their source site; announcing
+ * them again would mail every subscriber about old content.
  */
 export const onPostPublished = internalMutation({
   args: { eventId: v.id("events") },
@@ -1457,6 +1460,7 @@ export const onPostPublished = internalMutation({
     if (!eventRecord) return;
 
     const { event, payload } = eventRecord;
+    if (payload.imported === true) return;
     const settings = await getEmailSettings(ctx);
     const postContext = await getPostContext(
       ctx,
