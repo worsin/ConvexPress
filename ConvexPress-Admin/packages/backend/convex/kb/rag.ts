@@ -28,6 +28,7 @@ import { v, ConvexError } from "convex/values";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { decryptSettingSecret } from "../helpers/settingsSecret";
 import { fetchSearchProvider, readSearchProviderJson } from "./searchProviderHttp";
+import { isInternalKbArticle } from "./helpers/visibility";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,7 @@ async function generateEmbedding(
  *
  * Existing chunks for this article are removed before the new ones are written
  * (full re-ingestion). Marks the article as ragSynced = true when complete.
+ * An internal article is never embedded: ingesting it removes its chunks.
  *
  * @throws CONFIGURATION_ERROR if RAG is not configured
  * @throws NOT_FOUND if the article does not exist
@@ -213,6 +215,13 @@ export const ingestArticle: RegisteredAction<"public", { articleId: Id<"kb_artic
 
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    if (isInternalKbArticle(article)) {
+      // Nothing about an internal article is sent to the embedding provider.
+      await ctx.runMutation(makeFunctionReference<"mutation", { articleId: Id<"kb_articles"> }, null>("kb/visibilityTransitions:purgeRagChunks"), { articleId: args.articleId });
+      await ctx.runMutation(internal.kb.internals.markRagSynced, { articleId: args.articleId });
+      return { success: true, chunksCreated: 0 };
     }
 
     const plainText = article.contentPlainText ?? "";

@@ -18,6 +18,7 @@ import {
   kbCommentVoteTypeValidator,
   kbSearchSourceValidator,
   kbWorkflowStepValidator,
+  kbArticleVisibilityValidator,
 } from "../schema/kb";
 
 // ─── Re-exports for convenience ──────────────────────────────────────────────
@@ -32,6 +33,7 @@ export {
   kbCommentVoteTypeValidator,
   kbSearchSourceValidator,
   kbWorkflowStepValidator,
+  kbArticleVisibilityValidator,
 };
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -74,6 +76,8 @@ export const createArticleArgs = {
   keywords: v.optional(v.array(v.string())),
   featuredImageId: v.optional(v.id("media")),
   templateId: v.optional(v.id("kb_templates")),
+  visibility: v.optional(kbArticleVisibilityValidator),
+  audiences: v.optional(v.array(v.string())),
 };
 
 export const updateArticleArgs = {
@@ -89,6 +93,9 @@ export const updateArticleArgs = {
   keywords: v.optional(v.array(v.string())),
   featuredImageId: v.optional(v.id("media")),
   sortOrder: v.optional(v.number()),
+  visibility: v.optional(kbArticleVisibilityValidator),
+  /** Replaces the article's audiences; an empty list clears them. */
+  audiences: v.optional(v.array(v.string())),
 };
 
 export const publishArticleArgs = {
@@ -124,6 +131,7 @@ export const listArticlesArgs = {
   status: v.optional(kbArticleStatusValidator),
   categoryId: v.optional(v.id("kb_categories")),
   authorId: v.optional(v.id("users")),
+  visibility: v.optional(kbArticleVisibilityValidator),
   search: v.optional(v.string()),
 };
 
@@ -133,6 +141,7 @@ export const paginatedListArgs = {
   status: v.optional(kbArticleStatusValidator),
   categoryId: v.optional(v.id("kb_categories")),
   authorId: v.optional(v.id("users")),
+  visibility: v.optional(kbArticleVisibilityValidator),
   search: v.optional(v.string()),
 };
 

@@ -31,6 +31,7 @@ import {
 import { v } from "convex/values";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { applyKbPublicCounts } from "./helpers/publicCounts";
 
 import { kbDocs } from "../schema/kb.docs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
@@ -224,6 +225,9 @@ export const startWorkflow: RegisteredMutation<"public", { articleId: Id<"kb_art
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
+    // Starting review moves the article out of its current status (a published
+    // article leaves the website), so it needs the same rights as editing it.
+    await requireCan(ctx, article.authorId === user._id ? "kb.editOwn" : "kb.edit");
 
     // Get the workflow (specified or default)
     let workflow;
@@ -261,6 +265,7 @@ export const startWorkflow: RegisteredMutation<"public", { articleId: Id<"kb_art
       status: "review",
       updatedAt: Date.now(),
     });
+    await applyKbPublicCounts(ctx, args.articleId, article, { ...article, status: "review" });
 
     const now = Date.now();
     const firstStep = workflow.steps[0];
@@ -361,16 +366,7 @@ export const approveStep = mutation({
             meilisearchSynced: false,
             ragSynced: false,
           });
-          // Increment category article count
-          if (article.categoryId) {
-            const category = await ctx.db.get("kb_categories", article.categoryId);
-            if (category) {
-              await ctx.db.patch("kb_categories", article.categoryId, {
-                articleCount: category.articleCount + 1,
-                updatedAt: now,
-              });
-            }
-          }
+          await applyKbPublicCounts(ctx, articleWorkflow.articleId, article, { ...article, status: "published" });
 
           await emitEvent(ctx, KB_EVENTS.WORKFLOW_APPROVED, SYSTEM.KB, {
             articleWorkflowId: args.articleWorkflowId,
@@ -449,6 +445,7 @@ export const rejectStep = mutation({
       status: "draft",
       updatedAt: now,
     });
+    if (article) await applyKbPublicCounts(ctx, articleWorkflow.articleId, article, { ...article, status: "draft" });
 
     await emitEvent(ctx, KB_EVENTS.WORKFLOW_REJECTED, SYSTEM.KB, {
       articleWorkflowId: args.articleWorkflowId,

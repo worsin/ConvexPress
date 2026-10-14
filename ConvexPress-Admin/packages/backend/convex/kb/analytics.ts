@@ -10,7 +10,6 @@
  *   getSearchAnalytics - Search query analytics (admin query)
  */
 
-import { patchWithMediaReferences } from "../media/attachmentGuard";
 import type { RegisteredMutation, RegisteredQuery } from "convex/server";
 import type { Id } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
@@ -23,9 +22,10 @@ import {
   getDashboardStatsArgs,
   getArticleAnalyticsArgs,
   getSearchAnalyticsArgs,
-  PAGE_VIEW_DEDUP_WINDOW_MS,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { readPublicKbArticle, requirePublicKbArticle } from "./publicAccess";
+import { assertKbSessionId, recordKbPageView } from "./helpers/engagement";
 
 import { v } from "convex/values";
 // ─── Track Page View ────────────────────────────────────────────────────────
@@ -35,54 +35,13 @@ export const trackPageView: RegisteredMutation<"public", { articleId: Id<"kb_art
   returns: v.id("kb_pageViews"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    // Validate sessionId
-    if (!args.sessionId || args.sessionId.length > 128) {
-      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
-    }
-    // Validate article exists
-    const article = await ctx.db.get("kb_articles", args.articleId);
-    if (!article) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
-    }
-
+    assertKbSessionId(args.sessionId);
+    // A hidden (internal, unpublished or restricted) article is "not found".
+    const article = await requirePublicKbArticle(ctx, args.articleId);
     const user = await getCurrentUser(ctx);
-    const now = Date.now();
-
-    // Check if this session has EVER viewed this article
-    const priorView = await ctx.db
-      .query("kb_pageViews")
-      .withIndex("by_session_article", (q) =>
-        q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
-      )
-      .first();
-
-    // Session-based deduplication: skip if same session+article viewed within 30 min
-    if (priorView && now - priorView.createdAt < PAGE_VIEW_DEDUP_WINDOW_MS) {
-      return priorView._id; // Deduplicated
-    }
-
-    // isNewUnique: this session has never viewed this article before
-    const isNewUnique = !priorView;
-
-    // Record the view
-    const viewId = await ctx.db.insert("kb_pageViews", {
-      articleId: args.articleId,
-      userId: user?._id,
-      sessionId: args.sessionId,
-      referrer: args.referrer,
-      userAgent: args.userAgent,
-      duration: undefined,
-      createdAt: now,
+    const { viewId } = await recordKbPageView(ctx, article, {
+      sessionId: args.sessionId, referrer: args.referrer, userAgent: args.userAgent, userId: user?._id,
     });
-
-    // Increment article view counts
-    if (article) {
-      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
-        viewCount: article.viewCount + 1,
-        uniqueViewCount: isNewUnique ? article.uniqueViewCount + 1 : article.uniqueViewCount,
-      });
-    }
-
     return viewId;
   },
 });
@@ -98,9 +57,9 @@ export const updateDuration = mutation({
     if (args.duration < 0 || args.duration > 3600) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Duration must be between 0 and 3600 seconds" });
     }
-    // Validate page view exists
+    // Validate page view exists; a view of a hidden article is "not found".
     const pageView = await ctx.db.get("kb_pageViews", args.pageViewId);
-    if (!pageView) {
+    if (!pageView || !await readPublicKbArticle(ctx, pageView.articleId)) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Page view not found" });
     }
 

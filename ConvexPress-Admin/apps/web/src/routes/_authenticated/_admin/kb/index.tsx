@@ -8,6 +8,7 @@ const kbSearchSchema = z.object({
   status: z
     .enum(["draft", "review", "published", "archived"])
     .optional(),
+  visibility: z.enum(["public", "internal"]).optional(),
   search: z.string().optional(),
   page: z.number().min(1).optional(),
   perPage: z.number().min(1).max(100).optional(),

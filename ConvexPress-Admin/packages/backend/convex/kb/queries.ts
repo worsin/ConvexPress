@@ -17,7 +17,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { ConvexError, v, type Validator } from "convex/values";
 import { query } from "../_generated/server";
 import { kbTables } from "../schema/kb";
-import { getCurrentUser, requireCan } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 import {
   listArticlesArgs,
   getArticleByIdArgs,
@@ -33,11 +33,18 @@ import { isPluginEnabled } from "../helpers/plugins";
 import { createPublicKbAccess } from "./publicAccess";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { publicAuthorProfile } from "../helpers/publicAuthor";
+import { kbArticleVisibility, kbArticleVisibilityValidator, PUBLIC_VISIBILITY_KEY, storedKbVisibility, type KbArticleVisibility } from "./helpers/visibility";
 
 import { paginationResultValidator } from "convex/server";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
-export const list: import("convex/server").RegisteredQuery<"public", { paginationOpts: import("convex/server").PaginationOptions; search?: string; status?: import("../_generated/dataModel").Doc<"kb_articles">["status"]; categoryId?: import("../_generated/dataModel").Id<"kb_categories">; authorId?: import("../_generated/dataModel").Id<"users"> }, import("convex/server").PaginationResult<import("../_generated/dataModel").Doc<"kb_articles"> & { author: ReturnType<typeof enrichUser> }>> = query({
+/** Admin reads report the effective visibility and audiences, never absence. */
+type AdminVisibilityFields = { visibility: KbArticleVisibility; audiences: string[] };
+function adminVisibility(article: Doc<"kb_articles">): AdminVisibilityFields {
+  return { visibility: kbArticleVisibility(article), audiences: article.audiences ?? [] };
+}
+
+export const list: import("convex/server").RegisteredQuery<"public", { paginationOpts: import("convex/server").PaginationOptions; search?: string; status?: import("../_generated/dataModel").Doc<"kb_articles">["status"]; categoryId?: import("../_generated/dataModel").Id<"kb_categories">; authorId?: import("../_generated/dataModel").Id<"users">; visibility?: KbArticleVisibility }, import("convex/server").PaginationResult<import("../_generated/dataModel").Doc<"kb_articles"> & AdminVisibilityFields & { author: ReturnType<typeof enrichUser> }>> = query({
   args: listArticlesArgs,
   returns: paginationResultValidator(v.object({
     author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
@@ -72,6 +79,8 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
     readingTimeMinutes: v.number(),
     isFeatured: v.boolean(),
     sortOrder: v.number(),
+    visibility: kbArticleVisibilityValidator,
+    audiences: v.array(v.string()),
     meilisearchSynced: v.boolean(),
     ragSynced: v.boolean(),
   })),
@@ -90,10 +99,11 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
           if (args.status) sq = sq.eq("status", args.status);
           if (args.categoryId) sq = sq.eq("categoryId", args.categoryId);
           if (args.authorId) sq = sq.eq("authorId", args.authorId);
+          if (args.visibility) sq = sq.eq("visibility", storedKbVisibility(args.visibility));
           return sq;
         }).paginate(paginationOpts);
       return { ...result, page: await Promise.all(result.page.map(async article => ({
-        ...article, author: enrichUser(await ctx.db.get("users", article.authorId)),
+        ...article, ...adminVisibility(article), author: enrichUser(await ctx.db.get("users", article.authorId)),
       }))) };
     }
 
@@ -102,6 +112,11 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
       baseQuery = ctx.db
         .query("kb_articles")
         .withIndex("by_status_updated", q => q.eq("status", args.status!))
+        .order("desc");
+    } else if (args.visibility) {
+      baseQuery = ctx.db
+        .query("kb_articles")
+        .withIndex("by_visibility", q => q.eq("visibility", storedKbVisibility(args.visibility!)))
         .order("desc");
     } else if (args.categoryId) {
       baseQuery = ctx.db
@@ -121,13 +136,15 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
     const pageItems = paginationResult.page.filter(article =>
       (!args.status || article.status === args.status) &&
       (!args.categoryId || article.categoryId === args.categoryId) &&
-      (!args.authorId || article.authorId === args.authorId));
+      (!args.authorId || article.authorId === args.authorId) &&
+      (!args.visibility || kbArticleVisibility(article) === args.visibility));
 
     const enrichedPage = await Promise.all(
       pageItems.map(async (article) => {
         const author = await ctx.db.get("users", article.authorId);
         return {
           ...article,
+          ...adminVisibility(article),
           author: enrichUser(author),
         };
       }),
@@ -142,9 +159,10 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
 
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
-type AdminArticle = Doc<"kb_articles"> & { hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
+type AdminArticle = Doc<"kb_articles"> & AdminVisibilityFields & { hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
 const adminArticleValidator: Validator<AdminArticle | null, "required", string> = v.union(v.null(), v.object({
   ...kbTables.kb_articles.validator.fields, _id: v.id("kb_articles"), _creationTime: v.number(), hasInheritedCategoryAccess: v.boolean(),
+  visibility: kbArticleVisibilityValidator, audiences: v.array(v.string()),
   author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
   category: v.union(v.null(), v.object({ ...kbTables.kb_categories.validator.fields, _id: v.id("kb_categories"), _creationTime: v.number() })),
   tags: v.array(v.object({ ...kbTables.kb_tags.validator.fields, _id: v.id("kb_tags"), _creationTime: v.number() })),
@@ -174,6 +192,7 @@ export const getById: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }
     const inheritedGuard = await ctx.db.query("kb_article_category_guards").withIndex("by_article", q => q.eq("articleId", article._id)).first();
     return {
       ...article,
+      ...adminVisibility(article),
       hasInheritedCategoryAccess: inheritedGuard !== null,
       author: enrichUser(author),
       category,
@@ -303,9 +322,10 @@ export const listPublished: RegisteredQuery<"public", {
       if (!category?.isPublished || !await access.allowedRoute(`/help/${encodeURIComponent(category.slug)}`)) return empty;
     }
     budget.beforeRead();
+    // Visibility leads both ranges, so internal articles never consume a page.
     const query = args.categoryId
-      ? ctx.db.query("kb_articles").withIndex("by_category_status_views", q => q.eq("categoryId", args.categoryId!).eq("status", "published"))
-      : ctx.db.query("kb_articles").withIndex("by_status_published", q => q.eq("status", "published"));
+      ? ctx.db.query("kb_articles").withIndex("by_visibility_category_status_views", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("categoryId", args.categoryId!).eq("status", "published"))
+      : ctx.db.query("kb_articles").withIndex("by_visibility_status_published", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("status", "published"));
     const result = await query.order("desc").paginate({
       ...args.paginationOpts, numItems: limit, maximumRowsRead: 100, maximumBytesRead: 512 * 1024,
     });
@@ -331,10 +351,10 @@ async function readPublicList(
   // These are compact previews. The indexed window is bounded even when most
   // candidates are restricted; browse/search endpoints provide continuation.
   const query = kind === "popular"
-    ? ctx.db.query("kb_articles").withIndex("by_status_views", q => q.eq("status", "published")).order("desc")
+    ? ctx.db.query("kb_articles").withIndex("by_visibility_status_views", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("status", "published")).order("desc")
     : kind === "recent"
-      ? ctx.db.query("kb_articles").withIndex("by_status_published", q => q.eq("status", "published")).order("desc")
-      : ctx.db.query("kb_articles").withIndex("by_featured_status_order", q => q.eq("isFeatured", true).eq("status", "published")).order("asc");
+      ? ctx.db.query("kb_articles").withIndex("by_visibility_status_published", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("status", "published")).order("desc")
+      : ctx.db.query("kb_articles").withIndex("by_visibility_featured_status_order", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("isFeatured", true).eq("status", "published")).order("asc");
   const candidates = await query.take(Math.min(100, limit * 3));
   candidates.forEach(article => budget.record(article));
   const result: PublicKbSummary[] = [];
@@ -376,10 +396,9 @@ export const getVersions = query({
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
+    // Versions hold full article bodies, including internal and unpublished
+    // ones; a signed-in website account is not enough to read them.
+    await requireCan(ctx, "kb.view");
 
     const versions = await ctx.db
       .query("kb_articleVersions")

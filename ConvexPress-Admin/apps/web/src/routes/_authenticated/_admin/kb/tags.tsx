@@ -38,7 +38,7 @@ function KBTagsPage() {
 }
 
 function KBTagsContent() {
-  const tagsResult = useQuery(api.kb.tags.list);
+  const tagsResult = useQuery(api.kb.tags.listAdmin);
   const tags = (tagsResult ?? []) as Array<{
     _id: string;
     name: string;

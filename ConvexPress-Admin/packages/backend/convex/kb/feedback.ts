@@ -23,6 +23,8 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { readPublicKbArticle, requirePublicKbArticle } from "./publicAccess";
+import { recordKbHelpfulFeedback } from "./helpers/engagement";
 
 import { v } from "convex/values";
 import { kbDocs } from "../schema/kb.docs.generated";
@@ -34,83 +36,11 @@ export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_art
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
-
-    const article = await ctx.db.get("kb_articles", args.articleId);
-    if (!article) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
-    }
-
-    if (!args.sessionId || args.sessionId.length > 128) {
-      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
-    }
-
-    const MAX_FEEDBACK_COMMENT = 1000;
-    if (args.comment && args.comment.length > MAX_FEEDBACK_COMMENT) {
-      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Comment too long" });
-    }
-
-    // Check for existing feedback from this session
-    const existing = await ctx.db
-      .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q) =>
-        q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
-      )
-      .first();
-
-    if (existing) {
-      // Update existing feedback
-      const oldIsHelpful = existing.isHelpful;
-      await ctx.db.patch("kb_articleFeedback", existing._id, {
-        isHelpful: args.isHelpful,
-        comment: args.comment,
-      });
-
-      // Update denormalized counts on article (use outer `article` -- already validated non-null)
-      if (oldIsHelpful !== args.isHelpful) {
-        if (args.isHelpful) {
-          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
-            helpfulVotes: article.helpfulVotes + 1,
-            notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
-          });
-        } else {
-          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
-            helpfulVotes: Math.max(0, article.helpfulVotes - 1),
-            notHelpfulVotes: article.notHelpfulVotes + 1,
-          });
-        }
-      }
-
-      return existing._id;
-    }
-
-    // Create new feedback
-    const feedbackId = await ctx.db.insert("kb_articleFeedback", {
-      articleId: args.articleId,
-      userId: user?._id,
-      sessionId: args.sessionId,
-      isHelpful: args.isHelpful,
-      comment: args.comment,
-      createdAt: Date.now(),
+    // A hidden (internal, unpublished or restricted) article is "not found".
+    const article = await requirePublicKbArticle(ctx, args.articleId);
+    return recordKbHelpfulFeedback(ctx, article, {
+      sessionId: args.sessionId, isHelpful: args.isHelpful, comment: args.comment, userId: user?._id,
     });
-
-    // Update denormalized counts (use outer `article` -- already validated non-null)
-    if (args.isHelpful) {
-      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
-        helpfulVotes: article.helpfulVotes + 1,
-      });
-    } else {
-      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
-        notHelpfulVotes: article.notHelpfulVotes + 1,
-      });
-    }
-
-    await emitEvent(ctx, KB_EVENTS.FEEDBACK_SUBMITTED, SYSTEM.KB, {
-      feedbackId,
-      articleId: args.articleId,
-      isHelpful: args.isHelpful,
-    });
-
-    return feedbackId;
   },
 });
 
@@ -123,10 +53,7 @@ export const submitRating: RegisteredMutation<"public", { articleId: Id<"kb_arti
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
 
-    const article = await ctx.db.get("kb_articles", args.articleId);
-    if (!article) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
-    }
+    const article = await requirePublicKbArticle(ctx, args.articleId);
 
     if (!args.sessionId || args.sessionId.length > 128) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
@@ -216,6 +143,7 @@ export const getArticleStats = query({
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    if (!await readPublicKbArticle(ctx, args.articleId)) return null;
     // Safety-bounded with .take(5000) — use denormalized article counts for basic stats
     const feedback = await ctx.db
       .query("kb_articleFeedback")
@@ -247,6 +175,7 @@ export const getUserFeedback: RegisteredQuery<"public", { articleId: Id<"kb_arti
   returns: v.union(v.null(), kbDocs.kb_articleFeedback),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    if (!await readPublicKbArticle(ctx, args.articleId)) return null;
     return ctx.db
       .query("kb_articleFeedback")
       .withIndex("by_session_article", (q) =>

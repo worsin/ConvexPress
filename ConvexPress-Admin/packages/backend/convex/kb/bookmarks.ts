@@ -1,5 +1,5 @@
 import type { RegisteredQuery, RegisteredMutation } from "convex/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Bookmark Functions
  *
@@ -7,6 +7,10 @@ import type { Id } from "../_generated/dataModel";
  *   list         - List all bookmarks for the current user (auth required)
  *   isBookmarked - Check if an article is bookmarked (auth required)
  *   toggle       - Toggle bookmark on/off (auth required)
+ *
+ * Bookmarks of articles that are now hidden (internal, unpublished or
+ * restricted) stay stored but are invisible, and cannot be toggled, until the
+ * article is public again.
  */
 
 import { ConvexError } from "convex/values";
@@ -14,6 +18,8 @@ import { mutation, query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { toggleBookmarkArgs, isBookmarkedArgs } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { createPublicKbAccess, PUBLIC_KB_LIST_READS, readPublicKbArticle, requirePublicKbArticle } from "./publicAccess";
+import { RequestReadLedger } from "../helpers/requestReadLedger";
 
 import { v } from "convex/values";
 // ─── List ───────────────────────────────────────────────────────────────────
@@ -49,25 +55,27 @@ export const list = query({
       .order("desc")
       .take(500);
 
-    // Enrich with article details
-    return Promise.all(
-      bookmarks.map(async (bookmark) => {
-        const article = await ctx.db.get("kb_articles", bookmark.articleId);
-        return {
-          ...bookmark,
-          article: article
-            ? {
-                _id: article._id,
-                title: article.title,
-                slug: article.slug,
-                excerpt: article.excerpt,
-                status: article.status,
-                categoryId: article.categoryId,
-              }
-            : null,
-        };
-      }),
-    );
+    // Enrich with article details. Bookmarks of hidden articles are omitted.
+    const access = createPublicKbAccess(ctx, new RequestReadLedger(PUBLIC_KB_LIST_READS));
+    const visible: Array<Doc<"kb_bookmarks"> & { article: Pick<Doc<"kb_articles">, "_id" | "title" | "slug" | "excerpt" | "status" | "categoryId"> | null }> = [];
+    for (const bookmark of bookmarks) {
+      const article = await ctx.db.get("kb_articles", bookmark.articleId);
+      if (article && !await access.article(article)) continue;
+      visible.push({
+        ...bookmark,
+        article: article
+          ? {
+              _id: article._id,
+              title: article.title,
+              slug: article.slug,
+              excerpt: article.excerpt,
+              status: article.status,
+              categoryId: article.categoryId,
+            }
+          : null,
+      });
+    }
+    return visible;
   },
 });
 
@@ -80,6 +88,7 @@ export const isBookmarked: RegisteredQuery<"public", { articleId: Id<"kb_article
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return false;
+    if (!await readPublicKbArticle(ctx, args.articleId)) return false;
 
     const bookmark = await ctx.db
       .query("kb_bookmarks")
@@ -103,6 +112,8 @@ export const toggle: RegisteredMutation<"public", { articleId: Id<"kb_articles">
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
+    // A hidden (internal, unpublished or restricted) article is "not found".
+    await requirePublicKbArticle(ctx, args.articleId);
 
     const existing = await ctx.db
       .query("kb_bookmarks")

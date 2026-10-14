@@ -330,7 +330,9 @@ export function RevisionComparison({
       {!compareMode && rightRevision ? (
         <DiffViewer
           left={{
-            title: post.title, content: post.content ?? "", excerpt: post.excerpt,
+            // posts.queries.get declares no top-level `content` (posts store
+            // canonical blocks); render it only when a result still carries it.
+            title: post.title, content: "content" in post && typeof post.content === "string" ? post.content : "", excerpt: post.excerpt,
             details: JSON.stringify(Object.fromEntries(AUTHORING_FIELDS
               .filter(field => !["title", "content", "excerpt", "blocksRevision"].includes(field))
               .filter(field => rightRevision.snapshotVersion === 2 || !["layoutId", "pagePrompt"].includes(field))
