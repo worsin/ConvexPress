@@ -239,7 +239,7 @@ function SocialCellRenderer({ cell }: { cell: FooterSocialCell }) {
 }
 
 function NewsletterCellRenderer({ cell }: { cell: FooterNewsletterCell }) {
-  const subscribe = useMutation((api as any).emails.mutations.subscribeNewsletter);
+  const subscribe = useMutation(api.emails.mutations.subscribeNewsletter);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">(
     "idle",

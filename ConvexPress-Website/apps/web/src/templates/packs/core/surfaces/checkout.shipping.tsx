@@ -21,7 +21,7 @@ export interface ShippingAddressForm {
 }
 
 export interface ShippingQuote {
-  _id: string;
+  /** Unique per quote; quotes are not stored documents and carry no _id. */
   quoteKey: string;
   provider?: string;
   carrierName: string;
@@ -333,7 +333,7 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
 
                       return (
                         <label
-                          key={quote._id}
+                          key={quote.quoteKey}
                           className={`block cursor-pointer rounded-2xl border px-4 py-4 transition-colors ${
                             isSelected
                               ? "border-primary bg-primary/5"

@@ -114,8 +114,8 @@ function SinglePage() {
 	// Read through the TanStack cache the loader filled, so the server and the
 	// hydrating client render the same page instead of a skeleton vs. content.
 	const { data: rawPageByPath } = useTanStackQuery(
-		convexQuery(api.pages.queries.getByPath, { path: pagePath }) as any,
-	) as { data: any };
+		convexQuery(api.pages.queries.getByPath, { path: pagePath }),
+	);
 	const rawPage = rawPageByPath;
 
 	// Propagate per-page layout overrides (hideHeader/hideFooter) to parent layout
@@ -164,9 +164,9 @@ function SinglePage() {
 		...(convexQuery(api.membership.queries.checkAccess, {
 			resourceType: "page" as const,
 			resourceIdOrKey: (pageId ?? "") as string,
-		}) as any),
+		})),
 		enabled: !!pageId,
-	}) as { data: any };
+	});
 
 	// Password verification query (skipped until password is submitted)
 	const isPasswordProtected =

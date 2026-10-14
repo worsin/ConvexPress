@@ -16,7 +16,6 @@
  * no `.not`/`.toThrow`). Errors are asserted by catching into a boolean/string.
  */
 
-// @ts-ignore Convex backend tsconfig does not include Bun test globals.
 import { describe, expect, test } from "bun:test";
 
 import { parse, collectRefs } from "../parse";

@@ -18,8 +18,7 @@
  * one step with no progress bar and a plain Submit — like the bare renderer.
  *
  * SSR-safe: no `window`/`crypto` at module load (only inside effects/handlers).
- * No `@radix-ui/*`, no hardcoded colors. `api` is `(api as any)` for the
- * loosely-typed extension function path, mirroring FormRenderer/SignupForm.
+ * No `@radix-ui/*`, no hardcoded colors.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -341,15 +340,15 @@ export function FormWizard({
     allowBackNav: options?.allowBackNav ?? true,
   };
 
-  const submit = useMutation((api as any).extensions.forms.mutations.submit);
+  const submit = useMutation(api.extensions.forms.mutations.submit);
   const submitWithCaptcha = useAction(
-    (api as any).extensions.forms.mutations.submitWithCaptcha,
+    api.extensions.forms.mutations.submitWithCaptcha,
   );
   const beginOrderPayment = useAction(
-    (api as any).extensions.forms.orderPaymentActions.beginOrderPayment,
+    api.extensions.forms.orderPaymentActions.beginOrderPayment,
   );
   const recordFunnel = useMutation(
-    (api as any).extensions.forms.analytics.recordFunnelPublic,
+    api.extensions.forms.analytics.recordFunnelPublic,
   );
   const convex = useConvex();
 
@@ -472,7 +471,7 @@ export function FormWizard({
     [orderedFields, values],
   );
   const orderPricing = useMemo<PricingResult>(() => {
-    const calcDefs = visiblePricingFields as unknown as CalcFieldDef[];
+    const calcDefs: CalcFieldDef[] = visiblePricingFields;
     return recomputeForm(
       calcDefs,
       values,
@@ -494,7 +493,7 @@ export function FormWizard({
   useEffect(() => {
     if (viewedRef.current) return;
     viewedRef.current = true;
-    void recordFunnel({ formId: form._id as any, stage: "viewed" }).catch(
+    void recordFunnel({ formId: form._id, stage: "viewed" }).catch(
       () => {},
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -517,7 +516,7 @@ export function FormWizard({
     setSaveState("saving");
     try {
       const res = await submit({
-        formId: form._id as any,
+        formId: form._id,
         contactPassword,
         values: buildPayload(),
         isComplete: false,
@@ -578,7 +577,7 @@ export function FormWizard({
           sessionNonceRef.current = browserNonce("forms_started");
         }
         void recordFunnel({
-          formId: form._id as any,
+          formId: form._id,
           stage: "started",
           sessionNonce: sessionNonceRef.current,
         }).catch(() => {});
@@ -639,7 +638,7 @@ export function FormWizard({
         ? submitWithCaptcha
         : submit;
       const res = await submitComplete({
-        formId: form._id as any,
+        formId: form._id,
         contactPassword,
         values: buildPayload(),
         isComplete: true,
@@ -657,7 +656,7 @@ export function FormWizard({
       if (orderFormSettings.enabled) {
         try {
           const snapshot = (await convex.query(
-            (api as any).extensions.forms.queries.getSubmissionPricing,
+            api.extensions.forms.queries.getSubmissionPricing,
             { id: res.submissionId },
           )) as TrustedPricingSnapshot | null;
           trustedPricing = normalizeTrustedPricing(snapshot);
@@ -679,7 +678,7 @@ export function FormWizard({
         onSubmitted?.(res);
         try {
           const descriptor = (await beginOrderPayment({
-            submissionId: res.submissionId as any,
+            submissionId: res.submissionId,
             returnUrl,
           })) as OrderPaymentDescriptor;
           setOrderPayment({
@@ -706,8 +705,8 @@ export function FormWizard({
 
       try {
         const ref = await convex.query(
-          (api as any).extensions.forms.confirmations.resolveConfirmation,
-          { formId: form._id as any, submissionId: res.submissionId, confirmationToken: res.confirmationToken, contactPassword },
+          api.extensions.forms.confirmations.resolveConfirmation,
+          { formId: form._id, submissionId: res.submissionId, confirmationToken: res.confirmationToken, contactPassword },
         );
 
         if (ref?.type === "redirect" && ref.redirectUrl) {

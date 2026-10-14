@@ -9,7 +9,7 @@ import { ErrorTemplate } from "./templates/packs/core/parts/runtime-error";
 import { NotFoundTemplate } from "./templates/packs/core/parts/not-found";
 import { routeTree } from "./routeTree.gen";
 
-export function getRouter(): any {
+export function getRouter() {
   const { convexUrl } = getSiteRuntime();
   if (!convexUrl) {
     throw new Error(
@@ -29,7 +29,7 @@ export function getRouter(): any {
   });
   convexQueryClient.connect(queryClient);
 
-  const router: any = createTanStackRouter({
+  const router = createTanStackRouter({
     routeTree,
     defaultPreload: "intent",
     // Avoid forcing slash normalization redirects that can loop with stale browser redirect cache.

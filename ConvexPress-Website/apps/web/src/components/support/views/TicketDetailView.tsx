@@ -27,9 +27,9 @@ type TicketMessage = {
 export function TicketDetailView({
   ticketId,
 }: TicketDetailViewProps) {
-  const messages = useQuery(api.tickets.messages.getByTicket, {
+  const messages: TicketMessage[] | null | undefined = useQuery(api.tickets.messages.getByTicket, {
     ticketId: ticketId as Id<"ticket_tickets">,
-  }) as TicketMessage[] | null | undefined;
+  });
   const replyToTicket = useMutation(api.tickets.mutations.reply);
 
   const [replyContent, setReplyContent] = useState("");

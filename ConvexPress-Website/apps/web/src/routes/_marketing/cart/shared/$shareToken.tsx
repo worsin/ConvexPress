@@ -16,10 +16,10 @@ function SharedCartPage() {
   const { shareToken } = Route.useParams();
   const router = useRouter();
   const { sessionToken, isReady } = useCommerceSessionToken();
-  const sharedCart = useQuery((api as any).commerce.cart.getShared, {
+  const sharedCart = useQuery(api.commerce.cart.getShared, {
     shareToken,
-  }) as any;
-  const copyShared = useMutation((api as any).commerce.cart.copyShared);
+  });
+  const copyShared = useMutation(api.commerce.cart.copyShared);
   const [isCopying, setIsCopying] = useState(false);
 
   async function handleCopyCart() {

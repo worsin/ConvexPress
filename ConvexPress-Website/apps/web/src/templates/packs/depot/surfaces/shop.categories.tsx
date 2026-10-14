@@ -52,7 +52,7 @@ function CategoryCard({ category }: { category: CategoryDirectoryItem }) {
       <Link to="/categories/$slug" params={{ slug: category.slug }} className="flex flex-1 flex-col">
         <div className="relative aspect-[4/3] bg-muted/40">
           {category.thumbnailMediaId ? (
-            <MediaImage mediaId={category.thumbnailMediaId as any} alt={category.name} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 20vw" />
+            <MediaImage mediaId={category.thumbnailMediaId} alt={category.name} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 20vw" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <PackageOpen className="size-8" aria-hidden="true" />

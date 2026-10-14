@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth/clerk";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { assistantIdentityReady } from "./prompt-handoff";
 import type { ProductCardData } from "@/components/shop/ProductMiniCard";
+import { idFromString } from "@/lib/ids";
 
 export type AssistantBlock =
   | { type: "cart_proposal"; id: string; productId: string; variantId?: string; quantity: number; title: string; added: boolean }
@@ -77,20 +78,15 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
       sendingRef.current = null;
     };
   }, [scope]);
-  const anyApi = api as any;
-  const thread = useQuery(anyApi.commerce.assistant.queries.getThread, sessionToken && active ? { sessionToken, limit: 30 } : "skip") as
-    | { session: { lastQuery: string | null } | null; messages: AssistantMessage[] }
-    | undefined;
-  const memory = useQuery(anyApi.commerce.assistant.queries.listMemory, sessionToken && active ? { sessionToken } : "skip") as
-    | MemoryItem[]
-    | undefined;
-  const respond = useAction(anyApi.commerce.assistant.actions.respond);
-  const briefAction = useAction(anyApi.commerce.assistant.actions.brief);
-  const setFeedbackMutation = useMutation(anyApi.commerce.assistant.mutations.setFeedback);
-  const forgetMutation = useMutation(anyApi.commerce.assistant.mutations.forgetFact);
-  const clearMutation = useMutation(anyApi.commerce.assistant.mutations.clearThread);
-  const confirmCartMutation = useMutation(anyApi.commerce.assistant.cartActions.confirm);
-  const logEvent = useMutation(anyApi.commerce.assistant.mutations.logEvent);
+    const thread: { session: { lastQuery: string | null } | null; messages: AssistantMessage[] } | undefined = useQuery(api.commerce.assistant.queries.getThread, sessionToken && active ? { sessionToken, limit: 30 } : "skip");
+  const memory: MemoryItem[] | undefined = useQuery(api.commerce.assistant.queries.listMemory, sessionToken && active ? { sessionToken } : "skip");
+  const respond = useAction(api.commerce.assistant.actions.respond);
+  const briefAction = useAction(api.commerce.assistant.actions.brief);
+  const setFeedbackMutation = useMutation(api.commerce.assistant.mutations.setFeedback);
+  const forgetMutation = useMutation(api.commerce.assistant.mutations.forgetFact);
+  const clearMutation = useMutation(api.commerce.assistant.mutations.clearThread);
+  const confirmCartMutation = useMutation(api.commerce.assistant.cartActions.confirm);
+  const logEvent = useMutation(api.commerce.assistant.mutations.logEvent);
 
   const [pending, setPending] = useState<(RequestOwner & { text: string }) | null>(null);
   const sending = active && pending?.scope === scope && pending.generation === lifetime.current.generation;
@@ -183,7 +179,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const feedback = useCallback(
     (messageId: string, value: "up" | "down" | null) => {
       if (!sessionToken) return;
-      void setFeedbackMutation({ sessionToken, messageId, feedback: value });
+      void setFeedbackMutation({ sessionToken, messageId: idFromString<"commerce_assistant_messages">(messageId), feedback: value });
     },
     [sessionToken, setFeedbackMutation],
   );
@@ -191,7 +187,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const forget = useCallback(
     (memoryId: string) => {
       if (!sessionToken) return;
-      void forgetMutation({ sessionToken, memoryId });
+      void forgetMutation({ sessionToken, memoryId: idFromString<"commerce_shopper_memory">(memoryId) });
     },
     [forgetMutation, sessionToken],
   );
@@ -205,7 +201,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
     if (!sessionToken || !active || !lifetime.current.mounted || lifetime.current.scope !== scope) return false;
     const generation = lifetime.current.generation;
     try {
-      await confirmCartMutation({ sessionToken, messageId, proposalId });
+      await confirmCartMutation({ sessionToken, messageId: idFromString<"commerce_assistant_messages">(messageId), proposalId });
       return lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === generation;
     } catch (error) {
       if (lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === generation) {
@@ -218,7 +214,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const track = useCallback(
     (surface: "rail" | "drawer" | "cart_page" | "product_page" | "search", event: "impression" | "click" | "add", productIds: string[], groupKey?: string) => {
       if (!sessionToken || !productIds.length) return;
-      void logEvent({ sessionToken, surface, event, productIds, groupKey }).catch(() => undefined);
+      void logEvent({ sessionToken, surface, event, productIds: productIds.map((id) => idFromString<"commerce_products">(id)), groupKey }).catch(() => undefined);
     },
     [logEvent, sessionToken],
   );
@@ -231,9 +227,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
     productIdsIn(brief.blocks).forEach((id) => ids.add(id));
     return [...ids].slice(0, 48);
   }, [messages, brief.blocks]);
-  const cards = useQuery(anyApi.commerce.storefront.productCards, referencedIds.length ? { productIds: referencedIds } : "skip") as
-    | ProductCardData[]
-    | undefined;
+  const cards: ProductCardData[] | undefined = useQuery(api.commerce.storefront.productCards, referencedIds.length ? { productIds: referencedIds } : "skip");
   const cardById = useMemo(() => new Map((cards ?? []).map((card) => [card.productId, card])), [cards]);
 
   return {

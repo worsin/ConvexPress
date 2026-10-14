@@ -38,9 +38,9 @@ function useFormRouteRecovery() {
     let attempt = attempted.get(router);
     if (attempt?.key !== key) {
       const reads = [
-        convexQuery((api as any).extensions.forms.queries.getBySlug, { slug }),
+        convexQuery(api.extensions.forms.queries.getBySlug, { slug }),
         convexQuery(api.membership.queries.checkAccess, { resourceType: "route", resourceIdOrKey: pathname }),
-        ...(token ? [convexQuery((api as any).extensions.forms.queries.resume, { token })] : []),
+        ...(token ? [convexQuery(api.extensions.forms.queries.resume, { token })] : []),
       ];
       for (const read of reads) queryClient.removeQueries({ queryKey: read.queryKey, exact: true });
       attempt = { key, completion: Promise.resolve().then(() => router.invalidate()).then(() => undefined) };

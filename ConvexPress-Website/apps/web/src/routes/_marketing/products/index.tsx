@@ -35,8 +35,8 @@ export const Route = createFileRoute("/_marketing/products/")({
     const shop = { ...pack?.manifest.defaults?.shop, ...(savedShop && typeof savedShop === "object" ? savedShop as Record<string, unknown> : {}) };
     const shopLayout = resolveShopLayout(config?.variants ?? {}, shop, { layout });
     const perPage = perPageFor(shopLayout.shopLayout, shopLayout.gridDensity);
-    if ((publicSettings as any)?.plugins?.commerceEnabled === true) {
-      await queryClient.ensureQueryData(convexQuery((api as any).commerce.storefront.searchProducts, { ...args, perPage }));
+    if (publicSettings?.plugins?.commerceEnabled === true) {
+      await queryClient.ensureQueryData(convexQuery(api.commerce.storefront.searchProducts, { ...args, perPage }));
     }
     const path = args.q ? `/products?q=${encodeURIComponent(args.q)}` : args.page > 1 ? `/products?page=${args.page}` : "/products";
     return {

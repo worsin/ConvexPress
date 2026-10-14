@@ -8,7 +8,6 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useCapabilityAccess } from "@/hooks/useCan";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import CoreDashboardPosts, {
-  type DashboardPostRow,
   type DashboardPostsSurfaceData,
 } from "@/templates/packs/core/surfaces/dashboard.posts";
 import { Surface } from "@/templates/sdk/Surface";
@@ -42,12 +41,13 @@ function AuthorizedPostsPage() {
           perPage: 50,
         }
       : "skip",
-  ) as { posts?: DashboardPostRow[] } | undefined;
+  );
 
   const data: DashboardPostsSurfaceData = {
     user: user ?? null,
     isLoading,
-    posts: postsResult?.posts,
+    // A row the viewer cannot read comes back as an author-only stub; skip it.
+    posts: postsResult?.posts.flatMap((post) => ("_id" in post ? [post] : [])),
   };
 
   return <Surface name="dashboard.posts" data={data} fallback={CoreDashboardPosts} />;

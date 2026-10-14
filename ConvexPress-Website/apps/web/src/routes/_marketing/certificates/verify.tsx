@@ -27,16 +27,16 @@ export const Route = createFileRoute("/_marketing/certificates/verify")({
 function VerifyCertificatePage() {
   const navigate = useNavigate();
   const { serial } = Route.useSearch();
-  const result = useQuery(
-    (api as any).lms.certificates.queries.verifyBySerial,
+  const result: CertificateVerification | undefined = useQuery(
+    api.lms.certificates.queries.verifyBySerial,
     serial ? { serial } : "skip",
-  ) as CertificateVerification | undefined;
+  );
 
   function verify(next: string) {
     void navigate({
       to: "/certificates/verify",
       search: next ? { serial: next } : {},
-    } as any);
+    });
   }
 
   const data: CertificateVerifySurfaceData = { serial, result, actions: { verify } };

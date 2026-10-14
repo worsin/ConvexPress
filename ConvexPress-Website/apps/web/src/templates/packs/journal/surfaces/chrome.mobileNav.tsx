@@ -152,7 +152,7 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
-                  <Link to={dashboardPath() as any} onClick={onClose} className="text-sm tracking-wide text-foreground underline decoration-border underline-offset-[6px] hover:decoration-foreground">
+                  <Link to={dashboardPath()} onClick={onClose} className="text-sm tracking-wide text-foreground underline decoration-border underline-offset-[6px] hover:decoration-foreground">
                     Dashboard
                   </Link>
                   <button

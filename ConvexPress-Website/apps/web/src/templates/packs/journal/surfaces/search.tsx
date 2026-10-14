@@ -39,8 +39,8 @@ export default function JournalSearch({ data }: SurfaceProps<SearchSurfaceData>)
   const { query, hasQuery, type, sort, results, total, pagination, onResultClick } = data;
   const navigate = useNavigate();
 
-  const setType = (next: string | undefined) => void navigate({ to: "/search", search: { q: query, type: next, page: 1 } } as any);
-  const setSort = (next: string) => void navigate({ to: "/search", search: { q: query, type, sort: next, page: 1 } } as any);
+  const setType = (next: string | undefined) => void navigate({ to: "/search", search: { q: query, type: next, page: 1 } });
+  const setSort = (next: string) => void navigate({ to: "/search", search: { q: query, type, sort: next, page: 1 } });
 
   return (
     <Container data-slot="search-page" className="py-6 md:py-10">
@@ -146,7 +146,7 @@ function SearchLine({ initialQuery, autoFocus }: { initialQuery: string; autoFoc
     const trimmed = query.trim();
     if (!trimmed) return;
     setSuggestionsVisible(false);
-    void navigate({ to: "/search", search: { q: trimmed } } as any);
+    void navigate({ to: "/search", search: { q: trimmed } });
   }
 
   function onChange(event: ChangeEvent<HTMLInputElement>) {
@@ -257,7 +257,7 @@ function ResultRow({ result, onClick }: { result: SearchResult; onClick: () => v
           ) : null}
         </p>
         <h2 className="font-display text-2xl leading-snug tracking-tight text-foreground text-balance md:text-[1.75rem]">
-          <Link to={getResultUrl(result) as any} onClick={onClick} className="transition-colors hover:text-primary">
+          <Link to={getResultUrl(result)} onClick={onClick} className="transition-colors hover:text-primary">
             {result.title}
           </Link>
         </h2>

@@ -23,7 +23,7 @@ function ForgotPasswordComponent() {
   // Authenticated users should manage passwords in dashboard settings
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      navigate({ to: "/dashboard/settings" } as any);
+      navigate({ to: "/dashboard/settings" });
     }
   }, [isLoaded, isSignedIn, navigate]);
 

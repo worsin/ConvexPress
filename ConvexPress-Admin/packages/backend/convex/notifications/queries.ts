@@ -27,6 +27,7 @@
  */
 
 import { query } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
 import {
   getCurrentUser,
@@ -229,7 +230,7 @@ const CENTER_SCAN_LIMIT = 500;
  * metadata, no user ids).
  */
 export interface ListForCenterResult {
-  items: CenterItem[];
+  items: CenterItem<Id<"siteNotifications">>[];
   counts: CenterCounts;
   /** Kinds present in the member's non-archived notifications (for filter chips). */
   kinds: NotificationKind[];
@@ -241,7 +242,7 @@ export const listForCenter = query({
   args: listForCenterArgs,
   returns: v.object({
     items: v.array(v.object({
-      id: v.string(),
+      id: v.id("siteNotifications"),
       title: v.string(),
       message: v.string(),
       type: v.union(v.literal("error"), v.literal("info"), v.literal("success"), v.literal("warning")),
@@ -292,20 +293,20 @@ export const listForCenter = query({
         : "all";
     const limit = Math.max(1, Math.min(args.limit ?? CENTER_DEFAULT_LIMIT, CENTER_MAX_LIMIT));
 
-    const rows: CenterSourceRow[] = await ctx.db
+    const rows: CenterSourceRow<Id<"siteNotifications">>[] = await ctx.db
       .query("siteNotifications")
       .withIndex("by_user", (q) => q.eq("userId", getUserIdentifier(user)))
       .order("desc")
       .take(CENTER_SCAN_LIMIT);
 
-    const items: CenterItem[] = rows.map((row: CenterSourceRow) => toCenterItem(row));
+    const items = rows.map((row) => toCenterItem(row));
     const counts: CenterCounts = computeCounts(items, now);
     const kindsPresent = new Set<NotificationKind>();
     for (const item of items) {
       if (item.dismissedAt === undefined) kindsPresent.add(item.kind);
     }
     const kinds: NotificationKind[] = NOTIFICATION_KINDS.filter((k: NotificationKind) => kindsPresent.has(k));
-    const filtered: CenterItem[] = filterForCenter(items, { view, kind, search: args.search, limit }, now);
+    const filtered = filterForCenter(items, { view, kind, search: args.search, limit }, now);
 
     const result: ListForCenterResult = { items: filtered, counts, kinds, now };
     return result;

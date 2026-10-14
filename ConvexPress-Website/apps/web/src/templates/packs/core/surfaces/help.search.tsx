@@ -8,8 +8,8 @@ export type KbSearchResult = {
   title: string;
   slug: string;
   excerpt?: string;
-  categorySlug?: string;
-  categoryName?: string;
+  categorySlug?: string | null;
+  categoryName?: string | null;
   readingTimeMinutes?: number;
 };
 

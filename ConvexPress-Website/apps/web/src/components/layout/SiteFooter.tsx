@@ -101,7 +101,7 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
   const showNewsletter = footerConfig.newsletter.enabled && footerConfig.layout.columns !== "minimal";
   const showContact = footerConfig.contactInfo.enabled && footerConfig.layout.columns !== "minimal";
   const subscribeNewsletter = useMutation(
-    (api as any).emails.mutations.subscribeNewsletter,
+    api.emails.mutations.subscribeNewsletter,
   );
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterStatus, setNewsletterStatus] = useState<

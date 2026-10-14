@@ -20,15 +20,15 @@ function TrackOrderPage() {
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const order = useQuery(
-    (api as any).commerce.orders.getByTrackingToken,
+    api.commerce.orders.getByTrackingToken,
     commerceEnabled ? { trackingToken: token } : "skip",
-  ) as any;
+  );
   // PRD D2 §2.1 — pull per-shipment tracking timeline so the page shows
   // actual carrier scan history, not just order status.
   const trackingTimeline = useQuery(
-    (api as any).shipping.tracking.queries.publicTracking,
+    api.shipping.tracking.queries.publicTracking,
     commerceEnabled ? { trackingToken: token } : "skip",
-  ) as any;
+  );
 
   const surfaceData: OrderTrackSurfaceData = { order, trackingTimeline };
 

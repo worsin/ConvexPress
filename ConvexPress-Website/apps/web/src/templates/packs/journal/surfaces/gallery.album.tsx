@@ -81,7 +81,7 @@ export default function JournalGalleryAlbum({ data }: SurfaceProps<GalleryAlbumS
         <div className="overflow-hidden rounded-2xl border border-border bg-border" style={{ columnCount: columns, columnGap: "1px" }}>
           {items.map((item, index) => (
             <button key={item._id} type="button" onClick={() => openAt(index)} className={`${tileClass} mb-px break-inside-avoid`} disabled={!lightbox} aria-label={item.altText ?? item.media.title ?? `Image ${index + 1}`}>
-              <MediaImage mediaId={item.mediaId as never} alt={item.altText ?? item.media.title ?? ""} preferredSize="medium_large" className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" sizes="(max-width: 768px) 100vw, 33vw" />
+              <MediaImage mediaId={item.mediaId} alt={item.altText ?? item.media.title ?? ""} preferredSize="medium_large" className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" sizes="(max-width: 768px) 100vw, 33vw" />
               {captions && item.caption ? <span className="block px-4 py-3 text-xs leading-6 text-muted-foreground">{item.caption}</span> : null}
             </button>
           ))}
@@ -91,7 +91,7 @@ export default function JournalGalleryAlbum({ data }: SurfaceProps<GalleryAlbumS
           {items.map((item, index) => (
             <button key={item._id} type="button" onClick={() => openAt(index)} className={tileClass} disabled={!lightbox} aria-label={item.altText ?? item.media.title ?? `Image ${index + 1}`}>
               <span className="block overflow-hidden bg-muted">
-                <MediaImage mediaId={item.mediaId as never} alt={item.altText ?? item.media.title ?? ""} preferredSize="medium_large" className="aspect-[3/2] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" sizes="(max-width: 768px) 100vw, 33vw" />
+                <MediaImage mediaId={item.mediaId} alt={item.altText ?? item.media.title ?? ""} preferredSize="medium_large" className="aspect-[3/2] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" sizes="(max-width: 768px) 100vw, 33vw" />
               </span>
               {captions && item.caption ? <span className="block px-4 py-3 text-xs leading-6 text-muted-foreground">{item.caption}</span> : null}
             </button>

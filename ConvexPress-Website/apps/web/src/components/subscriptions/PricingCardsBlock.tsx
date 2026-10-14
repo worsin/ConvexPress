@@ -61,16 +61,13 @@ function PricingCardsSkeleton() {
  * offers exist, renders nothing.
  */
 export function PricingCardsBlock() {
-  // Website uses (api as any) pattern due to type-gen gap between admin/website.
-  // Wave 7 will clean this up across all commerce subscriptions consumers.
+  const config: PricingCardConfig | undefined = useQuery(
+    api.commerceSubscriptions.pricingCards.getPricingCardConfig,
+  );
 
-  const config = useQuery(
-    (api as any).commerceSubscriptions.pricingCards.getPricingCardConfig,
-  ) as PricingCardConfig | undefined;
-
-  const offers = useQuery(
-    (api as any).commerceSubscriptions.offers.listOffersForPricing,
-  ) as PricingOffer[] | undefined;
+  const offers: PricingOffer[] | undefined = useQuery(
+    api.commerceSubscriptions.offers.listOffersForPricing,
+  );
 
   // Loading state
   if (config === undefined || offers === undefined) {

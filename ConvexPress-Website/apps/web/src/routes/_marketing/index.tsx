@@ -121,12 +121,13 @@ function HomeComponent() {
     : frontPage;
 
   const posts: HomeLatestPost[] | undefined = latestPosts
-    ? (latestPosts.posts ?? []).map((post: HomeLatestPost) => ({
+    ? latestPosts.posts.map((post) => ({
         _id: post._id,
         title: post.title,
         slug: post.slug,
         excerpt: post.excerpt,
-        content: post.content,
+        textExcerpt: post.textExcerpt,
+        readingTimeMinutes: post.readingTimeMinutes,
         publishedAt: post.publishedAt,
       }))
     : undefined;

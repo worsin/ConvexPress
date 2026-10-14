@@ -17,12 +17,13 @@ import CoreCoursesIndex, {
 } from "@/templates/packs/core/surfaces/courses.index";
 import { Surface } from "@/templates/sdk/Surface";
 
+const courseSortSchema = z.enum(["newest", "title_asc", "title_desc", "popular"]);
 const coursesSearchSchema = z.object({
   q: z.string().optional(),
   category: z.string().optional(),
   tag: z.string().optional(),
   access: z.string().optional(),
-  sort: z.enum(["newest", "title_asc", "title_desc", "popular"]).optional(),
+  sort: courseSortSchema.optional(),
   page: z.coerce.number().int().positive().optional(),
 });
 
@@ -38,7 +39,7 @@ function buildCatalogArgs({
   category?: string;
   tag?: string;
   access?: string;
-  sort?: string;
+  sort?: z.infer<typeof courseSortSchema>;
   page?: number;
 }) {
   return {
@@ -81,18 +82,18 @@ export const Route = createFileRoute("/_marketing/courses/")({
     if (lmsEnabled) {
       try {
         await queryClient.ensureQueryData(
-          convexQuery((api as any).lms.courses.queries.getCatalog, buildCatalogArgs(deps)),
+          convexQuery(api.lms.courses.queries.getCatalog, buildCatalogArgs(deps)),
         );
         await queryClient.ensureQueryData(
-          convexQuery((api as any).lms.courses.queries.getCatalogFilters, {}),
+          convexQuery(api.lms.courses.queries.getCatalogFilters, {}),
         );
       } catch {
         catalogMode = "legacy";
         await queryClient.ensureQueryData(
-          convexQuery((api as any).lms.courses.queries.listCatalog, buildLegacyCatalogArgs(deps.q)),
+          convexQuery(api.lms.courses.queries.listCatalog, buildLegacyCatalogArgs(deps.q)),
         );
         await queryClient.ensureQueryData(
-          convexQuery((api as any).lms.courses.queries.listCatalog, {}),
+          convexQuery(api.lms.courses.queries.listCatalog, {}),
         );
       }
     }
@@ -145,10 +146,13 @@ function useCatalogActions(): CoursesIndexSurfaceData["actions"] {
         sort: sort === "newest" ? undefined : sort,
         page: undefined,
       },
-    } as any);
+    });
   }
 
-  function changeSort(nextSort: string) {
+  function changeSort(value: string) {
+    // The surface hands over a raw <select> value; unknown values fall back to the default order.
+    const parsed = courseSortSchema.safeParse(value);
+    const nextSort = parsed.success ? parsed.data : "newest";
     void navigate({
       to: "/courses",
       search: {
@@ -159,7 +163,7 @@ function useCatalogActions(): CoursesIndexSurfaceData["actions"] {
         sort: nextSort === "newest" ? undefined : nextSort,
         page: undefined,
       },
-    } as any);
+    });
   }
 
   return { search, changeSort };
@@ -168,15 +172,15 @@ function useCatalogActions(): CoursesIndexSurfaceData["actions"] {
 function ServerCatalogPage() {
   const { q, category, tag, access, sort, page } = Route.useLoaderDeps();
   const actions = useCatalogActions();
-  const { data: catalog } = useSuspenseQuery(
+  const { data: catalog }: { data: CatalogResult } = useSuspenseQuery(
     convexQuery(
-      (api as any).lms.courses.queries.getCatalog,
+      api.lms.courses.queries.getCatalog,
       buildCatalogArgs({ q, category, tag, access, sort, page }),
-    ) as any,
-  ) as { data: CatalogResult };
-  const { data: filters } = useSuspenseQuery(
-    convexQuery((api as any).lms.courses.queries.getCatalogFilters, {}) as any,
-  ) as { data: CatalogFilters };
+    ),
+  );
+  const { data: filters }: { data: CatalogFilters } = useSuspenseQuery(
+    convexQuery(api.lms.courses.queries.getCatalogFilters, {}),
+  );
 
   const data: CoursesIndexSurfaceData = {
     catalog,
@@ -193,15 +197,15 @@ function LegacyCatalogPage() {
   const deps = Route.useLoaderDeps();
   const { q, category, tag, access, sort } = deps;
   const actions = useCatalogActions();
-  const { data: searchCourses } = useSuspenseQuery(
+  const { data: searchCourses }: { data: CourseCard[] } = useSuspenseQuery(
     convexQuery(
-      (api as any).lms.courses.queries.listCatalog,
+      api.lms.courses.queries.listCatalog,
       buildLegacyCatalogArgs(q),
-    ) as any,
-  ) as { data: CourseCard[] };
-  const { data: allCourses } = useSuspenseQuery(
-    convexQuery((api as any).lms.courses.queries.listCatalog, {}) as any,
-  ) as { data: CourseCard[] };
+    ),
+  );
+  const { data: allCourses }: { data: CourseCard[] } = useSuspenseQuery(
+    convexQuery(api.lms.courses.queries.listCatalog, {}),
+  );
   const catalog = buildLegacyCatalog(searchCourses, deps);
   const filters = buildLegacyFilters(allCourses);
 

@@ -80,7 +80,7 @@ export default function CoreCheckoutPayment({ data }: SurfaceProps<CheckoutPayme
             failureReason={session.failureReason}
           />
           <div className="mt-4 space-y-3">
-            {paymentMethods.map((method: any) => {
+            {paymentMethods.map((method) => {
               const Icon = METHOD_ICONS[method.code];
               const isSelected = paymentMethod === method.code;
               const isCard = method.code === "card";

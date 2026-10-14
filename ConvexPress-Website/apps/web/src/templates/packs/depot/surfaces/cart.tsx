@@ -162,7 +162,7 @@ function CartRow({
       <Td className="min-w-56">
         <div className="flex gap-3">
           <div className="size-14 shrink-0 overflow-hidden rounded-md bg-muted/40">
-            {mediaId ? <MediaImage mediaId={mediaId as any} alt={item.product?.title} className="h-full w-full object-cover" preferredSize="thumbnail" sizes="56px" /> : null}
+            {mediaId ? <MediaImage mediaId={mediaId} alt={item.product?.title} className="h-full w-full object-cover" preferredSize="thumbnail" sizes="56px" /> : null}
           </div>
           <div className="flex min-w-0 flex-col gap-0.5">
             {bundle ? (

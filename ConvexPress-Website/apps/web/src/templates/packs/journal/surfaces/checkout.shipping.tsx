@@ -196,7 +196,7 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
                         const savings = selectedQuote && quote.amount < selectedQuote.amount ? selectedQuote.amount - quote.amount : 0;
                         return (
                           <ChoiceRow
-                            key={quote._id}
+                            key={quote.quoteKey}
                             name="shippingMethod"
                             value={quote.quoteKey}
                             checked={isSelected}

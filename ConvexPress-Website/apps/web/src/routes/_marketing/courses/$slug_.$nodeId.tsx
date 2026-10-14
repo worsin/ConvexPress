@@ -13,6 +13,7 @@ import CoreLessonPreview, {
   type PreviewCourse,
 } from "@/templates/packs/core/surfaces/courses.lessonPreview";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 export const Route = createFileRoute("/_marketing/courses/$slug_/$nodeId")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -41,9 +42,9 @@ export const Route = createFileRoute("/_marketing/courses/$slug_/$nodeId")({
     );
     if (course?._id) {
       await queryClient.ensureQueryData(
-        convexQuery((api as any).lms.lessons.queries.getLessonPublicView, {
-          nodeId: params.nodeId as any,
-        }) as any,
+        convexQuery(api.lms.lessons.queries.getLessonPublicView, {
+          nodeId: idFromString<"lms_nodes">(params.nodeId),
+        }),
       );
     }
 
@@ -78,14 +79,14 @@ function CoursePreviewLessonPage() {
 
 function CoursePreviewLessonEnabled() {
   const { slug, nodeId } = Route.useParams();
-  const { data: course } = useSuspenseQuery(
-    convexQuery(api.lms.courses.queries.getBySlug, { slug }) as any,
-  ) as { data: PreviewCourse | null };
-  const { data: lesson } = useSuspenseQuery(
-    convexQuery((api as any).lms.lessons.queries.getLessonPublicView, {
-      nodeId: nodeId as any,
-    }) as any,
-  ) as { data: LessonDetail | null };
+  const { data: course }: { data: PreviewCourse | null } = useSuspenseQuery(
+    convexQuery(api.lms.courses.queries.getBySlug, { slug }),
+  );
+  const { data: lesson }: { data: LessonDetail | null } = useSuspenseQuery(
+    convexQuery(api.lms.lessons.queries.getLessonPublicView, {
+      nodeId: idFromString<"lms_nodes">(nodeId),
+    }),
+  );
 
   if (!course || !lesson || String(lesson.node.courseId) !== String(course._id)) {
     return <NotFoundPage />;

@@ -12,15 +12,15 @@ import { Surface } from "@/templates/sdk/Surface";
 
 export function DashboardReturnsPage() {
   const { to } = useDashboardPath();
-  const settings = useQuery(api.settings.queries.getPublic) as any;
+  const settings = useQuery(api.settings.queries.getPublic);
   const returnsEnabled =
     settings !== undefined &&
     settings?.plugins?.commerceReturnsEnabled === true;
   const result = usePaginatedQuery(
-    (api as any).commerceReturns.queries.getMyReturns,
+    api.commerceReturns.queries.getMyReturns,
     returnsEnabled ? {} : "skip",
     { initialNumItems: 10 },
-  ) as any;
+  );
 
   const data: DashboardReturnsSurfaceData = {
     returns: result.results ?? [],

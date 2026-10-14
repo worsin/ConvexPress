@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import type { FooterConfig } from "@/lib/layout/types";
 import { MediaImage } from "@/components/media/MediaImage";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,7 @@ export function FooterSectionFrame({ layout, pack, className, children }: {
   const border = layout.topBorder === "none" ? "" : layout.topBorder === "bold" ? "border-t-2 border-border" : layout.topBorder === "accent" ? "border-t-2 border-accent" : "border-t border-border";
   return <footer data-slot="site-footer" data-customize="footer.layout.background" data-pack={pack} role="contentinfo" className={cn("relative isolate", background, border, className)}>
     {layout.background === "image" && layout.backgroundImageId ? <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">
-      <MediaImage mediaId={layout.backgroundImageId as Id<"media">} alt="" className="size-full object-cover" />
+      <MediaImage mediaId={layout.backgroundImageId} alt="" className="size-full object-cover" />
     </div> : null}
     {children}
   </footer>;

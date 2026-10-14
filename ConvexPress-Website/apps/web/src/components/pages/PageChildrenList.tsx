@@ -37,7 +37,8 @@ export function PageChildrenList({ children, className }: PageChildrenListProps)
         {children.map((child) => (
           <li key={child._id}>
 	            <Link
-	              to={`/page${child.path}`}
+	              to="/page/$"
+	              params={{ _splat: child.path.replace(/^\//, "") }}
 	              className="group flex items-center gap-2 py-2 text-xs transition-colors hover:text-primary"
             >
               <ChevronRight className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

@@ -81,8 +81,8 @@ export function ChipLink({
   return (
     <Link
       to={to}
-      params={params as any}
-      search={search as any}
+      params={params}
+      search={search}
       aria-current={active ? "true" : undefined}
       className={cn(
         "inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-md border px-2.5 text-[13px] transition-colors",

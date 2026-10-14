@@ -26,6 +26,7 @@ import { useAuth } from "@/lib/auth/clerk";
 import { useSignUpFlow } from "@/hooks/useSignUpFlow";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import {
   PENDING_SUBSCRIPTION_INTENT_STORAGE_KEY,
   writePendingVerificationContext,
@@ -76,17 +77,17 @@ export interface UseFormSubscriptionPaymentResult {
  * @param enabled gate the subscription (e.g. only after a successful submit)
  */
 export function useFormSubscriptionPayment(
-  submissionId: string | null,
+  submissionId: Id<"form_submissions"> | null,
   enabled: boolean,
 ): UseFormSubscriptionPaymentResult {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const flow = useSignUpFlow();
   const signUpLoaded = flow.isLoaded;
 
-  const pendingRaw = useQuery(
-    (api as any).extensions.forms.actions.getPendingPayment,
-    enabled && submissionId ? { submissionId: submissionId as any } : "skip",
-  ) as PendingPaymentDescriptor | null | undefined;
+  const pendingRaw: PendingPaymentDescriptor | null | undefined = useQuery(
+    api.extensions.forms.actions.getPendingPayment,
+    enabled && submissionId ? { submissionId: submissionId } : "skip",
+  );
 
   const [blockedReason, setBlockedReason] = useState<string | null>(null);
 

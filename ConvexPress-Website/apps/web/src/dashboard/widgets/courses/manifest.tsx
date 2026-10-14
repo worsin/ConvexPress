@@ -28,9 +28,7 @@ function CoursesWidget({ size }: DashboardWidgetProps) {
   const { to } = useDashboardShell();
   const settings = useSettings();
   const enabled = settings?.plugins?.lmsEnabled !== false;
-  const courses = useQuery(api.lms.enrollment.queries.listMyLearning, enabled ? {} : "skip") as
-    | LearningCourse[]
-    | undefined;
+  const courses: LearningCourse[] | undefined = useQuery(api.lms.enrollment.queries.listMyLearning, enabled ? {} : "skip");
   if (!enabled) return <WidgetEmpty icon="graduation-cap" title="Courses are off" />;
   if (courses === undefined) return <WidgetSkeleton rows={3} />;
   const inProgress = [...courses].sort((a, b) => (a.percent >= 100 ? 1 : 0) - (b.percent >= 100 ? 1 : 0));

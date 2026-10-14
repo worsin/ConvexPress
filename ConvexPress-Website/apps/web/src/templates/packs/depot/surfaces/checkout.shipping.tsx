@@ -195,9 +195,9 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
                         {sortedQuotes.map((quote, index) => {
                           const selected = shippingMethod === quote.quoteKey;
                           const savings = selectedQuote && quote.amount < selectedQuote.amount ? selectedQuote.amount - quote.amount : 0;
-                          const id = `quote-${quote._id}`;
+                          const id = `quote-${quote.quoteKey}`;
                           return (
-                            <tr key={quote._id} className={cn("border-t border-border transition-colors", selected ? "bg-primary/5" : index === 0 ? "bg-muted/30" : "hover:bg-muted/40")}>
+                            <tr key={quote.quoteKey} className={cn("border-t border-border transition-colors", selected ? "bg-primary/5" : index === 0 ? "bg-muted/30" : "hover:bg-muted/40")}>
                               <Td className="w-10">
                                 <input id={id} type="radio" name="shippingMethod" value={quote.quoteKey} checked={selected} onChange={(event) => onSelectRate(event.target.value)} className="size-4 accent-primary" />
                               </Td>

@@ -13,9 +13,7 @@ type LearningCourse = {
 
 function AccountCourseRedirect() {
   const { slug } = Route.useParams();
-  const courses = useQuery((api as any).lms.enrollment.queries.listMyLearning, {}) as
-    | LearningCourse[]
-    | undefined;
+  const courses: LearningCourse[] | undefined = useQuery(api.lms.enrollment.queries.listMyLearning, {});
   const enrolledCourse = courses?.find((course) => course.slug === slug);
 
   if (courses === undefined) {

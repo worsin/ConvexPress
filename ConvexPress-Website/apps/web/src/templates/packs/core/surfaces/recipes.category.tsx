@@ -58,7 +58,7 @@ export default function CoreRecipesCategory({ data }: SurfaceProps<RecipesCatego
                 <div className="aspect-[4/3] bg-muted/40">
                   {recipe.featuredImageId ? (
                     <MediaImage
-                      mediaId={recipe.featuredImageId as any}
+                      mediaId={recipe.featuredImageId}
                       alt={recipe.title}
                       className="h-full w-full object-cover"
                     />

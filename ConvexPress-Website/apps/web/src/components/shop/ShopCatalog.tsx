@@ -34,11 +34,8 @@ export function ShopCatalog({ variant }: { variant?: string }) {
   const marketplace = layout.shopLayout === "marketplace";
   const args = queryArgs(search, perPageFor(layout.shopLayout, layout.gridDensity));
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
-  const { data } = useTanStackQuery(convexQuery((api as any).commerce.storefront.searchProducts, args) as any) as { data: SearchResponse | undefined };
-  const facets = useQuery((api as any).commerce.storefront.facetsForQuery, q && config.searchFacets && sessionToken ? { q, sessionToken } : "skip") as
-    | { chips: Array<{ label: string; query?: string; categorySlug?: string }> }
-    | null
-    | undefined;
+  const { data }: { data: SearchResponse | undefined } = useTanStackQuery(convexQuery(api.commerce.storefront.searchProducts, args));
+  const facets: { chips: Array<{ label: string; query?: string; categorySlug?: string }> } | null | undefined = useQuery(api.commerce.storefront.facetsForQuery, q && config.searchFacets && sessionToken ? { q, sessionToken } : "skip");
   const [draft, setDraft] = useState(q);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const currency = settings?.commerceConfig?.currencyCode || "USD";
@@ -149,7 +146,7 @@ export function ShopCatalog({ variant }: { variant?: string }) {
               <Link
                 key={chip.label}
                 to="/products"
-                search={{ q: chip.query ?? q, category: chip.categorySlug } as any}
+                search={{ q: chip.query ?? q, category: chip.categorySlug }}
                 className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
               >
                 {chip.label}
@@ -204,14 +201,14 @@ export function ShopCatalog({ variant }: { variant?: string }) {
                   </span>
                   <div className="flex gap-3">
                     {data.page > 1 ? (
-                      <Link to="/products" search={{ ...search, page: data.page - 1 } as any} className="font-medium text-primary hover:underline">
+                      <Link to="/products" search={{ ...search, page: data.page - 1 }} className="font-medium text-primary hover:underline">
                         Previous
                       </Link>
                     ) : (
                       <span className="text-muted-foreground/60">Previous</span>
                     )}
                     {data.page < data.totalPages ? (
-                      <Link to="/products" search={{ ...search, page: data.page + 1 } as any} className="font-medium text-primary hover:underline">
+                      <Link to="/products" search={{ ...search, page: data.page + 1 }} className="font-medium text-primary hover:underline">
                         Next
                       </Link>
                     ) : (

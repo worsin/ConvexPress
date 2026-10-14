@@ -16,7 +16,7 @@ import { Surface } from "@/templates/sdk/Surface";
 
 export function DashboardOrdersPage() {
   const { to } = useDashboardPath();
-  const orders = useQuery((api as any).purchases.queries.listMine, {}) as DashboardOrderRow[] | undefined;
+  const orders: DashboardOrderRow[] | undefined = useQuery(api.purchases.queries.listMine, {});
 
   const data: DashboardOrdersSurfaceData = useMemo(
     () => ({

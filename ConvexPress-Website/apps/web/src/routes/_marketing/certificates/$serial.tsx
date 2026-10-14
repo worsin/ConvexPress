@@ -21,9 +21,9 @@ export const Route = createFileRoute("/_marketing/certificates/$serial")({
 
 function CertificatePreviewPage() {
   const { serial } = Route.useParams();
-  const result = useQuery((api as any).lms.certificates.queries.verifyBySerial, {
+  const result: CertificateView | undefined = useQuery(api.lms.certificates.queries.verifyBySerial, {
     serial,
-  }) as CertificateView | undefined;
+  });
 
   const data: CertificateViewSurfaceData = { result };
 

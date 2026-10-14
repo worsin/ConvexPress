@@ -28,7 +28,7 @@ export type CustomerAccountState =
 export function useEnsureCustomerAccount(): CustomerAccountState {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const profile = useQuery(api.profiles.queries.getProfile, isAuthenticated ? {} : "skip");
-  const provision = useMutation((api as any).auth.clerkProvisioning.ensureClerkUser);
+  const provision = useMutation(api.auth.clerkProvisioning.ensureClerkUser);
   const attempted = useRef(false);
   const [outcome, setOutcome] = useState<CustomerAccountState | null>(null);
 
@@ -44,12 +44,12 @@ export function useEnsureCustomerAccount(): CustomerAccountState {
     attempted.current = true;
     setOutcome({ status: "provisioning" });
     void provision({})
-      .then((result: { ok: boolean; reason?: string } | null) => {
-        if (result?.ok) {
+      .then((result) => {
+        if (result.ok) {
           setOutcome(null); // profile query will refresh reactively
           return;
         }
-        const reason = result?.reason;
+        const reason = result.reason;
         setOutcome({
           status: "unavailable",
           reason:

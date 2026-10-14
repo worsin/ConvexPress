@@ -1,5 +1,4 @@
 import { MediaImage } from "@/components/media/MediaImage";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 export function SectionIntro({
   eyebrow,
@@ -66,7 +65,7 @@ export function BlockMedia({
   if (!mediaId) return null;
   return (
     <MediaImage
-      mediaId={mediaId as Id<"media">}
+      mediaId={mediaId}
       alt={alt}
       className={className}
       sizes={sizes}

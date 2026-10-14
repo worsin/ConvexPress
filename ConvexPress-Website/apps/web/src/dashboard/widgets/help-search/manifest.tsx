@@ -21,8 +21,8 @@ interface KbArticle {
   _id: string;
   title: string;
   slug: string;
-  categorySlug?: string;
-  categoryName?: string;
+  categorySlug?: string | null;
+  categoryName?: string | null;
 }
 
 function HelpSearchWidget({ size, editing }: DashboardWidgetProps) {
@@ -31,9 +31,7 @@ function HelpSearchWidget({ size, editing }: DashboardWidgetProps) {
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query.trim(), 300);
   const active = enabled && debounced.length >= 2;
-  const results = useQuery(api.kb.search.search, active ? { query: debounced, limit: 8 } : "skip") as
-    | { results: KbArticle[]; total: number }
-    | undefined;
+  const results: { results: KbArticle[]; total: number } | null | undefined = useQuery(api.kb.search.search, active ? { query: debounced, limit: 8 } : "skip");
   if (!enabled) return <WidgetEmpty icon="book-open" title="Help center is off" />;
 
   return (
@@ -54,7 +52,7 @@ function HelpSearchWidget({ size, editing }: DashboardWidgetProps) {
         <p className="text-[11px] text-muted-foreground">Type at least two characters to search.</p>
       ) : results === undefined ? (
         <WidgetSkeleton rows={3} />
-      ) : results.results.length === 0 ? (
+      ) : !results || results.results.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">No articles match “{debounced}”.</p>
       ) : (
         <ul role="list" className="divide-y divide-border">

@@ -13,6 +13,7 @@ import {
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn } from "@/lib/utils";
+import { idFromString } from "@/lib/ids";
 
 /**
  * One-stop card for a single subscription in the customer portal.
@@ -143,16 +144,16 @@ export function CustomerPortalCard({
   className,
 }: CustomerPortalCardProps) {
   const pauseMutation = useMutation(
-    (api as any).commerceSubscriptions.portal.requestPauseContract,
+    api.commerceSubscriptions.portal.requestPauseContract,
   );
   const resumeMutation = useMutation(
-    (api as any).commerceSubscriptions.portal.requestResumeContract,
+    api.commerceSubscriptions.portal.requestResumeContract,
   );
   const cancelMutation = useMutation(
-    (api as any).commerceSubscriptions.portal.requestCancelContract,
+    api.commerceSubscriptions.portal.requestCancelContract,
   );
   const applyCouponMutation = useMutation(
-    (api as any).commerceSubscriptions.portal.applyCouponToMyContract,
+    api.commerceSubscriptions.portal.applyCouponToMyContract,
   );
 
   const [confirmAction, setConfirmAction] = useState<null | "cancel">(null);
@@ -174,7 +175,7 @@ export function CustomerPortalCard({
   async function handlePause() {
     setBusy(true);
     try {
-      await pauseMutation({ contractId: contract._id as any });
+      await pauseMutation({ contractId: idFromString<"commerce_subscriptions">(contract._id) });
       toast.success("Subscription paused");
     } catch (error) {
       toast.error(
@@ -189,7 +190,7 @@ export function CustomerPortalCard({
   async function handleResume() {
     setBusy(true);
     try {
-      await resumeMutation({ contractId: contract._id as any });
+      await resumeMutation({ contractId: idFromString<"commerce_subscriptions">(contract._id) });
       toast.success("Subscription resumed");
     } catch (error) {
       toast.error(
@@ -204,7 +205,7 @@ export function CustomerPortalCard({
   async function handleCancel() {
     setBusy(true);
     try {
-      await cancelMutation({ contractId: contract._id as any });
+      await cancelMutation({ contractId: idFromString<"commerce_subscriptions">(contract._id) });
       toast.success(
         "Your subscription will cancel at the end of the current period",
       );
@@ -226,7 +227,7 @@ export function CustomerPortalCard({
     setCouponBusy(true);
     try {
       await applyCouponMutation({
-        contractId: contract._id as any,
+        contractId: idFromString<"commerce_subscriptions">(contract._id),
         couponCode: code,
       });
       toast.success("Coupon applied");

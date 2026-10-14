@@ -164,7 +164,7 @@ function Line({
   return (
     <li className="grid grid-cols-[5rem_minmax(0,1fr)] gap-5 py-6 sm:grid-cols-[6rem_minmax(0,1fr)_auto] sm:gap-6">
       <div className="overflow-hidden rounded-xl bg-muted">
-        <div className="aspect-[4/5]">{mediaId ? <MediaImage mediaId={mediaId as any} alt={item.product?.title} className="h-full w-full object-cover" preferredSize="medium" sizes="96px" /> : null}</div>
+        <div className="aspect-[4/5]">{mediaId ? <MediaImage mediaId={mediaId} alt={item.product?.title} className="h-full w-full object-cover" preferredSize="medium" sizes="96px" /> : null}</div>
       </div>
       <div className="flex min-w-0 flex-col gap-2">
         {isBundle ? (

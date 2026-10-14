@@ -29,7 +29,7 @@ export function useCommerceSessionToken() {
   const client = useConvex();
   const runtime = getSiteRuntime();
   const scope = JSON.stringify([runtime.convexUrl, runtime.instanceKey ?? null]);
-  const settle = useMutation((api as any).commerce.assistant.mutations.resolveSession);
+  const settle = useMutation(api.commerce.assistant.mutations.resolveSession);
   const selectSaved = useMutation(api.commerce.cartRecovery.selectSaved);
   const combineSaved = useMutation(api.commerce.cartRecovery.combineSaved);
   const identitySettled = auth.isSignedIn === true

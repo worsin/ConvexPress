@@ -55,12 +55,13 @@ function GalleryCategoryPageInner() {
       page: 1,
       perPage: 24,
       categorySlug: slug,
-    }) as any;
-  const { data } = useSuspenseQuery(query) as { data: any };
+    });
+  const { data } = useSuspenseQuery(query);
 
   const surfaceData: GalleryCategorySurfaceData = {
-    category: data.category,
-    albums: data.albums,
+    // null: the gallery is unavailable (plugin off); render it empty rather than crash.
+    category: data?.category ?? null,
+    albums: data?.albums ?? [],
   };
 
   return <Surface name="gallery.category" data={surfaceData} fallback={CoreGalleryCategory} />;

@@ -87,7 +87,7 @@ export default function DepotOrderTrack({ data }: SurfaceProps<OrderTrackSurface
               {shipments.length === 0 ? (
                 <EmptyState title="No shipments have been created yet." className="py-6" />
               ) : (
-                shipments.map((shipment: any) => {
+                shipments.map((shipment) => {
                   const events: any[] = trackingTimeline?.shipments?.find((entry: any) => entry.shipmentId === shipment._id)?.events ?? [];
                   return (
                     <Card key={shipment._id} className="flex flex-col">

@@ -4,6 +4,7 @@
  * model, handed to the `dashboard.lesson` surface as one view model.
  */
 import { api } from "@convexpress-website/backend/generated/api";
+import { idFromString } from "@/lib/ids";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -84,10 +85,7 @@ export function DashboardCoursePlayerPage({ slug, nodeId }: { slug: string; node
 }
 
 function CoursePlayerContent({ slug, nodeId, hrefs }: { slug: string; nodeId: string; hrefs: DashboardLessonSurfaceData["hrefs"] }) {
-  const course = useQuery(api.lms.courses.queries.getBySlug, { slug }) as
-    | PlayerCourse
-    | null
-    | undefined;
+  const course: PlayerCourse | null | undefined = useQuery(api.lms.courses.queries.getBySlug, { slug });
 
   if (course === undefined) {
     return <Surface name="dashboard.lesson" data={placeholderData("loading", nodeId, hrefs)} fallback={CoreDashboardLesson} />;
@@ -99,46 +97,48 @@ function CoursePlayerContent({ slug, nodeId, hrefs }: { slug: string; nodeId: st
   return <CoursePlayer course={course} nodeId={nodeId} hrefs={hrefs} />;
 }
 
-function CoursePlayer({ course, nodeId, hrefs }: { course: PlayerCourse; nodeId: string; hrefs: DashboardLessonSurfaceData["hrefs"] }) {
-  const tree = useQuery((api as any).lms.nodes.queries.getCourseTree, {
-    courseId: course._id as any,
-  }) as CourseTree | undefined;
-  const access = useQuery((api as any).lms.enrollment.queries.canAccessCourse, {
-    courseId: course._id as any,
-  }) as { allowed: boolean; reason: string } | undefined;
-  const selectedAccess = useQuery((api as any).lms.enrollment.queries.canAccessNode, {
-    nodeId: nodeId as any,
-  }) as { allowed: boolean; reason: string } | undefined;
-  const unlockSchedule = useQuery(
-    (api as any).lms.enrollment.queries.getCourseUnlockSchedule,
+function CoursePlayer({ course, nodeId: nodeParam, hrefs }: { course: PlayerCourse; nodeId: string; hrefs: DashboardLessonSurfaceData["hrefs"] }) {
+  // The lesson id arrives as a URL segment.
+  const nodeId = idFromString<"lms_nodes">(nodeParam);
+  const tree: CourseTree | undefined = useQuery(api.lms.nodes.queries.getCourseTree, {
+    courseId: course._id,
+  });
+  const access: { allowed: boolean; reason: string } | undefined = useQuery(api.lms.enrollment.queries.canAccessCourse, {
+    courseId: course._id,
+  });
+  const selectedAccess: { allowed: boolean; reason: string } | undefined = useQuery(api.lms.enrollment.queries.canAccessNode, {
+    nodeId: nodeId,
+  });
+  const unlockSchedule: UnlockState[] | undefined = useQuery(
+    api.lms.enrollment.queries.getCourseUnlockSchedule,
     {
-      courseId: course._id as any,
+      courseId: course._id,
     },
-  ) as UnlockState[] | undefined;
-  const progress = useQuery((api as any).lms.progress.queries.getCourseProgress, {
-    courseId: course._id as any,
-  }) as CourseProgress | undefined;
-  const lesson = useQuery((api as any).lms.lessons.queries.getLessonForPlayer, {
-    nodeId: nodeId as any,
-  }) as LessonDetail | null | undefined;
-  const nodeProgress = useQuery((api as any).lms.progress.queries.getNodeProgress, {
-    nodeId: nodeId as any,
-  }) as NodeProgress | null | undefined;
-  const completionGate = useQuery((api as any).lms.progress.queries.canComplete, {
-    nodeId: nodeId as any,
-  }) as CompletionGate | undefined;
-  const myIssue = useQuery((api as any).lms.certificates.queries.getMyIssue, {
-    courseId: course._id as any,
-  }) as CertificateIssue | null | undefined;
-  const videoMedia = useQuery(
-    (api as any).media.queries.get,
-    lesson?.node.videoMediaId ? { mediaId: lesson.node.videoMediaId as any } : "skip",
-  ) as { url?: string | null } | null | undefined;
+  );
+  const progress: CourseProgress | undefined = useQuery(api.lms.progress.queries.getCourseProgress, {
+    courseId: course._id,
+  });
+  const lesson: LessonDetail | null | undefined = useQuery(api.lms.lessons.queries.getLessonForPlayer, {
+    nodeId: nodeId,
+  });
+  const nodeProgress: NodeProgress | null | undefined = useQuery(api.lms.progress.queries.getNodeProgress, {
+    nodeId: nodeId,
+  });
+  const completionGate: CompletionGate | undefined = useQuery(api.lms.progress.queries.canComplete, {
+    nodeId: nodeId,
+  });
+  const myIssue: CertificateIssue | null | undefined = useQuery(api.lms.certificates.queries.getMyIssue, {
+    courseId: course._id,
+  });
+  const videoMedia: { url?: string | null } | null | undefined = useQuery(
+    api.media.queries.get,
+    lesson?.node.videoMediaId ? { mediaId: lesson.node.videoMediaId } : "skip",
+  );
 
-  const markComplete = useMutation((api as any).lms.progress.mutations.markComplete);
-  const markIncomplete = useMutation((api as any).lms.progress.mutations.markIncomplete);
-  const recordHeartbeat = useMutation((api as any).lms.progress.mutations.recordHeartbeat);
-  const issueCertificate = useMutation((api as any).lms.certificates.mutations.issueCertificate);
+  const markComplete = useMutation(api.lms.progress.mutations.markComplete);
+  const markIncomplete = useMutation(api.lms.progress.mutations.markIncomplete);
+  const recordHeartbeat = useMutation(api.lms.progress.mutations.recordHeartbeat);
+  const issueCertificate = useMutation(api.lms.certificates.mutations.issueCertificate);
   const timeSpentRef = useRef(0);
   const videoWatchedRef = useRef(0);
 
@@ -181,7 +181,7 @@ function CoursePlayer({ course, nodeId, hrefs }: { course: PlayerCourse; nodeId:
         videoWatchedRef.current = Math.min(1, videoWatchedRef.current + 0.15);
       }
       void recordHeartbeat({
-        nodeId: nodeId as any,
+        nodeId: nodeId,
         timeSpentSec: timeSpentRef.current,
         watchedFraction: videoUrl ? videoWatchedRef.current : undefined,
       }).catch(() => undefined);
@@ -260,9 +260,9 @@ function CoursePlayer({ course, nodeId, hrefs }: { course: PlayerCourse; nodeId:
     completionRedirectUrl,
     hrefs,
     actions: {
-      markComplete: () => run("Lesson complete", () => markComplete({ nodeId: nodeId as any })),
-      markIncomplete: () => run("Marked incomplete", () => markIncomplete({ nodeId: nodeId as any })),
-      issueCertificate: () => run("Certificate issued", () => issueCertificate({ courseId: course._id as any })),
+      markComplete: () => run("Lesson complete", () => markComplete({ nodeId: nodeId })),
+      markIncomplete: () => run("Marked incomplete", () => markIncomplete({ nodeId: nodeId })),
+      issueCertificate: () => run("Certificate issued", () => issueCertificate({ courseId: course._id })),
     },
   };
 

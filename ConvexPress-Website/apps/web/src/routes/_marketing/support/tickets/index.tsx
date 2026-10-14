@@ -42,10 +42,10 @@ function MyTicketsPage() {
 
   const shouldRedirect = isLoaded && isSignedIn && dashboardEnabled === true;
   useEffect(() => {
-    if (shouldRedirect) void navigate({ to: to("/tickets"), replace: true } as never);
+    if (shouldRedirect) void navigate({ to: to("/tickets"), replace: true });
   }, [shouldRedirect, navigate, to]);
 
-  const tickets = useQuery(api.tickets.queries.getMyTicketsOverview, isLoaded && isSignedIn && dashboardEnabled === false ? {} : "skip") as TicketOverviewResult | undefined;
+  const tickets: TicketOverviewResult | undefined = useQuery(api.tickets.queries.getMyTicketsOverview, isLoaded && isSignedIn && dashboardEnabled === false ? {} : "skip");
 
   const status: SupportTicketsSurfaceData["status"] =
     !isLoaded || dashboardEnabled === null || shouldRedirect

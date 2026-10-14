@@ -1,5 +1,5 @@
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -14,6 +14,7 @@ import { buildSeoHead } from "@/lib/seo/head";
 import CoreCart, { type CartSurfaceCart, type CartSurfaceData } from "@/templates/packs/core/surfaces/cart";
 import { Surface } from "@/templates/sdk/Surface";
 import { SavedCarts } from "@/components/commerce/SavedCarts";
+import { parseCartLinesMetadata } from "@/components/commerce/cartLine";
 
 export const Route = createFileRoute("/_marketing/cart/")({
   loader: async ({ context: { queryClient } }) => {
@@ -36,10 +37,11 @@ function CartPage() {
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const { sessionToken, isReady, changeCart } = useCommerceSessionToken();
-  const cart = useQuery(
+  const rawCart = useQuery(
     api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
-  ) as CartSurfaceCart | null | undefined;
+  );
+  const cart = useMemo<CartSurfaceCart | null | undefined>(() => rawCart && parseCartLinesMetadata(rawCart), [rawCart]);
   const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
   const removeItem = useMutation(api.commerce.cart.removeItem);
   const clearCart = useMutation(api.commerce.cart.clear);

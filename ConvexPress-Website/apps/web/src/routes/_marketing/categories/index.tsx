@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_marketing/categories/")({
     const siteUrl = normalizeSiteUrl(
       (publicSettings as { siteUrl?: string | null })?.siteUrl,
     );
-    if (isPublicPluginEnabled("commerce", publicSettings as any)) {
+    if (isPublicPluginEnabled("commerce", publicSettings)) {
       await queryClient.ensureQueryData(
         convexQuery(api.commerce.categories.getTree, {}),
       );
@@ -35,14 +35,14 @@ export const Route = createFileRoute("/_marketing/categories/")({
 });
 
 function ProductCategoriesPage() {
-  const { data } = useSuspenseQuery(
-    convexQuery(api.commerce.categories.getTree, {}) as any,
-  ) as { data: CategoryDirectoryItem[] };
+  const { data }: { data: CategoryDirectoryItem[] } = useSuspenseQuery(
+    convexQuery(api.commerce.categories.getTree, {}),
+  );
 
   const categories = flattenVisible(data ?? []).filter(
     (category) => (category.totalProductCount ?? category.productCount ?? 0) > 0,
   );
-  const featured = categories.filter((category: any) => category.isFeatured);
+  const featured = categories.filter((category) => category.isFeatured);
 
   return <Surface name="shop.categories" data={{ categories, featured }} fallback={CoreCategories} />;
 }

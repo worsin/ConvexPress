@@ -12,7 +12,7 @@ import { useCallback, useState } from "react";
 export type NewsletterStatus = "idle" | "submitting" | "success" | "error";
 
 export function useNewsletterSubscribe(source = "site_footer") {
-  const subscribeNewsletter = useMutation((api as any).emails.mutations.subscribeNewsletter);
+  const subscribeNewsletter = useMutation(api.emails.mutations.subscribeNewsletter);
   const [status, setStatus] = useState<NewsletterStatus>("idle");
   const [message, setMessage] = useState("");
 

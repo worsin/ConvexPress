@@ -168,7 +168,8 @@ export function UserCommentItem({ comment }: UserCommentItemProps) {
             <span>
               On:{" "}
 	              <Link
-	                to={`/blog/${comment.postSlug}`}
+	                to="/blog/$slug"
+	                params={{ slug: comment.postSlug }}
 	                className="text-primary hover:underline"
               >
                 {comment.postTitle}
@@ -191,7 +192,9 @@ export function UserCommentItem({ comment }: UserCommentItemProps) {
           {/* Actions */}
 	          <div className="flex items-center gap-2 pt-1">
 	            <Link
-	              to={`/blog/${comment.postSlug}#comment-${comment._id}`}
+	              to="/blog/$slug"
+	              params={{ slug: comment.postSlug }}
+	              hash={`comment-${comment._id}`}
 	              className="text-[10px] text-primary hover:underline"
             >
               View

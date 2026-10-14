@@ -55,10 +55,14 @@ import {
 } from "./validators";
 
 import { postsDocs } from "../schema/posts.docs.generated";
+import { storedPostTextSummary, type StoredTextSummary } from "../search/canonicalText";
 // ─── Local Types ────────────────────────────────────────────────────────────
 
 /** Post document shape used in list filtering. */
 type PostRow = Doc<"posts">;
+
+/** Visitor projection produced by readPublicContent. */
+type PublicContent = NonNullable<Awaited<ReturnType<typeof readPublicContent>>>;
 
 /** Author info denormalized onto post results. */
 type AuthorInfo = {
@@ -89,6 +93,21 @@ type AuthorDoc = {
 	slug?: string;
 	[key: string]: unknown;
 };
+
+/** Reading time and, where it is safe, a plain-text excerpt for one public post
+ * DTO, derived from the stored canonical tree with no reads (see
+ * storedPostTextSummary). The excerpt is body text, so it needs body access and
+ * no manual excerpt. It also needs the membership plugin off, because block-level
+ * membership rules cannot be checked without reads; otherwise it is omitted. */
+function postDisplaySummary(
+	post: PostRow,
+	access: Pick<PublicContent, "isMembershipRestricted" | "isPasswordProtected" | "passwordVerified" | "membershipAccess">,
+): Promise<StoredTextSummary> {
+	const bodyReadable = !access.isMembershipRestricted && (!access.isPasswordProtected || access.passwordVerified);
+	return storedPostTextSummary(post, {
+		excerpt: bodyReadable && !post.excerpt && access.membershipAccess.reason === "plugin_disabled",
+	});
+}
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
@@ -630,6 +649,79 @@ export const get = query({
 	},
 });
 
+/** Public post detail: `getPublished` and `verifyPostPassword`. Featured image
+ * fields are absent when the post has none (or it is trashed). Reading time and
+ * the plain-text excerpt come from `postDisplaySummary`. */
+const publishedPostValidator = v.object({
+  author: v.union(v.null(), v.object({
+    _id: v.id("users"),
+    displayName: v.string(),
+    bio: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    slug: v.optional(v.string()),
+  })),
+  featuredImageUrl: v.optional(v.string()),
+  featuredImageAlt: v.optional(v.string()),
+  readingTimeMinutes: v.number(),
+  textExcerpt: v.optional(v.string()),
+  isPasswordProtected: v.boolean(),
+  passwordVerified: v.boolean(),
+  isMembershipRestricted: v.boolean(),
+  membershipAccess: v.object({
+    allowed: v.boolean(),
+    reason: v.string(),
+    teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+    customMessage: v.union(v.null(), v.string()),
+    matchingPlanIds: v.array(v.string()),
+  }),
+  _id: v.id("posts"),
+  _creationTime: v.number(),
+  type: v.union(v.literal("post"), v.literal("page")),
+  title: v.string(),
+  slug: v.string(),
+  status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+  visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
+  authorId: v.id("users"),
+  featuredImageId: v.optional(v.id("media")),
+  commentStatus: v.union(v.literal("open"), v.literal("closed")),
+  commentCount: v.optional(v.number()),
+  isSticky: v.optional(v.boolean()),
+  publishedAt: v.optional(v.number()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  parentId: v.optional(v.id("posts")),
+  menuOrder: v.optional(v.number()),
+  pageTemplate: v.optional(v.string()),
+  path: v.optional(v.string()),
+  depth: v.optional(v.number()),
+  hideHeader: v.optional(v.boolean()),
+  hideFooter: v.optional(v.boolean()),
+  layoutId: v.optional(v.string()),
+  excerpt: v.optional(v.string()),
+  blocks: postsDocs.posts.fields.blocks,
+  blocksVersion: v.optional(v.number()),
+  blocksRevision: v.optional(v.number()),
+  hero: v.optional(v.object({
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    subtitle: v.optional(v.string()),
+    imageId: v.optional(v.id("media")),
+    videoUrl: v.optional(v.string()),
+    ctaText: v.optional(v.string()),
+    ctaUrl: v.optional(v.string()),
+  })),
+  topics: v.optional(v.array(v.object({
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    subtitle: v.optional(v.string()),
+    imageId: v.optional(v.id("media")),
+    videoUrl: v.optional(v.string()),
+  }))),
+  summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
+  sources: v.optional(v.string()),
+  tableOfContents: v.optional(v.string()),
+});
+
 // ─── Get Published (Public) ─────────────────────────────────────────────────
 
 /**
@@ -638,137 +730,7 @@ export const get = query({
  */
 export const getPublished = query({
 	args: { slug: v.string() },
-	returns: v.union(v.null(), v.object({
-   author: v.union(v.null(), v.object({
-     _id: v.id("users"),
-     displayName: v.string(),
-     bio: v.optional(v.string()),
-     avatarUrl: v.optional(v.string()),
-     slug: v.optional(v.string()),
-   })),
-   isPasswordProtected: v.boolean(),
-   passwordVerified: v.boolean(),
-   isMembershipRestricted: v.boolean(),
-   membershipAccess: v.object({
-     allowed: v.boolean(),
-     reason: v.string(),
-     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
-     customMessage: v.union(v.null(), v.string()),
-     matchingPlanIds: v.array(v.string()),
-   }),
-   _id: v.id("posts"),
-   _creationTime: v.number(),
-   type: v.union(v.literal("post"), v.literal("page")),
-   title: v.string(),
-   slug: v.string(),
-   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
-   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
-   authorId: v.id("users"),
-   featuredImageId: v.optional(v.id("media")),
-   commentStatus: v.union(v.literal("open"), v.literal("closed")),
-   commentCount: v.optional(v.number()),
-   isSticky: v.optional(v.boolean()),
-   publishedAt: v.optional(v.number()),
-   createdAt: v.number(),
-   updatedAt: v.number(),
-   parentId: v.optional(v.id("posts")),
-   menuOrder: v.optional(v.number()),
-   pageTemplate: v.optional(v.string()),
-   path: v.optional(v.string()),
-   depth: v.optional(v.number()),
-   hideHeader: v.optional(v.boolean()),
-   hideFooter: v.optional(v.boolean()),
-   layoutId: v.optional(v.string()),
-   excerpt: v.optional(v.string()),
-   blocks: postsDocs.posts.fields.blocks,
-   blocksVersion: v.optional(v.number()),
-   blocksRevision: v.optional(v.number()),
-   hero: v.optional(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-     ctaText: v.optional(v.string()),
-     ctaUrl: v.optional(v.string()),
-   })),
-   topics: v.optional(v.array(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-   }))),
-   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
-   sources: v.optional(v.string()),
-   tableOfContents: v.optional(v.string()),
- }), v.object({
-   author: v.union(v.null(), v.object({
-     _id: v.id("users"),
-     displayName: v.string(),
-     bio: v.optional(v.string()),
-     avatarUrl: v.optional(v.string()),
-     slug: v.optional(v.string()),
-   })),
-   featuredImageUrl: v.string(),
-   featuredImageAlt: v.optional(v.string()),
-   isPasswordProtected: v.boolean(),
-   passwordVerified: v.boolean(),
-   isMembershipRestricted: v.boolean(),
-   membershipAccess: v.object({
-     allowed: v.boolean(),
-     reason: v.string(),
-     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
-     customMessage: v.union(v.null(), v.string()),
-     matchingPlanIds: v.array(v.string()),
-   }),
-   _id: v.id("posts"),
-   _creationTime: v.number(),
-   type: v.union(v.literal("post"), v.literal("page")),
-   title: v.string(),
-   slug: v.string(),
-   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
-   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
-   authorId: v.id("users"),
-   featuredImageId: v.optional(v.id("media")),
-   commentStatus: v.union(v.literal("open"), v.literal("closed")),
-   commentCount: v.optional(v.number()),
-   isSticky: v.optional(v.boolean()),
-   publishedAt: v.optional(v.number()),
-   createdAt: v.number(),
-   updatedAt: v.number(),
-   parentId: v.optional(v.id("posts")),
-   menuOrder: v.optional(v.number()),
-   pageTemplate: v.optional(v.string()),
-   path: v.optional(v.string()),
-   depth: v.optional(v.number()),
-   hideHeader: v.optional(v.boolean()),
-   hideFooter: v.optional(v.boolean()),
-   layoutId: v.optional(v.string()),
-   excerpt: v.optional(v.string()),
-   blocks: postsDocs.posts.fields.blocks,
-   blocksVersion: v.optional(v.number()),
-   blocksRevision: v.optional(v.number()),
-   hero: v.optional(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-     ctaText: v.optional(v.string()),
-     ctaUrl: v.optional(v.string()),
-   })),
-   topics: v.optional(v.array(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-   }))),
-   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
-   sources: v.optional(v.string()),
-   tableOfContents: v.optional(v.string()),
- })),
+	returns: v.union(v.null(), publishedPostValidator),
 	handler: async (ctx, args) => {
 		const post = await ctx.db
 			.query("posts")
@@ -780,6 +742,7 @@ export const getPublished = query({
 			? {
 					...data,
 					...(await contentFeaturedImage(ctx, post)),
+					...(await postDisplaySummary(post, data)),
 					author: await publicContentAuthor(ctx, post),
 				}
 			: null;
@@ -797,137 +760,7 @@ export const getPublished = query({
  */
 export const verifyPostPassword = query({
 	args: { slug: v.string(), password: v.string() },
-	returns: v.union(v.null(), v.object({
-   author: v.union(v.null(), v.object({
-     _id: v.id("users"),
-     displayName: v.string(),
-     bio: v.optional(v.string()),
-     avatarUrl: v.optional(v.string()),
-     slug: v.optional(v.string()),
-   })),
-   isPasswordProtected: v.boolean(),
-   passwordVerified: v.boolean(),
-   isMembershipRestricted: v.boolean(),
-   membershipAccess: v.object({
-     allowed: v.boolean(),
-     reason: v.string(),
-     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
-     customMessage: v.union(v.null(), v.string()),
-     matchingPlanIds: v.array(v.string()),
-   }),
-   _id: v.id("posts"),
-   _creationTime: v.number(),
-   type: v.union(v.literal("post"), v.literal("page")),
-   title: v.string(),
-   slug: v.string(),
-   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
-   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
-   authorId: v.id("users"),
-   featuredImageId: v.optional(v.id("media")),
-   commentStatus: v.union(v.literal("open"), v.literal("closed")),
-   commentCount: v.optional(v.number()),
-   isSticky: v.optional(v.boolean()),
-   publishedAt: v.optional(v.number()),
-   createdAt: v.number(),
-   updatedAt: v.number(),
-   parentId: v.optional(v.id("posts")),
-   menuOrder: v.optional(v.number()),
-   pageTemplate: v.optional(v.string()),
-   path: v.optional(v.string()),
-   depth: v.optional(v.number()),
-   hideHeader: v.optional(v.boolean()),
-   hideFooter: v.optional(v.boolean()),
-   layoutId: v.optional(v.string()),
-   excerpt: v.optional(v.string()),
-   blocks: postsDocs.posts.fields.blocks,
-   blocksVersion: v.optional(v.number()),
-   blocksRevision: v.optional(v.number()),
-   hero: v.optional(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-     ctaText: v.optional(v.string()),
-     ctaUrl: v.optional(v.string()),
-   })),
-   topics: v.optional(v.array(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-   }))),
-   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
-   sources: v.optional(v.string()),
-   tableOfContents: v.optional(v.string()),
- }), v.object({
-   author: v.union(v.null(), v.object({
-     _id: v.id("users"),
-     displayName: v.string(),
-     bio: v.optional(v.string()),
-     avatarUrl: v.optional(v.string()),
-     slug: v.optional(v.string()),
-   })),
-   featuredImageUrl: v.string(),
-   featuredImageAlt: v.optional(v.string()),
-   isPasswordProtected: v.boolean(),
-   passwordVerified: v.boolean(),
-   isMembershipRestricted: v.boolean(),
-   membershipAccess: v.object({
-     allowed: v.boolean(),
-     reason: v.string(),
-     teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
-     customMessage: v.union(v.null(), v.string()),
-     matchingPlanIds: v.array(v.string()),
-   }),
-   _id: v.id("posts"),
-   _creationTime: v.number(),
-   type: v.union(v.literal("post"), v.literal("page")),
-   title: v.string(),
-   slug: v.string(),
-   status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
-   visibility: v.union(v.literal("private"), v.literal("public"), v.literal("password")),
-   authorId: v.id("users"),
-   featuredImageId: v.optional(v.id("media")),
-   commentStatus: v.union(v.literal("open"), v.literal("closed")),
-   commentCount: v.optional(v.number()),
-   isSticky: v.optional(v.boolean()),
-   publishedAt: v.optional(v.number()),
-   createdAt: v.number(),
-   updatedAt: v.number(),
-   parentId: v.optional(v.id("posts")),
-   menuOrder: v.optional(v.number()),
-   pageTemplate: v.optional(v.string()),
-   path: v.optional(v.string()),
-   depth: v.optional(v.number()),
-   hideHeader: v.optional(v.boolean()),
-   hideFooter: v.optional(v.boolean()),
-   layoutId: v.optional(v.string()),
-   excerpt: v.optional(v.string()),
-   blocks: postsDocs.posts.fields.blocks,
-   blocksVersion: v.optional(v.number()),
-   blocksRevision: v.optional(v.number()),
-   hero: v.optional(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-     ctaText: v.optional(v.string()),
-     ctaUrl: v.optional(v.string()),
-   })),
-   topics: v.optional(v.array(v.object({
-     title: v.optional(v.string()),
-     content: v.optional(v.string()),
-     subtitle: v.optional(v.string()),
-     imageId: v.optional(v.id("media")),
-     videoUrl: v.optional(v.string()),
-   }))),
-   summary: v.optional(v.object({ title: v.optional(v.string()), content: v.optional(v.string()) })),
-   sources: v.optional(v.string()),
-   tableOfContents: v.optional(v.string()),
- })),
+	returns: v.union(v.null(), publishedPostValidator),
 	handler: async (ctx, args) => {
 		const post = await ctx.db
 			.query("posts")
@@ -942,6 +775,7 @@ export const verifyPostPassword = query({
 			? {
 					...data,
 					...(await contentFeaturedImage(ctx, post)),
+					...(await postDisplaySummary(post, data)),
 					author: await publicContentAuthor(ctx, post),
 				}
 			: null;
@@ -1000,6 +834,8 @@ export const listPublished = query({
    posts: v.array(v.object({
      featuredImageUrl: v.optional(v.string()),
      featuredImageAlt: v.optional(v.string()),
+     readingTimeMinutes: v.number(),
+     textExcerpt: v.optional(v.string()),
      primaryCategory: v.union(v.null(), v.object({ _id: v.id("terms"), name: v.string(), slug: v.string() })),
      author: v.union(v.null(), v.object({
        _id: v.id("users"),
@@ -1178,8 +1014,10 @@ export const listPublished = query({
 					}
 				}
 
+				const data = (await readPublicContent(ctx, post))!;
 				return {
-					...(await readPublicContent(ctx, post))!,
+					...data,
+					...(await postDisplaySummary(post, data)),
 					featuredImageUrl,
 					featuredImageAlt,
 					primaryCategory,

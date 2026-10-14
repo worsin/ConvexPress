@@ -1,9 +1,16 @@
 import { Link } from "@tanstack/react-router";
 
-import { GalleryEmbed } from "./GalleryEmbed";
+import { GalleryEmbed, type GalleryEmbedAlbum } from "./GalleryEmbed";
+
+/** A single album page: the embed's album plus the page-only fields. */
+export type GalleryAlbumDetail = GalleryEmbedAlbum & {
+  description?: string;
+  categories?: Array<{ _id: string; name: string; slug: string }>;
+  itemCount?: number;
+};
 
 interface GalleryAlbumPageProps {
-  album: any;
+  album: GalleryAlbumDetail;
 }
 
 export function GalleryAlbumPage({ album }: GalleryAlbumPageProps) {
@@ -22,9 +29,9 @@ export function GalleryAlbumPage({ album }: GalleryAlbumPageProps) {
               {album.excerpt}
             </p>
           )}
-          {(album.categories ?? []).length > 0 && (
+          {album.categories && album.categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {album.categories.map((category: any) => (
+              {album.categories.map((category) => (
                 <Link
                   key={category._id}
                   to="/gallery/category/$slug"

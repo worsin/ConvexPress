@@ -30,7 +30,7 @@ export default function JournalCourseDetail({ data }: SurfaceProps<CourseDetailS
             <div className="aspect-[3/2] w-full">
               {course.featuredImageId ? (
                 <MediaImage
-                  mediaId={course.featuredImageId as any}
+                  mediaId={course.featuredImageId}
                   alt={course.title}
                   className="h-full w-full object-cover"
                   preferredSize="large"

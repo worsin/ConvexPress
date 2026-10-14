@@ -150,8 +150,8 @@ function Line({
   item: CartLine;
   money: (amount: number) => string;
   busyAction: string | null;
-  onQuantity: (itemId: string, quantity: number) => Promise<void>;
-  onRemove: (itemId: string) => Promise<void>;
+  onQuantity: (itemId: CartLine["_id"], quantity: number) => Promise<void>;
+  onRemove: (itemId: CartLine["_id"]) => Promise<void>;
   onNavigate: () => void;
 }) {
   const busy = busyAction !== null;
@@ -165,7 +165,7 @@ function Line({
   return (
     <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 py-5">
       <Link to="/products/$slug" params={{ slug }} onClick={onNavigate} className="block overflow-hidden rounded-xl bg-muted" tabIndex={-1} aria-hidden="true">
-        <div className="aspect-[4/5]">{mediaId ? <MediaImage mediaId={mediaId as any} alt={item.product?.title} className="h-full w-full object-cover" preferredSize="medium" sizes="72px" /> : null}</div>
+        <div className="aspect-[4/5]">{mediaId ? <MediaImage mediaId={mediaId} alt={item.product?.title} className="h-full w-full object-cover" preferredSize="medium" sizes="72px" /> : null}</div>
       </Link>
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">

@@ -12,7 +12,7 @@ test('browsing historical calendar months cannot cause a one-second refresh loop
  expect(publicDocumentRefreshDelay(null,100000)).toBe(null);
 });
 
-const form=(nextChangeAt:number|null)=>({state:'ready',data:{dataByBlock:{form:{resolver:'forms.form',data:{nextChangeAt}}}}}) as unknown as PublicCanonicalDocument;
+const form=(nextChangeAt:number|null,resolver='forms.form')=>({state:'ready',data:{dataByBlock:{form:{resolver,data:{nextChangeAt}}}}}) as unknown as PublicCanonicalDocument;
 test('embedded forms refresh when their opening or closing boundary arrives',()=>{
  expect(publicDocumentRefreshDelay(form(101500),100000)).toBe(1500);
  expect(publicDocumentRefreshDelay(form(100001),100000)).toBe(1000);
@@ -21,7 +21,6 @@ test('embedded forms refresh when their opening or closing boundary arrives',()=
 });
 
 test('contact forms share opening and closing deadline refresh',()=>{
- const contact=form(101500)!;
- (contact as any).data.dataByBlock.form.resolver='forms.contact';
+ const contact=form(101500,'forms.contact');
  expect(publicDocumentRefreshDelay(contact,100000)).toBe(1500);
 });

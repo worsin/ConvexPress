@@ -100,7 +100,7 @@ function CourseCard({ course, hrefs }: { course: DashboardLearningCourse; hrefs:
       <div className="aspect-[16/9] bg-muted/40">
         {course.featuredImageId ? (
           <MediaImage
-            mediaId={course.featuredImageId as any}
+            mediaId={course.featuredImageId}
             alt={course.title}
             className="h-full w-full object-cover"
             preferredSize="large"

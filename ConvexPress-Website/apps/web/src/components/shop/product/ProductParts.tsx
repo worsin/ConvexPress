@@ -35,7 +35,7 @@ export function ProductBreadcrumb({ product, className }: Pick<PartProps, "produ
       {category && (
         <>
           <span aria-hidden="true">/</span>
-          <Link to="/products" search={{ category: category.slug } as any} className="hover:text-foreground">
+          <Link to="/products" search={{ category: category.slug }} className="hover:text-foreground">
             {category.name}
           </Link>
         </>
@@ -80,7 +80,7 @@ export function ProductGallery({
       {displayMediaId ? (
         <MediaImage
           key={displayMediaId}
-          mediaId={displayMediaId as any}
+          mediaId={displayMediaId}
           alt={product.title}
           className="h-full w-full object-cover"
           preferredSize="large"
@@ -106,7 +106,7 @@ export function ProductGallery({
                 id === displayMediaId ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50",
               )}
             >
-              <MediaImage mediaId={id as any} alt="" className="size-full object-cover" preferredSize="thumbnail" sizes="64px" />
+              <MediaImage mediaId={id} alt="" className="size-full object-cover" preferredSize="thumbnail" sizes="64px" />
             </button>
           </li>
         ))}
@@ -140,7 +140,7 @@ export function ProductSummary({ product, state, className, size = "lg" }: PartP
             <Link
               key={category._id}
               to="/products"
-              search={{ category: category.slug } as any}
+              search={{ category: category.slug }}
               className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/15"
             >
               {category.name}
@@ -303,7 +303,7 @@ export function ProductBuyBox({ product, state, className, showPrice = true, fra
       <StockLine state={state} />
       {!state.access.allowed ? (
         <UpgradeCTA
-          matchingPlanIds={state.access.matchingPlanIds as any}
+          matchingPlanIds={state.access.matchingPlanIds}
           title="Members-only product"
           description="This product is available to members only. Upgrade your plan to purchase."
         />

@@ -61,10 +61,10 @@ function CourseRow({ course, hrefs }: { course: DashboardLearningCourse; hrefs: 
 
   return (
     <Row className="grid gap-6 py-8 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-8">
-      <Link to={continueHref as any} className="block overflow-hidden rounded-2xl bg-muted" tabIndex={-1} aria-hidden="true">
+      <Link to={continueHref} className="block overflow-hidden rounded-2xl bg-muted" tabIndex={-1} aria-hidden="true">
         <div className="aspect-[3/2] w-full">
           {course.featuredImageId ? (
-            <MediaImage mediaId={course.featuredImageId as any} alt={course.title} className="h-full w-full object-cover" preferredSize="medium" sizes="(max-width: 640px) 100vw, 160px" />
+            <MediaImage mediaId={course.featuredImageId} alt={course.title} className="h-full w-full object-cover" preferredSize="medium" sizes="(max-width: 640px) 100vw, 160px" />
           ) : (
             <CourseImageFallback title={course.title} subtitle={`${percent}% complete`} />
           )}
@@ -74,7 +74,7 @@ function CourseRow({ course, hrefs }: { course: DashboardLearningCourse; hrefs: 
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <h2 className="font-display text-xl leading-snug tracking-tight text-foreground">
-            <Link to={continueHref as any} className="transition-colors hover:text-primary">
+            <Link to={continueHref} className="transition-colors hover:text-primary">
               {course.title}
             </Link>
           </h2>
@@ -99,7 +99,7 @@ function CourseRow({ course, hrefs }: { course: DashboardLearningCourse; hrefs: 
             {percent >= 100 ? "Review course" : "Continue"}
           </LinkButton>
           {course.certificateSerial ? (
-            <Link to={hrefs.certificate(course.certificateSerial) as any} className={textActionClasses("primary")}>
+            <Link to={hrefs.certificate(course.certificateSerial)} className={textActionClasses("primary")}>
               Certificate
             </Link>
           ) : null}

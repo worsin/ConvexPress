@@ -1,5 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import type { FunctionReturnType } from "convex/server";
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { helpCategoryParams } from "@/lib/help-search-params";
@@ -39,11 +40,10 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
     // Pre-fetch articles to eliminate the data waterfall (H6)
     if (category?._id) {
       await queryClient.ensureQueryData(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch; fix by regenerating website types
         convexQuery(api.kb.queries.listPublished, {
-          categoryId: (category as KbCategory)._id,
+          categoryId: category._id,
           paginationOpts: { numItems: 50, cursor: deps.cursor ?? null },
-        }) as any,
+        }),
       );
     }
   },
@@ -58,21 +58,26 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
 
 function CategoryPage() {
   const { categorySlug } = Route.useParams();
-  const { cursor } = Route.useSearch();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: category } = useSuspenseQuery(
-    convexQuery(api.kb.categories.getBySlug, { slug: categorySlug }) as any,
-  ) as { data: KbCategory | null };
+    convexQuery(api.kb.categories.getBySlug, { slug: categorySlug }),
+  );
+  return category ? <CategoryArticles category={category} /> : <CategoryView category={null} articles={null} />;
+}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
+function CategoryArticles({ category }: { category: NonNullable<FunctionReturnType<typeof api.kb.categories.getBySlug>> }) {
+  const { cursor } = Route.useSearch();
   const { data: articles } = useSuspenseQuery(
-    category ? convexQuery(api.kb.queries.listPublished, {
+    convexQuery(api.kb.queries.listPublished, {
       categoryId: category._id,
       paginationOpts: { numItems: 50, cursor: cursor ?? null },
-    }) as any : { queryKey: ["kb-category-missing", categorySlug], queryFn: () => null },
-  ) as { data: ArticlesResult | null };
+    }),
+  );
+  return <CategoryView category={category} articles={articles} />;
+}
 
+function CategoryView({ category, articles }: { category: KbCategory | null; articles: ArticlesResult | null }) {
+  const { categorySlug } = Route.useParams();
+  const { cursor } = Route.useSearch();
   const data: HelpCategorySurfaceData = {
     categorySlug,
     category,

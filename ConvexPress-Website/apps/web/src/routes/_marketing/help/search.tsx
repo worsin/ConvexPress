@@ -42,37 +42,43 @@ export const Route = createFileRoute("/_marketing/help/search")({
 });
 
 type SearchData = { page: KbSearchResult[]; isDone:boolean; continueCursor:string };
+const EMPTY_SEARCH: SearchData = { page: [], isDone: true, continueCursor: "" };
 
 function KbSearchResults() {
+  const { q } = Route.useSearch();
+  const query = q?.trim();
+  return query ? <KbSearchWithQuery query={query} /> : <KbSearchView data={EMPTY_SEARCH} hasQuery={false} />;
+}
+
+function KbSearchWithQuery({ query }: { query: string }) {
+  const { category, cursor } = Route.useSearch();
+  const { data } = useSuspenseQuery(
+    convexQuery(api.kb.search.searchPage, {
+      query,
+      categorySlug: category,
+      paginationOpts: {numItems:20,cursor:cursor??null},
+    }),
+  );
+  return <KbSearchView data={data} hasQuery />;
+}
+
+function KbSearchView({ data, hasQuery }: { data: SearchData; hasQuery: boolean }) {
   const { q, category, cursor } = Route.useSearch();
   const navigate = useNavigate();
-
-  const hasQuery = Boolean(q?.trim());
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
-  const { data } = useSuspenseQuery(
-    hasQuery
-      ? (convexQuery(api.kb.search.searchPage, {
-          query: q!.trim(),
-          categorySlug: category,
-          paginationOpts: {numItems:20,cursor:cursor??null},
-        }) as any)
-      : { queryKey: ["kb-search-empty"], queryFn: () => ({ page: [], isDone:true, continueCursor:"" }) },
-  ) as { data: SearchData };
 
   function search(query: string) {
     navigate({
       to: "/help/search",
       search: { q: query.trim() || undefined, category },
-    } as any);
+    });
   }
 
   const surfaceData: HelpSearchSurfaceData = {
     q,
     hasQuery,
-    results: data?.page ?? [],
-    total: data?.page.length ?? 0,
-    hasMore: data ? !data.isDone : false,
+    results: data.page,
+    total: data.page.length,
+    hasMore: !data.isDone,
     actions: { search },
   };
 
@@ -81,10 +87,10 @@ function KbSearchResults() {
   };
   return <>
     <Surface name="help.search" data={surfaceData} fallback={CoreHelpSearch} />
-    {hasQuery&&(cursor||category||!data?.isDone)&&<nav className="mx-auto flex max-w-3xl flex-wrap items-center gap-6 px-4 pb-12 text-sm" aria-label="Help search pages">
+    {hasQuery&&(cursor||category||!data.isDone)&&<nav className="mx-auto flex max-w-3xl flex-wrap items-center gap-6 px-4 pb-12 text-sm" aria-label="Help search pages">
       {category&&<a className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4" href={pageHref(null,false)}>Search all help articles</a>}
       {cursor&&<a className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4" href={pageHref(null)}>Back to first results</a>}
-      {data&&!data.isDone&&<a className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4" href={pageHref(data.continueCursor)}>More results →</a>}
+      {!data.isDone&&<a className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4" href={pageHref(data.continueCursor)}>More results →</a>}
     </nav>}
   </>;
 }

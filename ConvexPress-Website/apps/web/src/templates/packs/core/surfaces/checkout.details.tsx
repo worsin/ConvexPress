@@ -53,8 +53,8 @@ export default function CoreCheckoutDetails({ data }: SurfaceProps<CheckoutDetai
           className="rounded-[2rem] border border-border bg-card p-8 shadow-sm lg:p-10"
         >
           <CheckoutStatusNotice
-            status={(session as any)?.status}
-            failureReason={(session as any)?.failureReason}
+            status={session?.status}
+            failureReason={session?.failureReason}
           />
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-foreground">

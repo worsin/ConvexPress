@@ -58,7 +58,7 @@ export default function DepotCourseDetail({ data }: SurfaceProps<CourseDetailSur
         <Card className="overflow-hidden lg:col-span-5">
           <div className="aspect-[4/3] bg-muted/40">
             {course.featuredImageId ? (
-              <MediaImage mediaId={course.featuredImageId as any} alt={course.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 1024px) 100vw, 40vw" loading="eager" />
+              <MediaImage mediaId={course.featuredImageId} alt={course.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 1024px) 100vw, 40vw" loading="eager" />
             ) : (
               <CourseImageFallback title={course.title} subtitle={`${course.lessonCount ?? 0} lessons`} />
             )}

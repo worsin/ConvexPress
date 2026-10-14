@@ -23,7 +23,7 @@ interface PurchaseRow {
 
 function OrdersWidget({ settings, size }: DashboardWidgetProps) {
   const { to } = useDashboardShell();
-  const orders = useQuery(api.purchases.queries.listMine, {}) as PurchaseRow[] | undefined;
+  const orders: PurchaseRow[] | undefined = useQuery(api.purchases.queries.listMine, {});
   if (orders === undefined) return <WidgetSkeleton rows={4} />;
   if (orders.length === 0) {
     return (

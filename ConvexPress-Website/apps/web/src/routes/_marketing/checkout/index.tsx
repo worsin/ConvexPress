@@ -24,15 +24,15 @@ function CheckoutIndexPage() {
   const router = useRouter();
   const { user } = useCurrentUser();
   const { sessionToken, isReady } = useCommerceSessionToken();
-  const cart = useQuery(
-    (api as any).commerce.cart.getMine,
+  const cart: { itemCount: number } | null | undefined = useQuery(
+    api.commerce.cart.getMine,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as { itemCount: number } | null | undefined;
-  const session = useQuery(
-    (api as any).commerce.checkout.getSession,
+  );
+  const session: { email?: string; status?: string } | null | undefined = useQuery(
+    api.commerce.checkout.getSession,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as { email?: string; status?: string } | null | undefined;
-  const createSession = useMutation((api as any).commerce.checkout.createSession);
+  );
+  const createSession = useMutation(api.commerce.checkout.createSession);
   const [editedEmail, setEmail] = useState<string>();
   const email = checkoutContactEmail(editedEmail, session?.email, user?.email);
   const [isSubmitting, setIsSubmitting] = useState(false);

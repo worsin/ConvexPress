@@ -45,7 +45,7 @@ export default function DepotSearch({ data }: SurfaceProps<SearchSurfaceData>) {
   const navigate = useNavigate();
 
   const go = (next: { type?: string; sort?: string; page?: number }) => {
-    void navigate({ to: "/search", search: { q: query ?? "", type: next.type ?? type, sort: next.sort ?? sort, page: next.page ?? 1 } } as any);
+    void navigate({ to: "/search", search: { q: query ?? "", type: next.type ?? type, sort: next.sort ?? sort, page: next.page ?? 1 } });
   };
 
   return (
@@ -124,7 +124,7 @@ function SearchBar({ initialQuery, autoFocus }: { initialQuery: string; autoFocu
     const q = draft.trim();
     if (!q) return;
     setSuggestionsVisible(false);
-    void navigate({ to: "/search", search: { q } } as any);
+    void navigate({ to: "/search", search: { q } });
   };
 
   const change = (event: ChangeEvent<HTMLInputElement>) => {

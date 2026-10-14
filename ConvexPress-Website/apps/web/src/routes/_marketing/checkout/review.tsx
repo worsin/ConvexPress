@@ -31,13 +31,13 @@ function CheckoutReviewPage() {
   const router = useRouter();
   const { sessionToken, isReady } = useCommerceSessionToken();
   const cart = useQuery(
-    (api as any).commerce.cart.getMine,
+    api.commerce.cart.getMine,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as any;
+  );
   const session = useQuery(
-    (api as any).commerce.checkout.getSession,
+    api.commerce.checkout.getSession,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as any;
+  );
   const completeCheckout = useMutation(api.commerce.checkout.complete);
   const initiatePayment = useMutation(api.commerce.payments.initiatePayment);
 
@@ -61,8 +61,8 @@ function CheckoutReviewPage() {
 
   // Load Stripe when payment settings are available
   const paymentSettings = useQuery(
-    (api as any).commerce.payments.getSettings,
-  ) as any;
+    api.commerce.payments.getSettings,
+  );
 
   useEffect(() => {
     if (
@@ -97,14 +97,14 @@ function CheckoutReviewPage() {
   const shippingLabel =
     session?.selectedShippingMethodLabel ??
     settings?.commerceConfig?.shippingMethods?.find(
-      (method: any) => method.code === session?.selectedShippingMethodCode,
+      (method) => method.code === session?.selectedShippingMethodCode,
     )?.label ??
     session?.selectedShippingMethodCode ??
     "Not required";
   const paymentLabel =
     session?.selectedPaymentMethodLabel ??
     settings?.commerceConfig?.paymentMethods?.find(
-      (method: any) => method.code === session?.selectedPaymentMethodCode,
+      (method) => method.code === session?.selectedPaymentMethodCode,
     )?.label ??
     session?.selectedPaymentMethodCode ??
     "---";
@@ -117,7 +117,7 @@ function CheckoutReviewPage() {
   const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
   const requiresShipping =
     settings?.commerceConfig?.shippingEnabled !== false &&
-    (cart?.items ?? []).some((item: any) => item.product?.isVirtual !== true);
+    (cart?.items ?? []).some((item) => item.product?.isVirtual !== true);
   const checkoutIssues = useMemo(() => {
     if (!session || !cart) return [];
 

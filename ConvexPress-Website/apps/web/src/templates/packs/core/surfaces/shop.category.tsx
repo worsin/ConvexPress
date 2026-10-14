@@ -79,7 +79,7 @@ export default function CoreShopCategory({ data }: SurfaceProps<CategoryArchiveS
         {category.thumbnailMediaId ? (
           <div className="aspect-[5/2] bg-muted">
             <MediaImage
-              mediaId={category.thumbnailMediaId as any}
+              mediaId={category.thumbnailMediaId}
               alt={category.name}
               className="h-full w-full object-cover"
               preferredSize="large"
@@ -204,7 +204,7 @@ function ProductCard({
         <div className="aspect-[4/3] bg-muted">
           {product.featuredMediaId ? (
             <MediaImage
-              mediaId={product.featuredMediaId as any}
+              mediaId={product.featuredMediaId}
               alt={product.title}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               preferredSize="large"

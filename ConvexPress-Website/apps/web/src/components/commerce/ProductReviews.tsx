@@ -13,6 +13,7 @@ import { getSiteRuntime } from "@/lib/site-runtime";
 import { useAuth } from "@/lib/auth/clerk";
 import { useSettings } from "@/contexts/SettingsContext";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { idFromString } from "@/lib/ids";
 
 // ─── Star Rating Display ─────────────────────────────────────────────────
 
@@ -113,21 +114,16 @@ function RatingSummary({
   productId: string;
 }) {
   const ratingData = useQuery(
-    (api as any).commerceReviews.queries.getProductRating,
-    { productId: productId as any },
-  ) as
-    | {
-        averageRating: number;
-        totalReviews: number;
-        distribution: Record<number, number>;
-      }
-    | undefined;
+    api.commerceReviews.queries.getProductRating,
+    { productId: idFromString<"commerce_products">(productId) },
+  );
 
-  if (!ratingData) {
+  if (ratingData === undefined) {
     return <div className="h-32 animate-pulse rounded-xl bg-muted" />;
   }
 
-  if (ratingData.totalReviews === 0) {
+  // null: reviews are unavailable for this product (e.g. the plugin is off).
+  if (!ratingData || ratingData.totalReviews === 0) {
     return null;
   }
 
@@ -169,12 +165,12 @@ function HelpfulButton({
   helpfulCount: number;
 }) {
   const hasVoted = useQuery(
-    (api as any).commerceReviews.queries.hasVoted,
-    { reviewId: reviewId as any },
-  ) as boolean | undefined;
+    api.commerceReviews.queries.hasVoted,
+    { reviewId: idFromString<"commerce_review_items">(reviewId) },
+  );
 
   const voteHelpful = useMutation(
-    (api as any).commerceReviews.mutations.voteHelpful,
+    api.commerceReviews.mutations.voteHelpful,
   );
 
   const [busy, setBusy] = useState(false);
@@ -182,7 +178,7 @@ function HelpfulButton({
   async function handleVote() {
     setBusy(true);
     try {
-      await voteHelpful({ reviewId: reviewId as any });
+      await voteHelpful({ reviewId: idFromString<"commerce_review_items">(reviewId) });
     } catch (error) {
       toast.error(
         (error as { data?: { message?: string } })?.data?.message ??
@@ -302,7 +298,7 @@ function WriteReviewForm({
   onSuccess: () => void;
 }) {
   const submitMutation = useMutation(
-    (api as any).commerceReviews.mutations.submit,
+    api.commerceReviews.mutations.submit,
   );
 
   const [rating, setRating] = useState(0);
@@ -321,7 +317,7 @@ function WriteReviewForm({
     setSubmitting(true);
     try {
       await submitMutation({
-        productId: productId as any,
+        productId: idFromString<"commerce_products">(productId),
         rating,
         ...(title.trim() ? { title: title.trim() } : {}),
         ...(content.trim() ? { content: content.trim() } : {}),
@@ -403,16 +399,9 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [showForm, setShowForm] = useState(false);
 
   const canReviewResult = useQuery(
-    (api as any).commerceReviews.queries.canReview,
-    reviewsEnabled ? { productId: productId as any } : "skip",
-  ) as
-    | {
-        canReview: boolean;
-        reason?: string;
-        isVerifiedPurchase?: boolean;
-        existingReviewId?: string;
-      }
-    | undefined;
+    api.commerceReviews.queries.canReview,
+    reviewsEnabled ? { productId: idFromString<"commerce_products">(productId) } : "skip",
+  );
 
   if (!reviewsEnabled) {
     return null;

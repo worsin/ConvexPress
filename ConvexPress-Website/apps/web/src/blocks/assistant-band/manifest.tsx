@@ -46,7 +46,7 @@ function AssistantBandRenderer({ attrs }: BlockRendererProps<AssistantBandAttrs>
           <li key={prompt}>
             <Link
               to="/products"
-              search={{ ask: prompt } as any}
+              search={{ ask: prompt }}
               className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary"
             >
               <span>{prompt}</span>

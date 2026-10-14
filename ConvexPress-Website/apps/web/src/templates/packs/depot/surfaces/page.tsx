@@ -108,7 +108,7 @@ function ChildrenList({ items }: { items: NonNullable<PageDetail["children"]> })
       <ul className="flex flex-col divide-y divide-border">
         {items.map((child) => (
           <li key={child._id}>
-            <Link to={`/page${child.path}`} className="block py-2 text-[13px] text-foreground transition-colors hover:text-primary">
+            <Link to="/page/$" params={{ _splat: child.path.replace(/^\//, "") }} className="block py-2 text-[13px] text-foreground transition-colors hover:text-primary">
               {child.title}
             </Link>
           </li>

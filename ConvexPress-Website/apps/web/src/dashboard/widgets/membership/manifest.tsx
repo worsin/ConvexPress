@@ -25,10 +25,7 @@ function MembershipWidget({ size }: DashboardWidgetProps) {
   const { to } = useDashboardShell();
   const settings = useSettings();
   const enabled = settings?.plugins?.membershipEnabled === true;
-  const data = useQuery(api.membership.queries.getMyMembership, enabled ? {} : "skip") as
-    | { primaryGrant: Grant | null }
-    | null
-    | undefined;
+  const data: { primaryGrant: Grant | null } | null | undefined = useQuery(api.membership.queries.getMyMembership, enabled ? {} : "skip");
   if (!enabled) return <WidgetEmpty icon="badge-check" title="Memberships are off" />;
   if (data === undefined) return <WidgetSkeleton rows={3} />;
   const grant = data?.primaryGrant;

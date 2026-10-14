@@ -171,10 +171,10 @@ export const getPendingPayment = query({
   returns: v.union(v.null(), v.object({
     runId: v.id("form_action_runs"),
     formActionId: v.id("form_actions"),
-    intentId: v.union(v.null(), v.object({})),
-    clientSecret: v.union(v.null(), v.object({})),
-    publishableKey: v.union(v.null(), v.object({})),
-    mode: v.string(),
+    intentId: v.union(v.null(), v.string()),
+    clientSecret: v.union(v.null(), v.string()),
+    publishableKey: v.union(v.null(), v.string()),
+    mode: v.union(v.literal("payment"), v.literal("setup")),
     amount: v.number(),
     recurringAmount: v.number(),
     currency: v.string(),
@@ -194,20 +194,21 @@ export const getPendingPayment = query({
       try {
         const data = JSON.parse(run.result) as Record<string, unknown>;
         if (data && data.needsPayment === true) {
+          // The stored run result is untyped JSON: read each field by its runtime type.
+          const text = (value: unknown) => (typeof value === "string" && value ? value : null);
+          const amount = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
           return {
             runId: run._id,
             formActionId: run.formActionId,
-            intentId: data.intentId ?? null,
-            clientSecret: data.clientSecret ?? null,
-            publishableKey: data.publishableKey ?? null,
-            mode: (data.mode as string) ?? "payment",
-            amount: (data.amount as number) ?? 0,
-            recurringAmount: (data.recurringAmount as number) ?? 0,
-            currency: (data.currency as string) ?? "USD",
-            accountPolicy: (data.accountPolicy as string) ?? "require_existing",
-            returnUrl: normalizeFormReturnUrl(
-              data.returnUrl as string | undefined,
-            ),
+            intentId: text(data.intentId),
+            clientSecret: text(data.clientSecret),
+            publishableKey: text(data.publishableKey),
+            mode: data.mode === "setup" ? "setup" as const : "payment" as const,
+            amount: amount(data.amount),
+            recurringAmount: amount(data.recurringAmount),
+            currency: text(data.currency) ?? "USD",
+            accountPolicy: text(data.accountPolicy) ?? "require_existing",
+            returnUrl: normalizeFormReturnUrl(text(data.returnUrl) ?? undefined),
           };
         }
       } catch {

@@ -14,7 +14,6 @@ import type { RestrictedTeaserMode } from "@/components/membership/RestrictedCon
 import { SeoHead } from "@/components/seo/SeoHead";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
-import { estimateReadingTime } from "@/lib/blog/renderContent";
 import type {
 	AuthorData,
 	PostCard as PostCardType,
@@ -23,7 +22,6 @@ import type {
 	PostTag,
 } from "@/lib/blog/types";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
-import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 import {
 	buildArticleJsonLd,
@@ -155,7 +153,9 @@ function SinglePost() {
 		rawPost?._id ? { postId: rawPost._id as Id<"posts"> } : "skip",
 	);
 	// Fetch global SEO settings (for title templates, social defaults, schema config)
-	const seoSettings = useQuery(api.seo.queries.getSettings, {});
+	const seoSettingsResult = useQuery(api.seo.queries.getSettings, {});
+	// Without a `key` the query returns every section, never a single-section record.
+	const seoSettings = seoSettingsResult && "titles" in seoSettingsResult ? seoSettingsResult : null;
 	// Password verification for protected posts
 	const verifiedPost = useQuery(
 		api.posts.queries.verifyPostPassword,
@@ -278,7 +278,7 @@ function SinglePost() {
 		publishedAt: resolvedPostData.publishedAt
 			? new Date(resolvedPostData.publishedAt).toISOString()
 			: undefined,
-		readingTime: estimateReadingTime(resolvedPostData.content),
+		readingTime: resolvedPostData.readingTimeMinutes,
 		author: {
 			_id: resolvedPostData.author?._id ?? "",
 			displayName: resolvedPostData.author?.displayName ?? "Unknown",
@@ -328,12 +328,12 @@ function SinglePost() {
 						slug: post.slug,
 						type: "post",
 						excerpt: post.excerpt,
-						content: rawPost.content,
+						textExcerpt: rawPost.textExcerpt,
 						featuredImageUrl: post.featuredImageUrl,
 						publishedAt: post.publishedAt,
 					},
-					postSeoData as PostSeoData,
-					seoSettings as unknown as SeoSettings,
+					postSeoData,
+					seoSettings,
 					siteUrl,
 				)
 			: createFallbackSeo(post.title, siteUrl || `/blog/${slug}`);
@@ -346,12 +346,12 @@ function SinglePost() {
 						slug: post.slug,
 						type: "post",
 						excerpt: post.excerpt,
-						content: rawPost.content,
+						textExcerpt: rawPost.textExcerpt,
 						featuredImageUrl: post.featuredImageUrl,
 						publishedAt: post.publishedAt,
 					},
 					resolvedSeo,
-					seoSettings as unknown as SeoSettings,
+					seoSettings,
 					siteUrl,
 					{
 						name: post.author.displayName,

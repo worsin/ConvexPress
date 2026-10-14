@@ -54,7 +54,7 @@ export default function CoreGalleryCategory({ data }: SurfaceProps<GalleryCatego
               <div className="aspect-[4/3] bg-muted/40">
                 {album.coverMedia?._id ? (
                   <MediaImage
-                    mediaId={album.coverMedia._id as any}
+                    mediaId={album.coverMedia._id}
                     alt={album.title}
                     className="h-full w-full object-cover"
                     sizes="(max-width: 768px) 100vw, 33vw"

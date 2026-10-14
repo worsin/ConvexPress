@@ -115,7 +115,7 @@ function ShowcaseLayout({ product, state }: PartProps) {
       <section className="relative overflow-hidden rounded-3xl border border-border bg-muted">
         <div className="aspect-[16/9] md:aspect-[21/9]">
           {hero ? (
-            <MediaImage key={hero} mediaId={hero as any} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" loading="eager" />
+            <MediaImage key={hero} mediaId={hero} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" loading="eager" />
           ) : null}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" aria-hidden="true" />

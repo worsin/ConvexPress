@@ -19,6 +19,7 @@ import CoreDashboardSubscription, {
   type DashboardSubscriptionSurfaceData,
 } from "@/templates/packs/core/surfaces/dashboard.subscription";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 export function DashboardSubscriptionDetailPage({ subscriptionId }: { subscriptionId: string }) {
   const settings = useSettings();
@@ -27,18 +28,18 @@ export function DashboardSubscriptionDetailPage({ subscriptionId }: { subscripti
     settings?.plugins?.commerceSubscriptionsEnabled === true;
 
   const subscription = useQuery(
-    (api as any).commerceSubscriptions.queries.getById,
-    subscriptionsEnabled ? { subscriptionId: subscriptionId as any } : "skip",
-  ) as any;
+    api.commerceSubscriptions.queries.getById,
+    subscriptionsEnabled ? { subscriptionId: idFromString<"commerce_subscriptions">(subscriptionId) } : "skip",
+  );
 
   const pauseMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.pause,
+    api.commerceSubscriptions.mutations.pause,
   );
   const resumeMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.resume,
+    api.commerceSubscriptions.mutations.resume,
   );
   const scheduleCancelMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.scheduleCancel,
+    api.commerceSubscriptions.mutations.scheduleCancel,
   );
 
   const [busy, setBusy] = useState(false);
@@ -46,15 +47,15 @@ export function DashboardSubscriptionDetailPage({ subscriptionId }: { subscripti
   async function run(action: DashboardSubscriptionAction): Promise<boolean> {
     setBusy(true);
     try {
-      const id = subscriptionId as any;
+      const id = subscriptionId;
       if (action === "pause") {
-        await pauseMutation({ subscriptionId: id });
+        await pauseMutation({ subscriptionId: idFromString<"commerce_subscriptions">(id) });
         toast.success("Subscription paused");
       } else if (action === "resume") {
-        await resumeMutation({ subscriptionId: id });
+        await resumeMutation({ subscriptionId: idFromString<"commerce_subscriptions">(id) });
         toast.success("Subscription resumed");
       } else if (action === "schedule_cancel") {
-        await scheduleCancelMutation({ subscriptionId: id });
+        await scheduleCancelMutation({ subscriptionId: idFromString<"commerce_subscriptions">(id) });
         toast.success("Cancellation scheduled for end of billing period");
       }
       return true;

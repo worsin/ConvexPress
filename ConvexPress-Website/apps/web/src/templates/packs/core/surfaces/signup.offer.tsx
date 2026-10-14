@@ -26,7 +26,7 @@ export interface SignupOfferPublicOffer {
   }>;
   template?: {
     _id: string;
-    billingInterval: "week" | "month" | "year";
+    billingInterval: "day" | "week" | "month" | "year";
     billingIntervalCount: number;
     trialDays?: number;
     gracePeriodDays?: number;

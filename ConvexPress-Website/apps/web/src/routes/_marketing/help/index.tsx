@@ -41,19 +41,16 @@ export const Route = createFileRoute("/_marketing/help/")({
 
 function HelpCenter() {
   const navigate = useNavigate();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
-  const { data: categories } = useSuspenseQuery(
-    convexQuery(api.kb.categories.listPublished, {}) as any,
-  ) as { data: KbCategory[] };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
-  const { data: featured } = useSuspenseQuery(
-    convexQuery(api.kb.queries.getFeatured, { limit: 6 }) as any,
-  ) as { data: FeaturedArticle[] };
+  const { data: categories }: { data: KbCategory[] } = useSuspenseQuery(
+    convexQuery(api.kb.categories.listPublished, {}),
+  );
+  const { data: featured }: { data: FeaturedArticle[] } = useSuspenseQuery(
+    convexQuery(api.kb.queries.getFeatured, { limit: 6 }),
+  );
 
   function search(query: string) {
     if (query.trim()) {
-      navigate({ to: "/help/search", search: { q: query.trim() } } as any);
+      navigate({ to: "/help/search", search: { q: query.trim() } });
     }
   }
 

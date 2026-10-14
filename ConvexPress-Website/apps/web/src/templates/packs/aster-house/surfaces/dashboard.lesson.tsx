@@ -58,7 +58,7 @@ export default function AsterDashboardLesson({ data }: SurfaceProps<DashboardLes
                     return (
                       <li key={child._id}>
                         <Link
-                          to={hrefs.lesson(child._id) as any}
+                          to={hrefs.lesson(child._id)}
                           title={state.locked ? state.lockTitle : undefined}
                           aria-current={active ? "page" : undefined}
                           className={cn("flex items-start gap-2 py-1.5 text-sm leading-6 transition-colors", active ? "text-primary" : state.locked ? "text-muted-foreground/70 hover:text-muted-foreground" : "text-muted-foreground hover:text-foreground")}

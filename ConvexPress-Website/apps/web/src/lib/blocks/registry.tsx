@@ -4,7 +4,6 @@ import type {
   WebsiteBlockDefinition,
 } from "./types";
 import { MediaImage } from "@/components/media/MediaImage";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import {
   accordionAttrsSchema,
   authorBioAttrsSchema,
@@ -153,7 +152,7 @@ function HeroRenderer({ attrs }: BlockRendererProps<HeroAttrs>) {
       </div>
       {attrs.mediaId ? (
         <MediaImage
-          mediaId={attrs.mediaId as Id<"media">}
+          mediaId={attrs.mediaId}
           alt={attrs.title}
           className="aspect-[4/3] w-full border border-border object-cover"
           sizes="(max-width: 1024px) 100vw, 45vw"
@@ -225,7 +224,7 @@ function CtaBandRenderer({ attrs }: BlockRendererProps<CtaBandAttrs>) {
 function MediaTextRenderer({ attrs }: BlockRendererProps<MediaTextAttrs>) {
   const media = attrs.mediaId ? (
     <MediaImage
-      mediaId={attrs.mediaId as Id<"media">}
+      mediaId={attrs.mediaId}
       alt={attrs.mediaAlt || attrs.heading}
       className="aspect-[4/3] w-full border border-border object-cover"
       sizes="(max-width: 1024px) 100vw, 50vw"
@@ -483,7 +482,7 @@ function ImageRenderer({ attrs }: BlockRendererProps<ImageAttrs>) {
   const figure = (
     <figure>
       <MediaImage
-        mediaId={attrs.mediaId as Id<"media">}
+        mediaId={attrs.mediaId}
         alt={attrs.alt}
         className="h-auto w-full border border-border object-cover"
         sizes="(max-width: 768px) 100vw, 720px"
@@ -653,7 +652,7 @@ function HeroSplitRenderer({ attrs }: BlockRendererProps<HeroSplitAttrs>) {
     <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
       {mediaFirst && attrs.mediaId && (
         <MediaImage
-          mediaId={attrs.mediaId as Id<"media">}
+          mediaId={attrs.mediaId}
           alt={attrs.mediaAlt || attrs.title}
           className="aspect-[4/3] w-full border border-border object-cover"
           sizes="(max-width: 1024px) 100vw, 50vw"
@@ -671,7 +670,7 @@ function HeroSplitRenderer({ attrs }: BlockRendererProps<HeroSplitAttrs>) {
       </div>
       {!mediaFirst && attrs.mediaId && (
         <MediaImage
-          mediaId={attrs.mediaId as Id<"media">}
+          mediaId={attrs.mediaId}
           alt={attrs.mediaAlt || attrs.title}
           className="aspect-[4/3] w-full border border-border object-cover"
           sizes="(max-width: 1024px) 100vw, 50vw"
@@ -697,7 +696,7 @@ function FeatureListAlternatingRenderer({ attrs }: BlockRendererProps<FeatureLis
           <div className={index % 2 === 1 ? "lg:order-2" : ""}>
             {item.mediaId ? (
               <MediaImage
-                mediaId={item.mediaId as Id<"media">}
+                mediaId={item.mediaId}
                 alt={item.mediaAlt || item.title}
                 className="aspect-[4/3] w-full border border-border object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -730,7 +729,7 @@ function LogoCloudRenderer({ attrs }: BlockRendererProps<LogoCloudAttrs>) {
         {attrs.logos.map((logo, i) => {
           const node = logo.mediaId ? (
             <MediaImage
-              mediaId={logo.mediaId as Id<"media">}
+              mediaId={logo.mediaId}
               alt={logo.name}
               className="h-8 w-auto object-contain md:h-10"
               preferredSize="thumbnail"
@@ -789,7 +788,7 @@ function TeamGridRenderer({ attrs }: BlockRendererProps<TeamGridAttrs>) {
             <div className="space-y-3 border border-border p-4">
               {member.mediaId ? (
                 <MediaImage
-                  mediaId={member.mediaId as Id<"media">}
+                  mediaId={member.mediaId}
                   alt={member.name}
                   className="aspect-square w-full object-cover"
                   preferredSize="medium"
@@ -930,7 +929,7 @@ function BentoGridRenderer({ attrs }: BlockRendererProps<BentoGridAttrs>) {
             <div key={i} className={`border border-border p-5 ${span}`}>
               {item.mediaId && (
                 <MediaImage
-                  mediaId={item.mediaId as Id<"media">}
+                  mediaId={item.mediaId}
                   alt={item.title}
                   className="mb-3 aspect-video w-full object-cover"
                   preferredSize="medium"
@@ -1131,7 +1130,7 @@ function AuthorBioRenderer({ attrs }: BlockRendererProps<AuthorBioAttrs>) {
     <div className="flex items-start gap-4 border border-border p-5">
       {attrs.mediaId && (
         <MediaImage
-          mediaId={attrs.mediaId as Id<"media">}
+          mediaId={attrs.mediaId}
           alt={attrs.name || "Author"}
           className="size-16 shrink-0 rounded-full object-cover"
           preferredSize="thumbnail"

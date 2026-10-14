@@ -54,8 +54,8 @@ function GalleryDetailPage() {
 
 function GalleryDetailPageInner() {
   const { slug } = Route.useParams();
-  const query = convexQuery(api.gallery.queries.getBySlug, { slug }) as any;
-  const { data: album } = useSuspenseQuery(query) as { data: any };
+  const query = convexQuery(api.gallery.queries.getBySlug, { slug });
+  const { data: album } = useSuspenseQuery(query);
 
   if (!album) {
     return <NotFoundPage />;

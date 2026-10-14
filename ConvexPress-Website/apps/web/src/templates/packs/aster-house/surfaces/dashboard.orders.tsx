@@ -46,7 +46,7 @@ export default function AsterDashboardOrders({ data }: SurfaceProps<DashboardOrd
         <ul role="list" aria-label="Your orders" className="flex flex-col divide-y divide-border border-y border-border">
           {orders.map((order) => (
             <li key={order._id}>
-              <Link to={hrefs.order(order._id) as any} className="group grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-8">
+              <Link to={hrefs.order(order._id)} className="group grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-8">
                 <div className="flex min-w-0 flex-col gap-1.5">
                   <p className="truncate text-base font-medium text-foreground transition-colors group-hover:text-primary">{order.orderNumber || order._id}</p>
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1">

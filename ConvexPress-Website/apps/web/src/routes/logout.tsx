@@ -32,7 +32,7 @@ function LogoutComponent() {
       } catch {
         // signOut may redirect or throw -- either way, navigate to home
       }
-      navigate({ to: "/" } as any);
+      navigate({ to: "/" });
     };
 
     performLogout();

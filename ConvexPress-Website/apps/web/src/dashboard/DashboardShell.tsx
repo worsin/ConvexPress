@@ -67,7 +67,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
     // so a second run would overwrite returnTo with the login path itself.
     if (isLoaded && !isSignedIn && !redirected.current && !pathname.startsWith("/login")) {
       redirected.current = true;
-      navigate({ to: "/login", search: { returnTo: `${pathname}${searchStr ?? ""}` } } as never);
+      navigate({ to: "/login", search: { returnTo: `${pathname}${searchStr ?? ""}` } });
     }
   }, [isLoaded, isSignedIn, navigate, pathname]);
 

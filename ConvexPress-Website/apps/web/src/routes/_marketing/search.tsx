@@ -76,8 +76,8 @@ function SearchPage() {
     orderBy: (sort as SearchOrderBy) ?? "relevance",
   } : null;
   const { data: seed } = useTanStackQuery(
-    convexQuery(api.search.queries.search, searchArgs ?? "skip") as any,
-  ) as { data: any };
+    convexQuery(api.search.queries.search, searchArgs ?? "skip"),
+  );
   const searchData = useLiveSearchResults(searchArgs, seed);
 
   // ── Analytics: Log search query after results return (#23) ──────────

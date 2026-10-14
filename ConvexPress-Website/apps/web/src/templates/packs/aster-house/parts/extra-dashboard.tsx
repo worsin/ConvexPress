@@ -133,7 +133,7 @@ export function RailItem({ item, badges, depth = 0, onNavigate }: { item: NavIte
           {body}
         </a>
       ) : (
-        <Link to={item.href as any} className={linkClass} aria-current={active ? "page" : undefined} onClick={onNavigate}>
+        <Link to={item.href} className={linkClass} aria-current={active ? "page" : undefined} onClick={onNavigate}>
           {body}
         </Link>
       )}
@@ -189,7 +189,7 @@ export function InlineNav({ items, badges, label, className }: { items: NavItem[
                   {body}
                 </a>
               ) : (
-                <Link to={item.href as any} className={linkClass} aria-current={active ? "page" : undefined}>
+                <Link to={item.href} className={linkClass} aria-current={active ? "page" : undefined}>
                   {body}
                 </Link>
               )}
@@ -408,7 +408,7 @@ export function TextAction({ tone = "muted", className, type = "button", ...prop
 /** Small-caps "Back to …" link. */
 export function BackLink({ to, children, className }: { to: string; children: ReactNode; className?: string }) {
   return (
-    <Link to={to as any} className={cn("inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground", className)}>
+    <Link to={to} className={cn("inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground", className)}>
       <span aria-hidden="true">←</span>
       {children}
     </Link>

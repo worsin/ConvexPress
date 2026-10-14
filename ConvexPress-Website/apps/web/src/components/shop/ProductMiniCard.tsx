@@ -132,7 +132,7 @@ export function ProductMiniCard({
       >
         {product.featuredMediaId ? (
           <MediaImage
-            mediaId={product.featuredMediaId as any}
+            mediaId={product.featuredMediaId}
             alt={product.title}
             className="h-full w-full object-cover"
             preferredSize="medium"

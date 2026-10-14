@@ -130,7 +130,7 @@ export function LinkButton({
   search?: Record<string, unknown>;
   hash?: string;
 }) {
-  return <Link to={to as any} params={params as any} search={search as any} hash={hash} className={buttonClasses(variant, className)} {...(props as any)} />;
+  return <Link to={to} params={params} search={search} hash={hash} className={buttonClasses(variant, className)} {...props} />;
 }
 
 export function Badge({ className, tone = "muted", ...props }: ComponentProps<"span"> & { tone?: "muted" | "primary" }) {
@@ -215,7 +215,7 @@ export function Pagination({
   return (
     <nav aria-label="Pagination" className={cn("flex items-center justify-between border-t border-border pt-6", className)}>
       {prev ? (
-        <Link to={prev.to as any} params={prev.params as any} search={prev.search as any} className={linkClass} aria-label="Previous page">
+        <Link to={prev.to} params={prev.params} search={prev.search} className={linkClass} aria-label="Previous page">
           Previous
         </Link>
       ) : (
@@ -225,7 +225,7 @@ export function Pagination({
         Page {page} of {totalPages}
       </SmallCaps>
       {next ? (
-        <Link to={next.to as any} params={next.params as any} search={next.search as any} className={linkClass} aria-label="Next page">
+        <Link to={next.to} params={next.params} search={next.search} className={linkClass} aria-label="Next page">
           Next
         </Link>
       ) : (
@@ -269,7 +269,7 @@ export function Breadcrumbs({
         return (
           <span key={`${item.label}-${index}`} className="flex items-center gap-x-2">
             {item.to && !last ? (
-              <Link to={item.to as any} params={item.params as any} search={item.search as any} className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground">
+              <Link to={item.to} params={item.params} search={item.search} className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground">
                 {item.label}
               </Link>
             ) : (
@@ -502,7 +502,7 @@ export function ProductCard({ product: sourceProduct, className }: { product: Pr
         <div className="aspect-[3/4] w-full">
           {product.featuredMediaId ? (
             <MediaImage
-              mediaId={product.featuredMediaId as any}
+              mediaId={product.featuredMediaId}
               alt={product.title}
               className="h-full w-full object-cover transition-transform duration-700 motion-safe:group-hover:scale-[1.04]"
               preferredSize="large"

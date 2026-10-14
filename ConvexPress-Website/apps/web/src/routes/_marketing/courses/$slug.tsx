@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth/clerk";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -11,7 +12,6 @@ import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 import CoreCourseDetail, {
-  type Course,
   type CourseAccess,
   type CourseDetailSurfaceData,
   type CourseTree,
@@ -98,11 +98,13 @@ function CourseDetailPage() {
   return <CourseDetailEnabled />;
 }
 
+type PublicCourse = NonNullable<FunctionReturnType<typeof api.lms.courses.queries.getBySlug>>;
+
 function CourseDetailEnabled() {
   const { slug } = Route.useParams();
   const { data: course } = useSuspenseQuery(
-    convexQuery(api.lms.courses.queries.getBySlug, { slug }) as any,
-  ) as { data: Course | null };
+    convexQuery(api.lms.courses.queries.getBySlug, { slug }),
+  );
 
   if (!course) {
     return <NotFoundPage />;
@@ -111,21 +113,21 @@ function CourseDetailEnabled() {
   return <CourseDetailContent course={course} />;
 }
 
-function CourseDetailContent({ course }: { course: Course }) {
+function CourseDetailContent({ course }: { course: PublicCourse }) {
   const { isSignedIn } = useAuth();
-  const { data: tree } = useSuspenseQuery(
+  const { data: tree }: { data: CourseTree } = useSuspenseQuery(
     convexQuery(api.lms.nodes.queries.getCourseTree, {
-      courseId: course._id as any,
-    }) as any,
-  ) as { data: CourseTree };
-  const access = useQuery((api as any).lms.enrollment.queries.canAccessCourse, {
-    courseId: course._id as any,
-  }) as CourseAccess | undefined;
-  const enrollment = useQuery(
-    (api as any).lms.enrollment.queries.getEnrollment,
-    isSignedIn ? { courseId: course._id as any } : "skip",
-  ) as { _id: string } | null | undefined;
-  const enroll = useMutation((api as any).lms.enrollment.mutations.enroll);
+      courseId: course._id,
+    }),
+  );
+  const access: CourseAccess | undefined = useQuery(api.lms.enrollment.queries.canAccessCourse, {
+    courseId: course._id,
+  });
+  const enrollment: { _id: string } | null | undefined = useQuery(
+    api.lms.enrollment.queries.getEnrollment,
+    isSignedIn ? { courseId: course._id } : "skip",
+  );
+  const enroll = useMutation(api.lms.enrollment.mutations.enroll);
 
   const firstLesson = tree.topics
     .flatMap((topic) => topic.children)
@@ -138,7 +140,7 @@ function CourseDetailContent({ course }: { course: Course }) {
 
   async function handleEnroll() {
     try {
-      await enroll({ courseId: course._id as any });
+      await enroll({ courseId: course._id });
       toast.success("Course added to your dashboard");
     } catch (error) {
       toast.error(

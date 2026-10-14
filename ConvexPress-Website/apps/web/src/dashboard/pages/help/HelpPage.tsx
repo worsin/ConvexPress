@@ -21,8 +21,8 @@ interface KbArticle {
   title: string;
   slug: string;
   excerpt?: string;
-  categorySlug?: string;
-  categoryName?: string;
+  categorySlug?: string | null;
+  categoryName?: string | null;
   readingTimeMinutes?: number;
 }
 
@@ -39,18 +39,18 @@ function HelpContent() {
   const debounced = useDebounce(query.trim(), 300);
   const hasQuery = debounced.length >= 2;
 
-  const results = useQuery(
+  const results: { results: KbArticle[]; total: number } | null | undefined = useQuery(
     api.kb.search.search,
     hasQuery ? { query: debounced, limit: 20 } : "skip",
-  ) as { results: KbArticle[]; total: number } | undefined;
-  const featured = useQuery(api.kb.queries.getFeatured, hasQuery ? "skip" : { limit: 6 }) as
-    | KbArticle[]
-    | undefined;
+  );
+  const featured: KbArticle[] | null | undefined = useQuery(api.kb.queries.getFeatured, hasQuery ? "skip" : { limit: 6 });
 
   const onSubmit = (event: FormEvent) => event.preventDefault();
 
-  const list = hasQuery ? results?.results : featured;
-  const loading = list === undefined;
+  const source = hasQuery ? results : featured;
+  const loading = source === undefined;
+  // null: the help center returned nothing for this viewer.
+  const list = (hasQuery ? results?.results : featured) ?? [];
 
   return (
     <div className="space-y-6">

@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { idFromString } from "@/lib/ids";
 import { cn } from "@/lib/utils";
 import { ProductMiniCard, type ProductCardData } from "./ProductMiniCard";
 
@@ -21,17 +22,16 @@ export interface RelatedGroup {
 
 export function useRelatedGroups(input: { productIds?: string[]; fromCart?: boolean; perGroup?: number }) {
   const { sessionToken } = useCommerceSessionToken();
-  const anyApi = api as any;
   const config = useAssistantConfig();
   const enabledGroups = new Set(Object.entries(config.groups).filter(([, on]) => on).map(([key]) => key));
-  const forProducts = useQuery(
-    anyApi.commerce.storefront.relatedForProducts,
+  const forProducts: RelatedGroup[] | undefined = useQuery(
+    api.commerce.storefront.relatedForProducts,
     input.productIds?.length ? { productIds: input.productIds, perGroup: input.perGroup ?? config.cardsPerGroup } : "skip",
-  ) as RelatedGroup[] | undefined;
-  const forCart = useQuery(
-    anyApi.commerce.storefront.relatedForCart,
+  );
+  const forCart: RelatedGroup[] | undefined = useQuery(
+    api.commerce.storefront.relatedForCart,
     input.fromCart && sessionToken ? { sessionToken, perGroup: input.perGroup ?? config.cardsPerGroup } : "skip",
-  ) as RelatedGroup[] | undefined;
+  );
   const groups = (input.fromCart ? forCart : forProducts)?.filter((group) => enabledGroups.has(group.key));
   return { groups, loading: (input.fromCart ? forCart : forProducts) === undefined && (input.fromCart || Boolean(input.productIds?.length)) };
 }
@@ -59,14 +59,14 @@ export function RelatedProducts({
 }) {
   const { groups, loading } = useRelatedGroups({ productIds, fromCart, perGroup });
   const { sessionToken } = useCommerceSessionToken();
-  const logEvent = useMutation((api as any).commerce.assistant.mutations.logEvent);
+  const logEvent = useMutation(api.commerce.assistant.mutations.logEvent);
   const logged = useRef<string>("");
 
   const visible = (groups ?? []).slice(0, limitGroups ?? groups?.length ?? 0);
 
   useEffect(() => {
     if (!sessionToken || !visible.length) return;
-    const ids = visible.flatMap((group) => group.items.map((item) => item.card.productId));
+    const ids = visible.flatMap((group) => group.items.map((item) => idFromString<"commerce_products">(item.card.productId)));
     const key = ids.join(",");
     if (key === logged.current) return;
     logged.current = key;
@@ -99,11 +99,11 @@ export function RelatedProducts({
                 product={item.card}
                 rationale={item.reason}
                 onNavigate={() => {
-                  if (sessionToken) void logEvent({ sessionToken, surface, event: "click", productIds: [item.card.productId], groupKey: group.key }).catch(() => undefined);
+                  if (sessionToken) void logEvent({ sessionToken, surface, event: "click", productIds: [idFromString<"commerce_products">(item.card.productId)], groupKey: group.key }).catch(() => undefined);
                   onNavigate?.();
                 }}
                 onAdded={() => {
-                  if (sessionToken) void logEvent({ sessionToken, surface, event: "add", productIds: [item.card.productId], groupKey: group.key }).catch(() => undefined);
+                  if (sessionToken) void logEvent({ sessionToken, surface, event: "add", productIds: [idFromString<"commerce_products">(item.card.productId)], groupKey: group.key }).catch(() => undefined);
                 }}
               />
             ))}

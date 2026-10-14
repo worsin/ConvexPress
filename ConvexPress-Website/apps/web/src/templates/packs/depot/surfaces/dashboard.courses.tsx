@@ -62,7 +62,7 @@ function CourseCard({ course, hrefs }: { course: DashboardLearningCourse; hrefs:
     <Card as="article" className="flex flex-col overflow-hidden">
       <Link to={continueHref} className="block aspect-video bg-muted/40">
         {course.featuredImageId ? (
-          <MediaImage mediaId={course.featuredImageId as any} alt={course.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" />
+          <MediaImage mediaId={course.featuredImageId} alt={course.title} className="h-full w-full object-cover" preferredSize="large" sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" />
         ) : (
           <CourseImageFallback title={course.title} subtitle={`${percent}% complete`} />
         )}

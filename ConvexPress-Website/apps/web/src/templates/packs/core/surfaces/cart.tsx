@@ -109,15 +109,15 @@ export default function CoreCart({ data }: SurfaceProps<CartSurfaceData>) {
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px] xl:items-start">
           <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
             <div className="divide-y divide-border">
-              {cart.items.map((item) => (
+              {cart.items.map((item) => { const mediaId = item.variant?.featuredMediaId ?? item.product?.featuredMediaId; return (
                 <div
                   key={item._id}
                   className="grid gap-5 p-5 sm:grid-cols-[120px_minmax(0,1fr)_160px]"
                 >
                   <div className="aspect-square overflow-hidden rounded-2xl bg-muted/40">
-                    {(item.variant?.featuredMediaId ?? item.product?.featuredMediaId) ? (
+                    {mediaId ? (
                       <MediaImage
-                        mediaId={(item.variant?.featuredMediaId ?? item.product?.featuredMediaId) as any}
+                        mediaId={mediaId}
                         alt={item.product?.title}
                         className="h-full w-full object-cover"
                         preferredSize="medium"
@@ -205,7 +205,7 @@ export default function CoreCart({ data }: SurfaceProps<CartSurfaceData>) {
                     {money(item.lineTotalAmount)}
                   </div>
                 </div>
-              ))}
+              ); })}
             </div>
           </div>
 

@@ -115,7 +115,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
         rule: {
           teaserMode: routeAccess.teaserMode,
           customMessage: routeAccess.customMessage,
-          matchingPlanIds: routeAccess.matchingPlanIds as any,
+          matchingPlanIds: routeAccess.matchingPlanIds,
         },
         userState,
       }}

@@ -30,7 +30,7 @@ export function SearchForm({ initialQuery = "", className, autoFocus }: SearchFo
 	    navigate({
 	      to: "/search",
 	      search: { q: trimmed },
-	    } as any);
+	    });
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {

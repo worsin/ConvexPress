@@ -53,10 +53,11 @@ function GalleryIndexPage() {
   const query = convexQuery(api.gallery.queries.listPublished, {
       page,
       perPage: 12,
-    }) as any;
-  const { data } = useSuspenseQuery(query) as { data: any };
+    });
+  const { data } = useSuspenseQuery(query);
 
-  const surfaceData: GalleryIndexSurfaceData = { albums: data.albums };
+  // null: the gallery is unavailable (plugin off); render it empty rather than crash.
+  const surfaceData: GalleryIndexSurfaceData = { albums: data?.albums ?? [] };
 
   return <Surface name="gallery.index" data={surfaceData} fallback={CoreGalleryIndex} />;
 }

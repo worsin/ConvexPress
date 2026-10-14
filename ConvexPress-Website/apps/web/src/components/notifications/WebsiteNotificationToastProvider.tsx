@@ -43,9 +43,7 @@ function NotificationToastListener() {
   const router = useRouter();
 
   const result = useQuery(api.notifications.queries.list, { limit: 1 });
-  const preferences = useQuery(api.notifications.queries.getPreferences, {}) as
-    | NotificationPreference[]
-    | undefined;
+  const preferences: NotificationPreference[] | undefined = useQuery(api.notifications.queries.getPreferences, {});
 
   useEffect(() => {
     if (!result) return;

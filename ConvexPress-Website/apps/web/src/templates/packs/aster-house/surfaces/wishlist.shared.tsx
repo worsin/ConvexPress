@@ -149,7 +149,7 @@ function SharedItem({
 				/>
 			) : product.featuredMediaId ? (
 				<MediaImage
-					mediaId={product.featuredMediaId as any}
+					mediaId={product.featuredMediaId}
 					alt={product.title}
 					className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
 					preferredSize="large"

@@ -44,7 +44,7 @@ export default function DepotDashboardReturns({ data }: SurfaceProps<DashboardRe
               </tr>
             </thead>
             <tbody>
-              {returns.map((ret: any) => {
+              {returns.map((ret) => {
                 const rejected = ret.status === "rejected";
                 const stepIndex = STATUS_STEPS.indexOf(ret.status);
                 return (

@@ -34,8 +34,8 @@ import { Surface } from "@/templates/sdk/Surface";
  * Forms are conversion surfaces, not indexable → `noindex`.
  */
 
-const getBySlugFn = (api as any).extensions.forms.queries.getBySlug;
-const resumeFn = (api as any).extensions.forms.queries.resume;
+const getBySlugFn = api.extensions.forms.queries.getBySlug;
+const resumeFn = api.extensions.forms.queries.resume;
 
 /** The resume-query projection (resume-safe; keyed by fieldKey). */
 type ResumeDraft = ResumeDraftState | null;
@@ -93,12 +93,10 @@ function ResumeFormPage() {
 function ResumeFormInner() {
   const { slug, token } = Route.useParams();
 
-  const formQuery = convexQuery(getBySlugFn, { slug }) as any;
-  const resumeQuery = convexQuery(resumeFn, { token }) as any;
-  const { data: form } = useSuspenseQuery(formQuery) as {
-    data: PublicForm | null;
-  };
-  const { data: draft } = useSuspenseQuery(resumeQuery) as { data: ResumeDraft };
+  const formQuery = convexQuery(getBySlugFn, { slug });
+  const resumeQuery = convexQuery(resumeFn, { token });
+  const { data: form }: { data: PublicForm | null } = useSuspenseQuery(formQuery);
+  const { data: draft }: { data: ResumeDraft } = useSuspenseQuery(resumeQuery);
   const [submission, setSubmission] = useState<{
     draft: ResumeDraft;
     complete: boolean;

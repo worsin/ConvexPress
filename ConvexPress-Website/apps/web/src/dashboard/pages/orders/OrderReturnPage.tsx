@@ -16,22 +16,23 @@ import CoreDashboardOrderReturn, {
   type DashboardReturnRequestInput,
 } from "@/templates/packs/core/surfaces/dashboard.orderReturn";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 export function OrderReturnPage({ orderId }: { orderId: string }) {
   const navigate = useNavigate();
   const { to } = useDashboardPath();
-  const settings = useQuery(api.settings.queries.getPublic) as any;
+  const settings = useQuery(api.settings.queries.getPublic);
   const returnsEnabled =
     settings !== undefined &&
     settings?.plugins?.commerceReturnsEnabled === true;
 
   const eligibility = useQuery(
-    (api as any).commerceReturns.queries.getMyOrderEligibility,
-    returnsEnabled ? { orderId: orderId as any } : "skip",
-  ) as any;
+    api.commerceReturns.queries.getMyOrderEligibility,
+    returnsEnabled ? { orderId: idFromString<"commerce_orders">(orderId) } : "skip",
+  );
 
   const requestReturn = useMutation(
-    (api as any).commerceReturns.mutations.requestReturn,
+    api.commerceReturns.mutations.requestReturn,
   );
 
   const [submitting, setSubmitting] = useState(false);
@@ -46,11 +47,11 @@ export function OrderReturnPage({ orderId }: { orderId: string }) {
     setSubmitting(true);
     try {
       const result = await requestReturn({
-        orderId: orderId as any,
+        orderId: idFromString<"commerce_orders">(orderId),
         reason: input.reason,
         ...(input.reasonDetails ? { reasonDetails: input.reasonDetails } : {}),
         items: input.items.map((item) => ({
-          orderItemId: item.orderItemId as any,
+          orderItemId: idFromString<"commerce_order_items">(item.orderItemId),
           quantity: item.quantity,
           ...(item.reason ? { reason: item.reason } : {}),
         })),
@@ -75,7 +76,7 @@ export function OrderReturnPage({ orderId }: { orderId: string }) {
     hrefs: { returns: to("/returns") },
     actions: {
       submit,
-      backToDashboard: () => navigate({ to: to("") } as any),
+      backToDashboard: () => navigate({ to: to("") }),
     },
   };
 

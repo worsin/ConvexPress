@@ -34,7 +34,7 @@ function NotificationsWidget(props: DashboardWidgetProps) {
   const { to } = useDashboardPath();
   const inboxHref = to("/notifications");
   const actions = useNotificationActions({ quiet: true });
-  const result = useQuery(api.notifications.queries.listForCenter, { view: "unread", limit }) as CenterResult | undefined;
+  const result: CenterResult | undefined = useQuery(api.notifications.queries.listForCenter, { view: "unread", limit });
 
   if (result === undefined) {
     return (

@@ -87,7 +87,7 @@ function ShowcaseLayout({ product, state }: LayoutProps) {
     <div className="flex flex-col gap-4">
       <section className="relative overflow-hidden rounded-md border border-border bg-muted">
         <div className="aspect-[16/9] md:aspect-[21/9]">
-          {hero ? <MediaImage key={hero} mediaId={hero as any} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" loading="eager" /> : null}
+          {hero ? <MediaImage key={hero} mediaId={hero} alt={product.title} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" loading="eager" /> : null}
         </div>
         <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 bg-background/90 p-4 backdrop-blur-sm">
           <div className="flex min-w-0 flex-col gap-1">
@@ -191,7 +191,7 @@ function BuyBoxBody({ product, state, showPrice = true }: LayoutProps & { showPr
       <VariantPicker state={state} className="[&_button]:rounded-md" />
       {state.currentVariant?.description ? <p className="text-[13px] text-muted-foreground">{state.currentVariant.description}</p> : null}
       {!state.access.allowed ? (
-        <UpgradeCTA matchingPlanIds={state.access.matchingPlanIds as any} title="Members-only product" description="This product is available to members only. Upgrade your plan to purchase." />
+        <UpgradeCTA matchingPlanIds={state.access.matchingPlanIds} title="Members-only product" description="This product is available to members only. Upgrade your plan to purchase." />
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">

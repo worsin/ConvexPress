@@ -49,7 +49,7 @@ export default function DepotSearchOverlay({ data }: SurfaceProps<SearchOverlayS
     event.preventDefault();
     const q = query.trim();
     if (!q) return;
-    void navigate({ to: target, search: { q } } as any);
+    void navigate({ to: target, search: { q } });
     close();
   };
 

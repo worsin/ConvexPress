@@ -16,13 +16,12 @@ import { CtaLink, SectionIntro, productGridClass } from "../_shared/rendering";
 import { productShowcaseAttrsSchema, type ProductShowcaseAttrs } from "./schema";
 
 function useShowcaseProducts(attrs: ProductShowcaseAttrs): ProductCardData[] | undefined {
-  const anyApi = api as any;
-  const bySlugs = useQuery(
-    anyApi.commerce.storefront.productCardsBySlugs,
+  const bySlugs: ProductCardData[] | undefined = useQuery(
+    api.commerce.storefront.productCardsBySlugs,
     attrs.source === "slugs" ? { slugs: attrs.productSlugs } : "skip",
-  ) as ProductCardData[] | undefined;
-  const search = useQuery(
-    anyApi.commerce.storefront.searchProducts,
+  );
+  const search: { items: ProductCardData[] } | undefined = useQuery(
+    api.commerce.storefront.searchProducts,
     attrs.source === "slugs"
       ? "skip"
       : {
@@ -30,7 +29,7 @@ function useShowcaseProducts(attrs: ProductShowcaseAttrs): ProductCardData[] | u
           sort: "newest",
           perPage: attrs.source === "sale" ? 48 : attrs.count,
         },
-  ) as { items: ProductCardData[] } | undefined;
+  );
   if (attrs.source === "slugs") return bySlugs;
   if (!search) return undefined;
   if (attrs.source === "sale") {

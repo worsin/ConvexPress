@@ -63,7 +63,7 @@ export function SearchOverlay({ open, onClose, placeholder = "Search..." }: Sear
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate({ to: searchTarget, search: { q: query.trim() } } as any);
+      navigate({ to: searchTarget, search: { q: query.trim() } });
       closeSearch();
       setQuery("");
       setSuggestionsVisible(false);

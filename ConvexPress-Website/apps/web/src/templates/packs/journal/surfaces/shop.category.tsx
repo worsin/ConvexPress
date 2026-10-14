@@ -32,7 +32,7 @@ export default function JournalShopCategory({ data }: SurfaceProps<CategoryArchi
         {category.thumbnailMediaId ? (
           <figure className="overflow-hidden rounded-2xl bg-muted">
             <div className="aspect-[3/1]">
-              <MediaImage mediaId={category.thumbnailMediaId as any} alt={category.name} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" />
+              <MediaImage mediaId={category.thumbnailMediaId} alt={category.name} className="h-full w-full object-cover" preferredSize="large" sizes="100vw" />
             </div>
           </figure>
         ) : null}
@@ -108,7 +108,7 @@ function CategoryProductCard({ product, currencyCode }: { product: CategoryArchi
       <Link to="/products/$slug" params={{ slug: product.slug }} className="block overflow-hidden rounded-2xl bg-muted" aria-label={product.title}>
         <div className="aspect-[4/5] w-full">
           {product.featuredMediaId ? (
-            <MediaImage mediaId={product.featuredMediaId as any} alt={product.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" preferredSize="large" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
+            <MediaImage mediaId={product.featuredMediaId} alt={product.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" preferredSize="large" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center font-display text-lg text-muted-foreground">{product.title}</div>
           )}

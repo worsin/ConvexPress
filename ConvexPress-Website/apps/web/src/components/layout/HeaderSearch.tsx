@@ -53,7 +53,7 @@ function HeaderSearchField({ placeholder, pack, onClose, className }: { placehol
       event.preventDefault();
       const q = query.trim();
       if (!q) return;
-      void navigate({ to: target, search: { q } } as any);
+      void navigate({ to: target, search: { q } });
       setSuggestions(false);
       onClose?.();
     }} onKeyDown={event => {

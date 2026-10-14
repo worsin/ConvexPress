@@ -60,7 +60,7 @@ export function TicketsPage({ subpath }: { subpath: string }) {
 }
 
 function TicketsList({ hrefFor, newHref }: { hrefFor: (ticketNumber: string) => string; newHref: string }) {
-  const data = useQuery(api.tickets.queries.getMyTicketsOverview, {}) as TicketOverviewResult | undefined;
+  const data: TicketOverviewResult | undefined = useQuery(api.tickets.queries.getMyTicketsOverview, {});
   return <TicketList data={data} hrefFor={hrefFor} newHref={newHref} />;
 }
 

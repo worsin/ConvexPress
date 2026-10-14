@@ -124,7 +124,7 @@ function CartPanelLine({
     <li className="flex gap-2.5 rounded-lg border border-border/70 bg-background p-2">
       <Link to="/products/$slug" params={{ slug: line.slug }} className="size-14 shrink-0 overflow-hidden rounded-md bg-muted">
         {line.featuredMediaId ? (
-          <MediaImage mediaId={line.featuredMediaId as any} alt={line.title} className="size-full object-cover" preferredSize="thumbnail" sizes="56px" />
+          <MediaImage mediaId={line.featuredMediaId} alt={line.title} className="size-full object-cover" preferredSize="thumbnail" sizes="56px" />
         ) : null}
       </Link>
       <div className="min-w-0 flex-1">

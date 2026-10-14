@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
+import { idFromString } from "@/lib/ids";
 
 /**
  * Two-step upgrade/downgrade flow for a single contract.
@@ -92,13 +93,13 @@ function PreviewPanel({
   contractId: string;
   toOfferId: string;
 }) {
-  const preview = useQuery(
-    (api as any).commerceSubscriptions.portal.previewPlanChange,
+  const preview: PreviewResult | null | undefined = useQuery(
+    api.commerceSubscriptions.portal.previewPlanChange,
     {
-      contractId: contractId as any,
-      toOfferId: toOfferId as any,
+      contractId: idFromString<"commerce_subscriptions">(contractId),
+      toOfferId: idFromString<"commerce_subscription_offers">(toOfferId),
     },
-  ) as PreviewResult | null | undefined;
+  );
 
   if (preview === undefined) {
     return (
@@ -182,7 +183,7 @@ export function ChangePlanFlow({
   const [busy, setBusy] = useState(false);
 
   const planChangeMutation = useMutation(
-    (api as any).commerceSubscriptions.portal.requestPlanChange,
+    api.commerceSubscriptions.portal.requestPlanChange,
   );
 
   // Filter out the current offer — moving to the same plan is rejected by
@@ -197,8 +198,8 @@ export function ChangePlanFlow({
     setBusy(true);
     try {
       const result = await planChangeMutation({
-        contractId: contractId as any,
-        toOfferId: selectedOfferId as any,
+        contractId: idFromString<"commerce_subscriptions">(contractId),
+        toOfferId: idFromString<"commerce_subscription_offers">(selectedOfferId),
       });
       if (result?.mode === "immediate") {
         toast.success("Plan upgraded — new invoice created");

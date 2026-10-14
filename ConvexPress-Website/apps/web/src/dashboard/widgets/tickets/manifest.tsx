@@ -29,7 +29,7 @@ function rowLimit({ size, settings }: DashboardWidgetProps): number {
 function TicketsWidget(props: DashboardWidgetProps) {
   const limit = rowLimit(props);
   const { to } = useDashboardPath();
-  const data = useQuery(api.tickets.queries.getMyTicketsOverview, {}) as TicketOverviewResult | undefined;
+  const data: TicketOverviewResult | undefined = useQuery(api.tickets.queries.getMyTicketsOverview, {});
   const now = Date.now();
 
   if (data === undefined) {

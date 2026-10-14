@@ -21,7 +21,6 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
-import type { PricingOffer, PricingCardConfig } from "@/lib/pricingCardRenderer";
 import { siteTitled } from "@/lib/seo/head";
 import CorePricing, { type PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
 import { Surface } from "@/templates/sdk/Surface";
@@ -35,10 +34,10 @@ export const Route = createFileRoute("/_marketing/pricing")({
     // Pre-fetch both queries in parallel for SSR
     await Promise.all([
 	      queryClient.ensureQueryData(
-	        convexQuery((api as any).commerceSubscriptions.pricingCards.getPricingCardConfig, {}),
+	        convexQuery(api.commerceSubscriptions.pricingCards.getPricingCardConfig, {}),
 	      ),
 	      queryClient.ensureQueryData(
-	        convexQuery((api as any).commerceSubscriptions.offers.listOffersForPricing, {}),
+	        convexQuery(api.commerceSubscriptions.offers.listOffersForPricing, {}),
 	      ),
 	    ]);
 	  },
@@ -70,14 +69,12 @@ function PricingPageInner() {
   // SSR-compatible: data was pre-fetched in the loader via ensureQueryData.
   // useSuspenseQuery suspends until data is available — no undefined state.
   const { data: config } = useSuspenseQuery(
-    // @ts-expect-error — type-gen gap between admin/website; Wave 7 removes
-    convexQuery((api as any).commerceSubscriptions.pricingCards.getPricingCardConfig, {}),
-  ) as { data: PricingCardConfig };
+    convexQuery(api.commerceSubscriptions.pricingCards.getPricingCardConfig, {}),
+  );
 
   const { data: offers } = useSuspenseQuery(
-    // @ts-expect-error — type-gen gap between admin/website; Wave 7 removes
-    convexQuery((api as any).commerceSubscriptions.offers.listOffersForPricing, {}),
-  ) as { data: PricingOffer[] };
+    convexQuery(api.commerceSubscriptions.offers.listOffersForPricing, {}),
+  );
 
   const surfaceData: PricingSurfaceData = { config, offers };
 

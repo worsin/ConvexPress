@@ -15,20 +15,21 @@ import CoreDashboardReviews, {
   type DashboardReviewsSurfaceData,
 } from "@/templates/packs/core/surfaces/dashboard.reviews";
 import { Surface } from "@/templates/sdk/Surface";
+import { idFromString } from "@/lib/ids";
 
 export function DashboardReviewsPage() {
   const settings = useSettings();
   const reviewsEnabled = settings?.plugins?.commerceReviewsEnabled === true;
-  const reviews = useQuery(
-    (api as any).commerceReviews.queries.getMyReviews,
+  const reviews: DashboardReview[] | null | undefined = useQuery(
+    api.commerceReviews.queries.getMyReviews,
     reviewsEnabled ? {} : "skip",
-  ) as DashboardReview[] | undefined;
+  );
 
   const updateMutation = useMutation(
-    (api as any).commerceReviews.mutations.update,
+    api.commerceReviews.mutations.update,
   );
   const removeMutation = useMutation(
-    (api as any).commerceReviews.mutations.remove,
+    api.commerceReviews.mutations.remove,
   );
 
   async function update(reviewId: string, input: DashboardReviewUpdate): Promise<boolean> {
@@ -38,7 +39,7 @@ export function DashboardReviewsPage() {
     }
     try {
       await updateMutation({
-        reviewId: reviewId as any,
+        reviewId: idFromString<"commerce_review_items">(reviewId),
         rating: input.rating,
         title: input.title,
         content: input.content,
@@ -58,7 +59,7 @@ export function DashboardReviewsPage() {
 
   async function remove(reviewId: string): Promise<boolean> {
     try {
-      await removeMutation({ reviewId: reviewId as any });
+      await removeMutation({ reviewId: idFromString<"commerce_review_items">(reviewId) });
       toast.success("Review deleted");
       return true;
     } catch (error) {
@@ -71,7 +72,8 @@ export function DashboardReviewsPage() {
   }
 
   const data: DashboardReviewsSurfaceData = {
-    reviews,
+    // null: the backend reports none available; the surface reads undefined as loading.
+    reviews: reviews === null ? [] : reviews,
     actions: { update, remove },
   };
 

@@ -3,7 +3,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -12,6 +12,7 @@ import {
   getCartLineSku,
   getCartLineSubtitle,
   getCartLineTitle,
+  parseCartLinesMetadata,
 } from "@/components/commerce/cartLine";
 import { MediaImage } from "@/components/media/MediaImage";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -63,10 +64,11 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const { sessionToken, isReady } = useCommerceSessionToken();
-  const cart = useQuery(
+  const rawCart = useQuery(
     api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
-  ) as CartDrawerCart;
+  );
+  const cart = useMemo<CartDrawerCart>(() => rawCart && parseCartLinesMetadata(rawCart), [rawCart]);
   const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
   const removeItem = useMutation(api.commerce.cart.removeItem);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -163,7 +165,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
               </div>
             ) : (
               <ul className="divide-y divide-border">
-                {cart.items.map((item) => (
+                {cart.items.map((item) => { const mediaId = item.variant?.featuredMediaId ?? item.product?.featuredMediaId; return (
                   <li key={item._id} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-4 px-5 py-5">
                     <Link
                       to="/products/$slug"
@@ -171,9 +173,9 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                       onClick={() => onOpenChange(false)}
                       className="aspect-square overflow-hidden rounded-md bg-muted"
                     >
-                      {(item.variant?.featuredMediaId ?? item.product?.featuredMediaId) ? (
+                      {mediaId ? (
                         <MediaImage
-                          mediaId={(item.variant?.featuredMediaId ?? item.product?.featuredMediaId) as any}
+                          mediaId={mediaId}
                           alt={item.product?.title}
                           className="h-full w-full object-cover"
                           preferredSize="medium"
@@ -248,7 +250,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                       </div>
                     </div>
                   </li>
-                ))}
+                ); })}
               </ul>
             )}
 

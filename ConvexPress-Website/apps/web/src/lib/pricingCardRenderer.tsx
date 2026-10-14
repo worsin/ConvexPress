@@ -37,7 +37,7 @@ export type PricingOffer = {
   pricingCardVisible?: boolean;
   planBenefits: PlanBenefit[];
   // Template-joined fields (Wave 6.1 backend enrichment):
-  billingInterval: "week" | "month" | "year" | null;
+  billingInterval: "day" | "week" | "month" | "year" | null;
   billingIntervalCount: number | null;
   templateTrialDays: number | null;
   createdAt?: number;

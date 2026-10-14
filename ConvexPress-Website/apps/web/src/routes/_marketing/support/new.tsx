@@ -46,7 +46,7 @@ function CreateTicketPage() {
     if (search.category) params.set("category", search.category);
     if (search.context) params.set("context", search.context);
     const qs = params.toString();
-    void navigate({ to: to(`/tickets/new${qs ? `?${qs}` : ""}`), replace: true } as never);
+    void navigate({ to: to(`/tickets/new${qs ? `?${qs}` : ""}`), replace: true });
   }, [shouldRedirect, navigate, to, search.subject, search.category, search.context]);
 
   const status: SupportNewSurfaceData["status"] =

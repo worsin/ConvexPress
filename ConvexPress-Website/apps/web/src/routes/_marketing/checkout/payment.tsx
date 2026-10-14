@@ -27,28 +27,28 @@ function CheckoutPaymentPage() {
   const router = useRouter();
   const { sessionToken, isReady } = useCommerceSessionToken();
   const session = useQuery(
-    (api as any).commerce.checkout.getSession,
+    api.commerce.checkout.getSession,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as any;
+  );
   const updateSession = useMutation(
-    (api as any).commerce.checkout.updateSession,
+    api.commerce.checkout.updateSession,
   );
 
   // Get payment settings for Stripe publishable key availability
   const paymentSettings = useQuery(
-    (api as any).commerce.payments.getSettings,
-  ) as any;
+    api.commerce.payments.getSettings,
+  );
 
   const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
   const paymentMethods = useMemo<CheckoutPaymentMethodOption[]>(() => {
     const configured =
       settings?.commerceConfig?.paymentMethods?.filter(
-        (method: any) => method.enabled,
+        (method) => method.enabled,
       ) ?? [
         { code: "manual_invoice", label: "Manual invoice", enabled: true },
     ];
 
-    return configured.map((method: any) => {
+    return configured.map((method) => {
       if (!IMPLEMENTED_CHECKOUT_PAYMENT_METHODS.has(method.code)) {
         return {
           ...method,

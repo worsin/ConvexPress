@@ -31,17 +31,15 @@ function CheckoutShippingPage() {
   const router = useRouter();
   const { sessionToken, isReady } = useCommerceSessionToken();
   const session = useQuery(
-    (api as any).commerce.checkout.getSession,
+    api.commerce.checkout.getSession,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as any;
-  const quotes = useQuery(
-    (api as any).shipping.queries.listCheckoutQuotes,
+  );
+  const quotes: Array<ShippingQuote> | undefined = useQuery(
+    api.shipping.queries.listCheckoutQuotes,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as
-    | Array<ShippingQuote>
-    | undefined;
-  const updateSession = useMutation((api as any).commerce.checkout.updateSession);
-  const fetchCheckoutRates = useAction((api as any).shipping.actions.fetchCheckoutRates);
+  );
+  const updateSession = useMutation(api.commerce.checkout.updateSession);
+  const fetchCheckoutRates = useAction(api.shipping.actions.fetchCheckoutRates);
   const shippingMethods = useMemo<Array<{ code: string; label: string }>>(
     () =>
       settings?.commerceConfig?.shippingEnabled === false
@@ -174,7 +172,7 @@ function CheckoutShippingPage() {
         provider: liveRateProvider,
         shippingAddress: address,
       });
-      setRateResult(result as any);
+      setRateResult(result);
       setRateAddressKey(addressKey(form));
       if (result?.quotes?.length) {
         const cheapest = [...result.quotes].sort(

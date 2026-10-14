@@ -117,20 +117,15 @@ export const listIssues = query({
 });
 
 /** Public verification by serial. */
+/** The whole answer for an unknown, revoked or malformed serial. */
+const INVALID_CERTIFICATE = { valid: false } as const;
+
 export const verifyBySerial = query({
   args: { serial: v.string() },
   returns: v.union(v.object({
-    valid: v.boolean(),
-    learnerName: v.optional(v.null()),
-    courseTitle: v.optional(v.null()),
-    issuedAt: v.optional(v.null()),
-    serial: v.optional(v.null()),
-    pdfUrl: v.optional(v.null()),
-    certificateTitle: v.optional(v.null()),
-    orientation: v.optional(v.null()),
-    certificateText: v.optional(v.null()),
+    valid: v.literal(false),
   }), v.object({
-    valid: v.boolean(),
+    valid: v.literal(true),
     learnerName: v.string(),
     courseTitle: v.string(),
     issuedAt: v.number(),
@@ -141,15 +136,15 @@ export const verifyBySerial = query({
     certificateText: v.string(),
   })),
   handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "lms"))) return { valid: false };
+    if (!(await isPluginEnabled(ctx, "lms"))) return INVALID_CERTIFICATE;
     const serial = args.serial.trim().toUpperCase();
     if (!/^CERT-[A-Z0-9-]{6,80}$/.test(serial)) {
-      return { valid: false };
+      return INVALID_CERTIFICATE;
     }
     const matches = await ctx.db.query("lms_certificate_issues")
       .withIndex("by_serial", q => q.eq("serial", serial)).take(2);
     const issue = matches.length === 1 ? matches[0] : null;
-    if (!issue || issue.status !== "issued") return { valid: false };
+    if (!issue || issue.status !== "issued") return INVALID_CERTIFICATE;
     const user = await ctx.db.get(issue.userId);
     const course = await ctx.db.get(issue.courseId);
     const certificate = await ctx.db.get(issue.certificateId);
@@ -159,7 +154,7 @@ export const verifyBySerial = query({
     const courseTitle = course?.title ?? "Unknown course";
     const certificateTitle = certificate?.title ?? "Certificate of Completion";
     return {
-      valid: true,
+      valid: true as const,
       learnerName,
       courseTitle,
       issuedAt: issue.issuedAt,
