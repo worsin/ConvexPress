@@ -572,6 +572,34 @@ export const EMAIL_EVENT_HANDLER_ROUTES: NotificationEngineListenerDef[] = [
     description:
       "Routes subscription pause emails through the subscription email system.",
   },
+  {
+    eventCode: "commerce.subscription_resumed",
+    name: `${ENGINE_LISTENER_NAME_PREFIX} Email commerce.subscription_resumed`,
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionResumed",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Routes resumed / kept subscription emails through the subscription email system.",
+  },
+  {
+    eventCode: "commerce.subscription_cancel_scheduled",
+    name: `${ENGINE_LISTENER_NAME_PREFIX} Email commerce.subscription_cancel_scheduled`,
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionCancelScheduled",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Routes scheduled-cancellation emails through the subscription email system.",
+  },
 ];
 
 const SITE_LISTENER_DEFINITIONS: NotificationEngineListenerDef[] = SITE_EVENT_CODES.map(

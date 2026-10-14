@@ -410,6 +410,27 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
     description: "Subscription pause confirmation.",
   },
   {
+    slug: "subscription-resumed",
+    category: "subscription",
+    triggerKind: "event",
+    canonicalEventCode: "commerce.subscription_resumed",
+    description: "Subscription active again (resumed, or kept after a scheduled cancellation).",
+  },
+  {
+    slug: "subscription-cancel-scheduled",
+    category: "subscription",
+    triggerKind: "event",
+    canonicalEventCode: "commerce.subscription_cancel_scheduled",
+    description: "Cancellation scheduled for the end of the paid period.",
+  },
+  {
+    slug: "subscription-payment-recovered",
+    category: "subscription",
+    triggerKind: "event",
+    canonicalEventCode: "commerce.subscription_renewed",
+    description: "A payment went through after a failed one.",
+  },
+  {
     slug: "lms-course-enrolled",
     category: "lms",
     triggerKind: "event",

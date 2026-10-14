@@ -341,7 +341,16 @@ export async function runBootstrapTemplates(ctx: Pick<MutationCtx, "db">, now = 
       existing.defaultSubjectTemplate !== templateDef.subjectTemplate ||
       existing.defaultBodyHtml !== templateDef.bodyHtml;
 
-    if (!shouldPatch) continue;
+    // A template nobody edited follows the shipped default; an edited one
+    // keeps its wording and only learns the new default (for "reset").
+    const followsDefault = existing.isCustomized !== true;
+    const contentStale =
+      followsDefault &&
+      (existing.subjectTemplate !== templateDef.subjectTemplate ||
+        existing.bodyHtml !== templateDef.bodyHtml ||
+        existing.preheaderText !== templateDef.preheaderText);
+
+    if (!shouldPatch && !contentStale) continue;
 
     await ctx.db.patch("emailTemplates", existing._id, {
       name: templateDef.name,
@@ -353,6 +362,13 @@ export async function runBootstrapTemplates(ctx: Pick<MutationCtx, "db">, now = 
       category: templateDef.category,
       defaultSubjectTemplate: templateDef.subjectTemplate,
       defaultBodyHtml: templateDef.bodyHtml,
+      ...(followsDefault
+        ? {
+            subjectTemplate: templateDef.subjectTemplate,
+            bodyHtml: templateDef.bodyHtml,
+            preheaderText: templateDef.preheaderText,
+          }
+        : {}),
       updatedAt: now,
     });
     updated++;

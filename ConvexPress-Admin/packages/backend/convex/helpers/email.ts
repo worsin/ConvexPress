@@ -116,6 +116,9 @@ export const EMAIL_TEMPLATES = {
   SUBSCRIPTION_TRIAL_ENDING: "subscription-trial-ending",
   SUBSCRIPTION_CANCELLED: "subscription-cancelled",
   SUBSCRIPTION_PAUSED: "subscription-paused",
+  SUBSCRIPTION_RESUMED: "subscription-resumed",
+  SUBSCRIPTION_CANCEL_SCHEDULED: "subscription-cancel-scheduled",
+  SUBSCRIPTION_PAYMENT_RECOVERED: "subscription-payment-recovered",
 
   // LMS
   LMS_COURSE_ENROLLED: "lms-course-enrolled",
