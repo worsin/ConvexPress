@@ -8,7 +8,7 @@ const paginationOpts = { numItems: 2, cursor: null };
 
 test("library pagination uses exact scope and author authority, without exposing other drafts", async () => {
   const { t, operator, customer, ids } = await fixture();
-  const own = await operator.mutation(create, { title: "Own", blocks: text });
+  const own = await operator.mutation(create, { title: "Own", blocksJson: JSON.stringify(text) });
   const other = await t.run(async ctx => {
     const user = await ctx.db.insert("users", { authSource: "local", email: "other@example.invalid", emailVerified: true, status: "active", roleId: ids.role, createdAt: 1, updatedAt: 1 });
     const clone = (await ctx.db.get("syncedBlocks", own.id))!;
@@ -32,8 +32,8 @@ test("library pagination uses exact scope and author authority, without exposing
 
 test("history pages are bounded summaries; a selected revision retains full validated content", async () => {
   const { operator, customer } = await fixture();
-  const { id } = await operator.mutation(create, { title: "Revision 1", blocks: text });
-  for (let n=2;n<=5;n++) await operator.mutation(save, { id, expectedGeneration: n-1, title: `Revision ${n}`, blocks: text });
+  const { id } = await operator.mutation(create, { title: "Revision 1", blocksJson: JSON.stringify(text) });
+  for (let n=2;n<=5;n++) await operator.mutation(save, { id, expectedGeneration: n-1, title: `Revision ${n}`, blocksJson: JSON.stringify(text) });
   const seen: number[]=[];let cursor:string|null=null;
   do {
     const result=await operator.query(versions,{id,paginationOpts:{numItems:2,cursor}});
@@ -50,10 +50,10 @@ test("history pages are bounded summaries; a selected revision retains full vali
 
 test("published picker uses published titles and revisions, never draft labels or withdrawn sources", async () => {
   const { operator, t, ids, release, customer } = await fixture();
-  const a=await operator.mutation(create,{title:"Published label",blocks:text});await release(a.id,1,1);
-  await operator.mutation(save,{id:a.id,expectedGeneration:2,title:"Secret draft rename",blocks:text});
-  await operator.mutation(create,{title:"Unpublished draft",blocks:text});
-  const b=await operator.mutation(create,{title:"Withdrawn",blocks:text});await release(b.id,1,1);await operator.mutation(withdraw,{id:b.id,expectedGeneration:2});
+  const a=await operator.mutation(create,{title:"Published label",blocksJson: JSON.stringify(text)});await release(a.id,1,1);
+  await operator.mutation(save,{id:a.id,expectedGeneration:2,title:"Secret draft rename",blocksJson: JSON.stringify(text)});
+  await operator.mutation(create,{title:"Unpublished draft",blocksJson: JSON.stringify(text)});
+  const b=await operator.mutation(create,{title:"Withdrawn",blocksJson: JSON.stringify(text)});await release(b.id,1,1);await operator.mutation(withdraw,{id:b.id,expectedGeneration:2});
   await t.run(async ctx=>{const author=await ctx.db.insert("users",{authSource:"local",email:"other@example.invalid",emailVerified:true,status:"active",roleId:ids.role,createdAt:1,updatedAt:1});await ctx.db.patch("syncedBlocks",a.id,{createdBy:author});});
   const result=await operator.query(options,{paginationOpts});
   expect(result.page).toHaveLength(1);expect(result.page[0]).toMatchObject({id:a.id,title:"Published label",revision:1});
@@ -63,8 +63,8 @@ test("published picker uses published titles and revisions, never draft labels o
 test("restore appends a reviewed draft revision, preserves history and the live pointer, and refuses stale or changed input", async () => {
   const { t, operator, release, ids, customer }=await fixture();
   await t.run(ctx=>ctx.db.patch("roles",ids.role,{capabilities:["post.create","post.read","post.update","post.restore","post.publish","post.unpublish"]}));
-  const {id}=await operator.mutation(create,{title:"Original",blocks:text});await release(id,1,1);
-  await operator.mutation(save,{id,expectedGeneration:2,title:"Changed",blocks:text});await release(id,3,2);
+  const {id}=await operator.mutation(create,{title:"Original",blocksJson: JSON.stringify(text)});await release(id,1,1);
+  await operator.mutation(save,{id,expectedGeneration:2,title:"Changed",blocksJson: JSON.stringify(text)});await release(id,3,2);
   const selected=await operator.query(version,{id,revision:1});
   const request={id,revision:1,expectedGeneration:4,expectedDigest:selected.digest};
   await expect(customer.mutation(restore,request)).rejects.toThrow();
@@ -81,8 +81,8 @@ test("restore appends a reviewed draft revision, preserves history and the live 
 test("a damaged current revision cannot masquerade as an unchanged restore through its stored digest", async () => {
   const { t, operator, ids }=await fixture();
   await t.run(ctx=>ctx.db.patch("roles",ids.role,{capabilities:["post.create","post.read","post.update","post.restore"]}));
-  const first=await operator.mutation(create,{title:"Good revision",blocks:text});
-  await operator.mutation(save,{id:first.id,expectedGeneration:1,title:"Damaged revision",blocks:text});
+  const first=await operator.mutation(create,{title:"Good revision",blocksJson: JSON.stringify(text)});
+  await operator.mutation(save,{id:first.id,expectedGeneration:1,title:"Damaged revision",blocksJson: JSON.stringify(text)});
   await t.run(async ctx=>{const row=await ctx.db.query("syncedBlockRevisions").withIndex("by_source_revision",q=>q.eq("syncedBlockId",first.id).eq("revision",2)).unique();await ctx.db.patch("syncedBlockRevisions",row!._id,{digest:first.digest});});
   await expect(operator.query(get,{id:first.id})).rejects.toThrow();
   expect((await operator.query(ref<"query">("syncedBlocks/queries:head"),{id:first.id})).revision).toBe(2);

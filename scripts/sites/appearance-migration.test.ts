@@ -56,7 +56,7 @@ for (const pack of ["core", "journal", "depot", "aster-house"]) {
     const reset = render(await publicState());
     expect(reset.css).toBe("");
     expect(reset.layout).toEqual({ shopLayout: "boutique", productLayout: "classic", cartPanel: "persistent", gridDensity: "comfortable", previewing: false });
-    await (importAll as any)._handler(ctx, { data: { settings: { "appearance.template": migrated.values } } });
+    await (importAll as any)._handler(ctx, { dataJson: JSON.stringify({ settings: { "appearance.template": migrated.values } }) });
     expect(render(await publicState())).toEqual(before);
     expect({ theme: ctx.tables.themes, layout: ctx.tables.settings[0] }).toEqual(source);
     expect(ctx.tables.settings.find((row: any) => row._id === "appearance").legacyAppearanceMigration).toEqual(migrated.legacyAppearanceMigration);

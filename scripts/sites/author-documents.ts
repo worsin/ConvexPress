@@ -85,7 +85,7 @@ export async function authorDocuments({recipe,target,api,journal,persist}:{recip
    owned=journal.documents[doc.key];await checkOwned(doc,owned);
   }
   if(owned.phase==='routed'){
-   await write(doc,'canonicalDocuments:save',{postId:owned.id,expectedRevision:owned.revision,title:doc.title,blocks:doc.blocks},'authored');
+   await write(doc,'canonicalDocuments:save',{postId:owned.id,expectedRevision:owned.revision,title:doc.title,blocksJson:JSON.stringify(doc.blocks)},'authored');
    await checkOwned(doc,journal.documents[doc.key]);
   }
  }

@@ -100,9 +100,8 @@ function ShipFromLocationsPage() {
         fulfillmentProvider: form.fulfillmentProvider,
         externalProviderLocationId:
           form.externalProviderLocationId.trim() || undefined,
-        fulfillmentProviderConfig: form.fulfillmentProviderConfig.trim()
-          ? JSON.parse(form.fulfillmentProviderConfig)
-          : undefined,
+        fulfillmentProviderConfigJson:
+          form.fulfillmentProviderConfig.trim() || undefined,
       });
       toast.success("Location created.");
       setShowForm(false);

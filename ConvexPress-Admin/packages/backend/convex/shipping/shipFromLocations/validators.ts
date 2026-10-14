@@ -47,7 +47,8 @@ export const createLocationArgs = {
     ),
   ),
   externalProviderLocationId: v.optional(v.string()),
-  fulfillmentProviderConfig: v.optional(v.any()),
+  /** Provider-specific settings (Amazon MCF, 3PL, custom) as a JSON object, JSON-encoded. */
+  fulfillmentProviderConfigJson: v.optional(v.string()),
 };
 
 export const updateLocationArgs = {
@@ -77,7 +78,8 @@ export const updateLocationArgs = {
       ),
     ),
     externalProviderLocationId: v.optional(v.string()),
-    fulfillmentProviderConfig: v.optional(v.any()),
+    /** Replaces the provider-specific settings: a JSON object, JSON-encoded. */
+    fulfillmentProviderConfigJson: v.optional(v.string()),
   }),
 };
 

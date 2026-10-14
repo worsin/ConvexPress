@@ -23,10 +23,14 @@ export type RuleOperator =
 
 export type RuleCombinator = "and" | "or" | "not";
 
+/** A leaf's comparison value: one scalar, or a list for in/not_in/between. */
+export type RuleScalar = string | number | boolean | null;
+export type RuleValue = RuleScalar | RuleScalar[];
+
 export type LeafRule = {
   op: RuleOperator;
   field: string; // dot-notation path (e.g., "cart.weightOz")
-  value?: unknown;
+  value?: RuleValue;
 };
 
 export type CombinatorRule = {

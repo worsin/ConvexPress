@@ -101,10 +101,8 @@ function MembershipSettingsPage() {
     try {
       await updateSection({
         section: "plugins",
-        values: {
-          ...values,
-          membershipEnabled,
-        },
+        // Only the changed flag: the stored section keeps every other value.
+        values: { membershipEnabled },
       });
       toast.success("Membership settings saved");
     } catch {

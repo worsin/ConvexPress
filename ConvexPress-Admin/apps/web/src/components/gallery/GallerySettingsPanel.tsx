@@ -6,7 +6,7 @@ import { usePluginSettings } from "@/hooks/usePluginSettings";
 import { Button } from "@/components/ui/button";
 
 export function GallerySettingsPanel() {
-  const { values, isEnabled } = usePluginSettings();
+  const { isEnabled } = usePluginSettings();
   const updateSection = useMutation(api.settings.mutations.updateSection);
 
   const enabled = isEnabled("gallery");
@@ -39,10 +39,8 @@ export function GallerySettingsPanel() {
             onClick={() =>
               void updateSection({
                 section: "plugins",
-                values: {
-                  ...values,
-                  galleryEnabled: !enabled,
-                },
+                // Only the changed flag: the stored section keeps every other value.
+                values: { galleryEnabled: !enabled },
               })
                 .then(() =>
                   toast.success(

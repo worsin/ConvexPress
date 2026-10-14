@@ -50,8 +50,8 @@ function PluginsPage() {
           const parentId = getPluginParent(plugin.id);
           const parent = parentId ? getPluginDefinition(parentId) : null;
           const parentEnabled = parent ? Boolean(values[parent.settingsKey]) : true;
-          const nextValues = {
-            ...values,
+          // Only the flags this toggle changes: the stored section keeps every other value.
+          const nextValues: Record<string, boolean> = {
             [plugin.settingsKey]: !plugin.enabled,
           };
           if (!plugin.enabled && parent) {

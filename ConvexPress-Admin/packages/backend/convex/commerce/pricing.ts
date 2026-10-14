@@ -3,9 +3,20 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 
 import { commerceDocs } from "../schema/commerce.docs.generated";
 const priceStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("inactive"));
+
+/**
+ * A price rule's comparison value. Rules are matched against a context of
+ * strings (currency, region, sales channel, customer group ids) and numbers
+ * (quantity), see commerce/cart.ts: `eq`, `neq`, `gte` and `lte` take one
+ * scalar, `in` and `not_in` take a list.
+ */
+const priceRuleScalarValidator = v.union(v.string(), v.number());
+const priceRuleValueValidator = v.union(priceRuleScalarValidator, v.array(priceRuleScalarValidator));
+const listOperators = new Set(["in", "not_in"]);
 
 export const listPriceLists = query({
   args: { status: v.optional(priceStatus) },
@@ -31,14 +42,17 @@ export const createPriceList = mutation({
     type: v.union(v.literal("sale"), v.literal("override")),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_price_lists"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const now = Date.now();
+    const { metadataJson, ...priceList } = args;
     return await ctx.db.insert("commerce_price_lists", {
-      ...args,
+      ...priceList,
+      metadata: parseOptionalJsonObjectArgument(metadataJson, "metadataJson"),
       createdAt: now,
       updatedAt: now,
     });
@@ -51,11 +65,13 @@ export const upsertPriceSet = mutation({
     title: v.optional(v.string()),
     productId: v.optional(v.id("commerce_products")),
     variantId: v.optional(v.id("commerce_product_variants")),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_price_sets"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
+    const metadata = parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson");
     const now = Date.now();
     if (args.priceSetId) {
       const set = await ctx.db.get(args.priceSetId);
@@ -64,7 +80,7 @@ export const upsertPriceSet = mutation({
         title: args.title,
         productId: args.productId,
         variantId: args.variantId,
-        metadata: args.metadata,
+        metadata,
         updatedAt: now,
       });
       return args.priceSetId;
@@ -73,7 +89,7 @@ export const upsertPriceSet = mutation({
       title: args.title,
       productId: args.productId,
       variantId: args.variantId,
-      metadata: args.metadata,
+      metadata,
       createdAt: now,
       updatedAt: now,
     });
@@ -126,7 +142,8 @@ export const upsertPrice = mutation({
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
     status: priceStatus,
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_prices"),
   handler: async (ctx, args) => {
@@ -142,7 +159,7 @@ export const upsertPrice = mutation({
       startsAt: args.startsAt,
       endsAt: args.endsAt,
       status: args.status,
-      metadata: args.metadata,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       updatedAt: now,
     };
     if (args.priceId) {
@@ -169,7 +186,7 @@ export const setPriceRules = mutation({
           v.literal("gte"),
           v.literal("lte"),
         ),
-        value: v.any(),
+        value: priceRuleValueValidator,
         priority: v.number(),
       }),
     ),
@@ -177,6 +194,14 @@ export const setPriceRules = mutation({
   returns: v.array(v.id("commerce_price_rules")),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
+    for (const [index, rule] of args.rules.entries()) {
+      if (listOperators.has(rule.operator) !== Array.isArray(rule.value)) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `rules[${index}].value must be ${listOperators.has(rule.operator) ? "a list" : "a single string or number"} for the "${rule.operator}" operator.`,
+        });
+      }
+    }
     const existing = await ctx.db
       .query("commerce_price_rules")
       .withIndex("by_price", (q) => q.eq("priceId", args.priceId))

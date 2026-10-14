@@ -32,7 +32,7 @@ const fn = (name: string) =>
 
 test("expired promotion retirement is durable, scoped and prevents delayed applies", async () => {
  const f = await fixture();
- const review = await f.authed.mutation(fn("dryRun"), { manifest: manifest(), mediaBindings: [], dependencyBindings: [] });
+ const review = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(manifest()), mediaBindings: [], dependencyBindings: [] });
  const args = { receiptId: review.receiptId, expectedDigest: review.digest };
  await expect(f.authed.mutation(fn("retireExpiredReview"), args)).rejects.toThrow();
  await f.t.run(ctx => ctx.db.patch(review.receiptId, { expiresAt: 1 }));
@@ -50,7 +50,7 @@ test("expired promotion retirement is durable, scoped and prevents delayed appli
 
 test("retiring an already committed promotion reports the committed outcome", async () => {
  const f = await fixture();
- const review = await f.authed.mutation(fn("dryRun"), { manifest: manifest(), mediaBindings: [], dependencyBindings: [] });
+ const review = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(manifest()), mediaBindings: [], dependencyBindings: [] });
  const args = { receiptId: review.receiptId, expectedDigest: review.digest };
  await f.authed.mutation(fn("apply"), { ...args, confirmLive: true });
  expect((await f.authed.mutation(fn("retireExpiredReview"), args)).status).toBe("applied");
@@ -254,7 +254,7 @@ test('registered promotion transfers nested reusable sources and referenced cano
  const previousEpoch=process.env.MEDIA_REFERENCE_INDEX_EPOCH;process.env.MEDIA_REFERENCE_INDEX_EPOCH='synced_promotion_flow_test_0001';
  try{
   const {exported,ids}=await reusableExportFixture(),f=await reusableTargetFixture();
-  const review=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});
+  const review=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});
   expect(review.ready).toBe(true);expect(review.changes.filter((c:any)=>c.kind==='syncedBlock')).toHaveLength(3);
   expect(await f.t.run(ctx=>ctx.db.query('posts').take(10))).toHaveLength(0);
   const args=receiptArgs(review),applied=await f.authed.mutation(fn('apply'),args);
@@ -272,13 +272,13 @@ test('registered reusable update and rollback retain production drafts and immut
  const previousEpoch=process.env.MEDIA_REFERENCE_INDEX_EPOCH;process.env.MEDIA_REFERENCE_INDEX_EPOCH='synced_promotion_flow_test_0002';
  try{
   const {exported}=await reusableExportFixture(),f=await reusableTargetFixture();
-  const first=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});await f.authed.mutation(fn('apply'),receiptArgs(first));
+  const first=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});await f.authed.mutation(fn('apply'),receiptArgs(first));
   const source=(await f.t.run(ctx=>ctx.db.query('syncedBlocks').take(10)))[0];
-  await f.authed.mutation(makeFunctionReference<'mutation'>('syncedBlocks/content:save'),{id:source._id,expectedGeneration:source.generation,title:'Production draft to retain',blocks:[{id:'draft',name:'core/paragraph',version:2,attrs:{}}]});
+  await f.authed.mutation(makeFunctionReference<'mutation'>('syncedBlocks/content:save'),{id:source._id,expectedGeneration:source.generation,title:'Production draft to retain',blocksJson: JSON.stringify([{id:'draft',name:'core/paragraph',version:2,attrs:{}}])});
   const versionsBefore=await f.t.run(ctx=>ctx.db.query('syncedBlockRevisions').take(20));
   exported.manifest.selection.includePresentation=true;
   exported.manifest.records.push({key:'template',kind:'presentation',sourceRevision:'template-revision',data:{section:'appearance.template',values:{active:'aster-house',overrides:{},variants:{},settings:{}}}});
-  const second=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(second.ready).toBe(true);
+  const second=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(second.ready).toBe(true);
   await f.authed.mutation(fn('apply'),receiptArgs(second));
   expect((await f.t.run(ctx=>ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','appearance.template')).unique()))!.values.active).toBe('aster-house');
   await f.authed.mutation(fn('rollback'),receiptArgs(second));
@@ -295,12 +295,12 @@ test('nested reusable Forms are reviewed by placement and late projection failur
   const {exportCanonicalPromotionTree}=await import('../../canonicalDocuments/foundation/promotionTree');
   exported.manifest.synced.sources.find((s:any)=>s.key===`@promotion:synced:${ids.third}`).revisions[0].tree=await exportCanonicalPromotionTree([{id:'contact',name:'core/contact-form',version:2,attrs:{fields:[{name:'email',label:'Email',type:'email',required:true}]}}],async()=>{throw Error('Unexpected dependency');});
   const roleId=await f.t.run(async ctx=>{const user=(await ctx.db.get('users',f.userId))!;const role=(await ctx.db.get('roles',user.roleId!))!;await ctx.db.patch('roles',role._id,{capabilities:role.capabilities.filter(c=>c!=='form.create')});const plugins=(await ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','plugins')).unique())!;await ctx.db.patch('settings',plugins._id,{values:{...plugins.values,formsEnabled:true}});return role._id;});
-  const denied=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(denied.ready).toBe(false);expect(denied.issues.some((i:any)=>i.code==='TARGET_CONTACT_PERMISSION')).toBe(true);
+  const denied=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(denied.ready).toBe(false);expect(denied.issues.some((i:any)=>i.code==='TARGET_CONTACT_PERMISSION')).toBe(true);
   await f.t.run(async ctx=>{const role=(await ctx.db.get('roles',roleId))!;await ctx.db.patch('roles',roleId,{capabilities:[...role.capabilities,'form.create']});});
-  const first=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(first.ready).toBe(true);await f.authed.mutation(fn('apply'),receiptArgs(first));
+  const first=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(first.ready).toBe(true);await f.authed.mutation(fn('apply'),receiptArgs(first));
   const forms=await f.t.run(ctx=>ctx.db.query('forms').take(10));expect(forms).toHaveLength(1);expect(forms[0].contactBlockId).toStartWith('synced_');
   const extra=structuredClone(exported.manifest.records.find((r:any)=>r.key===`page:${ids.featured}`));extra.key='page:extra-contact';extra.data.slug='extra-contact';extra.data.path='/extra-contact';exported.manifest.records.push(extra);
-  const second=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(second.ready).toBe(true);
+  const second=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(second.ready).toBe(true);
   await f.t.run(ctx=>ctx.db.delete('fieldGroups',forms[0].fieldGroupId!));
   const readState=()=>f.t.run(async ctx=>({posts:await ctx.db.query('posts').take(20),sources:await ctx.db.query('syncedBlocks').take(20),versions:await ctx.db.query('syncedBlockRevisions').take(40),backups:await ctx.db.query('contentPromotion_backups').take(40),forms:await ctx.db.query('forms').take(20),jobs:await ctx.db.query('syncedBlockRefreshJobs').take(20)}));
   const before=await readState();await expect(f.authed.mutation(fn('apply'),receiptArgs(second))).rejects.toThrow('field group is missing');expect(await readState()).toEqual(before);
@@ -322,11 +322,11 @@ test('brokered promotion updates three reusable contact forms within the canonic
    const bindingId=await ctx.db.insert('convexpress_managementBindings',{authorityId,controllerId:'test-controller',syntheticOperatorId:'broker',userId:managed,capabilityRevision:1,status:'active',createdAt:now,updatedAt:now});
    return ctx.db.insert('convexpress_managementSessions',{authorityId,bindingId,userId:managed,tokenHash:'fixture',websiteKey:target.websiteKey,instanceKey:target.instanceKey,capabilities:[],siteRoleSlug:'administrator',siteCapabilities:role.capabilities,capabilityRevision:1,expiresAt:now+60_000,status:'active',createdAt:now});
   });
-  const initial=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(initial.ready).toBe(true);
+  const initial=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(initial.ready).toBe(true);
   await f.authed.mutation(fn('apply'),receiptArgs(initial));
   const forms=await f.t.run(ctx=>ctx.db.query('forms').take(10));expect(forms).toHaveLength(3);
   const broker=f.t.withIdentity({subject:sessionId,issuer:'https://convexpress-management.local'});
-  const review=await broker.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(review.ready).toBe(true);
+  const review=await broker.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(review.ready).toBe(true);
   const applied=await broker.mutation(fn('apply'),receiptArgs(review));expect(applied.status).toBe('applied');
   const after=await f.t.run(ctx=>ctx.db.query('forms').take(10));expect(after.map(r=>r._id)).toEqual(forms.map(r=>r._id));
   expect((await f.t.run(ctx=>ctx.db.query('posts').take(10))).every(p=>p.blocksRevision===2)).toBe(true);
@@ -337,7 +337,7 @@ test('new canonical page allocation preserves create-only permissions and reject
  try{
   const {exported}=await reusableExportFixture(),f=await reusableTargetFixture();
   await f.t.run(async ctx=>{const user=(await ctx.db.get('users',f.userId))!,role=(await ctx.db.get('roles',user.roleId!))!;await ctx.db.patch('roles',role._id,{capabilities:role.capabilities.filter(c=>c!=='page.update')});});
-  const review=await f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings});expect(review.ready).toBe(true);
+  const review=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(review.ready).toBe(true);
   await f.authed.mutation(fn('apply'),receiptArgs(review));
   const page=(await f.t.run(ctx=>ctx.db.query('posts').take(10)))[0];
   const {consumeCanonicalPromotionAllocation}=await import('../canonicalAllocation');
@@ -349,19 +349,19 @@ test('reserving canonical identities does not bypass structural parent-cycle ref
  try{
   const {exported}=await reusableExportFixture(),f=await reusableTargetFixture(),pages=exported.manifest.records.filter((r:any)=>r.kind==='page');
   pages[0].data.parentId=`@promotion:${pages[1].key}`;pages[1].data.parentId=`@promotion:${pages[0].key}`;
-  await expect(f.authed.mutation(fn('dryRun'),{manifest:exported.manifest,...bindings})).rejects.toThrow('PROMOTION_REFERENCE_CYCLE');
+  await expect(f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(exported.manifest),...bindings})).rejects.toThrow('PROMOTION_REFERENCE_CYCLE');
   expect(await f.t.run(ctx=>ctx.db.query('posts').take(10))).toHaveLength(0);
  }finally{if(previousEpoch===undefined)delete process.env.MEDIA_REFERENCE_INDEX_EPOCH;else process.env.MEDIA_REFERENCE_INDEX_EPOCH=previousEpoch;}
 });
 test("promotion rejects anonymous review and source/target identity substitution", async () => {
 	const { t, authed } = await fixture();
 	await expect(
-		t.mutation(fn("dryRun"), { manifest: manifest(), ...bindings }),
+		t.mutation(fn("dryRun"), { manifestJson: JSON.stringify(manifest()), ...bindings }),
 	).rejects.toBeDefined();
 	const m = manifest();
 	m.target.instanceKey = "another-client";
 	await expect(
-		authed.mutation(fn("dryRun"), { manifest: m, ...bindings }),
+		authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings }),
 	).rejects.toBeDefined();
 	expect(await t.run((ctx) => ctx.db.query("posts").collect())).toHaveLength(0);
 });
@@ -374,7 +374,7 @@ test("strict manifest rejects runtime fields and unremapped dependency IDs", asy
 		const m = manifest();
 		m.records[0].data = data;
 		await expect(
-			authed.mutation(fn("dryRun"), { manifest: m, ...bindings }),
+			authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings }),
 		).rejects.toBeDefined();
 	}
 	const m = manifest();
@@ -390,13 +390,13 @@ test("strict manifest rejects runtime fields and unremapped dependency IDs", asy
 		},
 	];
 	await expect(
-		authed.mutation(fn("dryRun"), { manifest: m, ...bindings }),
+		authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings }),
 	).rejects.toBeDefined();
 });
 test("review is write-free for content, apply is confirmed and retry idempotent", async () => {
 	const { t, authed, userId } = await fixture();
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: manifest(),
+		manifestJson: JSON.stringify(manifest()),
 		...bindings,
 	});
 	expect(review.ready).toBe(true);
@@ -451,7 +451,7 @@ test("concurrent target edit blocks the entire atomic apply", async () => {
 		}),
 	);
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: manifest(),
+		manifestJson: JSON.stringify(manifest()),
 		...bindings,
 	});
 	await t.run((ctx) => ctx.db.patch(id, { title: "Concurrent live edit" }));
@@ -481,7 +481,7 @@ test("unsupported catalogs return actionable dry-run issues without a ready rece
 		},
 	];
 	const result = await authed.mutation(fn("dryRun"), {
-		manifest: m,
+		manifestJson: JSON.stringify(m),
 		...bindings,
 	});
 	expect(result.ready).toBe(false);
@@ -546,7 +546,7 @@ test("media bytes, block attrs, homepage and menu links map only to target IDs",
 		},
 	);
 	const reviewed = await authed.mutation(fn("dryRun"), {
-		manifest: m,
+		manifestJson: JSON.stringify(m),
 		mediaBindings: [{ key: "media:source-image", storageId }],
 		dependencyBindings: [],
 	});
@@ -593,7 +593,7 @@ test("unverified media and duplicate target dependency bindings never become rea
 		},
 	});
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: m,
+		manifestJson: JSON.stringify(m),
 		...bindings,
 	});
 	expect(review.ready).toBe(false);
@@ -604,7 +604,7 @@ test("unverified media and duplicate target dependency bindings never become rea
 	).toBe(true);
 	await expect(
 		authed.mutation(fn("dryRun"), {
-			manifest: manifest(),
+			manifestJson: JSON.stringify(manifest()),
 			mediaBindings: [],
 			dependencyBindings: [{ key: "outside", targetId: "one" }],
 		}),
@@ -631,7 +631,7 @@ test("a changed persisted review plan is rejected before content writes", async 
 	});
 	m.dependencies = [];
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: m,
+		manifestJson: JSON.stringify(m),
 		...bindings,
 	});
 	await t.run(async (ctx) => {
@@ -778,7 +778,7 @@ test("promotion and rollback update the author's published-post total with the s
     { key: "term:field", kind: "term", sourceRevision: "1", data: { name: "Field", slug: "field", taxonomy: "category" } },
     { key: "termRelationship:field", kind: "termRelationship", sourceRevision: "1", data: { postId: "@promotion:post:source-post", termId: "@promotion:term:field" } },
   );
-  const review = await authed.mutation(fn("dryRun"), { manifest: draft, ...bindings });
+  const review = await authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(draft), ...bindings });
   expect(review.issues).toEqual([]);
   const args = { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true };
   expect((await t.run(ctx => ctx.db.get(userId)))?.postCount).toBe(1);
@@ -816,7 +816,7 @@ test("update-only rollback restores the backed-up authoring with a fresh canonic
 	);
 	const before = await t.run((ctx) => ctx.db.get(id));
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: manifest(),
+		manifestJson: JSON.stringify(manifest()),
 		...bindings,
 	});
 	const args = {
@@ -834,7 +834,7 @@ test("update-only rollback restores the backed-up authoring with a fresh canonic
 		status: "rolled-back",
 	});
 	const next = await authed.mutation(fn("dryRun"), {
-		manifest: manifest(),
+		manifestJson: JSON.stringify(manifest()),
 		...bindings,
 	});
 	const nextArgs = {
@@ -850,7 +850,7 @@ test("update-only rollback restores the backed-up authoring with a fresh canonic
 test("rollback never deletes created content with potentially new external references", async () => {
 	const { t, authed } = await fixture();
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: manifest(),
+		manifestJson: JSON.stringify(manifest()),
 		...bindings,
 	});
 	const args = {
@@ -865,7 +865,7 @@ test("rollback never deletes created content with potentially new external refer
 test("apply rechecks operator authorization and receipts cannot cross operators", async () => {
 	const { t, authed, userId } = await fixture();
 	const review = await authed.mutation(fn("dryRun"), {
-		manifest: manifest(),
+		manifestJson: JSON.stringify(manifest()),
 		...bindings,
 	});
 	const operator = await t.run((ctx) => ctx.db.get(userId));
@@ -905,7 +905,7 @@ test("malformed reading/template values and dependency kind substitutions are re
 			data: { section: "reading", values },
 		});
 		await expect(
-			authed.mutation(fn("dryRun"), { manifest: m, ...bindings }),
+			authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings }),
 		).rejects.toBeDefined();
 	}
 	const m = manifest();
@@ -924,12 +924,12 @@ test("malformed reading/template values and dependency kind substitutions are re
 		},
 	});
 	await expect(
-		authed.mutation(fn("dryRun"), { manifest: m, ...bindings }),
+		authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings }),
 	).rejects.toBeDefined();
 	const wrong = manifest();
 	wrong.records[0].data.featuredImageId = "@promotion:page:source-page";
 	await expect(
-		authed.mutation(fn("dryRun"), { manifest: wrong, ...bindings }),
+		authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(wrong), ...bindings }),
 	).rejects.toBeDefined();
 });
 test("settings management alone cannot bypass content authoring capabilities", async () => {
@@ -939,7 +939,7 @@ test("settings management alone cannot bypass content authoring capabilities", a
 		ctx.db.patch(user!.roleId!, { capabilities: ["manage_options"] }),
 	);
 	await expect(
-		authed.mutation(fn("dryRun"), { manifest: manifest(), ...bindings }),
+		authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(manifest()), ...bindings }),
 	).rejects.toBeDefined();
 	expect(
 		await t.run((ctx) => ctx.db.query("contentPromotion_receipts").collect()),
@@ -950,10 +950,10 @@ test("canonical activation preserves schema-version and future block-contract re
   const { t, authed } = await fixture();
   const mixed = manifest();
   mixed.source.schemaVersion = "future-content-model";
-  await expect(authed.mutation(fn("dryRun"), { manifest: mixed, ...bindings })).rejects.toThrow("Source and target schema versions differ");
+  await expect(authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(mixed), ...bindings })).rejects.toThrow("Source and target schema versions differ");
   const future = legacyManifest();
   future.records[0].data.blocks = [{ id: "future", name: "core/paragraph", version: 1, attrs: { text: "Future" }, children: [] }];
-  await expect(authed.mutation(fn("dryRun"), { manifest: future, ...bindings })).rejects.toThrow("unified children tree");
+  await expect(authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(future), ...bindings })).rejects.toThrow("unified children tree");
   expect(await t.run((ctx) => ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
   expect(await t.run((ctx) => ctx.db.query("posts").collect())).toHaveLength(0);
 });
@@ -962,17 +962,17 @@ test("canonical review enforces atomic record and UTF-8 byte bounds before recei
   const { t, authed } = await fixture();
   const excessive = manifest();
   excessive.records = Array.from({ length: 101 }, (_, index) => ({ ...manifest().records[0], key: `page:${index}`, data: { ...manifest().records[0].data, slug: `page-${index}`, blocks: [] } }));
-  await expect(authed.mutation(fn("dryRun"), { manifest: excessive, ...bindings })).rejects.toBeDefined();
+  await expect(authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(excessive), ...bindings })).rejects.toBeDefined();
   const oversized = manifest();
   oversized.records[0].data.content = "界".repeat(170_000);
-  await expect(authed.mutation(fn("dryRun"), { manifest: oversized, ...bindings })).rejects.toThrow("500KB atomic promotion limit");
+  await expect(authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(oversized), ...bindings })).rejects.toThrow("500KB atomic promotion limit");
   expect(await t.run((ctx) => ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
   expect(await t.run((ctx) => ctx.db.query("posts").collect())).toHaveLength(0);
 });
 
 test("expired canonical receipts cannot apply or create mappings", async () => {
   const { t, authed } = await fixture();
-  const review = await authed.mutation(fn("dryRun"), { manifest: manifest(), ...bindings });
+  const review = await authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(manifest()), ...bindings });
   await t.run(async (ctx) => {
     const receiptId = ctx.db.normalizeId("contentPromotion_receipts", review.receiptId);
     if (!receiptId) throw new Error("Expected persisted canonical receipt");
@@ -1006,7 +1006,7 @@ async function commerceFixture() {
 test("catalog apply maps categories and variant options, starts with no sellable stock and retries without hooks", async () => {
   const { t, authed, userId } = await commerceFixture();
   const m = catalogManifest();
-  const review = await authed.mutation(fn("dryRun"), { manifest: m, ...bindings });
+  const review = await authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings });
   expect(review.ready).toBe(true);
   const args = { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true };
   const applied = await authed.mutation(fn("apply"), args);
@@ -1027,23 +1027,23 @@ test("catalog manifest refuses stock, provider, tag and delivery payloads", asyn
   const { authed } = await commerceFixture();
   for (const protectedFields of [{ stockQuantity: 999 }, { trackInventory: false }, { stripeProductId: "source-provider" }, { tags: ["copied"] }, { rawSourceMeta: "secret" }, { isDownloadable: true }]) {
     const m = catalogManifest(); Object.assign(m.records[1].data, protectedFields);
-    await expect(authed.mutation(fn("dryRun"), { manifest: m, ...bindings })).rejects.toBeDefined();
+    await expect(authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings })).rejects.toBeDefined();
   }
 });
 
 test("catalog review blocks disabled commerce and target SKU ownership conflicts", async () => {
   const { t, authed, userId } = await commerceFixture();
   await t.run(ctx => ctx.db.insert("commerce_products", { title: "Unrelated live product", slug: "other", sku: "ASTER-MUG", authorId: userId, productType: "simple", status: "publish", galleryMediaIds: [], categoryIds: [], basePrice: { amount: 1900, currencyCode: "USD" }, trackInventory: true, stockQuantity: 7, allowBackorders: false, isVirtual: false, isDownloadable: false, createdAt: 1, updatedAt: 1 }));
-  const conflict = await authed.mutation(fn("dryRun"), { manifest: catalogManifest(), ...bindings });
+  const conflict = await authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(catalogManifest()), ...bindings });
   expect(conflict.ready).toBe(false); expect(conflict.issues.some((i: {code: string}) => i.code === "TARGET_SKU_CONFLICT")).toBe(true);
   await t.run(async ctx => { const plugins = await ctx.db.query("settings").withIndex("by_section", q=>q.eq("section","plugins")).unique(); await ctx.db.patch(plugins!._id,{values:{commerceEnabled:false}}); });
-  const disabled = await authed.mutation(fn("dryRun"), { manifest: catalogManifest(), ...bindings });
+  const disabled = await authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(catalogManifest()), ...bindings });
   expect(disabled.ready).toBe(false); expect(disabled.issues.some((i:{code:string}) => i.code === "TARGET_PLUGIN_DISABLED")).toBe(true);
   expect(await t.run(ctx=>ctx.db.query("commerce_products").collect())).toHaveLength(1);
 });
 
 async function applyCatalog(f: Awaited<ReturnType<typeof commerceFixture>>, m=catalogManifest()) {
-  const review = await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});
+  const review = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});
   expect(review.ready).toBe(true);
   return f.authed.mutation(fn("apply"),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
 }
@@ -1057,7 +1057,7 @@ test("catalog updates preserve target inventory and external identifiers, confli
     return {product:await ctx.db.get(product._id),variant:await ctx.db.get(variant._id),users:await ctx.db.query("users").collect()};
   });
   const m=catalogManifest();m.records[1].data.title="Forest mug, revised";m.records[1].data.basePrice={amount:4200,currencyCode:"USD"};m.records[2].data.price={amount:4200,currencyCode:"USD"};
-  const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(true);
+  const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
   expect(review.changes.find((change:{kind:string})=>change.kind==="product").fields).toContain("salePrice");
   const args={receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};await f.authed.mutation(fn("apply"),args);
   const after=await f.t.run(async ctx=>({product:await ctx.db.get(prior.product!._id),variant:await ctx.db.get(prior.variant!._id),users:await ctx.db.query("users").collect(),scheduled:await ctx.db.system.query("_scheduled_functions").collect()}));
@@ -1068,7 +1068,7 @@ test("catalog updates preserve target inventory and external identifiers, confli
   await f.authed.mutation(fn("rollback"),args);
   expect(await f.t.run(ctx=>ctx.db.get(prior.product!._id))).toEqual(prior.product);
   expect(await f.t.run(ctx=>ctx.db.get(prior.variant!._id))).toEqual(prior.variant);
-  const stale=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});
+  const stale=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});
   await f.t.run(ctx=>ctx.db.patch(prior.product!._id,{stockQuantity:22}));
   await expect(f.authed.mutation(fn("apply"),{receiptId:stale.receiptId,expectedDigest:stale.digest,confirmLive:true})).rejects.toThrow("Target content or dependencies changed");
 });
@@ -1096,7 +1096,7 @@ test("product-showcase source export discovers physical catalog and target-only 
   expect(await source.t.run(async ctx=>({product:await ctx.db.get(selected.productId),variant:await ctx.db.get(selected.variantId)}))).toEqual(before);
   const live=await commerceFixture();const storageId=await live.t.run(ctx=>ctx.storage.store(bytes));
   const media=exported.manifest.records.find((r:{kind:string})=>r.kind==="media");
-  const review=await live.authed.mutation(fn("dryRun"),{manifest:exported.manifest,mediaBindings:[{key:media.key,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
+  const review=await live.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(exported.manifest),mediaBindings:[{key:media.key,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
   await live.authed.mutation(fn("apply"),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
   const result=await live.t.run(async ctx=>({product:(await ctx.db.query("commerce_products").unique())!,variant:(await ctx.db.query("commerce_product_variants").unique())!,media:(await ctx.db.query("media").unique())!,scheduled:await ctx.db.system.query("_scheduled_functions").collect()}));
   expect(result.product.featuredMediaId).toBe(result.media._id);expect(result.product.galleryMediaIds).toEqual([result.media._id]);expect(result.variant.featuredMediaId).toBe(result.media._id);expect(result.variant.productId).toBe(result.product._id);
@@ -1106,12 +1106,12 @@ test("product-showcase source export discovers physical catalog and target-only 
 test("catalog validation blocks duplicate selections/defaults, mismatched currency and wrong reference kinds",async()=>{
   const f=await commerceFixture();
   const duplicate=catalogManifest();duplicate.records.push({...duplicate.records[2],key:"productVariant:second",data:{...duplicate.records[2].data,sku:"SECOND"}});
-  await expect(f.authed.mutation(fn("dryRun"),{manifest:duplicate,...bindings})).rejects.toThrow("exactly one default");
-  duplicate.records[3].data.isDefault=false;await expect(f.authed.mutation(fn("dryRun"),{manifest:duplicate,...bindings})).rejects.toThrow("complete and unique");
+  await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(duplicate),...bindings})).rejects.toThrow("exactly one default");
+  duplicate.records[3].data.isDefault=false;await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(duplicate),...bindings})).rejects.toThrow("complete and unique");
   const wrong=catalogManifest();wrong.records[1].data.featuredMediaId="@promotion:productCategory:source-category";
-  await expect(f.authed.mutation(fn("dryRun"),{manifest:wrong,...bindings})).rejects.toThrow("wrong dependency kind");
+  await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(wrong),...bindings})).rejects.toThrow("wrong dependency kind");
   const currency=catalogManifest();currency.records[1].data.basePrice={amount:3800,currencyCode:"EUR"};currency.records[2].data.price={amount:3800,currencyCode:"EUR"};
-  const review=await f.authed.mutation(fn("dryRun"),{manifest:currency,...bindings});expect(review.ready).toBe(false);expect(review.issues.some((i:{code:string})=>i.code==="TARGET_CURRENCY_MISMATCH")).toBe(true);
+  const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(currency),...bindings});expect(review.ready).toBe(false);expect(review.issues.some((i:{code:string})=>i.code==="TARGET_CURRENCY_MISMATCH")).toBe(true);
 });
 
 test("catalog category ancestry/counts are remapped and unsupported collection removals stay blocked",async()=>{
@@ -1126,7 +1126,7 @@ test("catalog category ancestry/counts are remapped and unsupported collection r
   await applyCatalog(f,update);
   const after=await f.t.run(ctx=>ctx.db.get(parent._id));expect(after!.totalProductCount).toBe(0);
   const removed=catalogManifest();removed.records[1].data.productType="simple";removed.records[1].data.options=[];removed.records=removed.records.filter(r=>r.kind!=="productVariant");
-  const review=await f.authed.mutation(fn("dryRun"),{manifest:removed,...bindings});expect(review.ready).toBe(false);expect(review.issues.some((i:{code:string})=>i.code==="TARGET_VARIANT_COLLECTION_CONFLICT")).toBe(true);
+  const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(removed),...bindings});expect(review.ready).toBe(false);expect(review.issues.some((i:{code:string})=>i.code==="TARGET_VARIANT_COLLECTION_CONFLICT")).toBe(true);
 });
 
 test("new variants cannot bypass an existing untracked parent's inventory policy",async()=>{
@@ -1134,7 +1134,7 @@ test("new variants cannot bypass an existing untracked parent's inventory policy
   await f.t.run(async ctx=>{const product=(await ctx.db.query("commerce_products").unique())!;await ctx.db.patch(product._id,{trackInventory:false});});
   const m=catalogManifest();m.records[1].data.options=[{name:"Color",values:["Stone","Pine"]}];
   m.records.push({key:"productVariant:pine",kind:"productVariant",sourceRevision:"pine",data:{...m.records[2].data,sku:"ASTER-MUG-PINE",title:"Pine",options:[{name:"Color",value:"Pine"}],isDefault:false}});
-  const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(false);expect(review.issues.some((i:{code:string})=>i.code==="TARGET_VARIANT_STOCK_POLICY")).toBe(true);
+  const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(false);expect(review.issues.some((i:{code:string})=>i.code==="TARGET_VARIANT_STOCK_POLICY")).toBe(true);
 });
 
 test("source export refuses digital and external catalog delivery instead of silently publishing physical substitutes", async () => {
@@ -1178,7 +1178,7 @@ test("course promotion and rollback replace category coordinates with the author
   const source = learningManifest();
   const course = source.records.find(record => record.kind === "course")!;
   const selected = { ...source, selection: { ...source.selection, planIds: [] }, records: [{ ...course, data: { ...course.data, accessMode: "open", categoryIds: ["paper"] } }] };
-  const review = await f.authed.mutation(fn("dryRun"), { manifest: selected, ...bindings });
+  const review = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(selected), ...bindings });
   expect(review.issues).toEqual([]);
   const args = { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true };
   await f.authed.mutation(fn("apply"), args);
@@ -1190,7 +1190,7 @@ test("course promotion and rollback replace category coordinates with the author
 });
 test("learning promotion creates mapped curriculum and member gate without learner records or deliveries", async () => {
   const f = await learningFixture();
-  const review = await f.authed.mutation(fn("dryRun"), { manifest: learningManifest(), ...bindings });
+  const review = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(learningManifest()), ...bindings });
   expect(review.issues).toEqual([]);
   const args = { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true };
   const result = await f.authed.mutation(fn("apply"), args);
@@ -1205,7 +1205,7 @@ test("learning promotion creates mapped curriculum and member gate without learn
 });
 
 async function applyLearning(f: Awaited<ReturnType<typeof learningFixture>>, m = learningManifest()) {
-  const review = await f.authed.mutation(fn("dryRun"), { manifest: m, ...bindings });
+  const review = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings });
   expect(review.issues).toEqual([]);
   return f.authed.mutation(fn("apply"), { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true });
 }
@@ -1228,7 +1228,7 @@ test("learning updates retain curriculum identity, progress, grants and target b
   const after = await f.t.run(async ctx => ({ enrollment: await ctx.db.get(before.enrollment!._id), progress: await ctx.db.get(before.progress!._id), grant: await ctx.db.get(before.grant!._id), node: await ctx.db.get(before.node._id), plan: await ctx.db.get(before.plan._id), benefit: await ctx.db.query("membership_plan_benefits").unique(), scheduled: await ctx.db.system.query("_scheduled_functions").collect() }));
   expect(after.enrollment).toEqual(before.enrollment); expect(after.progress).toEqual(before.progress); expect(after.grant).toEqual(before.grant);
   expect(after.node!.title).toBe("Watch the light"); expect(after.plan!.linkedSubscriptionCode).toBe("target-billing-code"); expect(after.plan!.linkedCapabilities).toEqual(["target.capability"]); expect(after.benefit!.metadata).toEqual({ target: "retained" }); expect(after.scheduled).toHaveLength(0);
-  const stale = await f.authed.mutation(fn("dryRun"), { manifest: m, ...bindings });
+  const stale = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings });
   await f.t.run(ctx => ctx.db.patch(before.plan._id, { linkedSubscriptionCode: "new-target-billing-code" }));
   await expect(f.authed.mutation(fn("apply"), { receiptId: stale.receiptId, expectedDigest: stale.digest, confirmLive: true })).rejects.toThrow("Target content or dependencies changed");
 });
@@ -1249,34 +1249,34 @@ test("learning export remaps course gates and prerequisites without exporting so
 test("learning rejects missing or inactive gates, disabled plugins, invalid trees and protected payloads", async () => {
   const f = await learningFixture();
   const missing = learningManifest(); missing.records = missing.records.filter(r => r.kind !== "restriction");
-  await expect(f.authed.mutation(fn("dryRun"), { manifest: missing, ...bindings })).rejects.toThrow("reviewed membership gate");
+  await expect(f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(missing), ...bindings })).rejects.toThrow("reviewed membership gate");
   const wrong = learningManifest(); wrong.records[5].data.planIds = ["@promotion:course:source"];
-  await expect(f.authed.mutation(fn("dryRun"), { manifest: wrong, ...bindings })).rejects.toThrow("wrong dependency kind");
+  await expect(f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(wrong), ...bindings })).rejects.toThrow("wrong dependency kind");
   const inactive = learningManifest(); inactive.records[0].data.status = "draft";
-  expect((await f.authed.mutation(fn("dryRun"), { manifest: inactive, ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_GATE_PLAN_INACTIVE")).toBe(true);
+  expect((await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(inactive), ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_GATE_PLAN_INACTIVE")).toBe(true);
   const tree = learningManifest(); tree.records[4].data.parentId = "@promotion:courseNode:lesson";
-  await expect(f.authed.mutation(fn("dryRun"), { manifest: tree, ...bindings })).rejects.toThrow("root topics");
+  await expect(f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(tree), ...bindings })).rejects.toThrow("root topics");
   for (const [index, fields] of [[0, { linkedSubscriptionCode: "source-code" }], [0, { linkedRoleId: "source-role" }], [2, { authorId: "source-user" }], [2, { accessMode: "buy", price: 1200 }], [4, { completed: true }]] as const) {
     const protectedManifest = learningManifest(); Object.assign(protectedManifest.records[index].data, fields);
-    await expect(f.authed.mutation(fn("dryRun"), { manifest: protectedManifest, ...bindings })).rejects.toThrow();
+    await expect(f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(protectedManifest), ...bindings })).rejects.toThrow();
   }
   await f.t.run(async ctx => { const plugins = (await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "plugins")).unique())!; await ctx.db.patch(plugins._id, { values: { ...plugins.values, lmsEnabled: false, membershipEnabled: false } }); });
-  expect((await f.authed.mutation(fn("dryRun"), { manifest: learningManifest(), ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_PLUGIN_DISABLED")).toBe(true);
+  expect((await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(learningManifest()), ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_PLUGIN_DISABLED")).toBe(true);
 });
 test("learning refuses paid plan creation and unreviewed curriculum removal", async () => {
   const f = await learningFixture(); const paid = learningManifest(); paid.records[0].data.grantMode = "subscription";
-  expect((await f.authed.mutation(fn("dryRun"), { manifest: paid, ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_PLAN_BINDING_REQUIRED")).toBe(true);
+  expect((await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(paid), ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_PLAN_BINDING_REQUIRED")).toBe(true);
   await applyLearning(f);
   const removed = learningManifest(); removed.records = removed.records.filter(r => r.key !== "courseNode:lesson");
-  expect((await f.authed.mutation(fn("dryRun"), { manifest: removed, ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_LEARNING_COLLECTION_CONFLICT")).toBe(true);
+  expect((await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(removed), ...bindings })).issues.some((i: {code:string}) => i.code === "TARGET_LEARNING_COLLECTION_CONFLICT")).toBe(true);
 });
 
 test("learning authoring permissions, prerequisite cycles and source paid adapters fail closed", async () => {
   const insufficient = await fixture();
-  await expect(insufficient.authed.mutation(fn("dryRun"), { manifest: learningManifest(), ...bindings })).rejects.toThrow("Insufficient permissions");
+  await expect(insufficient.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(learningManifest()), ...bindings })).rejects.toThrow("Insufficient permissions");
   const f = await learningFixture(); const cycle = learningManifest();
   cycle.records.push({ key: "course:other", kind: "course", sourceRevision: "1", data: { title: "Other", slug: "other", status: "draft", accessMode: "closed" } }, { key: "coursePrerequisite:one", kind: "coursePrerequisite", sourceRevision: "1", data: { courseId: "@promotion:course:source", prereqCourseId: "@promotion:course:other" } }, { key: "coursePrerequisite:two", kind: "coursePrerequisite", sourceRevision: "1", data: { courseId: "@promotion:course:other", prereqCourseId: "@promotion:course:source" } });
-  await expect(f.authed.mutation(fn("dryRun"), { manifest: cycle, ...bindings })).rejects.toThrow("prerequisites form a cycle");
+  await expect(f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(cycle), ...bindings })).rejects.toThrow("prerequisites form a cycle");
   await applyLearning(f);
   const ids = await f.t.run(async ctx => { const site = (await ctx.db.query("convexpress_siteIdentity").unique())!; await ctx.db.patch(site._id, { instanceKey: "site:staging", environmentKind: "staging", deploymentOrigin: "https://source.convex.cloud", siteOrigin: "https://source.example.test" }); const course = (await ctx.db.query("lms_courses").unique())!; await ctx.db.patch(course._id, { accessMode: "buy", price: 100 }); return { courseId: course._id }; });
   await expect(f.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), { target, selection: { ...manifest().selection, pageIds: [], courseIds: [ids.courseId] } })).rejects.toThrow("explicit target adapters");
@@ -1286,7 +1286,7 @@ test("learning lesson media are verified and remapped through the actual export/
   const courseId = await source.t.run(async ctx => { const site = (await ctx.db.query("convexpress_siteIdentity").unique())!; await ctx.db.patch(site._id, { instanceKey: "site:staging", environmentKind: "staging", deploymentOrigin: "https://source.convex.cloud", siteOrigin: "https://source.example.test" }); const storageId = await ctx.storage.store(bytes); const url = (await ctx.storage.getUrl(storageId))!; const mediaId = await ctx.db.insert("media", { title: "Morning audio", fileName: "morning.mp3", slug: "morning-audio", mimeType: "audio/mpeg", mediaType: "audio", fileSize: bytes.size, storageId, url, status: "active", uploadedBy: source.userId, createdAt: 1, updatedAt: 1 }); const course = (await ctx.db.query("lms_courses").unique())!; const lesson = (await ctx.db.query("lms_nodes").withIndex("by_course_kind", q => q.eq("courseId", course._id).eq("kind", "lesson")).first())!; await ctx.db.patch(lesson._id, { audioMediaId: mediaId }); return course._id; });
   const exported = await source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), { target, selection: { ...manifest().selection, pageIds: [], courseIds: [courseId] } });
   const live = await learningFixture(); const storageId = await live.t.run(ctx => ctx.storage.store(bytes)); const media = exported.manifest.records.find((r: {kind: string}) => r.kind === "media");
-  const review = await live.authed.mutation(fn("dryRun"), { manifest: exported.manifest, mediaBindings: [{ key: media.key, storageId }], dependencyBindings: [] }); expect(review.issues).toEqual([]);
+  const review = await live.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(exported.manifest), mediaBindings: [{ key: media.key, storageId }], dependencyBindings: [] }); expect(review.issues).toEqual([]);
   await live.authed.mutation(fn("apply"), { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true });
   const rows = await live.t.run(async ctx => ({ media: (await ctx.db.query("media").unique())!, nodes: await ctx.db.query("lms_nodes").collect() })); expect(rows.nodes.find(n => n.kind === "lesson")!.audioMediaId).toBe(rows.media._id); expect(rows.media.storageId).toBe(storageId);
 });
@@ -1371,12 +1371,12 @@ test("legacy promotion cannot erase the canonical source discriminator or plan o
  expect(exported.manifest.records[0].data.blocks).toBeUndefined();
  expect(exported.manifest.records[0].data.canonical).toEqual({contract:"canonical-promotion-tree-v1",blocks:[],references:[]});
  const destination=await fixture();
- const review=await destination.authed.mutation(fn("dryRun"),{manifest:exported.manifest,...bindings});
+ const review=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(exported.manifest),...bindings});
  expect(review.ready).toBe(true);
  await destination.authed.mutation(fn("apply"),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
  expect(await destination.t.run(ctx=>ctx.db.query("posts").unique())).toMatchObject({blocksVersion:2,blocksRevision:1,title:"Canonical draft",blocks:[]});
  await t.run(async ctx=>{const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch("convexpress_siteIdentity",identity._id,target);});
- await expect(authed.mutation(fn("dryRun"),{manifest:legacyManifest(),...bindings})).rejects.toThrow("canonical");
+ await expect(authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(legacyManifest()),...bindings})).rejects.toThrow("canonical");
  expect(await t.run(ctx=>ctx.db.get("posts",id))).toEqual(original);
  expect(await t.run(ctx=>ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
 });
@@ -1398,7 +1398,7 @@ test('event category export remaps site IDs, validates target kinds and supports
  const live=await fixture();
  // A pre-existing target identity proves target lookup uses its own category row.
  const targetCategory=await live.t.run(ctx=>ctx.db.insert('extension_event_categories',{name:'Target workshops',slug:'workshops',createdAt:1,updatedAt:1}));
- const review=await live.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  const apply={receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};
  const result=await live.authed.mutation(fn('apply'),apply);
  expect(await live.authed.mutation(fn('apply'),apply)).toEqual(result);
@@ -1409,7 +1409,7 @@ test('event category export remaps site IDs, validates target kinds and supports
  expect((await live.t.run(ctx=>ctx.db.get(targetCategory)))!.name).toBe('Workshops');
  const changed=structuredClone(m);changed.records.find(row=>row.kind==='eventCategory')!.data.name='Shared studio';changed.records.find(row=>row.kind==='event')!.data.title='A new event title';
  changed.records.find(row=>row.kind==='event')!.data.startsAt=2**40-1;changed.records.find(row=>row.kind==='event')!.data.endsAt=2**40+1;
- const update=await live.authed.mutation(fn('dryRun'),{manifest:changed,...bindings});expect(update.ready).toBe(true);
+ const update=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(changed),...bindings});expect(update.ready).toBe(true);
  const updateArgs={receiptId:update.receiptId,expectedDigest:update.digest,confirmLive:true};await live.authed.mutation(fn('apply'),updateArgs);
  expect((await live.t.run(ctx=>ctx.db.get(saved!._id)))!.calendarBucket).toBe('41:0');
  await live.authed.mutation(fn('rollback'),updateArgs);
@@ -1418,9 +1418,9 @@ test('event category export remaps site IDs, validates target kinds and supports
  expect((await live.t.run(ctx=>ctx.db.get(saved!._id)))!.title).toBe('Workroom morning');
  expect((await live.t.run(ctx=>ctx.db.get(saved!._id)))!.categoryId).toBe(targetCategory);
  const wrong=structuredClone(m);wrong.records.find(row=>row.kind==='event')!.data.categoryId=`@promotion:${eventRecord.key}`;
- await expect(live.authed.mutation(fn('dryRun'),{manifest:wrong,...bindings})).rejects.toThrow('wrong dependency kind');
+ await expect(live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(wrong),...bindings})).rejects.toThrow('wrong dependency kind');
  const raw=structuredClone(m);raw.records.find(row=>row.kind==='event')!.data.categoryId=selected.categoryId;
- await expect(live.authed.mutation(fn('dryRun'),{manifest:raw,...bindings})).rejects.toThrow('raw document references');
+ await expect(live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(raw),...bindings})).rejects.toThrow('raw document references');
 });
 
 test("catalog promotion updates and rollback rebuild the selected variant sale coordinates",async()=>{
@@ -1431,7 +1431,7 @@ test("catalog promotion updates and rollback rebuild the selected variant sale c
  const candidates=()=>f.t.run(async ctx=>{const ids=[];for await(const row of readActiveSaleCandidates(ctx,at))ids.push(row.productId);return ids;});
  const before=await candidates();expect(before).toHaveLength(1);
  const next=catalogManifest();next.records[2].data.price={amount:4200,currencyCode:"USD"};
- const review=await f.authed.mutation(fn("dryRun"),{manifest:next,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(next),...bindings});expect(review.ready).toBe(true);
  const args={receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};await f.authed.mutation(fn("apply"),args);expect(await candidates()).toEqual([]);
  await f.authed.mutation(fn("rollback"),args);expect(await candidates()).toEqual(before);
 });
@@ -1478,14 +1478,14 @@ test("legacy product promotion preserves new target fields; explicit removal and
   });
   const legacy = catalogManifest();
   legacy.records[1].data.title = "Legacy price update";
-  const oldReview = await f.authed.mutation(fn("dryRun"),{manifest:legacy,...bindings});
+  const oldReview = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(legacy),...bindings});
   const fields = oldReview.changes.find((c:{kind:string})=>c.kind === "product").fields;
   expect(fields).not.toContain("tagIds"); expect(fields).not.toContain("isFeatured");
   await f.authed.mutation(fn("apply"),{receiptId:oldReview.receiptId,expectedDigest:oldReview.digest,confirmLive:true});
   expect(await f.t.run(ctx=>ctx.db.get(before.productId))).toMatchObject({tagIds:[before.tagId],isFeatured:true});
   const explicit = catalogManifest();
   Object.assign(explicit.records[1].data,{tagIds:[],isFeatured:false});
-  const review = await f.authed.mutation(fn("dryRun"),{manifest:explicit,...bindings});
+  const review = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(explicit),...bindings});
   expect(review.ready).toBe(true);
   const args = {receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};
   await f.authed.mutation(fn("apply"),args);
@@ -1502,7 +1502,7 @@ test("tag references reject source IDs and wrong namespaces before catalog write
   const f = await commerceFixture();
   for (const tagIds of [["source-tag-id"],["@promotion:productCategory:source-category"]]) {
     const m = catalogManifest(); m.records[1].data.tagIds = tagIds;
-    await expect(f.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).rejects.toThrow();
+    await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow();
   }
   expect(await f.t.run(ctx=>ctx.db.query("commerce_products").collect())).toHaveLength(0);
 });
@@ -1512,17 +1512,17 @@ test("tag-only promotion checks commerce and stale target identity, then rolls b
   const tagId = await f.t.run(ctx=>ctx.db.insert("commerce_product_tags",{name:"Original",slug:"tag",isVisible:true,createdAt:1,updatedAt:1}));
   const m = manifest(); m.selection = {...m.selection,pageIds:[],productTagIds:["source-tag"]};
   m.records = [{key:"productTag:source-tag",kind:"productTag",sourceRevision:"t1",data:{name:"Revised",slug:"tag",isVisible:false}}];
-  const review = await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings}); expect(review.ready).toBe(true);
+  const review = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings}); expect(review.ready).toBe(true);
   const args = {receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};
   await f.authed.mutation(fn("apply"),args);
   expect(await f.t.run(ctx=>ctx.db.get(tagId))).toMatchObject({name:"Revised",isVisible:false,createdAt:1});
   await f.authed.mutation(fn("rollback"),args);
   expect(await f.t.run(ctx=>ctx.db.get(tagId))).toMatchObject({name:"Original",isVisible:true,updatedAt:1});
-  const stale = await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});
+  const stale = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});
   await f.t.run(ctx=>ctx.db.patch(tagId,{name:"Edited meanwhile"}));
   await expect(f.authed.mutation(fn("apply"),{receiptId:stale.receiptId,expectedDigest:stale.digest,confirmLive:true})).rejects.toThrow("Target content or dependencies changed");
   await f.t.run(async ctx=>{const plugins=(await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","plugins")).unique())!;await ctx.db.patch(plugins._id,{values:{commerceEnabled:false}});});
-  const disabled = await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});
+  const disabled = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});
   expect(disabled.ready).toBe(false);
   expect(disabled.issues).toContainEqual(expect.objectContaining({code:"TARGET_PLUGIN_DISABLED"}));
 });
@@ -1531,7 +1531,7 @@ test("promotion rejects duplicate new tag slugs before creating an ambiguous tar
   const f = await commerceFixture();
   const m = manifest(); m.selection = {...m.selection,pageIds:[],productTagIds:["first","second"]};
   m.records = ["first","second"].map(key=>({key:`productTag:${key}`,kind:"productTag",sourceRevision:"t1",data:{name:key,slug:"shared",isVisible:true}}));
-  await expect(f.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).rejects.toThrow("same target identity");
+  await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow("same target identity");
   expect(await f.t.run(ctx=>ctx.db.query("commerce_product_tags").collect())).toHaveLength(0);
 });
 
@@ -1564,7 +1564,7 @@ test("brand export transfers verified logo bytes and remaps product assignments 
   const live = await commerceFixture();
   const targetBrandId = await live.t.run(ctx => ctx.db.insert("commerce_product_brands", { name: "Draft mark", slug: "aster-objects", description: "", status: "draft", sortOrder: 0, createdAt: 2, updatedAt: 2 }));
   const storageId = await live.t.run(ctx => ctx.storage.store(bytes));
-  const review = await live.authed.mutation(fn("dryRun"), { manifest: exported.manifest, mediaBindings: [{ key: media.key, storageId }], dependencyBindings: [] });
+  const review = await live.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(exported.manifest), mediaBindings: [{ key: media.key, storageId }], dependencyBindings: [] });
   expect(review.issues).toEqual([]); expect(review.ready).toBe(true);
   const args = {receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};
   await live.authed.mutation(fn("apply"), args);
@@ -1581,12 +1581,12 @@ test("legacy product manifests preserve brand assignment, explicit null removes 
   const f = await commerceFixture(); await applyCatalog(f,brandManifest());
   const before = (await f.t.run(ctx=>ctx.db.query("commerce_products").unique()))!;
   const legacy = catalogManifest(); legacy.records[1].data.title = "Updated product";
-  const oldReview = await f.authed.mutation(fn("dryRun"),{manifest:legacy,...bindings});
+  const oldReview = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(legacy),...bindings});
   expect(oldReview.changes.find((c:{kind:string})=>c.kind === "product").fields).not.toContain("brandId");
   await f.authed.mutation(fn("apply"),{receiptId:oldReview.receiptId,expectedDigest:oldReview.digest,confirmLive:true});
   expect((await f.t.run(ctx=>ctx.db.get(before._id)))!.brandId).toBe(before.brandId);
   const explicit = catalogManifest(); explicit.records[1].data.brandId = null;
-  const review = await f.authed.mutation(fn("dryRun"),{manifest:explicit,...bindings}); expect(review.ready).toBe(true);
+  const review = await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(explicit),...bindings}); expect(review.ready).toBe(true);
   const args = {receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};
   await f.authed.mutation(fn("apply"),args); expect((await f.t.run(ctx=>ctx.db.get(before._id)))!.brandId).toBeUndefined();
   await f.authed.mutation(fn("rollback"),args); expect((await f.t.run(ctx=>ctx.db.get(before._id)))!.brandId).toBe(before.brandId);
@@ -1599,30 +1599,30 @@ test("brand promotion rejects foreign IDs, wrong dependency namespaces, non-imag
   const f = await commerceFixture();
   for (const brandId of ["raw-source-id","@promotion:productCategory:source-category"]) {
     const m=brandManifest();m.records[1].data.brandId=brandId;
-    await expect(f.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).rejects.toThrow();
+    await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow();
   }
   const logo=brandManifest(); logo.records[3].data.logoMediaId="@promotion:media:logo";
   logo.records.push({key:"media:logo",kind:"media",sourceRevision:"m1",data:{title:"PDF",fileName:"mark.pdf",slug:"mark",mimeType:"application/pdf",mediaType:"document",fileSize:10,sha256:"a".repeat(64)}});
-  await expect(f.authed.mutation(fn("dryRun"),{manifest:logo,...bindings})).rejects.toThrow("brand logo");
+  await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(logo),...bindings})).rejects.toThrow("brand logo");
   const duplicate=brandManifest();duplicate.records.push({...duplicate.records[3],key:"productBrand:duplicate"});
-  await expect(f.authed.mutation(fn("dryRun"),{manifest:duplicate,...bindings})).rejects.toThrow("same target identity");
+  await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(duplicate),...bindings})).rejects.toThrow("same target identity");
   expect(await f.t.run(ctx=>ctx.db.query("commerce_product_brands").collect())).toHaveLength(0);
 });
 
 test("brand-only promotion requires commerce and detects target edits made after review",async()=>{
   const f=await commerceFixture();const m=brandManifest();m.records=m.records.filter(r=>r.kind === "productBrand");m.selection={...manifest().selection,pageIds:[],productBrandIds:["source-brand"]};
   const id=await f.t.run(ctx=>ctx.db.insert("commerce_product_brands",{name:"Original",slug:"aster-objects",description:"",status:"archived",sortOrder:0,createdAt:1,updatedAt:1}));
-  const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(true);
+  const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
   const args={receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};
   await f.authed.mutation(fn("apply"),args);
   expect(await f.t.run(ctx=>ctx.db.get(id))).toMatchObject({name:"Aster objects",status:"publish"});
   await f.authed.mutation(fn("rollback"),args);
   expect(await f.t.run(ctx=>ctx.db.get(id))).toMatchObject({name:"Original",status:"archived",updatedAt:1});
-  const stale=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});
+  const stale=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});
   await f.t.run(ctx=>ctx.db.patch(id,{name:"Concurrent edit"}));
   await expect(f.authed.mutation(fn("apply"),{receiptId:stale.receiptId,expectedDigest:stale.digest,confirmLive:true})).rejects.toThrow("Target content or dependencies changed");
   await f.t.run(async ctx=>{const plugins=(await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","plugins")).unique())!;await ctx.db.patch(plugins._id,{values:{commerceEnabled:false}});});
-  const disabled=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(disabled.ready).toBe(false);expect(disabled.issues).toContainEqual(expect.objectContaining({code:"TARGET_PLUGIN_DISABLED"}));
+  const disabled=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(disabled.ready).toBe(false);expect(disabled.issues).toContainEqual(expect.objectContaining({code:"TARGET_PLUGIN_DISABLED"}));
 });
 
 
@@ -1643,7 +1643,7 @@ test("registered canonical export follows nested metadata references without rew
  expect(data.canonical.blocks[0].children[0].attrs.alt).toBe("@promotion:page:literal-not-a-reference");
  expect(data.canonical.blocks[0].children[1].attrs.page).toBe("promotion-reference-0");
  expect(exported.manifest.records.map((r:{key:string})=>r.key).sort()).toEqual([`page:${parentId}`,`page:${childId}`].sort());
- const destination=await fixture();const reviewed=await destination.authed.mutation(fn("dryRun"),{manifest:exported.manifest,...bindings});
+ const destination=await fixture();const reviewed=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(exported.manifest),...bindings});
  expect(reviewed.ready).toBe(true);
  await destination.authed.mutation(fn("apply"),{receiptId:reviewed.receiptId,expectedDigest:reviewed.digest,confirmLive:true});
  const saved=await destination.t.run(ctx=>ctx.db.query("posts").collect());
@@ -1652,9 +1652,9 @@ test("registered canonical export follows nested metadata references without rew
  expect(parent.blocks![0].children![1].attrs.page).toBe(child._id);
  expect(parent.blocks![0].children![0].attrs.alt).toBe("@promotion:page:literal-not-a-reference");
  const disguised=structuredClone(exported.manifest);delete disguised.records.find((r:{key:string})=>r.key===`page:${parentId}`).data.blocksVersion;
- await expect(destination.authed.mutation(fn("dryRun"),{manifest:disguised,...bindings})).rejects.toThrow("Canonical");
+ await expect(destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(disguised),...bindings})).rejects.toThrow("Canonical");
  const missing=structuredClone(exported.manifest);missing.records.find((r:{key:string})=>r.key===`page:${parentId}`).data.canonical.references[0].key="@promotion:page:missing";
- await expect(destination.authed.mutation(fn("dryRun"),{manifest:missing,...bindings})).rejects.toThrow("missing");
+ await expect(destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(missing),...bindings})).rejects.toThrow("missing");
  expect(await source.t.run(ctx=>ctx.db.get(parentId))).toEqual(original);
  expect(await destination.t.run(ctx=>ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(1);
 });
@@ -1671,7 +1671,7 @@ test("canonical export includes one product record for its ID and slug reference
  expect(exported.manifest.records.filter((r:{kind:string})=>r.kind==="product")).toHaveLength(1);
  const refs=exported.manifest.records.find((r:{kind:string})=>r.kind==="page").data.canonical.references;
  expect(refs.map((r:{key:string;storage:string})=>[r.key,r.storage])).toEqual([[`@promotion:product:${productId}`,"id"],[`@promotion:product:${productId}`,"slug"]]);
- const destination=await commerceFixture();const review=await destination.authed.mutation(fn("dryRun"),{manifest:exported.manifest,...bindings});expect(review.ready).toBe(true);
+ const destination=await commerceFixture();const review=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(review.ready).toBe(true);
  await destination.authed.mutation(fn("apply"),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
  const saved=await destination.t.run(async ctx=>({page:await ctx.db.query("posts").unique(),product:await ctx.db.query("commerce_products").unique()}));
  expect(saved.page!.blocks![0].attrs.product).toBe(saved.product!._id);
@@ -1703,7 +1703,7 @@ test("route policies require explicit selection and valid local patterns",async(
 });
 
 test("route policy export preserves all patterns and groups only when requested",async()=>{
- const f=await routePolicyFixture();const preview=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(preview.ready).toBe(true);
+ const f=await routePolicyFixture();const preview=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(preview.ready).toBe(true);
  const applied=await f.authed.mutation(fn("apply"),receiptArgs(preview));
  const pageId=applied.mappings.find(mapping=>mapping.kind==="page")!.targetId;
  await f.t.run(async ctx=>{const site=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(site._id,f.m.source);});
@@ -1716,13 +1716,13 @@ test("route policy export preserves all patterns and groups only when requested"
 });
 
 test("route policy apply, update and rollback preserve actual anonymous document access",async()=>{
- const f=await routePolicyFixture();const initial=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(initial.ready).toBe(true);
+ const f=await routePolicyFixture();const initial=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(initial.ready).toBe(true);
  const applied=await f.authed.mutation(fn("apply"),receiptArgs(initial));const postId=applied.mappings.find(mapping=>mapping.kind==="page")!.targetId;
  const publicRead=()=>f.t.query(makeFunctionReference<"query">("canonicalDocuments:getForRender"),{postId});
  expect((await publicRead()).state).toBe("restricted");
  const before=await f.t.run(ctx=>ctx.db.query("membership_restriction_rules").collect());expect(before).toHaveLength(2);
  const updated=structuredClone(f.m);for(const record of updated.records)if(record.kind==="restriction")record.data.resourceIdOrKey="/other"+String(record.data.resourceIdOrKey);
- const review=await f.authed.mutation(fn("dryRun"),{manifest:updated,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(updated),...bindings});expect(review.ready).toBe(true);
  const second=await f.authed.mutation(fn("apply"),receiptArgs(review));expect(await f.authed.mutation(fn("apply"),receiptArgs(review))).toEqual(second);
  expect((await publicRead()).state).toBe("ready");
  await f.authed.mutation(fn("rollback"),receiptArgs(review));expect((await publicRead()).state).toBe("restricted");
@@ -1730,28 +1730,28 @@ test("route policy apply, update and rollback preserve actual anonymous document
 });
 
 test("destination route policy collection is fingerprinted and unmapped rules never overwritten",async()=>{
- const f=await routePolicyFixture();const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ const f=await routePolicyFixture();const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  const id=await f.t.run(ctx=>ctx.db.insert("membership_restriction_rules",{resourceType:"route",resourceIdOrKey:"/target-only/*",ruleMode:"allow_only",planIds:[],teaserMode:"hide",loginRequired:true,createdAt:1,updatedAt:1}));
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("changed after review");
- const fresh=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(fresh.ready).toBe(false);expect(fresh.receiptId).toBeNull();expect(fresh.issues).toContainEqual(expect.objectContaining({code:"TARGET_ROUTE_POLICY_CONFLICT"}));
+ const fresh=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(fresh.ready).toBe(false);expect(fresh.receiptId).toBeNull();expect(fresh.issues).toContainEqual(expect.objectContaining({code:"TARGET_ROUTE_POLICY_CONFLICT"}));
  expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toHaveLength(0);expect((await f.t.run(ctx=>ctx.db.query("membership_restriction_rules").collect())).map(row=>row._id)).toEqual([id]);
 });
 
 test("route rules sharing a pattern preserve independent source mappings",async()=>{
  const f=await routePolicyFixture();f.m.records[2].data.resourceIdOrKey="/welcome";
- let review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);await f.authed.mutation(fn("apply"),receiptArgs(review));
- review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);expect(new Set(review.changes.filter(change=>change.kind==="restriction").map(change=>change.targetId)).size).toBe(2);
- const removed=structuredClone(f.m);removed.records.pop();const removal=await f.authed.mutation(fn("dryRun"),{manifest:removed,...bindings});expect(removal.ready).toBe(false);expect(removal.issues.some(issue=>issue.code==="TARGET_ROUTE_POLICY_CONFLICT")).toBe(true);
+ let review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);await f.authed.mutation(fn("apply"),receiptArgs(review));
+ review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);expect(new Set(review.changes.filter(change=>change.kind==="restriction").map(change=>change.targetId)).size).toBe(2);
+ const removed=structuredClone(f.m);removed.records.pop();const removal=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(removed),...bindings});expect(removal.ready).toBe(false);expect(removal.issues.some(issue=>issue.code==="TARGET_ROUTE_POLICY_CONFLICT")).toBe(true);
 });
 
 test("site route policies remap membership plans without transferring customer grants",async()=>{
  const source=await routePolicyFixture();source.m.records.push(learningManifest().records[0]);source.m.records[1].data.planIds=["@promotion:plan:source"];
- const initial=await source.authed.mutation(fn("dryRun"),{manifest:source.m,...bindings});expect(initial.ready).toBe(true);
+ const initial=await source.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(source.m),...bindings});expect(initial.ready).toBe(true);
  const applied=await source.authed.mutation(fn("apply"),receiptArgs(initial));const sourcePlan=applied.mappings.find(mapping=>mapping.kind==="plan")!.targetId;
  await source.t.run(async ctx=>{const site=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(site._id,source.m.source);await ctx.db.insert("membership_grants",{userId:source.userId,planId:sourcePlan,status:"active",sourceType:"manual",startsAt:1,createdAt:1,updatedAt:1});});
  const exported=await source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{...source.m.selection,pageIds:[]}});
  expect(exported.manifest.records.map(record=>record.kind).sort()).toEqual(["plan","restriction","restriction"]);
- const destination=await routePolicyFixture();const reviewed=await destination.authed.mutation(fn("dryRun"),{manifest:exported.manifest,...bindings});expect(reviewed.ready).toBe(true);
+ const destination=await routePolicyFixture();const reviewed=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(exported.manifest),...bindings});expect(reviewed.ready).toBe(true);
  const result=await destination.authed.mutation(fn("apply"),receiptArgs(reviewed));const targetPlan=result.mappings.find(mapping=>mapping.kind==="plan")!.targetId;
  const rows=await destination.t.run(async ctx=>({rules:await ctx.db.query("membership_restriction_rules").collect(),grants:await ctx.db.query("membership_grants").collect(),users:await ctx.db.query("users").collect()}));
  expect(rows.rules.find(rule=>rule.resourceIdOrKey==="/welcome")!.planIds).toEqual([targetPlan]);expect(rows.grants).toHaveLength(0);expect(rows.users).toHaveLength(1);
@@ -1767,7 +1767,7 @@ const receiptArgs=(review:{receiptId:string|null;digest:string})=>({receiptId:re
 test("canonical promotion updates and restores target history with monotonic revisions and idempotent receipts",async()=>{
  const f=await fixture(),id=await existingCanonicalTarget(f),m=await canonicalManifest();
  const original=await f.t.run(ctx=>ctx.db.get(id));
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  const args=receiptArgs(review),applied=await f.authed.mutation(fn("apply"),args);
  expect(await f.authed.mutation(fn("apply"),args)).toEqual(applied);
  const changed=await f.t.run(ctx=>ctx.db.get(id));
@@ -1783,10 +1783,10 @@ test("canonical promotion updates and restores target history with monotonic rev
 
 test("canonical review blocks nested disabled blocks and rejects policy changes after review atomically",async()=>{
  const f=await fixture(),id=await existingCanonicalTarget(f),m=await canonicalManifest();
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  const original=await f.t.run(ctx=>ctx.db.get(id));
  await f.t.run(ctx=>ctx.db.insert("settings",{section:"blocks",values:{disabledBlockNames:["core/image"]},updatedBy:f.userId,updatedAt:1}));
- const denied=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(denied.ready).toBe(false);expect(denied.receiptId).toBeNull();expect(denied.issues).toContainEqual(expect.objectContaining({code:"TARGET_CANONICAL_POLICY"}));
+ const denied=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(denied.ready).toBe(false);expect(denied.receiptId).toBeNull();expect(denied.issues).toContainEqual(expect.objectContaining({code:"TARGET_CANONICAL_POLICY"}));
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("Target content or dependencies changed");
  expect(await f.t.run(ctx=>ctx.db.get(id))).toEqual(original);expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toHaveLength(0);
 });
@@ -1794,12 +1794,12 @@ test("canonical review blocks nested disabled blocks and rejects policy changes 
 test("canonical promotion rejects legacy target migration and stale edits before apply and rollback",async()=>{
  const f=await fixture(),id=await existingCanonicalTarget(f),m=await canonicalManifest();
  await f.t.run(ctx=>ctx.db.patch(id,{blocksVersion:undefined}));
- const denied=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(denied.ready).toBe(false);expect(denied.issues).toContainEqual(expect.objectContaining({code:"CANONICAL_TARGET_MIGRATION_REQUIRED"}));
+ const denied=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(denied.ready).toBe(false);expect(denied.issues).toContainEqual(expect.objectContaining({code:"CANONICAL_TARGET_MIGRATION_REQUIRED"}));
  await f.t.run(ctx=>ctx.db.patch(id,{blocksVersion:2}));
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});
  await f.t.run(ctx=>ctx.db.patch(id,{title:"Concurrent target edit"}));
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("Target content or dependencies changed");
- const fresh=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});await f.authed.mutation(fn("apply"),receiptArgs(fresh));
+ const fresh=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});await f.authed.mutation(fn("apply"),receiptArgs(fresh));
  await f.t.run(ctx=>ctx.db.patch(id,{title:"Edit after promotion"}));
  await expect(f.authed.mutation(fn("rollback"),receiptArgs(fresh))).rejects.toThrow("Content changed after this promotion");
  expect((await f.t.run(ctx=>ctx.db.get(id)))!.title).toBe("Edit after promotion");
@@ -1807,7 +1807,7 @@ test("canonical promotion rejects legacy target migration and stale edits before
 
 test("canonical rollback requires current revision restore permission without partial history writes",async()=>{
  const f=await fixture(),id=await existingCanonicalTarget(f),m=await canonicalManifest();
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});await f.authed.mutation(fn("apply"),receiptArgs(review));
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});await f.authed.mutation(fn("apply"),receiptArgs(review));
  const before=await f.t.run(ctx=>ctx.db.get(id));
  await f.t.run(async ctx=>{const user=await ctx.db.get(f.userId),role=await ctx.db.get(user!.roleId!);await ctx.db.patch(role!._id,{capabilities:role!.capabilities.filter(c=>c!=="revision.restore")});});
  await expect(f.authed.mutation(fn("rollback"),receiptArgs(review))).rejects.toThrow();
@@ -1820,10 +1820,10 @@ test("canonical promotion applies the template first and rejects a changed appea
  m.selection.includePresentation=true;
  m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values:{active:"aster-house",overrides:{},variants:{},settings:{}}}});
  const {orderedRecords}=await import("../planner");expect(orderedRecords(m).map(r=>r.key)).toEqual(["template","page:source-page"]);
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  await f.authed.mutation(fn("apply"),receiptArgs(review));expect((await f.t.run(ctx=>ctx.db.get(templateId)))!.values.active).toBe("aster-house");
  await f.authed.mutation(fn("rollback"),receiptArgs(review));expect((await f.t.run(ctx=>ctx.db.get(templateId)))!.values.active).toBe("core");expect((await f.t.run(ctx=>ctx.db.get(id)))!.title).toBe("Original target");
- const contentOnly=await canonicalManifest(),fresh=await f.authed.mutation(fn("dryRun"),{manifest:contentOnly,...bindings});
+ const contentOnly=await canonicalManifest(),fresh=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(contentOnly),...bindings});
  await f.t.run(ctx=>ctx.db.patch(templateId,{values:{active:"depot",overrides:{},variants:{},settings:{}}}));
  await expect(f.authed.mutation(fn("apply"),receiptArgs(fresh))).rejects.toThrow("Target content or dependencies changed");
 });
@@ -1832,7 +1832,7 @@ test("canonical publication retains a different target author and rolls back pub
  const f=await fixture(),id=await existingCanonicalTarget(f),m=await canonicalManifest();
  const author=await f.t.run(async ctx=>{const owner=await ctx.db.get(f.userId);const author=await insertWithMediaReferences(ctx,"users",{email:"target-author@example.test",emailVerified:true,status:"active",authSource:"local",roleId:owner!.roleId,createdAt:1,updatedAt:1});await ctx.db.patch(id,{type:"post",authorId:author});return author;});
  m.records[0].kind="post";m.records[0].key="post:source-page";delete m.records[0].data.path;delete m.records[0].data.depth;m.records[0].data.status="publish";m.selection.pageIds=[];m.selection.postIds=["source-page"];
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  await f.authed.mutation(fn("apply"),receiptArgs(review));expect(await f.t.run(ctx=>ctx.db.get(id))).toMatchObject({authorId:author,status:"publish",blocksRevision:8});
  expect((await f.t.run(ctx=>ctx.db.get(author)))!.postCount).toBe(1);
  await f.authed.mutation(fn("rollback"),receiptArgs(review));expect(await f.t.run(ctx=>ctx.db.get(id))).toMatchObject({authorId:author,status:"draft",blocksRevision:9});
@@ -1843,7 +1843,7 @@ test("canonical publication retains a different target author and rolls back pub
 test("canonical review requires publishing authority to withdraw an existing publication",async()=>{
  const f=await fixture(),id=await existingCanonicalTarget(f),m=await canonicalManifest();
  await f.t.run(async ctx=>{await ctx.db.patch(id,{status:"publish"});const user=await ctx.db.get(f.userId),role=await ctx.db.get(user!.roleId!);await ctx.db.patch(role!._id,{capabilities:role!.capabilities.filter(c=>c!=="page.publish")});});
- await expect(f.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).rejects.toThrow();
+ await expect(f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow();
  expect((await f.t.run(ctx=>ctx.db.get(id)))!.status).toBe("publish");expect(await f.t.run(ctx=>ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
 });
 
@@ -1852,7 +1852,7 @@ test("canonical review rejects plugin blocks when the destination plugin is unav
  const {exportCanonicalPromotionTree}=await import("../../canonicalDocuments/foundation/promotionTree");
  m.records[0].data.canonical=await exportCanonicalPromotionTree([{id:"hero",name:"commerce/product-hero",version:1,attrs:{}}],async()=>{throw new Error("Unexpected reference");});
  await f.t.run(async ctx=>{const row=(await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","plugins")).unique())!;await ctx.db.patch(row._id,{values:{commerceEnabled:false}});});
- const review=await f.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(review.ready).toBe(false);expect(review.receiptId).toBeNull();expect(review.issues).toContainEqual(expect.objectContaining({code:"TARGET_CANONICAL_POLICY"}));
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(false);expect(review.receiptId).toBeNull();expect(review.issues).toContainEqual(expect.objectContaining({code:"TARGET_CANONICAL_POLICY"}));
  expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toHaveLength(0);
 });
 
@@ -1876,7 +1876,7 @@ test("registered canonical media export transfers verified bytes once and resolv
  const id=await existingCanonicalTarget(f);
  expect(src.manifest.records.filter(r=>r.kind==="media")).toHaveLength(1);
  const storageId=await f.t.run(ctx=>ctx.storage.store(src.bytes));
- const review=await f.authed.mutation(fn("dryRun"),{manifest:src.manifest,mediaBindings:[{key:src.mediaKey,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(src.manifest),mediaBindings:[{key:src.mediaKey,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
  const args=receiptArgs(review);await f.authed.mutation(fn("apply"),args);await f.authed.mutation(fn("apply"),args);
  const saved=await f.t.run(async ctx=>({page:await ctx.db.get(id),media:await ctx.db.query("media").unique(),history:await ctx.db.query("revisions").collect()}));
  expect(saved.media!._id).not.toBe(src.ids.mediaId);expect(saved.media!.storageId).toBe(storageId);expect(saved.history).toHaveLength(1);
@@ -1893,9 +1893,9 @@ test("canonical media review rejects different bytes and refuses deleted target 
  const src=await canonicalMediaSource(),f=await fixture(),id=await existingCanonicalTarget(f);
  const before=await f.t.run(ctx=>ctx.db.get(id));
  const wrong=await f.t.run(ctx=>ctx.storage.store(new Blob(["different bytes"])));
- const rejected=await f.authed.mutation(fn("dryRun"),{manifest:src.manifest,mediaBindings:[{key:src.mediaKey,storageId:wrong}],dependencyBindings:[]});expect(rejected.ready).toBe(false);expect(rejected.issues).toContainEqual(expect.objectContaining({code:"TARGET_MEDIA_UPLOAD_REQUIRED"}));
+ const rejected=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(src.manifest),mediaBindings:[{key:src.mediaKey,storageId:wrong}],dependencyBindings:[]});expect(rejected.ready).toBe(false);expect(rejected.issues).toContainEqual(expect.objectContaining({code:"TARGET_MEDIA_UPLOAD_REQUIRED"}));
  const storageId=await f.t.run(ctx=>ctx.storage.store(src.bytes));
- const review=await f.authed.mutation(fn("dryRun"),{manifest:src.manifest,mediaBindings:[{key:src.mediaKey,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(src.manifest),mediaBindings:[{key:src.mediaKey,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
  await f.t.run(ctx=>ctx.storage.delete(storageId));
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("Target content or dependencies changed");
  expect(await f.t.run(ctx=>ctx.db.get(id))).toEqual(before);
@@ -1916,7 +1916,7 @@ test("canonical rollback retains image references in history and refuses an unav
    return {mediaId,oldMediaId,storageId};
   });
   const original=await f.t.run(ctx=>ctx.db.get(id));
-  const review=await f.authed.mutation(fn("dryRun"),{manifest:src.manifest,mediaBindings:[{key:src.mediaKey,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
+  const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(src.manifest),mediaBindings:[{key:src.mediaKey,storageId}],dependencyBindings:[]});expect(review.ready).toBe(true);
   const args=receiptArgs(review);await f.authed.mutation(fn("apply"),args);
   const promoted=await f.t.run(ctx=>ctx.db.get(id));
   const edges=()=>f.t.run(ctx=>ctx.db.query("media_reference_edges").collect());
@@ -1947,7 +1947,7 @@ test("pages sharing template-local block IDs promote into independent contact fo
  const copied=structuredClone(f.m.records[0]);copied.key="page:copied-page";
  Object.assign(copied.data,{title:"Second template page",slug:"second-template-page",path:"/second-template-page"});
  f.m.records.push(copied);f.m.selection.pageIds.push("copied-page");
- const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  const applied=await f.authed.mutation(fn("apply"),receiptArgs(review));
  const pageIds=applied.mappings.filter(mapping=>mapping.kind==="page").map(mapping=>mapping.targetId);
  expect(new Set(pageIds).size).toBe(2);
@@ -1974,37 +1974,37 @@ test("document-local identity support still rejects duplicates inside a canonica
 
 test("canonical review rejects missing contact creation permission before creating a receipt or target data",async()=>{
  const f=await contactPromotionFixture();
- const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(false);expect(review.receiptId).toBeNull();
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(false);expect(review.receiptId).toBeNull();
  expect(review.issues).toContainEqual(expect.objectContaining({code:"TARGET_CONTACT_PERMISSION",key:"page:source-page",message:expect.stringContaining("form.create")}));
  for(const table of ["posts","forms","fieldGroups","fieldDefinitions","contentPromotion_receipts","contentPromotion_mappings"] as const)expect(await f.t.run(ctx=>ctx.db.query(table).collect())).toHaveLength(0);
 });
 
 test("contact promotion distinguishes creating from updating and preserves form identity",async()=>{
  const f=await contactPromotionFixture();await f.grants(["form.create"]);
- let review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ let review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  await f.authed.mutation(fn("apply"),receiptArgs(review));
  const before=await f.t.run(ctx=>ctx.db.query("forms").collect());expect(before).toHaveLength(1);expect(before[0].status).toBe("published");
- review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(false);expect(review.issues.some(i=>i.code==="TARGET_CONTACT_PERMISSION"&&i.message.includes("form.update"))).toBe(true);
+ review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(false);expect(review.issues.some(i=>i.code==="TARGET_CONTACT_PERMISSION"&&i.message.includes("form.update"))).toBe(true);
  await f.grants(["form.update"]);
- review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  await f.authed.mutation(fn("apply"),receiptArgs(review));
  expect((await f.t.run(ctx=>ctx.db.query("forms").collect())).map(row=>row._id)).toEqual(before.map(row=>row._id));
 });
 
 test("a new nested contact block requires create permission even on an existing contact page",async()=>{
  const f=await contactPromotionFixture();await f.grants(["form.create"]);
- const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});await f.authed.mutation(fn("apply"),receiptArgs(review));
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});await f.authed.mutation(fn("apply"),receiptArgs(review));
  await f.grants(["form.update"]);
  const {exportCanonicalPromotionTree}=await import("../../canonicalDocuments/foundation/promotionTree");
  f.m.records[0].data.canonical=await exportCanonicalPromotionTree([{id:"outer",name:"core/group",version:1,attrs:{},children:[{id:"contact",name:"core/contact-form",version:2,attrs:{}},{id:"nested",name:"core/group",version:1,attrs:{},children:[{id:"new-contact",name:"core/contact-form",version:2,attrs:{}}]}]}],async()=>{throw new Error("Unexpected reference");});
- const denied=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(denied.ready).toBe(false);expect(denied.receiptId).toBeNull();
+ const denied=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(denied.ready).toBe(false);expect(denied.receiptId).toBeNull();
  expect(denied.issues.filter(i=>i.code==="TARGET_CONTACT_PERMISSION")).toEqual([expect.objectContaining({message:expect.stringContaining("new-contact requires form.create")})]);
  expect(await f.t.run(ctx=>ctx.db.query("forms").collect())).toHaveLength(1);
 });
 
 test("revoked contact permission invalidates an issued review without destination writes",async()=>{
  const f=await contactPromotionFixture();await f.grants(["form.create"]);
- const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  await f.grants([]);
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("changed after review");
  for(const table of ["posts","forms","contentPromotion_mappings","contentPromotion_backups"] as const)expect(await f.t.run(ctx=>ctx.db.query(table).collect())).toHaveLength(0);
@@ -2012,7 +2012,7 @@ test("revoked contact permission invalidates an issued review without destinatio
 
 test("a contact form appearing after review invalidates the receipt even when both permissions remain granted",async()=>{
  const f=await contactPromotionFixture(),postId=await existingCanonicalTarget(f);await f.grants(["form.create","form.update"]);
- const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  const before=await f.t.run(ctx=>ctx.db.get(postId));
  await f.t.run(ctx=>ctx.db.insert("forms",{title:"Concurrent form",slug:"concurrent",status:"draft",settings:"{}",contactPostId:postId,contactBlockId:"contact",createdBy:f.userId,createdAt:1,updatedAt:1}));
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("changed after review");
@@ -2029,7 +2029,7 @@ test("a late contact configuration failure rolls back earlier nested document wr
  await f.t.run(ctx=>ctx.db.insert("forms",{title:"Damaged form",slug:"damaged",status:"draft",settings:"{}",contactPostId:id,contactBlockId:"contact",createdBy:f.userId,createdAt:1,updatedAt:1}));
  const tables=["posts","revisions","forms","fieldGroups","fieldDefinitions","contentPromotion_mappings","contentPromotion_backups"] as const;
  const before=await Promise.all(tables.map(table=>f.t.run(ctx=>ctx.db.query(table).collect())));
- const review=await f.authed.mutation(fn("dryRun"),{manifest:f.m,...bindings});expect(review.ready).toBe(true);
+ const review=await f.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(f.m),...bindings});expect(review.ready).toBe(true);
  await expect(f.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow("field group is missing");
  expect(await Promise.all(tables.map(table=>f.t.run(ctx=>ctx.db.query(table).collect())))).toEqual(before);
  const status=await f.authed.query(makeFunctionReference<"query">("contentPromotion/operations:receiptStatus"),{receiptId:review.receiptId});expect(status.status).toBe("ready");
@@ -2065,7 +2065,7 @@ test("KB search promotion remaps category parents into the destination without s
   expect(categories).toHaveLength(2);
   expect(categories.every((r: { data: object }) => !("articleCount" in r.data))).toBe(true);
   expect(categories.find((r: { key: string }) => r.key === `kbCategory:${source.ids.category}`).data.parentId).toBe(`@promotion:kbCategory:${source.ids.parent}`);
-  const review = await destination.authed.mutation(fn("dryRun"), { manifest: source.manifest, ...bindings });
+  const review = await destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(source.manifest), ...bindings });
   expect(review.ready).toBe(true);
   const args = { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true };
   await destination.authed.mutation(fn("apply"), args);
@@ -2087,13 +2087,13 @@ test("KB category promotion preserves target counters and rolls back authored up
     const category = await ctx.db.insert("kb_categories", { name: "Local workshop", slug: "workshop", parentId: parent, order: 5, isActive: true, isPublished: true, articleCount: 23, createdAt: 2, updatedAt: 2 });
     return { parent, category };
   });
-  const first = await destination.authed.mutation(fn("dryRun"), { manifest: source.manifest, ...bindings });
+  const first = await destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(source.manifest), ...bindings });
   expect(first.ready).toBe(true);
   await destination.authed.mutation(fn("apply"), { receiptId: first.receiptId, expectedDigest: first.digest, confirmLive: true });
   expect(await destination.t.run(ctx => ctx.db.get(ids.category))).toMatchObject({ name: "Workshop guides", articleCount: 23, parentId: ids.parent });
   const updated = structuredClone(source.manifest);
   updated.records.find((r: { key: string }) => r.key === `kbCategory:${source.ids.category}`).data.name = "Updated workshop";
-  const second = await destination.authed.mutation(fn("dryRun"), { manifest: updated, ...bindings });
+  const second = await destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(updated), ...bindings });
   expect(second.ready).toBe(true);
   const args = { receiptId: second.receiptId, expectedDigest: second.digest, confirmLive: true };
   await destination.authed.mutation(fn("apply"), args);
@@ -2107,19 +2107,19 @@ test("KB promotion refuses wrong parent kinds, source counters, missing permissi
   for (const field of [{ articleCount: 7 }, { parentId: `@promotion:page:${source.ids.page}` }, { parentId: source.ids.parent }]) {
     const invalid = structuredClone(source.manifest);
     Object.assign(invalid.records.find((r: { key: string }) => r.key === `kbCategory:${source.ids.category}`).data, field);
-    await expect(destination.authed.mutation(fn("dryRun"), { manifest: invalid, ...bindings })).rejects.toThrow();
+    await expect(destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(invalid), ...bindings })).rejects.toThrow();
   }
   await destination.t.run(async ctx => {
     const plugins = (await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "plugins")).unique())!;
     await ctx.db.patch(plugins._id, { values: { knowledgeBaseEnabled: false } });
   });
-  const disabled = await destination.authed.mutation(fn("dryRun"), { manifest: source.manifest, ...bindings });
+  const disabled = await destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(source.manifest), ...bindings });
   expect(disabled.ready).toBe(false); expect(disabled.issues.some((i: { code: string }) => i.code === "TARGET_PLUGIN_DISABLED")).toBe(true);
   await destination.t.run(async ctx => {
     const user = (await ctx.db.get(destination.userId))!, role = (await ctx.db.get(user.roleId!))!;
     await ctx.db.patch(role._id, { capabilities: role.capabilities.filter(c => c !== "kb.manageCategories") });
   });
-  await expect(destination.authed.mutation(fn("dryRun"), { manifest: source.manifest, ...bindings })).rejects.toThrow();
+  await expect(destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(source.manifest), ...bindings })).rejects.toThrow();
   expect(await destination.t.run(ctx => ctx.db.query("kb_categories").collect())).toEqual([]);
   expect(await destination.t.run(ctx => ctx.db.query("posts").collect())).toEqual([]);
 });
@@ -2128,9 +2128,9 @@ test("KB promotion rejects parent cycles, stale reviews and source exports witho
   const source = await kbPromotionSource(), destination = await kbPromotionFixture();
   const cycle = structuredClone(source.manifest);
   cycle.records.find((r: { key: string }) => r.key === `kbCategory:${source.ids.parent}`).data.parentId = `@promotion:kbCategory:${source.ids.category}`;
-  await expect(destination.authed.mutation(fn("dryRun"), { manifest: cycle, ...bindings })).rejects.toThrow("cyclic");
+  await expect(destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(cycle), ...bindings })).rejects.toThrow("cyclic");
   const existing = await destination.t.run(ctx => ctx.db.insert("kb_categories", { name: "Live workshop", slug: "workshop", order: 0, isActive: true, isPublished: true, articleCount: 23, createdAt: 2, updatedAt: 2 }));
-  const review = await destination.authed.mutation(fn("dryRun"), { manifest: source.manifest, ...bindings });
+  const review = await destination.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(source.manifest), ...bindings });
   expect(review.ready).toBe(true);
   await destination.t.run(ctx => ctx.db.patch(existing, { name: "Changed after review" }));
   await expect(destination.authed.mutation(fn("apply"), { receiptId: review.receiptId, expectedDigest: review.digest, confirmLive: true })).rejects.toThrow();
@@ -2145,18 +2145,18 @@ test("KB promotion rejects parent cycles, stale reviews and source exports witho
 
 test("pending KB deletion blocks source export, target review/apply and rollback", async () => {
  const source=await kbPromotionSource(), destination=await kbPromotionFixture();
- const first=await destination.authed.mutation(fn("dryRun"),{manifest:source.manifest,...bindings});
+ const first=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(source.manifest),...bindings});
  await destination.authed.mutation(fn("apply"),{receiptId:first.receiptId,expectedDigest:first.digest,confirmLive:true});
  const targetCategory=await destination.t.run(ctx=>ctx.db.query("kb_categories").withIndex("by_slug",q=>q.eq("slug","workshop")).unique());
  const updated=structuredClone(source.manifest);updated.records.find((r:{key:string})=>r.key===`kbCategory:${source.ids.category}`).data.name="Changed before deletion";
- const second=await destination.authed.mutation(fn("dryRun"),{manifest:updated,...bindings});
+ const second=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(updated),...bindings});
  const secondArgs={receiptId:second.receiptId,expectedDigest:second.digest,confirmLive:true};await destination.authed.mutation(fn("apply"),secondArgs);
- const pendingReview=await destination.authed.mutation(fn("dryRun"),{manifest:source.manifest,...bindings});
+ const pendingReview=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(source.manifest),...bindings});
  for(const [site,categoryId] of [[source,source.ids.category],[destination,targetCategory!._id]] as const)await site.authed.run(async ctx=>{
   await beginCategoryDeletion(ctx,categoryId);const category=(await ctx.db.get("kb_categories",categoryId))!;const job=(await ctx.db.get("kb_category_deletions",category.deletionJobId!))!;await ctx.scheduler.cancel(job.scheduledId!);
  });
  await expect(source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{...manifest().selection,pageIds:[source.ids.page]}})).rejects.toThrow("being deleted");
- const refused=await destination.authed.mutation(fn("dryRun"),{manifest:source.manifest,...bindings});expect(refused.ready).toBe(false);expect(refused.issues.some((issue:{code:string})=>issue.code==="CATEGORY_DELETING")).toBe(true);
+ const refused=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(source.manifest),...bindings});expect(refused.ready).toBe(false);expect(refused.issues.some((issue:{code:string})=>issue.code==="CATEGORY_DELETING")).toBe(true);
  await expect(destination.authed.mutation(fn("apply"),{receiptId:pendingReview.receiptId,expectedDigest:pendingReview.digest,confirmLive:true})).rejects.toThrow();
  await expect(destination.authed.mutation(fn("rollback"),secondArgs)).rejects.toThrow();
  const current=await destination.t.run(ctx=>ctx.db.get("kb_categories",targetCategory!._id));expect(current!.name).toBe("Changed before deletion");expect(current!.isActive).toBe(false);expect(current!.deletionJobId).toBeDefined();
@@ -2196,9 +2196,9 @@ test('RSVP promotion remaps the canonical event reference and transfers settings
  expect(m.records.map(r=>r.kind).sort()).toEqual(['event','page']);
  expect(JSON.stringify(m)).not.toContain('source-private');
  expect(m.dependencies.some(d=>d.kind==='plugin'&&d.key.includes('formsEnabled'))).toBe(true);
- const disabled=await live.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(disabled.ready).toBe(false);
+ const disabled=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(disabled.ready).toBe(false);
  await enableRsvpForms(live);
- const review=await live.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(review.issues).toEqual([]);expect(review.ready).toBe(true);
+ const review=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(review.issues).toEqual([]);expect(review.ready).toBe(true);
  await live.authed.mutation(fn('apply'),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
  const saved=await live.t.run(async ctx=>({event:await ctx.db.query('extension_events').unique(),page:await ctx.db.query('posts').unique(),entries:await ctx.db.query('event_rsvp_entries').take(5),totals:await ctx.db.query('event_rsvp_totals').take(5),operations:await ctx.db.query('event_rsvp_operations').take(5),rate:await ctx.db.query('event_rsvp_rate_limits').take(5)}));
  expect(saved.event!.rsvp).toEqual(m.records.find(r=>r.kind==='event')!.data.rsvp);
@@ -2209,17 +2209,17 @@ test('RSVP capacity checks protect review and apply from new target registration
  const {manifest:m}=await rsvpPromotionFixture(),live=await fixture();
  m.records=m.records.filter(r=>r.kind==='event');m.selection.pageIds=[];m.records[0].data.rsvp={mode:'guests',capacity:1,closesAt:null};
  const event=await createRsvpTarget(live,m,3),before=await live.t.run(ctx=>ctx.db.get(event));
- const review=await live.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  await seedTargetAttendees(live,event,2);
  await expect(live.authed.mutation(fn('apply'),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true})).rejects.toThrow();
  expect(await live.t.run(ctx=>ctx.db.get(event))).toEqual(before);
- const fresh=await live.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(fresh.ready).toBe(false);expect(fresh.issues.some((i:{code:string})=>i.code==='PROMOTION_EVENT_CAPACITY')).toBe(true);
+ const fresh=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(fresh.ready).toBe(false);expect(fresh.issues.some((i:{code:string})=>i.code==='PROMOTION_EVENT_CAPACITY')).toBe(true);
  expect(JSON.stringify(fresh)).not.toContain('target-0@example.invalid');
 });
 test('RSVP rollback refuses a smaller capacity after new bookings and preserves target registrations when allowed',async()=>{
  const {manifest:m}=await rsvpPromotionFixture(),live=await fixture();m.records=m.records.filter(r=>r.kind==='event');m.selection.pageIds=[];
  const event=await createRsvpTarget(live,m,1),before=await live.t.run(ctx=>ctx.db.get(event));
- const review=await live.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(review.ready).toBe(true);
+ const review=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(review.ready).toBe(true);
  const args={receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true};await live.authed.mutation(fn('apply'),args);
  const entries=await seedTargetAttendees(live,event,2),after=await live.t.run(ctx=>ctx.db.get(event));
  await expect(live.authed.mutation(fn('rollback'),args)).rejects.toThrow('target\'s confirmed registrations');expect(await live.t.run(ctx=>ctx.db.get(event))).toEqual(after);
@@ -2231,10 +2231,10 @@ test('RSVP rollback refuses a smaller capacity after new bookings and preserves 
 test('RSVP promotion rejects invalid event settings and preserves target settings from older manifests',async()=>{
  const {manifest:m}=await rsvpPromotionFixture(),live=await fixture();m.records=m.records.filter(r=>r.kind==='event');m.selection.pageIds=[];const event=await createRsvpTarget(live,m,5);
  for(const change of [{rsvp:{mode:'guests',capacity:3,closesAt:Number(m.records[0].data.startsAt)+1}},{registrationUrl:'https://example.invalid/register'},{timeZone:'Invalid/Zone'},{endsAt:Number(m.records[0].data.startsAt)-1}]){
-  const bad=structuredClone(m);Object.assign(bad.records[0].data,change);expect((await live.authed.mutation(fn('dryRun'),{manifest:bad,...bindings})).ready).toBe(false);
+  const bad=structuredClone(m);Object.assign(bad.records[0].data,change);expect((await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(bad),...bindings})).ready).toBe(false);
  }
  const old=structuredClone(m);delete old.records[0].data.rsvp;old.records[0].data.title='An old client edits the title';
- const review=await live.authed.mutation(fn('dryRun'),{manifest:old,...bindings});expect(review.ready).toBe(true);
+ const review=await live.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(old),...bindings});expect(review.ready).toBe(true);
  await live.authed.mutation(fn('apply'),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
  expect((await live.t.run(ctx=>ctx.db.get(event)))!.rsvp).toEqual({mode:'guests',capacity:5,closesAt:null});
 });
@@ -2254,13 +2254,13 @@ function localeManifest():ContentPromotionManifest {
 }
 test('locale promotion remaps routing and group documents, removes obsolete entries and restores semantic content with fresh revisions',async()=>{
  const f=await localeFixture(),m=localeManifest();
- const a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(a.issues).toEqual([]);
+ const a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(a.issues).toEqual([]);
  const applied=await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
  const rows=await f.t.run(async ctx=>({routing:await ctx.db.query('locale_routing').unique(),group:await ctx.db.query('locale_translation_groups').unique(),entries:await ctx.db.query('locale_translations').collect()}));
  expect(rows.routing!.locales.map(l=>String(l.landingPageId))).toEqual(['en','es'].map(code=>applied.mappings.find((r:any)=>r.key===`page:${code}`).targetId));
  expect(rows.entries).toHaveLength(2);expect(rows.group!.revision).toBe(1);
  const reduced=structuredClone(m);reduced.records.find(r=>r.kind==='localeGroup')!.data.translations=[];
- const b=await f.authed.mutation(fn('dryRun'),{manifest:reduced,...bindings});expect(b.issues).toEqual([]);
+ const b=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(reduced),...bindings});expect(b.issues).toEqual([]);
  await f.authed.mutation(fn('apply'),{receiptId:b.receiptId,expectedDigest:b.digest,confirmLive:true});expect(await f.t.run(ctx=>ctx.db.query('locale_translations').collect())).toEqual([]);
  await f.authed.mutation(fn('rollback'),{receiptId:b.receiptId,expectedDigest:b.digest,confirmLive:true});
  const restored=await f.t.run(async ctx=>({routing:await ctx.db.get(rows.routing!._id),group:await ctx.db.get(rows.group!._id),entries:await ctx.db.query('locale_translations').collect()}));
@@ -2268,8 +2268,8 @@ test('locale promotion remaps routing and group documents, removes obsolete entr
 });
 test('locale promotion binds child assignments and unrelated target context into the review conflict',async()=>{
  const f=await localeFixture(),m=localeManifest();
- const a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(a.issues).toEqual([]);await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
- const b=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});
+ const a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(a.issues).toEqual([]);await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ const b=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});
  await f.t.run(async ctx=>{const entry=await ctx.db.query('locale_translations').first();await ctx.db.patch(entry!._id,{code:'fr'});});
  await expect(f.authed.mutation(fn('apply'),{receiptId:b.receiptId,expectedDigest:b.digest,confirmLive:true})).rejects.toThrow('PROMOTION_CONFLICT');
 });
@@ -2279,7 +2279,7 @@ test('locale promotion rejects omitted consent, forged references and duplicate 
   (m:ContentPromotionManifest)=>{m.selection.includeLocalization=false;},
   (m:ContentPromotionManifest)=>{m.records.find(r=>r.kind==='localeRouting')!.data.locales=[{code:'en',label:'English',direction:'ltr',landingPageId:'raw-id'}];},
   (m:ContentPromotionManifest)=>{m.records.find(r=>r.kind==='localeGroup')!.data.translations=[{code:'en',documentId:'@promotion:page:en'},{code:'en',documentId:'@promotion:page:es'}];},
- ]){const m=localeManifest();mutate(m);await expect(f.authed.mutation(fn('dryRun'),{manifest:m,...bindings})).rejects.toThrow();}
+ ]){const m=localeManifest();mutate(m);await expect(f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow();}
 });
 test('locale export requires explicit selection and carries configured landings and complete selected translation groups',async()=>{
  const f=await localeFixture();
@@ -2298,32 +2298,32 @@ test('locale export requires explicit selection and carries configured landings 
 });
 
 test('locale promotion requires normal language authority and binds configuration changes after review',async()=>{
- const limited=await fixture();await expect(limited.authed.mutation(fn('dryRun'),{manifest:localeManifest(),...bindings})).rejects.toThrow();
- const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
- a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});
+ const limited=await fixture();await expect(limited.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(localeManifest()),...bindings})).rejects.toThrow();
+ const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});
  await f.t.run(async ctx=>{const row=await ctx.db.query('locale_routing').unique();await ctx.db.patch(row!._id,{enabled:false,revision:row!.revision+1});});
  await expect(f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true})).rejects.toThrow('PROMOTION_CONFLICT');
  expect((await f.t.run(ctx=>ctx.db.query('locale_routing').unique()))!.enabled).toBe(false);
 });
 test('locale promotion preserves unrelated groups and detects new assignments or incompatible language settings',async()=>{
- const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
  const unrelated=await f.t.run(async ctx=>{
   const page=await ctx.db.insert('posts',{type:'page',title:'Independent',slug:'independent',status:'publish',visibility:'public',authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1});
   const group=await ctx.db.insert('locale_translation_groups',{key:'independent',revision:1,updatedBy:f.userId,updatedAt:1});
   await ctx.db.insert('locale_translations',{groupId:group,documentId:page,code:'en'});return {page,group};
  });
  const before=await f.t.run(async ctx=>({group:await ctx.db.get(unrelated.group),entries:await ctx.db.query('locale_translations').withIndex('by_group',q=>q.eq('groupId',unrelated.group)).collect()}));
- a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(a.issues).toEqual([]);await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});expect(a.issues).toEqual([]);await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
  expect(await f.t.run(async ctx=>({group:await ctx.db.get(unrelated.group),entries:await ctx.db.query('locale_translations').withIndex('by_group',q=>q.eq('groupId',unrelated.group)).collect()}))).toEqual(before);
- a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});
+ a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});
  await f.t.run(ctx=>ctx.db.insert('locale_translation_groups',{key:'new-empty',revision:1,updatedBy:f.userId,updatedAt:1}));
  await expect(f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true})).rejects.toThrow('PROMOTION_CONFLICT');
  const removal=structuredClone(m);removal.records.find(r=>r.kind==='localeRouting')!.data={key:'site',enabled:false,locales:[]};removal.records.find(r=>r.kind==='localeGroup')!.data.translations=[];
- const review=await f.authed.mutation(fn('dryRun'),{manifest:removal,...bindings});expect(review.ready).toBe(false);expect(review.issues.map((i:any)=>i.code)).toContain('PROMOTION_LOCALE_NOT_CONFIGURED');
+ const review=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(removal),...bindings});expect(review.ready).toBe(false);expect(review.issues.map((i:any)=>i.code)).toContain('PROMOTION_LOCALE_NOT_CONFIGURED');
 });
 test('locale rollback detects child-only writes and never silently restores over another group assignment',async()=>{
- const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
- a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ a=await f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
  await f.t.run(async ctx=>{const entry=await ctx.db.query('locale_translations').first();await ctx.db.delete(entry!._id);});
  await expect(f.authed.mutation(fn('rollback'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true})).rejects.toThrow('PROMOTION_ROLLBACK_CONFLICT');
 });
@@ -2333,7 +2333,7 @@ test('locale manifest rejects cross-group duplicate documents, unconfigured lang
   (m:ContentPromotionManifest)=>{m.records.push({...structuredClone(m.records.find(r=>r.kind==='localeGroup')!),key:'localeGroup:other',data:{key:'other',translations:[{code:'en',documentId:'@promotion:page:en'}]}});},
   (m:ContentPromotionManifest)=>{m.records.find(r=>r.kind==='localeGroup')!.data.translations=[{code:'fr',documentId:'@promotion:page:en'}];},
   (m:ContentPromotionManifest)=>{const p=structuredClone(m.records[0]!);p.key='post:entry';p.kind='post';p.data.slug='entry';p.data.blocks=[];m.records.push(p);m.records.find(r=>r.kind==='localeGroup')!.data.translations=[{code:'en',documentId:'@promotion:page:en'},{code:'es',documentId:'@promotion:post:entry'}];},
- ]){const m=localeManifest();mutate(m);await expect(f.authed.mutation(fn('dryRun'),{manifest:m,...bindings})).rejects.toThrow();}
+ ]){const m=localeManifest();mutate(m);await expect(f.authed.mutation(fn('dryRun'),{manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow();}
 });
 test('locale export includes explicitly selected empty groups and disabled routing without inventing source settings',async()=>{
  const f=await localeFixture();await f.t.run(async ctx=>{const identity=await ctx.db.query('convexpress_siteIdentity').unique();await ctx.db.patch(identity!._id,manifest().source);await ctx.db.insert('locale_translation_groups',{key:'removed-guide',revision:3,updatedBy:f.userId,updatedAt:1});});
@@ -2361,9 +2361,9 @@ test("template presentation writes share nested-shape and size refusal without t
   const values = {...baseline.values,settings};
   const m = manifest(); m.selection.includePresentation = true;
   m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values}});
-  await expect(f.authed.mutation(fn("dryRun"), {manifest:m,...bindings})).rejects.toThrow();
+  await expect(f.authed.mutation(fn("dryRun"), {manifestJson: JSON.stringify(m),...bindings})).rejects.toThrow();
   await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values:{settings}})).rejects.toThrow();
-  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:importAll"), {data:{settings:{"appearance.template":values}}})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:importAll"), {dataJson:JSON.stringify({settings:{"appearance.template":values}})})).rejects.toThrow();
   await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/templateDrafts:publish"), {values,expectedRevision:baseline.revision,confirmLive:true})).rejects.toThrow();
   expect(await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {})).toEqual(baseline);
  }
@@ -2408,7 +2408,7 @@ test("appearance-only promotion remaps footer media and preserves unrelated live
  const preserved = () => destination.t.run(async ctx=>({general:await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","general")).unique(),posts:await ctx.db.query("posts").collect(),menus:await ctx.db.query("menuLocations").collect()}));
  const before = await preserved();
  const storageId = await destination.t.run(ctx=>ctx.storage.store(src.bytes));
- const review = await destination.authed.mutation(fn("dryRun"), {manifest:exported.manifest, mediaBindings:[{key:src.mediaKey,storageId}], dependencyBindings:[]});
+ const review = await destination.authed.mutation(fn("dryRun"), {manifestJson: JSON.stringify(exported.manifest), mediaBindings:[{key:src.mediaKey,storageId}], dependencyBindings:[]});
  expect(review.ready).toBe(true);
  await destination.authed.mutation(fn("apply"), receiptArgs(review));
  const live = await destination.authed.query(snapshotRef, {});
@@ -2425,15 +2425,15 @@ test("footer audience promotion resolves only one active target-owned list and c
  const sourceList=await source.t.run(async ctx=>{const site=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(site._id,manifest().source);const id=await ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:staging",createdBy:source.userId,updatedBy:source.userId});await ctx.db.insert("settings",{section:"appearance.template",values:{active:"journal",overrides:{},variants:{},settings:{journal:{footer:{rows:[{id:"r",columns:[{id:"c",cell:{type:"newsletter",buttonText:"Subscribe",audienceId:id}}]}]}}}},updatedAt:1,updatedBy:source.userId,legacyAppearanceMigration:{version:2,migratedAt:1}});return id;});
  const exported=await source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{...manifest().selection,pageIds:[],includeAppearance:true}});
  const m=exported.manifest as ContentPromotionManifest;expect(m.dependencies).toContainEqual(expect.objectContaining({kind:"mailingList",sourceId:sourceList,slug:fields.name}));expect(m.records).toHaveLength(1);
- const missing=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(missing.ready).toBe(false);
+ const missing=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(missing.ready).toBe(false);
  const targetList=await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,consentText:"Target wording",websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));
- const review=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});if(!review.ready)throw Error(JSON.stringify(review.issues));expect(review.ready).toBe(true);
+ const review=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});if(!review.ready)throw Error(JSON.stringify(review.issues));expect(review.ready).toBe(true);
  await destination.t.run(ctx=>ctx.db.patch("mailingLists",targetList,{status:"archived"}));await expect(destination.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow();
  await destination.t.run(ctx=>ctx.db.patch("mailingLists",targetList,{status:"active",revision:2}));
- const fresh=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(fresh.ready).toBe(true);await destination.authed.mutation(fn("apply"),receiptArgs(fresh));
+ const fresh=await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings});expect(fresh.ready).toBe(true);await destination.authed.mutation(fn("apply"),receiptArgs(fresh));
  const saved=await destination.t.run(ctx=>ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","appearance.template")).unique());expect((saved!.values as any).settings.journal.footer.rows[0].columns[0].cell.audienceId).toBe(targetList);
  expect((await destination.t.run(ctx=>ctx.db.get("mailingLists",targetList)))!.consentText).toBe("Target wording");for(const table of ["mailingListSubscribers","mailingListConsentEvents"] as const)expect(await destination.t.run(ctx=>ctx.db.query(table).take(1))).toEqual([]);
- await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));expect((await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).ready).toBe(false);
+ await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));expect((await destination.authed.mutation(fn("dryRun"),{manifestJson: JSON.stringify(m),...bindings})).ready).toBe(false);
 });
 
 // Legacy decoding remains an explicit authoring migration, not a promotion write path.
@@ -2445,7 +2445,7 @@ test("legacy promotion requires migration before a ready receipt or content writ
   delete m.records[0].data.blocksVersion; delete m.records[0].data.canonical;
   m.records[0].data.contentMode = "blocks";
   m.records[0].data.blocks = [{id:"old",name:"core/paragraph",version:1,attrs:{text:"Legacy text"}}];
-  const result = await f.authed.mutation(fn("dryRun"), { manifest: m, ...bindings });
+  const result = await f.authed.mutation(fn("dryRun"), { manifestJson: JSON.stringify(m), ...bindings });
   expect(result.ready).toBe(false);
   expect(result.issues.some((issue: any) => issue.code === "CANONICAL_SOURCE_MIGRATION_REQUIRED")).toBe(true);
  }

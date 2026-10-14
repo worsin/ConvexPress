@@ -23,6 +23,9 @@ const get = ref<"query">("canonicalDocuments/aiContext:get");
 const validate = ref<"query">("canonicalDocuments/aiContext:validateResult");
 const apply = ref<"mutation">("canonicalDocuments/aiContext:apply");
 const preview = ref<"query">("canonicalDocuments/aiContext:preview");
+/** Proposal saves and previews take the tree as JSON text (`blocksJson`); fixtures keep trees until the call. */
+const wire = <T extends { blocks?: unknown; blocksJson?: string }>({ blocks, ...rest }: T) =>
+  ({ ...rest, blocksJson: rest.blocksJson ?? JSON.stringify(blocks) });
 const scope = { websiteKey: "ai-context", instanceKey: "staging", deploymentOrigin: "https://ai-context.convex.cloud" };
 const proposalId = "00000000-0000-4000-8000-000000000001";
 const caps = ["blocks.ai", "blocks.compose", "post.create", "post.update", "post.publish", "page.update", "page.publish"];
@@ -99,16 +102,16 @@ test("nested proposal validates without writes and applies once through canonica
   expect(proposal.blocks[0].id).not.toBe(proposal.blocks[0].children[0].id);
   expect((await f.document())!.blocksRevision).toBe(3); expect(await f.revisions()).toHaveLength(0);
   const args = { ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks };
-  const projected = await f.author.query(preview, args);
+  const projected = await f.author.query(preview, wire(args));
   expect(projected.document.revision).toBe(4); expect(projected.document.title).toBe(proposal.title);
   expect(projected.document.blocks).toEqual(proposal.blocks);
   expect(projected.displayLease.expiresAt).toBeGreaterThan(Date.now());
   expect((await f.document())!.blocksRevision).toBe(3); expect(await f.revisions()).toHaveLength(0);
-  const receipt = await f.author.mutation(apply, args);
+  const receipt = await f.author.mutation(apply, wire(args));
   expect(receipt.revision).toBe(4); expect(receipt.changed).toBe(true);
   expect((await f.document())!.blocks).toEqual(proposal.blocks);
   expect((await f.document())!.title).toBe(proposal.title); expect(await f.revisions()).toHaveLength(1);
-  await expect(f.author.mutation(apply, args)).rejects.toThrow("document changed");
+  await expect(f.author.mutation(apply, wire(args))).rejects.toThrow("document changed");
   expect(await f.revisions()).toHaveLength(1);
 });
 
@@ -125,8 +128,8 @@ test("provider interval and review interval both recheck permission, policy and 
     });
     const before = await f.document();
     await expect(f.propose(initial.fingerprint)).rejects.toThrow();
-    await expect(f.author.query(preview, { ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks })).rejects.toThrow();
-    await expect(f.author.mutation(apply, { ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks })).rejects.toThrow();
+    await expect(f.author.query(preview, wire({ ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks }))).rejects.toThrow();
+    await expect(f.author.mutation(apply, wire({ ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks }))).rejects.toThrow();
     expect(await f.document()).toEqual(before); expect(await f.revisions()).toHaveLength(0);
   }
 });
@@ -142,7 +145,7 @@ test("discovery exposes approved immutable versions, excludes foreign/draft head
   await f.author.mutation(ref("blockDefinitions/drafts:save"), { id: made.id, expectedGeneration: 2, definitionJson: JSON.stringify(definition(2)) });
   expect((await f.read()).fingerprint).toBe(approved.fingerprint); // An unrelated draft is not the approved catalog.
   await f.author.mutation(ref("blockDefinitions/publication:setVersionState"), { id: made.id, version: 1, expectedGeneration: 3, expectedDigest: made.digest, enabled: false });
-  await expect(f.author.mutation(apply, { ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks })).rejects.toThrow("context changed");
+  await expect(f.author.mutation(apply, wire({ ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks }))).rejects.toThrow("context changed");
   expect(await f.revisions()).toHaveLength(0);
 });
 
@@ -153,8 +156,8 @@ test("bad provider output and forged resource selections cannot modify the docum
   const image = { title: "Image", blocks: [{ name: "core/image", version: 2, attrs: { mediaId: "not-a-site-media-id" } }] };
   await expect(f.propose(initial.fingerprint, image)).rejects.toThrow("does not satisfy");
   const proposal = { ...image, fingerprint: initial.fingerprint, blocks: image.blocks.map(block => ({...block, id: "forged-media"})) };
-  await expect(f.author.query(preview, { ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks })).rejects.toThrow();
-  await expect(f.author.mutation(apply, { ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks })).rejects.toThrow();
+  await expect(f.author.query(preview, wire({ ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks }))).rejects.toThrow();
+  await expect(f.author.mutation(apply, wire({ ...f.base, expectedFingerprint: proposal.fingerprint, title: proposal.title, blocks: proposal.blocks }))).rejects.toThrow();
   expect((await f.document())!.blocksRevision).toBe(3); expect(await f.revisions()).toHaveLength(0);
 });
 
@@ -186,13 +189,13 @@ test("selected resource metadata is authoritative and minimal, and three product
   ] }] };
   const proposal = await f.author.query(validate, { ...f.resourceBase, expectedFingerprint: context.fingerprint, proposalId, resultJson: JSON.stringify(result) });
   const args = { ...f.resourceBase, expectedFingerprint: context.fingerprint, title: proposal.title, blocks: proposal.blocks };
-  const previewed = await f.author.query(preview, args), comparisonId = proposal.blocks[0].children[0].id;
+  const previewed = await f.author.query(preview, wire(args)), comparisonId = proposal.blocks[0].children[0].id;
   expect(previewed.data.dataByBlock[comparisonId].data.items.map((item: {price: {min: number}}) => item.price.min)).toEqual([1200, 1300, 1400]);
   await f.t.run(ctx => ctx.db.patch("commerce_products", f.resources.products[1]!, { basePrice: { amount: 1900, currencyCode: "USD" } }));
-  const renewed = await f.author.query(preview, args);
+  const renewed = await f.author.query(preview, wire(args));
   expect(renewed.data.dataByBlock[comparisonId].data.items[1].price.min).toBe(1900);
   expect((await f.document())!.blocksRevision).toBe(3); expect(await f.revisions()).toHaveLength(0);
-  const receipt = await f.author.mutation(apply, args); expect(receipt.revision).toBe(4); expect(await f.revisions()).toHaveLength(1);
+  const receipt = await f.author.mutation(apply, wire(args)); expect(receipt.revision).toBe(4); expect(await f.revisions()).toHaveLength(1);
 });
 
 test("selected resources reject unavailable, foreign, restricted, duplicate and oversized choices", async () => {
@@ -249,7 +252,7 @@ test("trusted template styles reach AI validation and a saved styled document su
   expect(JSON.parse(context.contextJson).catalog.styles["core/cta-band"]).toEqual(["default", "inset"]);
   const result = { title: "Styled invitation", blocks: [{ name: "core/cta-band", version: 2, attrs: {}, style: "inset" }] };
   const proposal = await f.propose(context.fingerprint, result);
-  await f.author.mutation(apply, { ...f.base, expectedFingerprint: context.fingerprint, title: proposal.title, blocks: proposal.blocks });
+  await f.author.mutation(apply, wire({ ...f.base, expectedFingerprint: context.fingerprint, title: proposal.title, blocks: proposal.blocks }));
   expect((await f.document())!.blocks![0].style).toBe("inset");
   await f.t.run(ctx => ctx.db.patch("settings", f.ids.appearance, { values: { active: "core", overrides: {}, variants: {}, settings: {} } }));
   const changed = await f.author.query(get, { ...f.base, expectedRevision: 4 });

@@ -17,6 +17,7 @@ import { v, type Infer, type PropertyValidators, type VBoolean } from "convex/va
 import type { QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { authCapabilitiesValidator, clerkVerificationValidator } from "../auth/clerkValidators";
+import { partial } from "convex-helpers/validators";
 import { boundedJsonValidator } from "../helpers/jsonValue";
 import { readValidated, settingsRecord } from "../helpers/settingsReader";
 import { redactSettingSecrets } from "../helpers/settingsSecret";
@@ -998,4 +999,68 @@ export const anySectionValuesValidator = v.union(
   layoutAssignmentSettingsValidator,
   headerSettingsValidator,
   footerSettingsValidator,
+);
+
+/**
+ * Document fields a client may send back beside a section's values: section
+ * reads return them (see sectionMeta), and updateSection strips them before
+ * anything is stored. They are accepted, never trusted.
+ */
+const sectionPatchMetaFields = {
+  _id: v.optional(v.union(v.null(), v.string())),
+  _creationTime: v.optional(v.number()),
+  section: v.optional(v.string()),
+  updatedAt: v.optional(v.union(v.null(), v.number())),
+  updatedBy: v.optional(v.union(v.null(), v.string())),
+  legacyAppearanceMigration: v.optional(v.object({ version: v.number(), migratedAt: v.number() })),
+};
+
+/** A section's values as an update sends them: any subset of its fields. */
+function patchOf<F extends PropertyValidators>(fields: F) {
+  return v.object(Object.assign({}, partial(fields), sectionPatchMetaFields));
+}
+
+/**
+ * Any one section's values as updateSection accepts them. The args validator
+ * cannot tie `values` to `section`, so it takes a subset of any section;
+ * settings/validators.ts `sectionValuesPatchErrors` checks the section named.
+ */
+export const sectionValuesPatchValidator = v.union(
+  patchOf(generalSettingsValidator.fields),
+  patchOf(readingSettingsValidator.fields),
+  patchOf(writingSettingsValidator.fields),
+  patchOf(discussionSettingsValidator.fields),
+  patchOf(permalinkSettingsValidator.fields),
+  patchOf(privacySettingsValidator.fields),
+  patchOf(emailSettingsValidator.fields),
+  patchOf(mediaSettingsValidator.fields),
+  patchOf(analyticsSettingsValidator.fields),
+  patchOf(aiSettingsValidator.fields),
+  patchOf(blockSettingsValidator.fields),
+  patchOf(pluginsSettingsValidator.fields),
+  patchOf(membershipGeneralSettingsValidator.fields),
+  patchOf(searchSettingsValidator.fields),
+  patchOf(commerceGeneralSettingsValidator.fields),
+  patchOf(commercePaymentsSettingsValidator.fields),
+  patchOf(commerceAssistantSettingsValidator.fields),
+  patchOf(commerceLayoutSettingsValidator.fields),
+  patchOf(appearanceTemplateSettingsValidator.fields),
+  patchOf(brandSettingsValidator.fields),
+  patchOf(commerceSubscriptionsCountersSettingsValidator.fields),
+  patchOf(shippingIntegrationSettingsValidator.fields),
+  patchOf(shippingProviderSettingsValidator.fields),
+  patchOf(clerkIntegrationSettingsValidator.fields),
+  patchOf(googleIntegrationSettingsValidator.fields),
+  patchOf(dashboardSettingsValidator.fields),
+  patchOf(analyticsGa4SettingsValidator.fields),
+  patchOf(kbGeneralSettingsValidator.fields),
+  patchOf(kbFeaturesSettingsValidator.fields),
+  patchOf(kbSearchSettingsValidator.fields),
+  patchOf(ticketGeneralSettingsValidator.fields),
+  patchOf(ticketSlaSettingsValidator.fields),
+  patchOf(supportWidgetSettingsValidator.fields),
+  patchOf(supportAiSettingsValidator.fields),
+  patchOf(layoutAssignmentSettingsValidator.fields),
+  patchOf(headerSettingsValidator.fields),
+  patchOf(footerSettingsValidator.fields),
 );

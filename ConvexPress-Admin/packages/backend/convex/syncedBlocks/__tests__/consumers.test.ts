@@ -5,8 +5,8 @@ import { validateCanonicalTree } from "../../canonicalDocuments/foundation/gener
 
 async function setup() {
   const f = await fixture();
-  const child = await f.operator.mutation(create, { title: "Child", blocks: text });await f.release(child.id, 1, 1);
-  const parent = await f.operator.mutation(create, { title: "Parent", blocks: reference(child.id) });await f.release(parent.id, 1, 1);
+  const child = await f.operator.mutation(create, { title: "Child", blocksJson: JSON.stringify(text) });await f.release(child.id, 1, 1);
+  const parent = await f.operator.mutation(create, { title: "Parent", blocksJson: JSON.stringify(reference(child.id)) });await f.release(parent.id, 1, 1);
   const blocks = validateCanonicalTree([{ ...reference(parent.id)[0], id: "latest" }, { ...reference(parent.id, 1)[0], id: "pinned" }]);
   const postId = await f.t.run(ctx => ctx.db.insert("posts", { type: "page", title: "Studio", slug: "studio", status: "draft", visibility: "public", authorId: f.ids.user, commentStatus: "closed", blocksVersion: 2, blocks, createdAt: 1, updatedAt: 1 }));
   const reconcile = (candidate: unknown = blocks) => f.operator.run(ctx => syncDocumentContactForms(ctx, { postId, title: "Studio", blocks: validateCanonicalTree(candidate) }));
@@ -26,8 +26,8 @@ test("contact-free reusable content records unique nested consumer edges and no-
 
 test("latest and pinned graphs retain their union while edited and removed references clean up exact edges", async () => {
   const f = await setup();await f.reconcile();
-  const replacement = await f.operator.mutation(create, { title: "Replacement", blocks: text });await f.release(replacement.id, 1, 1);
-  await f.operator.mutation(save, { id: f.parent.id, expectedGeneration: 2, title: "Parent", blocks: reference(replacement.id) });await f.release(f.parent.id, 3, 2);
+  const replacement = await f.operator.mutation(create, { title: "Replacement", blocksJson: JSON.stringify(text) });await f.release(replacement.id, 1, 1);
+  await f.operator.mutation(save, { id: f.parent.id, expectedGeneration: 2, title: "Parent", blocksJson: JSON.stringify(reference(replacement.id)) });await f.release(f.parent.id, 3, 2);
   await f.reconcile();expect((await f.rows()).map(row => row.sourceId).sort()).toEqual([f.parent.id, f.child.id, replacement.id].sort());
   await f.reconcile(reference(f.parent.id));expect((await f.rows()).map(row => row.sourceId).sort()).toEqual([f.parent.id, replacement.id].sort());
   await f.reconcile([]);expect(await f.rows()).toEqual([]);

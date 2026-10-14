@@ -7,9 +7,16 @@ import type { NormalizedShippingQuote } from "../rates/types";
 import { evaluateRule } from "../rulesEngine/evaluator";
 import type { RuleAST, RuleContext } from "../rulesEngine/types";
 
+/** The method editor's placeholder for a row whose condition is not written yet; it never matches. */
+export type UnwrittenRuleCondition = Record<string, never>;
+
+function isWrittenCondition(condition: RuleAST | UnwrittenRuleCondition): condition is RuleAST {
+  return typeof condition.op === "string";
+}
+
 export type TableRateRow = {
   priority: number;
-  conditionAST: RuleAST;
+  conditionAST: RuleAST | UnwrittenRuleCondition;
   costFormula: {
     mode: "flat" | "per_weight" | "per_item" | "per_subtotal";
     baseCost: number;
@@ -95,7 +102,7 @@ export function calculateTableRate(
     .sort((a, b) => a.priority - b.priority);
 
   const matches = enabledRows.filter((r) =>
-    evaluateRule(r.conditionAST, cart.ruleContext),
+    isWrittenCondition(r.conditionAST) && evaluateRule(r.conditionAST, cart.ruleContext),
   );
 
   if (matches.length === 0) return [];

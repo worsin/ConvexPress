@@ -34,6 +34,7 @@ import {
   redoDraft,
   resetDraftModule,
   setDraftField,
+  templateValues,
   undoDraft,
   type DraftSnapshot,
 } from "./draftModel";
@@ -229,7 +230,8 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
         packId,
         sourceRevision: revision,
         expectedDraftRevision: draftRevision,
-        ...history.present,
+        values: templateValues(history.present.values),
+        variants: history.present.variants,
       });
       if (!mounted.current) return;
       setDraftRevision(result.revision);
@@ -275,7 +277,7 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
         variants: history.present.variants,
         settings: {
           ...activated.settings,
-          [packId]: history.present.values,
+          [packId]: templateValues(history.present.values),
         },
       };
       await publish({

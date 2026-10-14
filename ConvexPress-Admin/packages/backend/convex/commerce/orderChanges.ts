@@ -4,6 +4,7 @@ import { mutation, query } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { commerceDocs } from "../schema/commerce.docs.generated";
 import { requireCan } from "../helpers/permissions";
+import { parseJsonArgument, parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 
 const changeType = v.union(
   v.literal("edit"),
@@ -94,7 +95,8 @@ export const create = mutation({
     changeType,
     description: v.optional(v.string()),
     internalNote: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_order_changes"),
   handler: async (ctx, args) => {
@@ -114,7 +116,7 @@ export const create = mutation({
       description: args.description,
       internalNote: args.internalNote,
       requestedBy: actor._id,
-      metadata: args.metadata,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       createdAt: now,
       updatedAt: now,
     });
@@ -127,7 +129,8 @@ export const addAction = mutation({
     action: v.string(),
     reference: v.optional(v.string()),
     referenceId: v.optional(v.string()),
-    details: v.any(),
+    /** The action's details, any JSON value, JSON-encoded: `action` is free-form, so its payload is too. */
+    detailsJson: v.string(),
     amount: v.optional(v.number()),
     ordering: v.optional(v.number()),
   },
@@ -136,6 +139,7 @@ export const addAction = mutation({
     await requireCan(ctx, "manage_options");
     const change = await ctx.db.get(args.orderChangeId);
     if (!change) throw new ConvexError({ code: "NOT_FOUND", message: "Order change not found." });
+    const details = parseJsonArgument(args.detailsJson, "detailsJson");
     const now = Date.now();
     return await ctx.db.insert("commerce_order_change_actions", {
       orderChangeId: args.orderChangeId,
@@ -143,7 +147,7 @@ export const addAction = mutation({
       action: args.action,
       reference: args.reference,
       referenceId: args.referenceId,
-      details: args.details,
+      details,
       amount: args.amount,
       ordering: args.ordering,
       applied: false,

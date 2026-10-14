@@ -7,7 +7,7 @@ import {
 } from "convex/server";
 import { query, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { canonicalStoredTreeValidator } from "./canonicalDocuments/foundation/generated/storage";
+import { decodeWriteArgs, type WriteTransportArgs } from "./canonicalDocuments/blocksJson";
 import type {
 	CanonicalDocumentRead,
 	CanonicalWriteReceipt,
@@ -35,7 +35,6 @@ import {
 	restoreDocument,
 	pageRevisions as revisions,
 	pageOptions as pages,
-	type WriteArgs,
  type MigrateArgs,
  prepareMigrationDocument,
  migrateDocument,
@@ -43,17 +42,18 @@ import {
 type ReadArgs = { postId: Id<"posts"> };
 type GetArgs = ReadArgs & { refreshKey?: string; request?: BlockPageRequest };
 type PageArgs = ReadArgs & { paginationOpts: PaginationOptions };
-type InitializeArgs = WriteArgs & { expectedAuthoringDigest: string };
+type InitializeArgs = WriteTransportArgs & { expectedAuthoringDigest: string };
 type RestoreArgs = ReadArgs & {
  expectedAuthoringDigest?: string;
 	revisionId: Id<"revisions">;
 	expectedRevision: number;
 };
+/** The block tree is JSON text; see canonicalDocuments/blocksJson.ts. */
 const writeArgs = {
 	postId: v.id("posts"),
 	expectedRevision: v.number(),
 	title: v.string(),
-	blocks: canonicalStoredTreeValidator,
+	blocksJson: v.string(),
 };
 export const create: RegisteredMutation<"public", { type: "post" | "page"; title: string }, Promise<CanonicalWriteReceipt>> = mutation({
   args: { type: v.union(v.literal("post"), v.literal("page")), title: v.string() },
@@ -86,11 +86,11 @@ export const get: RegisteredQuery<
 });
 /** Read-only authoring preview. The normal save preparation enforces current
  * revision, permissions, schemas, resources and installed template policy. */
-export const previewDraft: RegisteredQuery<"public", WriteArgs & { request?: BlockPageRequest; refreshKey?: string }, Promise<CanonicalDocumentRead>> = query({
+export const previewDraft: RegisteredQuery<"public", WriteTransportArgs & { request?: BlockPageRequest; refreshKey?: string }, Promise<CanonicalDocumentRead>> = query({
   args: { ...writeArgs, request: v.optional(v.record(v.string(), v.string())), refreshKey: v.optional(v.string()) },
   returns: documentReadValidator,
   handler: (ctx, args) => canonicalBoundary(async () => {
-    const projected = await previewDocument(ctx, args, args.request);
+    const projected = await previewDocument(ctx, decodeWriteArgs(args), args.request);
     // A live draft remains bound to the saved base, whether changed or not.
     // Its digest identifies content; this is never a committed write receipt.
     return { ...projected, document: { ...projected.document, revision: args.expectedRevision } };
@@ -103,17 +103,17 @@ export const initialize: RegisteredMutation<
 > = mutation({
 	args: { ...writeArgs, expectedAuthoringDigest: v.string() },
 	returns: receiptValidator,
-	handler: (ctx, args) =>
-		canonicalBoundary(() => initializeDocument(ctx, args)),
+	handler: (ctx, { expectedAuthoringDigest, ...args }) =>
+		canonicalBoundary(async () => initializeDocument(ctx, { ...decodeWriteArgs(args), expectedAuthoringDigest })),
 });
 export const save: RegisteredMutation<
 	"public",
-	WriteArgs,
+	WriteTransportArgs,
 	Promise<CanonicalWriteReceipt>
 > = mutation({
 	args: writeArgs,
 	returns: receiptValidator,
-	handler: (ctx, args) => canonicalBoundary(() => saveDocument(ctx, args)),
+	handler: (ctx, args) => canonicalBoundary(async () => saveDocument(ctx, decodeWriteArgs(args))),
 });
 export const restore: RegisteredMutation<
 	"public",

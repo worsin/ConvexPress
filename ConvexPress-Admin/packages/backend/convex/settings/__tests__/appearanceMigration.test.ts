@@ -65,7 +65,7 @@ test("first explicit update preserves migrated packs and reset never resurrects 
 test("appearance import sets the same cutoff receipt", async () => {
   const ctx = legacy();
   ctx.tables.roles[0].capabilities.push("settings.import");
-  await (importAll as any)._handler(ctx, { data: { settings: { "appearance.template": { active: "core", overrides: {}, variants: {}, settings: {} } } } });
+  await (importAll as any)._handler(ctx, { dataJson: JSON.stringify({ settings: { "appearance.template": { active: "core", overrides: {}, variants: {}, settings: {} } } }) });
   expect((await (getPublic as any)._handler(ctx, {})).colorPalette).toEqual([]);
 });
 

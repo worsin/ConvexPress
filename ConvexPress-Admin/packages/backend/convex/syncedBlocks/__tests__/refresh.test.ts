@@ -28,7 +28,7 @@ async function setup() {
   let index = await f.operator.mutation(ref<"mutation">("syncedBlocks/consumerIndex:begin"), {});
   for (let i = 0; index.status !== "ready" && i < 10; i++) index = await f.operator.mutation(ref<"mutation">("syncedBlocks/consumerIndex:step"), { generation: index.generation, expectedSequence: index.sequence });
   expect(index.status).toBe("ready");
-  const source = await f.operator.mutation(create, { title: "Reusable contact", blocks: contact() });
+  const source = await f.operator.mutation(create, { title: "Reusable contact", blocksJson: JSON.stringify(contact()) });
   await f.release(source.id, 1, 1);
   const inspect = () => f.operator.query(status, { id: source.id });
   async function tick() {
@@ -54,7 +54,7 @@ async function setup() {
   }
   async function update(fields: unknown[] = [email]) {
     const head = (await f.t.run(ctx => ctx.db.get("syncedBlocks", source.id)))!;
-    const next = await f.operator.mutation(save, { id: source.id, expectedGeneration: head.generation, title: "Reusable contact", blocks: contact(fields) });
+    const next = await f.operator.mutation(save, { id: source.id, expectedGeneration: head.generation, title: "Reusable contact", blocksJson: JSON.stringify(contact(fields)) });
     await f.release(source.id, next.generation, next.revision);
   }
   const forms = () => f.t.run(ctx => ctx.db.query("forms").take(30));
@@ -89,7 +89,7 @@ test("source publication refreshes searchable consumer copy while pinned revisio
   } }];
   async function publishCopy(text: string) {
     const head = (await f.t.run(ctx => ctx.db.get("syncedBlocks", f.source.id)))!;
-    const saved = await f.operator.mutation(save, { id: head._id, expectedGeneration: head.generation, title: "Reusable editorial copy", blocks: copy(text) });
+    const saved = await f.operator.mutation(save, { id: head._id, expectedGeneration: head.generation, title: "Reusable editorial copy", blocksJson: JSON.stringify(copy(text)) });
     await f.release(head._id, saved.generation, saved.revision);
     return saved.revision;
   }
@@ -234,15 +234,15 @@ test("recovery bounds each sweep and schedules remaining pending jobs without ch
 
 test("nested contact-free sources discover first forms and ignore unrelated page contacts", async () => {
   const f = await setup();
-  const outer = await f.operator.mutation(create, { title: "Outer", blocks: reference(f.source.id) }); await f.release(outer.id, 1, 1);
+  const outer = await f.operator.mutation(create, { title: "Outer", blocksJson: JSON.stringify(reference(f.source.id)) }); await f.release(outer.id, 1, 1);
   await f.addPage(validateCanonicalTree([...reference(outer.id), { ...contact()[0], id: "page-contact" }]));
   const unrelated = (await f.forms()).find(form => form.contactBlockId === "page-contact")!;
   await f.update(); await f.drain();
   expect(await f.t.run(ctx => ctx.db.get("forms", unrelated._id))).toEqual(unrelated);
-  const empty = await f.operator.mutation(create, { title: "Initially empty", blocks: [] }); await f.release(empty.id, 1, 1);
+  const empty = await f.operator.mutation(create, { title: "Initially empty", blocksJson: JSON.stringify([]) }); await f.release(empty.id, 1, 1);
   const postId = await f.addPage(validateCanonicalTree(reference(empty.id)));
   expect((await f.forms()).filter(form => form.contactPostId === postId)).toHaveLength(0);
-  await f.operator.mutation(save, { id: empty.id, expectedGeneration: 2, title: "Initially empty", blocks: contact() }); await f.release(empty.id, 3, 2);
+  await f.operator.mutation(save, { id: empty.id, expectedGeneration: 2, title: "Initially empty", blocksJson: JSON.stringify(contact()) }); await f.release(empty.id, 3, 2);
   const job = (await f.operator.query(status, { id: empty.id }))!;
   await f.t.mutation(step, { jobId: job.jobId, attempt: 1, afterPostId: null });
   expect((await f.forms()).filter(form => form.contactPostId === postId)).toHaveLength(1);
@@ -272,7 +272,7 @@ test("new publication supersedes stale jobs while draft saves do not cancel publ
   await f.t.mutation(step, { jobId: old.jobId, attempt: 1, afterPostId: null });
   expect((await f.t.run(ctx => ctx.db.get("syncedBlockRefreshJobs", old.jobId)))?.status).toBe("superseded");
   const head = (await f.t.run(ctx => ctx.db.get("syncedBlocks", f.source.id)))!;
-  await f.operator.mutation(save, { id: f.source.id, expectedGeneration: head.generation, title: "Unpublished edit", blocks: [] });
+  await f.operator.mutation(save, { id: f.source.id, expectedGeneration: head.generation, title: "Unpublished edit", blocksJson: JSON.stringify([]) });
   await f.drain(); expect(await f.inspect()).toMatchObject({ jobId: current.jobId, status: "completed", processed: 1 });
   for (const form of await f.forms()) expect(await f.t.run(ctx => contactSourceAllowed(ctx, form))).toBe(true);
 });
@@ -417,7 +417,7 @@ test("initial refresh rejects stale heads, missing publication, guests and revok
 }));
 
 test("restored foreign job pointer cannot supersede another source's pending work", () => importedPublication(async f => {
-  const other = await f.operator.mutation(create, { title: "Other source", blocks: [] }); await f.release(other.id, 1, 1);
+  const other = await f.operator.mutation(create, { title: "Other source", blocksJson: JSON.stringify([]) }); await f.release(other.id, 1, 1);
   const progress = (await f.operator.query(status, { id: other.id }))!;
   const before = await f.t.run(ctx => ctx.db.get("syncedBlockRefreshJobs", progress.jobId));
   await f.t.run(ctx => ctx.db.patch("syncedBlocks", f.source.id, { refreshJobId: progress.jobId }));

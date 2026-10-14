@@ -5,12 +5,14 @@
  * These enforce type safety at the Convex argument level.
  *
  * Note: The schema uses `v.any()` for the `values` field because
- * each section has a different shape. These validators are used
- * at the mutation handler level for runtime validation.
+ * each section has a different shape. Each section's exact shape lives in
+ * sectionValues.ts; updateSection accepts any subset of one section's fields.
  */
 
-import { v } from "convex/values";
-import { footerCellValidator } from "./sectionValues";
+import { v, type GenericValidator } from "convex/values";
+import { validate } from "convex-helpers/validators";
+import type { SettingsSection } from "./defaults";
+import { SECTION_VALUE_VALIDATORS, footerCellValidator, sectionValuesPatchValidator } from "./sectionValues";
 
 // ─── Section Validator ───────────────────────────────────────────────────────
 
@@ -399,18 +401,43 @@ export const footerValuesValidator = v.object({
 // ─── Argument Validators ─────────────────────────────────────────────────────
 
 /**
+ * Field errors for values that are not a subset of `section`'s fields
+ * (document metadata is stripped before this runs). Unchanged fields are left
+ * out of an update; secrets may be the "__set__" sentinel, which is a string.
+ */
+export function sectionValuesPatchErrors(
+  section: SettingsSection,
+  values: Record<string, unknown>,
+): Array<{ field: string; message: string }> {
+  const fields: Record<string, GenericValidator> = SECTION_VALUE_VALIDATORS[section].fields;
+  const errors: Array<{ field: string; message: string }> = [];
+  for (const [field, value] of Object.entries(values)) {
+    if (value === undefined) continue;
+    if (!Object.prototype.hasOwnProperty.call(fields, field)) {
+      errors.push({ field, message: `"${field}" is not a ${section} setting.` });
+    } else if (!validate(fields[field], value)) {
+      errors.push({ field, message: `"${field}" does not have the type the ${section} settings declare.` });
+    }
+  }
+  return errors;
+}
+
+/**
  * Args for the updateSection mutation.
  */
 export const updateSectionArgs = {
   section: sectionValidator,
-  values: v.any(),
+  values: sectionValuesPatchValidator,
 };
 
 /**
- * Args for the importAll mutation.
+ * Args for the importAll mutation. The import is a user-supplied file, sent
+ * as its JSON text: `{ settings: { [section]: values } }` (an export from
+ * exportAll) or the bare section map. Each section is checked like an
+ * updateSection call.
  */
 export const importAllArgs = {
-  data: v.any(),
+  dataJson: v.string(),
 };
 
 /**

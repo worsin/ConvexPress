@@ -26,8 +26,30 @@ export const upsertConnectionMetadataArgs = {
 
 export const saveProviderSecretArgs = {
   provider: shippingProviderArg,
-  credentials: v.any(),
+  /** Credential fields by name (apiKey, clientId, ...); stored encrypted, read back as strings. */
+  credentials: v.record(v.string(), v.string()),
 };
+
+/** Zone-method `serviceFilters`: carrier service codes to allow or deny (read by rates/pipeline.ts). */
+export const zoneMethodServiceFiltersValidator = v.object({
+  allow: v.optional(v.array(v.string())),
+  deny: v.optional(v.array(v.string())),
+});
+
+/**
+ * Zone-method `pricingRules`. The rate pipeline reads the markup and clamp
+ * fields; flatRateAmount and freeShippingMinimum are what the admin Shipping
+ * Rules page writes and displays.
+ */
+export const zoneMethodPricingRulesValidator = v.object({
+  markupPct: v.optional(v.number()),
+  markupFlatCents: v.optional(v.number()),
+  minCostCents: v.optional(v.number()),
+  maxCostCents: v.optional(v.number()),
+  roundToCents: v.optional(v.number()),
+  flatRateAmount: v.optional(v.number()),
+  freeShippingMinimum: v.optional(v.number()),
+});
 
 export const createShipStationLabelForOrderArgs = {
   orderId: v.id("commerce_orders"),

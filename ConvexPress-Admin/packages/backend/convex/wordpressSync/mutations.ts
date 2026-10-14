@@ -15,6 +15,7 @@ import {
   siteStatusValidator,
   createInitialProgress,
   normalizeImportConfig,
+  importConfigInputValidator,
   normalizeSiteUrl,
   validateSiteUrl,
 } from "./validators";
@@ -427,7 +428,7 @@ export const updateConnectionTest = mutation({
 export const createJob = mutation({
   args: {
     siteId: v.id("wordpressSites"),
-    importConfig: v.optional(v.any()),
+    importConfig: v.optional(importConfigInputValidator),
   },
   returns: v.id("wordpressSyncJobs"),
   handler: async (ctx, { siteId, importConfig }) => {

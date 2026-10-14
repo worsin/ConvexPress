@@ -126,7 +126,7 @@ function ShopAssistantSettingsPage() {
     if (!form) return;
     setSaving(true);
     try {
-      await updateSettings({ section: "commerce.assistant", values: form as unknown as Record<string, unknown> });
+      await updateSettings({ section: "commerce.assistant", values: form });
       toast.success("Shop assistant settings saved.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the settings.");

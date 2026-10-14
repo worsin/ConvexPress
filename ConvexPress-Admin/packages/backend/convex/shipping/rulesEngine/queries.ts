@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 import { validateRuleAST } from "./validator";
+import { ruleAstValidator } from "./astValidator";
 
 import { shippingDocs } from "../../schema/shipping.docs.generated";
 export const list = query({
@@ -24,7 +25,7 @@ export const get = query({
 });
 
 export const validateAST = query({
-  args: { ruleAST: v.any() },
+  args: { ruleAST: ruleAstValidator },
   returns: v.array(v.object({ path: v.string(), message: v.string() })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.rules.read");

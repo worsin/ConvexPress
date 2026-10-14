@@ -56,7 +56,7 @@ test('destination allocates the complete nested closure, remaps pins and capture
 test('repeat promotion appends past a local draft and rollback preserves both imported and old pinned history', async () => {
   const f = await setup(), first = await f.apply();
   const child = first.bindings.find(b => b.key.endsWith(':child'))!;
-  await f.operator.mutation(save, { id: child.id, expectedGeneration: 1, title: 'Production-only draft', blocks: text });
+  await f.operator.mutation(save, { id: child.id, expectedGeneration: 1, title: 'Production-only draft', blocksJson: JSON.stringify(text) });
   const before = await f.rows(), second = await f.apply();
   const secondChild = second.bindings.find(b => b.key === child.key)!;
   expect(secondChild.id).toBe(child.id); expect(secondChild.revisions.map(v => v.target)).toEqual([4, 5]);
@@ -75,7 +75,7 @@ test('repeat promotion appends past a local draft and rollback preserves both im
 test('changed drafts, mappings, capabilities and policy invalidate review without writes', async () => {
   const f = await setup(); await f.apply();
   const plan = await f.review(), target = plan.sources[0].targetId!;
-  await f.operator.mutation(save, { id: target, expectedGeneration: 1, title: 'Changed after review', blocks: text });
+  await f.operator.mutation(save, { id: target, expectedGeneration: 1, title: 'Changed after review', blocksJson: JSON.stringify(text) });
   const before = await f.rows(); await expect(f.apply(plan)).rejects.toThrow('changed after review'); expect(await f.rows()).toEqual(before);
   const fresh = await f.review();
   await f.t.run(ctx => ctx.db.insert('settings', { section: 'blocks', values: { disabledBlockNames: ['core/paragraph'] }, updatedAt: 1, updatedBy: f.ids.user }));
@@ -99,7 +99,7 @@ test('a late resolution failure rolls back all allocated heads', async () => {
 
 test('source mappings never adopt same-title sources or cross website and author boundaries', async () => {
   const f = await setup();
-  const unrelated = await f.operator.mutation(create, { title: 'Shared parent', blocks: text });
+  const unrelated = await f.operator.mutation(create, { title: 'Shared parent', blocksJson: JSON.stringify(text) });
   const applied = await f.apply(); expect(applied.bindings.every(b => b.id !== unrelated.id)).toBe(true);
   const id = applied.backups[0].targetId;
   await f.t.run(ctx => ctx.db.patch('syncedBlocks', id, { instanceKey: 'foreign' }));
@@ -113,7 +113,7 @@ test('source mappings never adopt same-title sources or cross website and author
 test('rollback refuses post-apply edits and preserves all rows', async () => {
   const f = await setup(); await f.apply(); const second = await f.apply(), target = second.backups[0].targetId;
   const source = (await f.rows()).sources.find(s => s._id === target)!;
-  await f.operator.mutation(save, { id: target, expectedGeneration: source.generation, title: 'Keep this newer draft', blocks: text });
+  await f.operator.mutation(save, { id: target, expectedGeneration: source.generation, title: 'Keep this newer draft', blocksJson: JSON.stringify(text) });
   const before = await f.rows();
   await expect(f.operator.run(ctx => restoreSyncedTargets(ctx, second.backups))).rejects.toThrow('changed after promotion');
   expect(await f.rows()).toEqual(before);
@@ -167,7 +167,7 @@ test('promoted editing locks survive import, require explicit unlock, and roll b
  f.input.sources.find(s=>s.key.endsWith(':child'))!.isLocked=true;
  const second=await f.apply(),child=second.bindings.find(b=>b.key.endsWith(':child'))!;
  expect((await f.rows()).sources.find(s=>s._id===child.id)!.isLocked).toBe(true);
- await expect(f.operator.mutation(save,{id:child.id,expectedGeneration:2,title:'Must remain locked',blocks:text})).rejects.toThrow('locked');
+ await expect(f.operator.mutation(save,{id:child.id,expectedGeneration:2,title:'Must remain locked',blocksJson: JSON.stringify(text)})).rejects.toThrow('locked');
  await expect(f.review()).rejects.toThrow('SYNCED_LOCKED');
  await f.operator.run(ctx=>restoreSyncedTargets(ctx,second.backups));
  expect((await f.rows()).sources.find(s=>s._id===child.id)!.isLocked===true).toBe(false);

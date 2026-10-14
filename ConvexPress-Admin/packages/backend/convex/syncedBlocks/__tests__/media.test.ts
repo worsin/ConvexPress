@@ -17,15 +17,15 @@ async function setup() {
 }
 test("source create, save and restore refuse missing or unavailable declared media without advancing history", async () => {
   const f = await setup();
-  await expect(f.operator.mutation(create, { title: "Bad image", blocks: image("not-a-media-id") })).rejects.toThrow();
+  await expect(f.operator.mutation(create, { title: "Bad image", blocksJson: JSON.stringify(image("not-a-media-id")) })).rejects.toThrow();
   expect(await f.t.run(ctx => ctx.db.query("syncedBlocks").take(10))).toEqual([]);
-  const source = await f.operator.mutation(create, { title: "Studio", blocks: image(f.media) });
+  const source = await f.operator.mutation(create, { title: "Studio", blocksJson: JSON.stringify(image(f.media)) });
   await f.t.run(ctx => ctx.db.patch("media", f.media, { status: "trashed" }));
-  await expect(f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "Studio", blocks: image(f.media) })).rejects.toThrow("unavailable");
+  await expect(f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "Studio", blocksJson: JSON.stringify(image(f.media)) })).rejects.toThrow("unavailable");
   await expect(f.operator.mutation(restore, { id: source.id, expectedGeneration: 1, revision: 1, expectedDigest: source.digest })).rejects.toThrow("unavailable");
-  await expect(f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "Changed", blocks: image(f.media) })).rejects.toThrow("unavailable");
+  await expect(f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "Changed", blocksJson: JSON.stringify(image(f.media)) })).rejects.toThrow("unavailable");
   expect((await f.operator.query(get, { id: source.id })).generation).toBe(1);
-  await f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "No photograph", blocks: [] });
+  await f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "No photograph", blocksJson: JSON.stringify([]) });
   await expect(f.operator.mutation(restore, { id: source.id, expectedGeneration: 2, revision: 1, expectedDigest: source.digest })).rejects.toThrow("unavailable");
   expect((await f.operator.query(get, { id: source.id })).generation).toBe(2);
   expect(await f.t.run(ctx => ctx.db.query("syncedBlockRevisions").take(10))).toHaveLength(2);
@@ -33,9 +33,9 @@ test("source create, save and restore refuse missing or unavailable declared med
 
 test("published and withdrawn immutable revisions keep media protected after the newest draft removes it", async () => {
   const f = await setup();
-  const source = await f.operator.mutation(create, { title: "Studio", blocks: image(f.media) });
+  const source = await f.operator.mutation(create, { title: "Studio", blocksJson: JSON.stringify(image(f.media)) });
   await f.release(source.id, 1, 1);
-  await f.operator.mutation(save, { id: source.id, expectedGeneration: 2, title: "Without image", blocks: [] });
+  await f.operator.mutation(save, { id: source.id, expectedGeneration: 2, title: "Without image", blocksJson: JSON.stringify([]) });
   await f.operator.mutation(withdraw, { id: source.id, expectedGeneration: 3 });
   const references = await f.t.run(ctx => findMediaReferences(ctx, f.media));
   expect(references).toContainEqual(expect.objectContaining({ table: "syncedBlockRevisions", opaque: true, mediaId: f.media }));
@@ -47,8 +47,8 @@ test("published and withdrawn immutable revisions keep media protected after the
 
 test("shared publication checks media in the complete nested graph without publishing a broken source", async () => {
   const f = await setup();
-  const inner = await f.operator.mutation(create, { title: "Image", blocks: image(f.media) });await f.release(inner.id, 1, 1);
-  const outer = await f.operator.mutation(create, { title: "Outer", blocks: reference(inner.id) });
+  const inner = await f.operator.mutation(create, { title: "Image", blocksJson: JSON.stringify(image(f.media)) });await f.release(inner.id, 1, 1);
+  const outer = await f.operator.mutation(create, { title: "Outer", blocksJson: JSON.stringify(reference(inner.id)) });
   await f.t.run(ctx => ctx.db.patch("media", f.media, { status: "trashed" }));
   await expect(f.release(outer.id, 1, 1)).rejects.toThrow("unavailable");
   expect((await f.operator.query(get, { id: outer.id })).publishedRevision).toBeNull();
@@ -56,7 +56,7 @@ test("shared publication checks media in the complete nested graph without publi
 
 test("publication rechecks media availability after a successful review", async () => {
   const f = await setup();
-  const source = await f.operator.mutation(create, { title: "Studio", blocks: image(f.media) });
+  const source = await f.operator.mutation(create, { title: "Studio", blocksJson: JSON.stringify(image(f.media)) });
   const selection = { id: source.id, expectedGeneration: 1, revision: 1 };
   const checked = await f.operator.query(review, selection);
   // Simulate an asset becoming unavailable between review and publication.
@@ -71,14 +71,14 @@ test("normal backfill recovers pre-upgrade reusable revisions and new writes mai
   const previous = process.env[MEDIA_REVERSE_EPOCH_VARIABLE];
   process.env[MEDIA_REVERSE_EPOCH_VARIABLE] = "synced_media_fixture";
   try {
-    const f = await setup(), source = await f.operator.mutation(create, { title: "Studio", blocks: image(f.media) });
+    const f = await setup(), source = await f.operator.mutation(create, { title: "Studio", blocksJson: JSON.stringify(image(f.media)) });
     // Remove only infrastructure evidence to simulate a pre-upgrade revision.
     await f.t.run(async ctx => { for (const row of await ctx.db.query("media_reference_edges").take(20)) await ctx.db.delete("media_reference_edges", row._id); });
     let progress = await f.operator.mutation(ref<"mutation">("media/reverseBackfill:begin"), {});
     for (let step = 0; progress.status === "building" && step < 200; step++) progress = await f.operator.mutation(ref<"mutation">("media/reverseBackfill:step"), { generation: progress.generation, expectedSequence: progress.sequence });
     expect(progress.status).toBe("ready");expect(progress.completedOwners).toBe(referenceTables.length);
     expect((await f.t.run(ctx => findMediaReferences(ctx, f.media))).some(value => value.table === "syncedBlockRevisions")).toBe(true);
-    await f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "New title", blocks: image(f.media) });
+    await f.operator.mutation(save, { id: source.id, expectedGeneration: 1, title: "New title", blocksJson: JSON.stringify(image(f.media)) });
     const edges = await f.t.run(ctx => ctx.db.query("media_reference_edges").take(20));
     expect(edges.filter(edge => edge.ownerTable === "syncedBlockRevisions")).toHaveLength(2);
     await expect(f.operator.mutation(remove, { mediaId: f.media, force: true })).rejects.toThrow("cannot be safely cleared");

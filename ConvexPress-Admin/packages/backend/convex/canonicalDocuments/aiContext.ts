@@ -21,6 +21,7 @@ import { packTreatmentSupport, blockPresentationForPack } from "./foundation/gen
 import { aiCatalogRevision } from "./foundation/generated/ai_catalog";
 import { templatePatterns } from "./foundation/generated/patterns";
 import { canonicalStoredTreeValidator } from "./foundation/generated/storage";
+import { parseBlocksJson } from "./blocksJson";
 import type { CanonicalWriteReceipt, CanonicalDocumentRead } from "./foundation/documentContracts";
 
 const scopeValidator = v.object({ websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string() });
@@ -29,8 +30,22 @@ type BaseArgs = { resources?: AiResourceSelection; postId: Id<"posts">; expected
 type ContextReceipt = { contextJson: string; fingerprint: string };
 type Proposal = { title: string; blocks: RuntimeCanonicalTree; fingerprint: string };
 type ResultArgs = BaseArgs & { expectedFingerprint: string; resultJson: string; proposalId: string };
-type ApplyArgs = BaseArgs & { expectedFingerprint: string; title: string; blocks: unknown };
+type ApplyArgs = BaseArgs & { expectedFingerprint: string; title: string; blocksJson: string };
 interface ProposalNode { id: string; children?: ProposalNode[]; [field: string]: unknown }
+/** The reviewed proposal's nodes: each keeps the id it was previewed with. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function proposalNodes(value: unknown): ProposalNode[] {
+  if (!Array.isArray(value)) return fail("AI_INVALID_RESULT", "The block proposal must be a list of blocks.");
+  const entries: unknown[] = value;
+  return entries.map((entry): ProposalNode => {
+    if (!isRecord(entry)) return fail("AI_INVALID_RESULT", "Every proposed block must be an object.");
+    const { id, children, ...node } = entry;
+    if (typeof id !== "string") return fail("AI_INVALID_RESULT", "Every proposed block needs its proposal id.");
+    return { ...node, id, ...(children === undefined ? {} : { children: proposalNodes(children) }) };
+  });
+}
 function fail(code: string, message: string): never { throw new ConvexError({ code, message }); }
 const MAX_CONTEXT_BYTES = 1024 * 1024;
 
@@ -127,7 +142,7 @@ export const validateResult: RegisteredQuery<"internal", ResultArgs, Promise<Pro
 /** A single explicit acceptance save, with all context and document checks in
  * the same transaction as normal authoring validation and revision history. */
 export const apply: RegisteredMutation<"public", ApplyArgs, Promise<CanonicalWriteReceipt>> = mutation({
-  args: { ...baseArgs, expectedFingerprint: v.string(), title: v.string(), blocks: canonicalStoredTreeValidator },
+  args: { ...baseArgs, expectedFingerprint: v.string(), title: v.string(), blocksJson: v.string() },
   returns: receiptValidator,
   handler: (ctx, args: ApplyArgs) => canonicalBoundary(async () => {
     const validated = await validateProposal(ctx, args);
@@ -143,7 +158,7 @@ async function validateProposal(ctx: QueryCtx, args: ApplyArgs) {
       ids.push(id);
       return { ...node, ...(children ? { children: stripIds(children) } : {}) };
     });
-    const input = { title: args.title, blocks: stripIds(args.blocks as ProposalNode[]) };
+    const input = { title: args.title, blocks: stripIds(proposalNodes(parseBlocksJson(args.blocksJson))) };
     let index = 0;
     const validated = catalog.validate(input, () => ids[index++]);
     return validated;
@@ -152,7 +167,7 @@ async function validateProposal(ctx: QueryCtx, args: ApplyArgs) {
 /** Fresh authorization and resource reads on every preview renewal. The
  * proposed revision/digest identifies this unsaved rendering, not a saved page. */
 export const preview: RegisteredQuery<"public", ApplyArgs & { request?: Record<string, string> }, Promise<CanonicalDocumentRead>> = query({
-  args: { ...baseArgs, expectedFingerprint: v.string(), title: v.string(), blocks: canonicalStoredTreeValidator, request: v.optional(v.record(v.string(), v.string())) },
+  args: { ...baseArgs, expectedFingerprint: v.string(), title: v.string(), blocksJson: v.string(), request: v.optional(v.record(v.string(), v.string())) },
   returns: documentReadValidator,
   handler: (ctx, args: ApplyArgs & { request?: Record<string, string> }) => canonicalBoundary(async () => {
     const validated = await validateProposal(ctx, args);

@@ -3,10 +3,12 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
 import { commerceDocs } from "../schema/commerce.docs.generated";
+import { commerceAddressValidator } from "../schema/commerce";
 function totalItems(items: Doc<"commerce_draft_order_items">[]) {
   return items.reduce((sum, item) => sum + Number(item.lineTotalAmount ?? 0), 0);
 }
@@ -75,13 +77,14 @@ export const create = mutation({
     regionId: v.optional(v.id("commerce_regions")),
     salesChannelId: v.optional(v.id("commerce_sales_channels")),
     customerGroupId: v.optional(v.id("commerce_customer_groups")),
-    billingAddress: v.optional(v.any()),
-    shippingAddress: v.optional(v.any()),
+    billingAddress: v.optional(commerceAddressValidator),
+    shippingAddress: v.optional(commerceAddressValidator),
     discountAmount: v.optional(v.number()),
     shippingAmount: v.optional(v.number()),
     taxAmount: v.optional(v.number()),
     notes: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_draft_orders"),
   handler: async (ctx, args) => {
@@ -104,7 +107,7 @@ export const create = mutation({
       taxAmount: args.taxAmount ?? 0,
       totalAmount: (args.shippingAmount ?? 0) + (args.taxAmount ?? 0) - (args.discountAmount ?? 0),
       notes: args.notes,
-      metadata: args.metadata,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       createdBy: actor._id,
       createdAt: now,
       updatedAt: now,
@@ -121,7 +124,8 @@ export const upsertItem = mutation({
     title: v.string(),
     quantity: v.number(),
     unitPriceAmount: v.number(),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_draft_order_items"),
   handler: async (ctx, args) => {
@@ -131,6 +135,7 @@ export const upsertItem = mutation({
     if (draft.status !== "open") {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Only open draft orders can be edited." });
     }
+    const metadata = parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson");
     const now = Date.now();
     const lineTotalAmount = args.quantity * args.unitPriceAmount;
     let id = args.itemId;
@@ -142,7 +147,7 @@ export const upsertItem = mutation({
         quantity: args.quantity,
         unitPriceAmount: args.unitPriceAmount,
         lineTotalAmount,
-        metadata: args.metadata,
+        metadata,
         updatedAt: now,
       });
     } else {
@@ -154,7 +159,7 @@ export const upsertItem = mutation({
         quantity: args.quantity,
         unitPriceAmount: args.unitPriceAmount,
         lineTotalAmount,
-        metadata: args.metadata,
+        metadata,
         createdAt: now,
         updatedAt: now,
       });

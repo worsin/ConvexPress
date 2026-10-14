@@ -85,7 +85,7 @@ function ConnectedEditor({ id, documentKey, onDirtyChange }: { id: Id<"syncedBlo
       save={async request => {
         guard();
         const value = checkedDraft(request.value), blocks = validateCanonicalTree(value.blocks);
-        const result = await client.mutation(api.syncedBlocks.content.save, { id, expectedGeneration: request.revision, title: value.title, blocks });
+        const result = await client.mutation(api.syncedBlocks.content.save, { id, expectedGeneration: request.revision, title: value.title, blocksJson: JSON.stringify(blocks) });
         guard();
         const title = value.title.trim();
         if (result.id !== request.key.documentId || result.generation !== request.revision + (result.changed ? 1 : 0) || result.digest !== syncedContentDigest(title, blocks)) throw new Error("The saved source receipt could not be verified.");

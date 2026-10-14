@@ -31,6 +31,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import {
 	commerceSubscriptionSourceChannelValidator,
@@ -846,7 +847,8 @@ export const create = mutation({
 		paymentTransactionId: v.optional(v.string()),
 		defaultPaymentMethodId: v.optional(v.string()),
 		manualBilling: v.optional(v.boolean()),
-		sourceMetadata: v.optional(v.any()),
+		/** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+		sourceMetadataJson: v.optional(v.string()),
 		idempotencyKey: v.optional(v.string()),
 	},
 	returns: createSubscriptionResponseValidator,
@@ -854,6 +856,7 @@ export const create = mutation({
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const actor = await requireCan(ctx, "manage_options");
+		const sourceMetadata = parseOptionalJsonObjectArgument(args.sourceMetadataJson, "sourceMetadataJson");
 
 		const correlationId = createCorrelationId();
 		const idempotency = await claimIdempotencyKey(
@@ -969,7 +972,7 @@ export const create = mutation({
 				lastInvoiceId: undefined,
 				manualBilling,
 				pricingSnapshot,
-				sourceMetadata: args.sourceMetadata,
+				sourceMetadata,
 				createdAt: now,
 				updatedAt: now,
 			});
@@ -1377,7 +1380,8 @@ export const grantEntitlement = mutation({
 	args: {
 		subscriptionId: v.id("commerce_subscriptions"),
 		entitlementCode: v.string(),
-		metadata: v.optional(v.any()),
+		/** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+		metadataJson: v.optional(v.string()),
 	},
 	returns: v.id("commerce_subscription_entitlements"),
 	handler: async (ctx, args) => {
@@ -1407,7 +1411,7 @@ export const grantEntitlement = mutation({
 			startsAt: now,
 			endsAt: undefined,
 			graceEndsAt: undefined,
-			metadata: args.metadata,
+			metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
 			createdAt: now,
 			updatedAt: now,
 		});

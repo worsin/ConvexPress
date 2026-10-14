@@ -37,6 +37,7 @@ import {
   membershipRestrictionModeValidator,
 } from "../schema/membership";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 import { membershipResourceTypeValidator } from "./validators";
 import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
@@ -100,7 +101,8 @@ export const createPlan = mutation({
           label: v.string(),
           description: v.optional(v.string()),
           displayAsFeature: v.optional(v.boolean()),
-          metadata: v.optional(v.any()),
+          /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+          metadataJson: v.optional(v.string()),
         }),
       ),
     ),
@@ -151,7 +153,7 @@ export const createPlan = mutation({
           label: benefit.label,
           description: benefit.description,
           displayAsFeature: benefit.displayAsFeature,
-          metadata: benefit.metadata,
+          metadata: parseOptionalJsonObjectArgument(benefit.metadataJson, "benefits[].metadataJson"),
           createdAt: now,
           updatedAt: now,
         });
@@ -192,7 +194,8 @@ export const updatePlan = mutation({
           label: v.string(),
           description: v.optional(v.string()),
           displayAsFeature: v.optional(v.boolean()),
-          metadata: v.optional(v.any()),
+          /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+          metadataJson: v.optional(v.string()),
         }),
       ),
     ),
@@ -271,7 +274,7 @@ export const updatePlan = mutation({
           label: benefit.label,
           description: benefit.description,
           displayAsFeature: benefit.displayAsFeature,
-          metadata: benefit.metadata,
+          metadata: parseOptionalJsonObjectArgument(benefit.metadataJson, "benefits[].metadataJson"),
           createdAt: now,
           updatedAt: now,
         });
@@ -387,7 +390,12 @@ export const grantMembership = mutation({
     sourceRef: v.optional(v.string()),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
-    metadata: v.optional(v.any()),
+    /**
+     * Admin-supplied grant metadata. Only notes are accepted: the rest of a
+     * grant's metadata (revokeReason, history, lastExtendReason, ...) is the
+     * audit trail written by revokeMembership and extendGrant, never by a caller.
+     */
+    metadata: v.optional(v.object({ adminNotes: v.optional(v.string()) })),
   },
   returns: v.id("membership_grants"),
   handler: async (ctx, args) => {

@@ -12,7 +12,7 @@ const policy = { enabledPlugins: [], capabilities: ["tree.children", "reference.
 async function setup() {
   const f = await fixture();
   const blocks = ["public", "conditional", "secret"].map(id => ({ id, name: "core/paragraph", version: 2, attrs: { body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: id === "secret" ? "PRIVATE_SOURCE_TEXT" : id }] }] } } }));
-  const { id } = await f.operator.mutation(create, { title: "Shared composition", blocks });
+  const { id } = await f.operator.mutation(create, { title: "Shared composition", blocksJson: JSON.stringify(blocks) });
   await f.release(id, 1, 1);
   const placements = ["first", "second"].map(key => ({ ...reference(id)[0]!, id: key }));
   const plan = await f.t.run(async ctx => ({ roots: (await resolvePublishedOccurrences(ctx, placements, new RequestReadLedger())).roots }));
@@ -89,7 +89,7 @@ test("reusable placement membership expiry is carried into the shared public aut
 test("audience rules filter reusable bodies and placement ancestors before public serialization", async () => {
   const f = await fixture();
   const blocks = ["everyone", "signedIn", "signedOut"].map(visibility => ({ id: visibility, name: "core/paragraph", version: 2, visibility, attrs: { body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: visibility + "_SOURCE_COPY" }] }] } } }));
-  const { id } = await f.operator.mutation(create, { title: "Audience-aware source", blocks });
+  const { id } = await f.operator.mutation(create, { title: "Audience-aware source", blocksJson: JSON.stringify(blocks) });
   await f.release(id, 1, 1);
   const placements = [{ ...reference(id)[0]!, id: "shared" }, { ...reference(id)[0]!, id: "guest-only", visibility: "signedOut" }];
   const read = (client = f.t) => client.run(ctx => projectPublicBlocks(ctx, placements, scope, policy, new RequestReadLedger()));

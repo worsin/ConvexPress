@@ -30,6 +30,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
 import {
   commerceSubscriptionOfferStatusValidator,
@@ -118,7 +119,8 @@ export const createOffer = mutation({
     excludedPlanFeatureIds: v.optional(
       v.array(v.id("membership_plan_benefits")),
     ),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_subscription_offers"),
   handler: async (ctx, args) => {
@@ -175,7 +177,7 @@ export const createOffer = mutation({
       features: args.features,
       pricingCardVisible: args.pricingCardVisible,
       excludedPlanFeatureIds: args.excludedPlanFeatureIds,
-      metadata: args.metadata,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       createdAt: now,
       updatedAt: now,
     });
@@ -215,7 +217,8 @@ export const updateOffer = mutation({
     excludedPlanFeatureIds: v.optional(
       v.array(v.id("membership_plan_benefits")),
     ),
-    metadata: v.optional(v.any()),
+    /** Replaces the stored metadata: a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
     // Immutable-if-hot:
     templateId: v.optional(v.id("commerce_subscription_templates")),
     currencyCode: v.optional(v.string()),
@@ -333,7 +336,6 @@ export const updateOffer = mutation({
       "features",
       "pricingCardVisible",
       "excludedPlanFeatureIds",
-      "metadata",
       "currencyCode",
       "recurringAmount",
       "setupFeeAmount",
@@ -344,6 +346,9 @@ export const updateOffer = mutation({
       if (args[field] !== undefined) {
         patch[field] = args[field];
       }
+    }
+    if (args.metadataJson !== undefined) {
+      patch.metadata = parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson");
     }
 
     await ctx.db.patch("commerce_subscription_offers", args.offerId, patch);

@@ -23,6 +23,13 @@ import { calculateTableRate } from "./tableRate";
 import type { RuleContext } from "../rulesEngine/types";
 import type { NormalizedShippingQuote } from "../rates/types";
 import { withoutRawQuote, type PipelineQuote } from "../rates/quoteOutput";
+import { anyMethodConfigValidator, requireMethodConfig, type MethodConfig } from "./configValidators";
+import type { MethodType } from "./tables";
+
+/** A previewed config is not stored, so it has no id; quotes carry this one. */
+const PREVIEW_METHOD_ID = "preview";
+
+type PreviewConfig<T extends MethodType> = MethodConfig<T> & { _id: string; enabled: boolean };
 
 export const previewMethod = query({
   args: {
@@ -37,7 +44,7 @@ export const previewMethod = query({
       v.literal("local_delivery"),
       v.literal("table_rate"),
     ),
-    config: v.any(),
+    config: anyMethodConfigValidator,
     sample: v.object({
       itemCount: v.number(),
       totalWeightOz: v.number(),
@@ -117,31 +124,38 @@ export const previewMethod = query({
     };
     const addressKey = "preview";
     const cartKey = "preview";
+    // The config arg accepts any method type's shape; check it against the requested one.
+    const previewConfig = <T extends MethodType>(type: T): PreviewConfig<T> => {
+      const checked = requireMethodConfig(type, config);
+      return { ...checked, _id: PREVIEW_METHOD_ID, enabled: checked.enabled ?? true };
+    };
 
     const run = (): NormalizedShippingQuote[] => {
       switch (methodType) {
         case "flat_rate":
-          return calculateFlatRate(config, {
+          return calculateFlatRate(previewConfig("flat_rate"), {
               currencyCode,
               itemCount: sample.itemCount,
               classBreakdown,
               addressKey,
               cartKey,
             });
-        case "weight_based":
-          return calculateWeightBased(config, {
+        case "weight_based": {
+          const weightBased = previewConfig("weight_based");
+          return calculateWeightBased(weightBased, {
               currencyCode,
               totalWeight: convertWeight(
                 sample.totalWeightOz,
                 "oz",
-                config.weightUnit ?? "oz",
+                weightBased.weightUnit,
               ),
               classes: sample.shippingClasses ?? [],
               addressKey,
               cartKey,
             });
+        }
         case "dimensional":
-          return calculateDimensional(config, {
+          return calculateDimensional(previewConfig("dimensional"), {
               currencyCode,
               packages: [{ actualWeight: sample.totalWeightOz }],
               classes: sample.shippingClasses ?? [],
@@ -149,7 +163,7 @@ export const previewMethod = query({
               cartKey,
             });
         case "price_based":
-          return calculatePriceBased(config, {
+          return calculatePriceBased(previewConfig("price_based"), {
               currencyCode,
               subtotalBeforeDiscount: sample.subtotalAmount,
               subtotalAfterDiscount: sample.subtotalAmount,
@@ -157,7 +171,7 @@ export const previewMethod = query({
               cartKey,
             });
         case "quantity_based":
-          return calculateQuantityBased(config, {
+          return calculateQuantityBased(previewConfig("quantity_based"), {
               currencyCode,
               totalItems: sample.itemCount,
               totalLineItems: sample.itemCount,
@@ -166,7 +180,7 @@ export const previewMethod = query({
               cartKey,
             });
         case "free":
-          return calculateFree(config, {
+          return calculateFree(previewConfig("free"), {
               currencyCode,
               subtotalAmount: sample.subtotalAmount,
               appliedDiscountCode: sample.appliedDiscountCode,
@@ -176,15 +190,17 @@ export const previewMethod = query({
               cartKey,
               ruleContext,
             });
-        case "local_pickup":
-          return calculateLocalPickup(config, {
+        case "local_pickup": {
+          const localPickup = previewConfig("local_pickup");
+          return calculateLocalPickup(localPickup, {
               currencyCode,
-              availablePickupLocationIds: config.allowedPickupLocationIds ?? [],
+              availablePickupLocationIds: localPickup.allowedPickupLocationIds,
               addressKey,
               cartKey,
             });
+        }
         case "local_delivery":
-          return calculateLocalDelivery(config, {
+          return calculateLocalDelivery(previewConfig("local_delivery"), {
               currencyCode,
               subtotalAmount: sample.subtotalAmount,
               destinationPostalCode: sample.destinationPostalCode,
@@ -192,7 +208,7 @@ export const previewMethod = query({
               cartKey,
             });
         case "table_rate":
-          return calculateTableRate(config, {
+          return calculateTableRate(previewConfig("table_rate"), {
               currencyCode,
               totalWeightOz: sample.totalWeightOz,
               itemCount: sample.itemCount,

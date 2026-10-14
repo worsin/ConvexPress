@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 
 import { commerceDocs } from "../schema/commerce.docs.generated";
 export const list = query({
@@ -17,14 +18,17 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_customer_groups"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const now = Date.now();
     return await ctx.db.insert("commerce_customer_groups", {
-      ...args,
+      name: args.name,
+      description: args.description,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       createdAt: now,
       updatedAt: now,
     });
@@ -37,7 +41,8 @@ export const update = mutation({
     patch: v.object({
       name: v.optional(v.string()),
       description: v.optional(v.string()),
-      metadata: v.optional(v.any()),
+      /** Replaces the stored metadata: a JSON object, JSON-encoded. */
+      metadataJson: v.optional(v.string()),
     }),
   },
   returns: v.id("commerce_customer_groups"),
@@ -45,7 +50,12 @@ export const update = mutation({
     await requireCan(ctx, "manage_options");
     const group = await ctx.db.get(args.groupId);
     if (!group) throw new ConvexError({ code: "NOT_FOUND", message: "Customer group not found." });
-    await ctx.db.patch("commerce_customer_groups", args.groupId, { ...args.patch, updatedAt: Date.now() });
+    const { metadataJson, ...patch } = args.patch;
+    await ctx.db.patch("commerce_customer_groups", args.groupId, {
+      ...patch,
+      ...(metadataJson === undefined ? {} : { metadata: parseOptionalJsonObjectArgument(metadataJson, "patch.metadataJson") }),
+      updatedAt: Date.now(),
+    });
     return args.groupId;
   },
 });

@@ -249,12 +249,22 @@ export const createMediaUploadUrl: RegisteredMutation<"public", {}, string> =
 			return ctx.storage.generateUploadUrl();
 		},
 	});
+function parseManifestJson(text: string): unknown {
+	try {
+		return JSON.parse(text);
+	} catch {
+		return fail("INVALID_PROMOTION", "manifestJson is not valid JSON.");
+	}
+}
 export const dryRun: RegisteredMutation<
 	"public",
-	{ manifest: unknown } & Bindings,
+	{ manifestJson: string } & Bindings,
 	Review
 > = mutation({
-	args: { manifest: v.any(), ...bindingArgs },
+	// The manifest is the JSON text exportManifest's `manifest` serializes to.
+	// Its authored record data is heterogeneous, so it is parsed here and
+	// checked by the strict shared Zod schema in validateManifest.
+	args: { manifestJson: v.string(), ...bindingArgs },
 	returns: v.object({
 		ready: v.boolean(),
 		digest: v.string(),
@@ -282,7 +292,7 @@ export const dryRun: RegisteredMutation<
 	}),
 	handler: async (ctx, args) => {
 		const operator = await requireCan(ctx, "manage_options");
-		const manifest = validateManifest(args.manifest);
+		const manifest = validateManifest(parseManifestJson(args.manifestJson));
 		const bindings = {
 			mediaBindings: args.mediaBindings,
 			dependencyBindings: args.dependencyBindings,

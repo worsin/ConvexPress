@@ -14,6 +14,7 @@ import {
   updateLocationArgs,
 } from "./validators";
 import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
+import { parseOptionalJsonObjectArgument } from "../../helpers/jsonArgs";
 
 
 async function ensureUniqueCode(ctx: Pick<MutationCtx, "db">, code: string, ignoreId?: Id<"commerce_ship_from_locations">) {
@@ -68,7 +69,7 @@ export const create = mutation({
       priority: args.priority ?? 100,
       fulfillmentProvider: args.fulfillmentProvider ?? "manual",
       externalProviderLocationId: args.externalProviderLocationId,
-      fulfillmentProviderConfig: args.fulfillmentProviderConfig,
+      fulfillmentProviderConfig: parseOptionalJsonObjectArgument(args.fulfillmentProviderConfigJson, "fulfillmentProviderConfigJson"),
       createdAt: now,
       updatedAt: now,
       createdByUserId: user?._id,
@@ -99,8 +100,12 @@ export const update = mutation({
       updatedAt: Date.now(),
       updatedByUserId: user?._id,
     };
-    for (const [key, value] of Object.entries(args.patch)) {
+    const { fulfillmentProviderConfigJson, ...fields } = args.patch;
+    for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
+    }
+    if (fulfillmentProviderConfigJson !== undefined) {
+      patch.fulfillmentProviderConfig = parseOptionalJsonObjectArgument(fulfillmentProviderConfigJson, "patch.fulfillmentProviderConfigJson");
     }
     await ctx.db.patch("commerce_ship_from_locations", args.locationId, patch);
     await emitEvent(ctx, SHIPPING_EVENTS.LOCATION_UPDATED, "shipping", {

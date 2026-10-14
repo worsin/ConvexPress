@@ -6,6 +6,9 @@ import { collectMediaReferenceIds } from "../../media/referenceExtraction";
 
 const scope = { websiteKey: "draft-site", instanceKey: "draft-stage" };
 const ref = (name: string) => makeFunctionReference<any, any, any>(`canonicalDocuments/drafts:${name}`);
+/** Draft saves take the tree as JSON text (`draft.blocksJson`); fixtures keep trees until the call. */
+const wireDraft = <T extends { draft: { blocks: unknown } }>({ draft: { blocks, ...draft }, ...rest }: T) =>
+  ({ ...rest, draft: { ...draft, blocksJson: JSON.stringify(blocks) } });
 const modules = {
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/canonicalDocuments/drafts.ts": () => import("../drafts"),
@@ -35,9 +38,9 @@ test("private autosave preserves unfinished nested input without publication or 
   const f = await fixture(), before = await f.content();
   expect((await f.client.query(ref("get"), f.args)).draft).toBeNull();
   const request = { ...f.args, expectedGeneration: 0, baseRevision: 2, draft };
-  const saved = await f.client.mutation(ref("save"), request);
+  const saved = await f.client.mutation(ref("save"), wireDraft(request));
   expect(saved.generation).toBe(1); expect(saved.draft).toEqual(draft);
-  expect(await f.client.mutation(ref("save"), request)).toEqual(saved);
+  expect(await f.client.mutation(ref("save"), wireDraft(request))).toEqual(saved);
   expect(await f.client.query(ref("get"), f.args)).toEqual(saved);
   expect((await f.as(f.ids.other).query(ref("get"), f.args)).draft).toBeNull();
   expect(await f.content()).toEqual(before);
@@ -46,44 +49,44 @@ test("private autosave preserves unfinished nested input without publication or 
 test("draft generations fence stale saves, discards, lost acknowledgements and delayed first writes", async () => {
   const f = await fixture();
   const request = { ...f.args, expectedGeneration: 0, baseRevision: 2, draft };
-  const first = await f.client.mutation(ref("save"), request);
-  const second = await f.client.mutation(ref("save"), { ...request, expectedGeneration: first.generation, draft: { ...draft, title: "Newer window" } });
-  await expect(f.client.mutation(ref("save"), request)).rejects.toMatchObject({ data: { code: "DRAFT_CONFLICT" } });
+  const first = await f.client.mutation(ref("save"), wireDraft(request));
+  const second = await f.client.mutation(ref("save"), wireDraft({ ...request, expectedGeneration: first.generation, draft: { ...draft, title: "Newer window" } }));
+  await expect(f.client.mutation(ref("save"), wireDraft(request))).rejects.toMatchObject({ data: { code: "DRAFT_CONFLICT" } });
   await expect(f.client.mutation(ref("discard"), { ...f.args, expectedGeneration: first.generation })).rejects.toMatchObject({ data: { code: "DRAFT_CONFLICT" } });
   const cleared = await f.client.mutation(ref("discard"), { ...f.args, expectedGeneration: second.generation });
   expect(cleared.draft).toBeNull();expect(cleared.generation).toBe(3);
-  await expect(f.client.mutation(ref("save"), request)).rejects.toMatchObject({ data: { code: "DRAFT_CONFLICT" } });
+  await expect(f.client.mutation(ref("save"), wireDraft(request))).rejects.toMatchObject({ data: { code: "DRAFT_CONFLICT" } });
   expect(await f.client.mutation(ref("discard"), { ...f.args, expectedGeneration: second.generation })).toEqual(cleared);
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { blocksRevision: 3, title: "Another author saved" }));
-  await expect(f.client.mutation(ref("save"), { ...request, expectedGeneration: cleared.generation })).rejects.toMatchObject({ data: { code: "CONFLICT" } });
+  await expect(f.client.mutation(ref("save"), wireDraft({ ...request, expectedGeneration: cleared.generation }))).rejects.toMatchObject({ data: { code: "CONFLICT" } });
   expect((await f.client.query(ref("get"), f.args)).draft).toBeNull();
 });
 
 test("every draft operation requires current document authority and the exact site instance", async () => {
   const f = await fixture();
   const save = { ...f.args, expectedGeneration: 0, baseRevision: 2, draft };
-  await f.client.mutation(ref("save"), save);
+  await f.client.mutation(ref("save"), wireDraft(save));
   for (const client of [f.t, f.as(f.ids.denied)]) {
     await expect(client.query(ref("get"), f.args)).rejects.toThrow();
-    await expect(client.mutation(ref("save"), save)).rejects.toThrow();
+    await expect(client.mutation(ref("save"), wireDraft(save))).rejects.toThrow();
     await expect(client.mutation(ref("discard"), { ...f.args, expectedGeneration: 1 })).rejects.toThrow();
   }
   for (const expectedScope of [{ ...scope, websiteKey: "foreign" }, { ...scope, instanceKey: "live" }]) {
     await expect(f.client.query(ref("get"), { ...f.args, expectedScope })).rejects.toMatchObject({ data: { code: "WRONG_SITE_SCOPE" } });
-    await expect(f.client.mutation(ref("save"), { ...save, expectedScope })).rejects.toMatchObject({ data: { code: "WRONG_SITE_SCOPE" } });
+    await expect(f.client.mutation(ref("save"), wireDraft({ ...save, expectedScope }))).rejects.toMatchObject({ data: { code: "WRONG_SITE_SCOPE" } });
   }
   await f.t.run(ctx => ctx.db.patch("roles", f.ids.role, { capabilities: [] }));
   await expect(f.client.query(ref("get"), f.args)).rejects.toThrow();
-  await expect(f.client.mutation(ref("save"), save)).rejects.toThrow();
+  await expect(f.client.mutation(ref("save"), wireDraft(save))).rejects.toThrow();
   expect((await f.content()).post?.blocksRevision).toBe(2);
 });
 
 test("malformed trees and oversized drafts are refused without changing a retained draft", async () => {
   const f = await fixture();
   const args = { ...f.args, expectedGeneration: 0, baseRevision: 2, draft };
-  const first = await f.client.mutation(ref("save"), args);
+  const first = await f.client.mutation(ref("save"), wireDraft(args));
   for (const value of [{ ...draft, blocks: [draft.blocks[0], draft.blocks[0]] }, { ...draft, title: "x".repeat(1024 * 1024) }]) {
-    await expect(f.client.mutation(ref("save"), { ...args, expectedGeneration: first.generation, draft: value })).rejects.toThrow();
+    await expect(f.client.mutation(ref("save"), wireDraft({ ...args, expectedGeneration: first.generation, draft: value }))).rejects.toThrow();
     expect(await f.client.query(ref("get"), f.args)).toEqual(first);
   }
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { status: "trash" }));
@@ -95,10 +98,10 @@ test("private draft media uses existing attachment and reference guards, includi
   const mediaId = await f.t.run(ctx => ctx.db.insert("media", { title: "Draft image", fileName: "draft.png", slug: "draft-image", url: "https://example.invalid/draft.png", mimeType: "image/png", fileSize: 68, mediaType: "image", status: "active", uploadedBy: f.ids.user, createdAt: 1, updatedAt: 1 }));
   const value = { ...draft, blocks: [{ id: "image", name: "core/image", version: 2, attrs: { mediaId } }] };
   const args = { ...f.args, expectedGeneration: 0, baseRevision: 2, draft: value };
-  const saved = await f.client.mutation(ref("save"), args);
+  const saved = await f.client.mutation(ref("save"), wireDraft(args));
   expect(await f.t.run(async ctx => collectMediaReferenceIds(ctx, "canonicalDocumentDrafts", (await ctx.db.query("canonicalDocumentDrafts").first())!))).toEqual([mediaId]);
   await f.t.run(ctx => ctx.db.patch("media", mediaId, { status: "trashed" }));
-  await expect(f.client.mutation(ref("save"), { ...args, expectedGeneration: saved.generation, draft: { ...value, title: "Later input" } })).rejects.toMatchObject({ data: { code: "MEDIA_UNAVAILABLE" } });
+  await expect(f.client.mutation(ref("save"), wireDraft({ ...args, expectedGeneration: saved.generation, draft: { ...value, title: "Later input" } }))).rejects.toMatchObject({ data: { code: "MEDIA_UNAVAILABLE" } });
   expect(await f.client.query(ref("get"), f.args)).toEqual(saved);
   await f.client.mutation(ref("discard"), { ...f.args, expectedGeneration: saved.generation });
   expect(await f.t.run(async ctx => collectMediaReferenceIds(ctx, "canonicalDocumentDrafts", (await ctx.db.query("canonicalDocumentDrafts").first())!))).toEqual([]);
