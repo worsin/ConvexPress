@@ -8,7 +8,7 @@ import { AdminShellErrorBoundary } from "@/components/layout/AdminShellErrorBoun
 import { AdminGate } from "./components/auth/AdminGate";
 import type { AdminGateProps } from "./components/auth/AdminGate";
 import Loader from "./components/loader";
-import { useLocalAuth, setConvexSiteUrl } from "./hooks/useLocalAuth";
+import { useLocalAuth, configureLocalAuth } from "./hooks/useLocalAuth";
 import {
   isPendingAdminCredentialHandoff,
   isPendingLoginCredentialHandoff,
@@ -145,9 +145,9 @@ async function bootstrap() {
     return;
   }
 
-  // Set the site URL before any React rendering so the useLocalAuth hook
-  // can use it for HTTP auth endpoints (login, refresh, logout).
-  setConvexSiteUrl(config.convexSiteUrl);
+  // Configure auth before any React rendering so the useLocalAuth hook
+  // can use the HTTP auth endpoints (login, refresh, logout).
+  configureLocalAuth({ convexUrl: config.convexUrl, convexSiteUrl: config.convexSiteUrl });
 
   const convex = new ConvexReactClient(config.convexUrl);
 

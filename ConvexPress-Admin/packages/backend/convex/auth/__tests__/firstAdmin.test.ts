@@ -2,7 +2,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 import schema from "../../schema";
 import { verifyPassword } from "../helpers";
 import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
@@ -1319,5 +1319,63 @@ describe("createFirstAdmin", () => {
     });
 
     expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+  });
+
+  test("a linked external administrator keeps the site out of first-admin setup", async () => {
+    const t = createHarness();
+    await t.mutation(internal.roles.internals.seedRoles, {});
+    const issuer = "https://staff.integrator.example";
+
+    const externalAdminId = await t.run(async (ctx) => {
+      const now = Date.now();
+      const adminRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+        .unique();
+      return await ctx.db.insert("users", {
+        authSource: "external",
+        email: "staff-admin@integrator.example",
+        displayName: "Staff Admin",
+        slug: "staff-admin",
+        emailVerified: true,
+        status: "active",
+        isInternal: true,
+        internalRole: "admin",
+        roleId: adminRole!._id,
+        registrationMethod: "import",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+
+    // Without an identity link the account resolves to no one: setup stays open.
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("userExternalIdentities", {
+        userId: externalAdminId,
+        issuer,
+        subject: "staff-1",
+        tokenIdentifier: `${issuer}|staff-1`,
+        linkedAt: Date.now(),
+      });
+    });
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "intruder@example.com",
+        username: "intruder",
+        password: PASSWORD,
+        displayName: "Intruder",
+      }),
+    ).rejects.toThrow("An administrator account already exists");
+
+    // Deactivated by the integrator, the account no longer administers the site.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(externalAdminId, { status: "inactive", updatedAt: Date.now() });
+    });
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
   });
 });

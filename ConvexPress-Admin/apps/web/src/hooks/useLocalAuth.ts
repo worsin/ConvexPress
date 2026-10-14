@@ -22,9 +22,21 @@ interface AccessTokenPayload {
  */
 let _siteUrl: string = import.meta.env.VITE_CONVEX_SITE_URL ?? "";
 
-/** Set the Convex site URL used by useLocalAuth. Call before rendering. */
-export function setConvexSiteUrl(url: string) {
-  _siteUrl = url;
+/** The deployment endpoints the admin resolved at bootstrap. */
+export type LocalAuthEndpoints = {
+  /** The Convex client URL (queries, mutations, actions). */
+  convexUrl: string;
+  /** The Convex HTTP-actions origin that serves the auth routes. */
+  convexSiteUrl: string;
+};
+
+/**
+ * Configure the auth module with the resolved deployment endpoints. Call
+ * before rendering. ConvexPress's local auth uses the site URL; a host that
+ * replaces this module with its own identity provider receives both.
+ */
+export function configureLocalAuth(endpoints: LocalAuthEndpoints) {
+  _siteUrl = endpoints.convexSiteUrl;
 }
 
 /**
