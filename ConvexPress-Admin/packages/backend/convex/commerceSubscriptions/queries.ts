@@ -25,6 +25,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import { dunningPolicyFor } from "./lifecycle";
+import { readMergedSettingsSection } from "../settings/read";
 import {
   commerceSubscriptionStatusValidator,
   commerceSubscriptionInvoiceStatusValidator,
@@ -1117,16 +1118,10 @@ export const getLiveChargingStatus = query({
   args: {},
   returns: v.object({ live: v.boolean(), publishableKey: v.union(v.null(), v.string()) }),
   handler: async (ctx): Promise<{ live: boolean; publishableKey: string | null }> => {
-    const doc = await ctx.db
-      .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "commerce.payments"))
-      .unique();
-    const values = (doc?.values ?? {}) as Record<string, unknown>;
+    const values = await readMergedSettingsSection(ctx, "commerce.payments");
     const live = values.subscriptionChargingEnabled === true;
-    const publishableKey =
-      typeof values.stripePublishableKey === "string" && (values.stripePublishableKey as string).trim()
-        ? (values.stripePublishableKey as string)
-        : null;
+    const key = values.stripePublishableKey;
+    const publishableKey = typeof key === "string" && key.trim() ? key : null;
     return { live, publishableKey };
   },
 });

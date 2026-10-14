@@ -244,5 +244,20 @@ describe("subscription catalog", () => {
     expect(editor).toMatchObject({ code: "SAVE20", redemptions: 1, offers: [{ _id: offerId, title: "Launch", currencyCode: "USD" }] });
     expect(editor?.recentRedemptions[0]).toMatchObject({ contractId: subscriptionId, customerEmail: "customer@example.invalid", remainingApplications: 3 });
   });
+
+  test("older lower-case coupon codes are normalized unless two would collide", async () => {
+    const f = await fixture();
+    await f.t.run(async (ctx) => {
+      const base = { discountType: "percent" as const, amount: 10, duration: "once" as const, status: "active" as const, createdBy: f.ids.admin, createdAt: 1 };
+      await ctx.db.insert("commerce_subscription_coupons", { ...base, code: "spring" });
+      await ctx.db.insert("commerce_subscription_coupons", { ...base, code: "Fall" });
+      await ctx.db.insert("commerce_subscription_coupons", { ...base, code: "FALL" });
+      await ctx.db.insert("commerce_subscription_coupons", { ...base, code: "WINTER" });
+    });
+    const result = await f.t.mutation(internal.commerceSubscriptions.migrations.normalizeCouponCodes, {});
+    expect(result).toEqual({ normalized: 1, collisions: ["FALL"] });
+    const codes = await f.t.run(async (ctx) => (await ctx.db.query("commerce_subscription_coupons").collect()).map((coupon) => coupon.code).sort());
+    expect(codes).toEqual(["FALL", "Fall", "SPRING", "WINTER"]);
+  });
 });
 

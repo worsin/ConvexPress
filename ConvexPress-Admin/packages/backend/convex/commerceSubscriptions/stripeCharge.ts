@@ -189,7 +189,7 @@ export const chargeSubscriptionInvoice = internalAction({
 
 function nonEmptyStringField(value: unknown, key: string): string | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const field = (value as Record<string, unknown>)[key];
+  const field: unknown = Reflect.get(value, key);
   return typeof field === "string" && field.length > 0 ? field : undefined;
 }
 
@@ -199,10 +199,8 @@ function describeStripeFailure(err: unknown): {
   message?: string;
   paymentIntentId?: string;
 } {
-  const paymentIntent =
-    typeof err === "object" && err !== null
-      ? (err as Record<string, unknown>).payment_intent
-      : undefined;
+  const paymentIntent: unknown =
+    typeof err === "object" && err !== null ? Reflect.get(err, "payment_intent") : undefined;
   return {
     failureReason:
       nonEmptyStringField(err, "code") ??
