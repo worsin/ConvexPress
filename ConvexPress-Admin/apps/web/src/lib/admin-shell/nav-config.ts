@@ -215,8 +215,6 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       { id: "subs-templates", label: "Templates", to: "/commerce/subscriptions/templates" },
       { id: "subs-coupons", label: "Coupons", to: "/commerce/subscriptions/coupons" },
       { id: "subs-pricing-cards", label: "Pricing Cards", to: "/commerce/subscriptions/pricing-cards" },
-      { id: "subs-order-forms", label: "Order Forms", to: "/commerce/subscriptions/order-forms" },
-      { id: "subs-form-submissions", label: "Form Submissions", to: "/commerce/subscriptions/form-submissions" },
     ],
   },
   {

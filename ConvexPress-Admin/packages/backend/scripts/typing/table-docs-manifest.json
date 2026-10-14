@@ -955,10 +955,6 @@
     "module": "schema/commerceSubscriptions.docs.generated",
     "exportName": "commerceSubscriptionsDocs"
   },
-  "commerce_subscription_form_submissions": {
-    "module": "schema/commerceSubscriptions.docs.generated",
-    "exportName": "commerceSubscriptionsDocs"
-  },
   "commerce_subscription_history": {
     "module": "schema/commerceSubscriptions.docs.generated",
     "exportName": "commerceSubscriptionsDocs"
@@ -984,10 +980,6 @@
     "exportName": "commerceSubscriptionsDocs"
   },
   "commerce_subscription_offers": {
-    "module": "schema/commerceSubscriptions.docs.generated",
-    "exportName": "commerceSubscriptionsDocs"
-  },
-  "commerce_subscription_order_forms": {
     "module": "schema/commerceSubscriptions.docs.generated",
     "exportName": "commerceSubscriptionsDocs"
   },

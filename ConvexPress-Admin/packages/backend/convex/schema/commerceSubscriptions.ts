@@ -47,41 +47,6 @@ export const commerceSubscriptionOfferSourceTypeValidator = v.union(
   v.literal("custom"),
 );
 
-export const commerceSubscriptionOrderFormStatusValidator = v.union(
-  v.literal("draft"),
-  v.literal("active"),
-  v.literal("archived"),
-);
-
-export const commerceSubscriptionSelectionModeValidator = v.union(
-  v.literal("single_offer"),
-  v.literal("multiple_offers"),
-);
-
-export const commerceSubscriptionAccountModeValidator = v.union(
-  v.literal("require_login"),
-  v.literal("allow_guest_create_account"),
-  v.literal("guest_allowed"),
-);
-
-export const commerceSubscriptionPaymentModeValidator = v.union(
-  v.literal("pay_now"),
-  v.literal("trial_with_payment_method"),
-  v.literal("no_payment_required"),
-  v.literal("admin_approval"),
-);
-
-export const commerceSubscriptionFormSubmissionStatusValidator = v.union(
-  v.literal("draft"),
-  v.literal("submitted"),
-  v.literal("payment_pending"),
-  v.literal("approval_pending"),
-  v.literal("approved"),
-  v.literal("activated"),
-  v.literal("rejected"),
-  v.literal("expired"),
-);
-
 export const commerceSubscriptionCheckoutIntentStatusValidator = v.union(
   v.literal("draft"),
   v.literal("payment_pending"),
@@ -220,55 +185,6 @@ export const commerceSubscriptionTables = {
     .index("by_variant", ["variantId"])
     .index("by_bundle", ["bundleId"]),
 
-  commerce_subscription_order_forms: defineTable({
-    title: v.string(),
-    slug: v.string(),
-    status: commerceSubscriptionOrderFormStatusValidator,
-    selectionMode: commerceSubscriptionSelectionModeValidator,
-    offerIds: v.array(v.id("commerce_subscription_offers")),
-    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
-    fieldSchema: v.optional(v.any()),
-    accountMode: commerceSubscriptionAccountModeValidator,
-    paymentMode: commerceSubscriptionPaymentModeValidator,
-    successRedirectUrl: v.optional(v.string()),
-    successMessage: v.optional(v.string()),
-    allowedDiscountCodes: v.optional(v.array(v.string())),
-    rateLimitKey: v.optional(v.string()),
-    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
-    metadata: v.optional(v.any()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_slug", ["slug"])
-    .index("by_status", ["status"]),
-
-  commerce_subscription_form_submissions: defineTable({
-    formId: v.id("commerce_subscription_order_forms"),
-    status: commerceSubscriptionFormSubmissionStatusValidator,
-    userId: v.optional(v.id("users")),
-    customerId: v.optional(v.id("commerce_customer_profiles")),
-    email: v.optional(v.string()),
-    selectedOfferIds: v.array(v.id("commerce_subscription_offers")),
-    // v.any(): answers keyed by the form's own fields; the shape is defined per form at runtime.
-    fieldValues: v.optional(v.any()),
-    checkoutIntentId: v.optional(
-      v.id("commerce_subscription_checkout_intents"),
-    ),
-    subscriptionId: v.optional(v.id("commerce_subscriptions")),
-    ipHash: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
-    metadata: v.optional(v.any()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_form", ["formId"])
-    .index("by_status", ["status"])
-    .index("by_user", ["userId"])
-    .index("by_customer", ["customerId"])
-    .index("by_checkout_intent", ["checkoutIntentId"])
-    .index("by_subscription", ["subscriptionId"]),
-
   commerce_subscription_checkout_intents: defineTable({
     sourceChannel: commerceSubscriptionSourceChannelValidator,
     status: commerceSubscriptionCheckoutIntentStatusValidator,
@@ -278,10 +194,6 @@ export const commerceSubscriptionTables = {
     orderId: v.optional(v.id("commerce_orders")),
     purchaseOrderId: v.optional(v.id("purchase_orders")),
     orderItemIds: v.optional(v.array(v.id("commerce_order_items"))),
-    formId: v.optional(v.id("commerce_subscription_order_forms")),
-    formSubmissionId: v.optional(
-      v.id("commerce_subscription_form_submissions"),
-    ),
     selectedOfferIds: v.array(v.id("commerce_subscription_offers")),
     // v.any(): exact shape is the pricing snapshot read by commerceSubscriptions/snapshot.ts, but rows written before PR 008 are unaudited; tighten after a migration.
     pricingSnapshot: v.optional(v.any()),
@@ -307,8 +219,6 @@ export const commerceSubscriptionTables = {
     .index("by_customer", ["customerId"])
     .index("by_order", ["orderId"])
     .index("by_purchase_order", ["purchaseOrderId"])
-    .index("by_form", ["formId"])
-    .index("by_form_submission", ["formSubmissionId"])
     .index("by_subscription", ["subscriptionId"])
     .index("by_idempotency_key", ["idempotencyKey"])
     .index("by_expiresAt", ["expiresAt"]),
@@ -343,15 +253,9 @@ export const commerceSubscriptionTables = {
       v.id("commerce_subscription_checkout_intents"),
     ),
     sourceOrderId: v.optional(v.id("commerce_orders")),
-    // The submission the contract was bought through: a subscription order
-    // form submission, or a Forms-extension submission whose `subscription`
-    // action started the checkout.
-    sourceFormSubmissionId: v.optional(
-      v.union(
-        v.id("commerce_subscription_form_submissions"),
-        v.id("form_submissions"),
-      ),
-    ),
+    // The Forms-extension submission whose `subscription` action started the
+    // checkout the contract was bought through.
+    sourceFormSubmissionId: v.optional(v.id("form_submissions")),
     productId: v.optional(v.id("commerce_products")),
     orderId: v.optional(v.id("commerce_orders")),
     orderItemId: v.optional(v.id("commerce_order_items")),
