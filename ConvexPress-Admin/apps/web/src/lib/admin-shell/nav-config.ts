@@ -209,14 +209,14 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
     children: [
       { id: "subs-overview", label: "Overview", to: "/commerce/subscriptions", exact: true },
       { id: "subs-contracts", label: "Contracts", to: "/commerce/subscriptions/contracts" },
-      { id: "subs-templates", label: "Templates", to: "/commerce/subscriptions/templates" },
+      { id: "subs-invoices", label: "Invoices", to: "/commerce/subscriptions/invoices" },
+      { id: "subs-dunning", label: "Failed Payments", to: "/commerce/subscriptions/dunning" },
       { id: "subs-offers", label: "Offers", to: "/commerce/subscriptions/offers" },
+      { id: "subs-templates", label: "Templates", to: "/commerce/subscriptions/templates" },
       { id: "subs-coupons", label: "Coupons", to: "/commerce/subscriptions/coupons" },
+      { id: "subs-pricing-cards", label: "Pricing Cards", to: "/commerce/subscriptions/pricing-cards" },
       { id: "subs-order-forms", label: "Order Forms", to: "/commerce/subscriptions/order-forms" },
       { id: "subs-form-submissions", label: "Form Submissions", to: "/commerce/subscriptions/form-submissions" },
-      { id: "subs-pricing-cards", label: "Pricing Cards", to: "/commerce/subscriptions/pricing-cards" },
-      { id: "subs-invoices", label: "Invoices", to: "/commerce/subscriptions/invoices" },
-      { id: "subs-dunning", label: "Dunning", to: "/commerce/subscriptions/dunning" },
     ],
   },
   {

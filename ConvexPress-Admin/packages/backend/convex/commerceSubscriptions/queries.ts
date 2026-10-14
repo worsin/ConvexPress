@@ -489,8 +489,32 @@ export const getById = query({
   },
 });
 
+/** What a contract bills per month, in minor units (weeks are 52/12 of a month, days 365/12). */
+function monthlyAmount(contract: Pick<Doc<"commerce_subscriptions">, "recurringAmount" | "billingInterval" | "billingIntervalCount">): number {
+  const count = contract.billingIntervalCount && contract.billingIntervalCount > 0 ? contract.billingIntervalCount : 1;
+  const perInterval = contract.recurringAmount / count;
+  switch (contract.billingInterval ?? "month") {
+    case "day":
+      return Math.round((perInterval * 365) / 12);
+    case "week":
+      return Math.round((perInterval * 52) / 12);
+    case "month":
+      return Math.round(perInterval);
+    case "year":
+      return Math.round(perInterval / 12);
+  }
+}
+
 /**
  * Subscription dashboard metrics (admin).
+ *
+ * - active: contracts serving the customer (active, trialing, or cancelling at
+ *   period end); pendingCancel is the part of that which will not renew.
+ * - mrr: what paying contracts (active, past due, cancelling at period end)
+ *   bill per month, every cadence normalised to a month; trials and paused
+ *   contracts are not billing. arr = mrr × 12. Currencies are summed as-is.
+ * - churnRate30d: percent of the contracts live 30 days ago that have since
+ *   ended (cancelled or expired).
  */
 export const getMetrics = query({
   args: {},
@@ -499,6 +523,7 @@ export const getMetrics = query({
     active: v.number(),
     paused: v.number(),
     pastDue: v.number(),
+    pendingCancel: v.number(),
     cancelled: v.number(),
     mrr: v.number(),
     arr: v.number(),
@@ -507,56 +532,41 @@ export const getMetrics = query({
     churnRate30d: v.number(),
   }),
   handler: async (ctx) => {
-    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return { total: 0, active: 0, paused: 0, pastDue: 0, cancelled: 0, mrr: 0, arr: 0, startedLast30: 0, cancelledLast30: 0, churnRate30d: 0 };
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
+      return { total: 0, active: 0, paused: 0, pastDue: 0, pendingCancel: 0, cancelled: 0, mrr: 0, arr: 0, startedLast30: 0, cancelledLast30: 0, churnRate30d: 0 };
+    }
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const now = Date.now();
-    const subscriptions = await ctx.db
-      .query("commerce_subscriptions")
-      .collect();
+    const windowStart = now - 30 * 24 * 60 * 60 * 1000;
+    const subscriptions = (await ctx.db.query("commerce_subscriptions").collect()).filter((sub) => sub.status !== "draft");
+    const count = (...statuses: Array<Doc<"commerce_subscriptions">["status"]>) =>
+      subscriptions.filter((sub) => statuses.includes(sub.status)).length;
+    const ended = (sub: Doc<"commerce_subscriptions">) => sub.status === "cancelled" || sub.status === "expired";
 
-    const activeLike = subscriptions.filter(
-      (sub) => sub.status === "active" || sub.status === "trialing",
-    );
-    const paused = subscriptions.filter((sub) => sub.status === "paused");
-    const pastDue = subscriptions.filter((sub) => sub.status === "past_due");
-    const cancelled = subscriptions.filter(
-      (sub) => sub.status === "cancelled",
-    );
-
-    // Monthly Recurring Revenue — sum recurring amount for monthly-billed active subs
-    const mrr = activeLike.reduce((sum: number, sub) => {
-      const amount = sub.recurringAmount ?? 0;
-      // Normalize to monthly
-      if (sub.currencyCode) {
-        // We just sum the raw amounts; proper currency normalization
-        // would require exchange rates which we don't have here.
-      }
-      return sum + amount;
-    }, 0);
-    const arr = mrr * 12;
-
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-    const startedLast30 = subscriptions.filter(
-      (sub) => sub.createdAt >= thirtyDaysAgo,
+    const mrr = subscriptions
+      .filter((sub) => sub.status === "active" || sub.status === "past_due" || sub.status === "pending_cancel")
+      .reduce((sum, sub) => sum + monthlyAmount(sub), 0);
+    const startedLast30 = subscriptions.filter((sub) => sub.createdAt >= windowStart).length;
+    const endedLast30 = subscriptions.filter((sub) => ended(sub) && (sub.cancelledAt ?? 0) >= windowStart);
+    const liveAtWindowStart = subscriptions.filter(
+      (sub) => sub.createdAt < windowStart && (!ended(sub) || (sub.cancelledAt ?? 0) >= windowStart),
     ).length;
-    const cancelledLast30 = cancelled.filter(
-      (sub) => (sub.cancelledAt ?? 0) >= thirtyDaysAgo,
-    ).length;
+    const churnedFromStart = endedLast30.filter((sub) => sub.createdAt < windowStart).length;
 
     return {
       total: subscriptions.length,
-      active: activeLike.length,
-      paused: paused.length,
-      pastDue: pastDue.length,
-      cancelled: cancelled.length,
+      active: count("active", "trialing", "pending_cancel"),
+      paused: count("paused"),
+      pastDue: count("past_due"),
+      pendingCancel: count("pending_cancel"),
+      cancelled: count("cancelled", "expired"),
       mrr,
-      arr,
+      arr: mrr * 12,
       startedLast30,
-      cancelledLast30,
-      churnRate30d:
-        startedLast30 > 0 ? (cancelledLast30 / startedLast30) * 100 : 0,
+      cancelledLast30: endedLast30.length,
+      churnRate30d: liveAtWindowStart > 0 ? (churnedFromStart / liveAtWindowStart) * 100 : 0,
     };
   },
 });
@@ -574,34 +584,18 @@ export const listInvoices = query({
     status: v.optional(commerceSubscriptionInvoiceStatusValidator),
     limit: v.optional(v.number()),
   },
-  returns: v.array(v.object({
-    subscription: v.union(v.null(), v.object({
-      _id: v.id("commerce_subscriptions"),
-      status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
-      productId: v.optional(v.id("commerce_products")),
-    })),
-    _id: v.id("commerce_subscription_invoices"),
-    _creationTime: v.number(),
-    paidAt: v.optional(v.number()),
-    purchaseOrderId: v.optional(v.id("purchase_orders")),
-    checkoutIntentId: v.optional(v.id("commerce_subscription_checkout_intents")),
-    sourceChannel: v.optional(v.union(v.literal("api"), v.literal("admin"), v.literal("cart"), v.literal("direct_form"))),
-    paymentProvider: v.optional(v.string()),
-    paymentTransactionId: v.optional(v.string()),
-    savedPaymentMethodId: v.optional(v.string()),
-    manualBilling: v.optional(v.boolean()),
-    invoiceNumber: v.optional(v.string()),
-    dueAt: v.optional(v.number()),
-    prorationEventId: v.optional(v.id("commerce_subscription_proration_events")),
-    updatedAt: v.number(),
-    createdAt: v.number(),
-    status: v.union(v.literal("draft"), v.literal("failed"), v.literal("open"), v.literal("paid"), v.literal("void")),
-    subscriptionId: v.id("commerce_subscriptions"),
-    currencyCode: v.string(),
-    subtotalAmount: v.number(),
-    taxAmount: v.number(),
-    totalAmount: v.number(),
-  })),
+  returns: v.array(
+    commerceSubscriptionsDocs.commerce_subscription_invoices.extend({
+      subscription: v.union(
+        v.null(),
+        v.object({
+          _id: v.id("commerce_subscriptions"),
+          status: commerceSubscriptionStatusValidator,
+          productId: v.optional(v.id("commerce_products")),
+        }),
+      ),
+    }),
+  ),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -658,30 +652,12 @@ export const getInvoice = query({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),
   },
-  returns: v.union(v.null(), v.object({
-    items: v.array(commerceSubscriptionsDocs.commerce_subscription_invoice_items),
-    _id: v.id("commerce_subscription_invoices"),
-    _creationTime: v.number(),
-    paidAt: v.optional(v.number()),
-    purchaseOrderId: v.optional(v.id("purchase_orders")),
-    checkoutIntentId: v.optional(v.id("commerce_subscription_checkout_intents")),
-    sourceChannel: v.optional(v.union(v.literal("api"), v.literal("admin"), v.literal("cart"), v.literal("direct_form"))),
-    paymentProvider: v.optional(v.string()),
-    paymentTransactionId: v.optional(v.string()),
-    savedPaymentMethodId: v.optional(v.string()),
-    manualBilling: v.optional(v.boolean()),
-    invoiceNumber: v.optional(v.string()),
-    dueAt: v.optional(v.number()),
-    prorationEventId: v.optional(v.id("commerce_subscription_proration_events")),
-    updatedAt: v.number(),
-    createdAt: v.number(),
-    status: v.union(v.literal("draft"), v.literal("failed"), v.literal("open"), v.literal("paid"), v.literal("void")),
-    subscriptionId: v.id("commerce_subscriptions"),
-    currencyCode: v.string(),
-    subtotalAmount: v.number(),
-    taxAmount: v.number(),
-    totalAmount: v.number(),
-  })),
+  returns: v.union(
+    v.null(),
+    commerceSubscriptionsDocs.commerce_subscription_invoices.extend({
+      items: v.array(commerceSubscriptionsDocs.commerce_subscription_invoice_items),
+    }),
+  ),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
@@ -729,40 +705,34 @@ export const listDunningAttempts = query({
     status: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  returns: v.union(v.null(), v.array(v.object({
-    subscription: v.union(v.null(), v.object({
-      _id: v.id("commerce_subscriptions"),
-      status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
-      userId: v.optional(v.id("users")),
-      customerId: v.optional(v.id("commerce_customer_profiles")),
-      customer: v.union(v.null(), v.object({
-        _id: v.id("commerce_customer_profiles"),
-        email: v.string(),
-        firstName: v.optional(v.string()),
-        lastName: v.optional(v.string()),
-      })),
-    })),
-    invoice: v.union(v.null(), v.object({
-      _id: v.id("commerce_subscription_invoices"),
-      status: v.union(v.literal("draft"), v.literal("failed"), v.literal("open"), v.literal("paid"), v.literal("void")),
-      currencyCode: v.string(),
-      totalAmount: v.number(),
-      paymentProvider: v.optional(v.string()),
-      dueAt: v.optional(v.number()),
-      updatedAt: v.number(),
-    })),
-    _id: v.id("commerce_subscription_dunning_attempts"),
-    _creationTime: v.number(),
-    processedAt: v.optional(v.number()),
-    errorMessage: v.optional(v.string()),
-    invoiceId: v.optional(v.id("commerce_subscription_invoices")),
-    updatedAt: v.number(),
-    createdAt: v.number(),
-    status: v.union(v.literal("failed"), v.literal("processing"), v.literal("scheduled"), v.literal("succeeded"), v.literal("aborted")),
-    scheduledAt: v.number(),
-    subscriptionId: v.id("commerce_subscriptions"),
-    attemptNumber: v.number(),
-  }))),
+  returns: v.union(
+    v.null(),
+    v.array(
+      commerceSubscriptionsDocs.commerce_subscription_dunning_attempts.extend({
+        subscription: v.union(v.null(), v.object({
+          _id: v.id("commerce_subscriptions"),
+          status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
+          userId: v.optional(v.id("users")),
+          customerId: v.optional(v.id("commerce_customer_profiles")),
+          customer: v.union(v.null(), v.object({
+            _id: v.id("commerce_customer_profiles"),
+            email: v.string(),
+            firstName: v.optional(v.string()),
+            lastName: v.optional(v.string()),
+          })),
+        })),
+        invoice: v.union(v.null(), v.object({
+          _id: v.id("commerce_subscription_invoices"),
+          status: v.union(v.literal("draft"), v.literal("failed"), v.literal("open"), v.literal("paid"), v.literal("void")),
+          currencyCode: v.string(),
+          totalAmount: v.number(),
+          paymentProvider: v.optional(v.string()),
+          dueAt: v.optional(v.number()),
+          updatedAt: v.number(),
+        })),
+      }),
+    ),
+  ),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);

@@ -1,330 +1,179 @@
+/**
+ * Failed payments.
+ *
+ * Every past-due contract: what is owed, why the card failed, when the next
+ * automatic retry runs and how long the customer keeps access. "Retry now"
+ * charges the card on file immediately (useful once the customer says they
+ * fixed it). Below, the log of recent payment attempts.
+ *
+ * Data: `adminContracts.listDunningQueue`, `adminContracts.retryPayment` and
+ * `adminContracts.listRecentAttempts`.
+ */
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
-import { ChevronRight, ExternalLink, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import { CheckCircle2, ChevronRight, RefreshCw } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
+import {
+  describeFailure,
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  humanize,
+  type ContractRow,
+} from "@/components/subscriptions/billingFormat";
 
-export const Route = createFileRoute(
-  "/_authenticated/_admin/commerce/subscriptions/dunning",
-)({
-  component: DunningQueuePage,
+export const Route = createFileRoute("/_authenticated/_admin/commerce/subscriptions/dunning")({
+  component: FailedPaymentsPage,
 });
 
-type Invoice = {
-  _id: Id<"commerce_subscription_invoices">;
-  status: "draft" | "open" | "paid" | "failed" | "void";
-  currencyCode: string;
-  totalAmount: number;
-  paymentProvider?: string;
-  dueAt?: number;
-  updatedAt: number;
+const ATTEMPT_TONE: Record<"scheduled" | "processing" | "failed" | "succeeded" | "aborted", string> = {
+  scheduled: "bg-muted text-muted-foreground",
+  processing: "bg-primary/15 text-primary",
+  failed: "bg-destructive/10 text-destructive",
+  succeeded: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  aborted: "bg-muted text-muted-foreground",
 };
 
-type DunningAttemptStatus =
-  | "scheduled"
-  | "processing"
-  | "failed"
-  | "succeeded"
-  | "aborted";
-
-type DunningScope =
-  | "all"
-  | "scheduled"
-  | "processing"
-  | "failed"
-  | "resolved";
-
-type DunningAttempt = {
-  _id: Id<"commerce_subscription_dunning_attempts">;
-  subscriptionId: Id<"commerce_subscriptions">;
-  invoiceId?: Id<"commerce_subscription_invoices">;
-  attemptNumber: number;
-  status: DunningAttemptStatus;
-  scheduledAt: number;
-  processedAt?: number;
-  errorMessage?: string;
-  updatedAt: number;
-  subscription?: {
-    _id: Id<"commerce_subscriptions">;
-    status?: string;
-    customer?: {
-      email?: string;
-      firstName?: string;
-      lastName?: string;
-    } | null;
-  } | null;
-  invoice?: Invoice | null;
-};
-
-function formatMoney(amount: number, currencyCode = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-  }).format(amount / 100);
-}
-
-function formatCustomer(attempt: DunningAttempt) {
-  const customer = attempt.subscription?.customer;
-  if (!customer) return "Unknown customer";
-  const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ");
-  return name || customer.email || "Unknown customer";
-}
-
-function formatDateTime(ts?: number) {
-  if (!ts) return "--";
-  return new Date(ts).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatStatus(status: DunningAttemptStatus) {
-  return status.replace(/_/g, " ");
-}
-
-function statusClassName(status: DunningAttemptStatus) {
-  switch (status) {
-    case "processing":
-      return "bg-accent/20 text-accent-foreground";
-    case "scheduled":
-      return "bg-primary/10 text-primary";
-    case "failed":
-      return "bg-destructive/10 text-destructive";
-    case "succeeded":
-      return "bg-success/10 text-success";
-    case "aborted":
-      return "bg-muted text-muted-foreground";
-  }
-}
-
-function DunningQueuePage() {
-  const [scope, setScope] = useState<DunningScope>("all");
-  const now = Date.now();
-
-  const attempts = useQuery(
-    (api as any).commerceSubscriptions.queries.listDunningAttempts,
-    { limit: 200 },
-  ) as DunningAttempt[] | null | undefined;
-
-  const pluginDisabled = attempts === null;
-  const rows = attempts ?? [];
-  const filteredRows = rows.filter((attempt) => {
-    if (scope === "all") return true;
-    if (scope === "resolved") {
-      return attempt.status === "succeeded" || attempt.status === "aborted";
-    }
-    return attempt.status === scope;
-  });
-  const dueNowCount = rows.filter(
-    (attempt) => attempt.status === "scheduled" && attempt.scheduledAt <= now,
-  ).length;
-  const scheduledCount = rows.filter(
-    (attempt) => attempt.status === "scheduled",
-  ).length;
-  const failedCount = rows.filter((attempt) => attempt.status === "failed").length;
-  const resolvedCount = rows.filter(
-    (attempt) => attempt.status === "succeeded" || attempt.status === "aborted",
-  ).length;
+function FailedPaymentsPage() {
+  const queue = useQuery(api.commerceSubscriptions.adminContracts.listDunningQueue, {});
+  const attempts = useQuery(api.commerceSubscriptions.adminContracts.listRecentAttempts, { limit: 50 });
+  const owed = (queue ?? []).reduce((sum, row) => sum + (row.billingIssue?.amountDue ?? 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-            <ShieldAlert className="h-7 w-7 text-muted-foreground" />
-            Dunning queue
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Subscription payment retry attempts recorded by the billing sweep.
-            Each attempt is tied to its contract and invoice so failed payment
-            recovery can be audited without inferring state from invoice status.
-          </p>
-        </div>
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Failed payments</h1>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Subscriptions whose last charge failed. Cards are retried automatically on the plan's schedule and the customer keeps access through the grace period; when every retry fails the subscription is cancelled.
+        </p>
       </div>
 
-      {pluginDisabled && (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            The commerce subscriptions plugin is disabled.
-          </p>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">
+            Past due {queue && queue.length > 0 ? <span className="text-muted-foreground">· {queue.length}</span> : null}
+          </h2>
+          {queue && queue.length > 0 ? <p className="text-sm text-muted-foreground">{formatMoney(owed)} outstanding</p> : null}
         </div>
-      )}
-
-      {!pluginDisabled && (
-        <>
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              { label: "Due now", value: dueNowCount },
-              { label: "Scheduled", value: scheduledCount },
-              { label: "Failed", value: failedCount },
-              { label: "Resolved", value: resolvedCount },
-            ].map((metric) => (
-              <div
-                key={metric.label}
-                className="rounded-2xl border border-border bg-card p-4 shadow-sm"
-              >
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  {metric.label}
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {metric.value}
-                </p>
-              </div>
-            ))}
+        {queue === undefined ? (
+          <div className="h-24 animate-pulse rounded-2xl bg-muted" />
+        ) : queue.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" /> No subscription is past due.
           </div>
-
-          <div className="flex flex-wrap items-center gap-1">
-            {(
-              [
-                { key: "all", label: "All" },
-                { key: "scheduled", label: "Scheduled" },
-                { key: "processing", label: "Processing" },
-                { key: "failed", label: "Failed" },
-                { key: "resolved", label: "Resolved" },
-              ] as const
-            ).map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setScope(key)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  scope === key
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-foreground hover:bg-muted",
-                )}
-              >
-                {label}
-              </button>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+            {queue.map((row) => (
+              <PastDueRow key={row._id} row={row} />
             ))}
-          </div>
+          </ul>
+        )}
+      </section>
 
-          <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="grid min-w-[980px] grid-cols-[110px_120px_1fr_160px_130px_160px_160px_32px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              <div>Attempt</div>
-              <div>Status</div>
-              <div>Contract</div>
-              <div>Amount</div>
-              <div>Provider</div>
-              <div>Scheduled</div>
-              <div>Updated</div>
-              <div />
-            </div>
-
-            {attempts === undefined ? (
-              <div className="space-y-3 p-5">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-14 animate-pulse rounded-xl bg-muted"
-                  />
-                ))}
-              </div>
-            ) : filteredRows.length === 0 ? (
-              <div className="p-10 text-center">
-                <ShieldAlert className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                <p className="mt-3 text-sm text-muted-foreground">
-                  No dunning attempts match this view.
-                </p>
-              </div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {filteredRows.map((attempt) => (
-                  <li
-                    key={attempt._id}
-                    className="grid min-w-[980px] grid-cols-[110px_120px_1fr_160px_130px_160px_160px_32px] items-center gap-4 px-5 py-4 text-sm"
-                  >
-                    <div className="font-mono text-xs text-foreground">
-                      #{attempt.attemptNumber}
-                    </div>
-                    <div>
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2 py-1 text-[11px] font-medium capitalize",
-                          statusClassName(attempt.status),
-                        )}
-                      >
-                        {formatStatus(attempt.status)}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <Link
-                        to="/commerce/subscriptions/contracts/$contractId"
-                        params={{ contractId: attempt.subscriptionId }}
-                        className="block truncate font-medium text-foreground hover:text-primary"
-                      >
-                        {formatCustomer(attempt)}
-                      </Link>
-                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
-                        <span className="font-mono">
-                          {String(attempt.subscriptionId)}
-                        </span>
-                        {attempt.subscription?.status && (
-                          <span className="inline-flex rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-                            {attempt.subscription.status.replace(/_/g, " ")}
-                          </span>
-                        )}
-                      </p>
-                      {attempt.errorMessage && (
-                        <p className="mt-1 truncate text-[11px] text-destructive">
-                          {attempt.errorMessage}
-                        </p>
-                      )}
-                    </div>
-                    <div className="font-medium text-foreground">
-                      {attempt.invoice
-                        ? formatMoney(
-                            attempt.invoice.totalAmount,
-                            attempt.invoice.currencyCode,
-                          )
-                        : "--"}
-                    </div>
-                    <div className="text-muted-foreground">
-                      {attempt.invoice?.paymentProvider ?? "--"}
-                    </div>
-                    <div className="text-muted-foreground">
-                      {formatDateTime(attempt.scheduledAt)}
-                    </div>
-                    <div className="text-muted-foreground">
-                      {formatDateTime(attempt.updatedAt)}
-                    </div>
-                    <div>
-                      {attempt.invoiceId ? (
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Recent payment attempts</h2>
+        {attempts === undefined ? (
+          <div className="h-24 animate-pulse rounded-2xl bg-muted" />
+        ) : attempts.length === 0 ? (
+          <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">No payment attempts yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  <th className="px-5 py-3 font-semibold">When</th>
+                  <th className="px-5 py-3 font-semibold">Customer</th>
+                  <th className="px-5 py-3 font-semibold">Attempt</th>
+                  <th className="px-5 py-3 font-semibold">Amount</th>
+                  <th className="px-5 py-3 font-semibold">Result</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {attempts.map((attempt) => {
+                  const name = attempt.customerName ?? attempt.customerEmail;
+                  return (
+                    <tr key={attempt._id} className="hover:bg-muted/30">
+                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{formatDateTime(attempt.processedAt ?? attempt.scheduledAt)}</td>
+                      <td className="px-5 py-3">
                         <Link
-                          to="/commerce/subscriptions/invoices/$invoiceId"
-                          params={{ invoiceId: attempt.invoiceId }}
-                          className="inline-flex rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          aria-label="Open invoice"
+                          to="/commerce/subscriptions/contracts/$contractId"
+                          params={{ contractId: attempt.subscriptionId }}
+                          className="hover:underline"
                         >
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          {name ?? "Open contract"}
                         </Link>
-                      ) : (
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground">#{attempt.attemptNumber}</td>
+                      <td className="px-5 py-3">{formatMoney(attempt.amount, attempt.currencyCode)}</td>
+                      <td className="px-5 py-3">
+                        <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", ATTEMPT_TONE[attempt.status])}>
+                          {attempt.status === "scheduled" ? `Scheduled ${formatDate(attempt.scheduledAt)}` : humanize(attempt.status)}
+                        </span>
+                        {attempt.errorMessage ? <span className="ml-2 text-xs text-muted-foreground">{describeFailure(attempt.errorMessage)}</span> : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-
-          <div className="flex justify-end">
-            <Link
-              to="/commerce/subscriptions/invoices"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              View all invoices
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </>
-      )}
+        )}
+      </section>
     </div>
+  );
+}
+
+function PastDueRow({ row }: { row: ContractRow }) {
+  const retry = useMutation(api.commerceSubscriptions.adminContracts.retryPayment);
+  const [busy, setBusy] = useState(false);
+  const issue = row.billingIssue;
+
+  async function retryNow(subscriptionId: Id<"commerce_subscriptions">) {
+    setBusy(true);
+    try {
+      await retry({ subscriptionId });
+      toast.success("Charging the card on file now");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "The retry could not be started."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="grid gap-3 px-5 py-4 text-sm sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.4fr)_auto] sm:items-center">
+      <div className="min-w-0">
+        <Link to="/commerce/subscriptions/contracts/$contractId" params={{ contractId: row._id }} className="inline-flex items-center gap-1 font-medium hover:underline">
+          {row.customerName ?? row.customerEmail ?? "Unknown customer"} <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        </Link>
+        <p className="truncate text-xs text-muted-foreground">
+          {row.planTitle ?? "Subscription"} · {row.card ? `${humanize(row.card.brand)} •••• ${row.card.last4}` : "no card on file"}
+        </p>
+      </div>
+      <div className="text-xs">
+        <p className="font-medium text-destructive">
+          {issue ? `${formatMoney(issue.amountDue, row.currencyCode)} due · ${describeFailure(issue.lastFailureReason)}` : "Past due"}
+        </p>
+        <p className="text-muted-foreground">
+          {issue ? `${issue.failedAttempts} failed attempt${issue.failedAttempts === 1 ? "" : "s"} · ` : ""}
+          {issue?.nextRetryAt ? `next retry ${formatDateTime(issue.nextRetryAt)}` : "no retries left"}
+          {issue?.accessEndsAt ? ` · access until ${formatDate(issue.accessEndsAt)}` : ""}
+        </p>
+      </div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void retryNow(row._id)}
+        className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} /> Retry now
+      </button>
+    </li>
   );
 }
