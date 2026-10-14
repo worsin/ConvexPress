@@ -19,16 +19,18 @@ import { perPageFor, queryArgs, shopSearchSchema } from "@/lib/commerce/shopSear
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 import CoreCatalog from "@/templates/packs/core/surfaces/shop.catalog";
 import { Surface } from "@/templates/sdk/Surface";
-import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 
 export const Route = createFileRoute("/_marketing/products/")({
   validateSearch: shopSearchSchema,
   loaderDeps: ({ search }) => ({ ...queryArgs(search), layout: search.layout, template: search.template }),
   loader: async ({ context: { queryClient }, deps }) => {
-    const publicSettings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
-    const siteUrl = normalizeSiteUrl((publicSettings as { siteUrl?: string | null })?.siteUrl);
-    const siteTitle = (publicSettings as { siteTitle?: string })?.siteTitle ?? "Shop";
-    const config = (publicSettings as { templateConfig?: Partial<TemplateConfig> })?.templateConfig;
+    // Loaders run alongside the parent's gate: refuse here too, so a closed
+    // shop is a plain 404 rather than a page titled "Shop".
+    const publicSettings = await requirePublicPluginEnabled(queryClient, "commerceStorefront");
+    const siteUrl = normalizeSiteUrl(publicSettings?.siteUrl);
+    const siteTitle = publicSettings?.siteTitle || "Shop";
+    const config: Partial<TemplateConfig> | undefined = publicSettings?.templateConfig;
     const { layout, template: previewPack, ...args } = deps;
     const packId = previewPack && getTemplatePack(previewPack) ? previewPack : config?.active ?? "core";
     const pack = getTemplatePack(packId);
@@ -36,9 +38,7 @@ export const Route = createFileRoute("/_marketing/products/")({
     const shop = { ...pack?.manifest.defaults?.shop, ...(savedShop && typeof savedShop === "object" ? savedShop as Record<string, unknown> : {}) };
     const shopLayout = resolveShopLayout(config?.variants ?? {}, shop, { layout });
     const perPage = perPageFor(shopLayout.shopLayout, shopLayout.gridDensity);
-    if (isPublicPluginEnabled("commerceStorefront", publicSettings)) {
-      await queryClient.ensureQueryData(convexQuery(api.commerce.storefront.searchProducts, { ...args, perPage }));
-    }
+    await queryClient.ensureQueryData(convexQuery(api.commerce.storefront.searchProducts, { ...args, perPage }));
     const path = args.q ? `/products?q=${encodeURIComponent(args.q)}` : args.page > 1 ? `/products?page=${args.page}` : "/products";
     return {
       seoHead: buildSeoHead({

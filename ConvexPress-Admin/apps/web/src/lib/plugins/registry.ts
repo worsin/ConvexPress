@@ -333,13 +333,21 @@ interface ManifestModule {
   default: AdminPluginDefinition;
 }
 
-const officialExtensionModules = import.meta.glob<ManifestModule>(
-  "../../extensions/*/manifest.ts",
-  { eager: true },
+// Vite rewrites each glob call at build time. Under Bun (unit tests) the call
+// itself fails; the registry then holds the platform plugins only.
+function scanned(read: () => Record<string, ManifestModule>): Record<string, ManifestModule> {
+  try {
+    return read();
+  } catch (error) {
+    if (typeof import.meta.glob === "function") throw error;
+    return {};
+  }
+}
+const officialExtensionModules = scanned(() =>
+  import.meta.glob<ManifestModule>("../../extensions/*/manifest.ts", { eager: true }),
 );
-const localExtensionModules = import.meta.glob<ManifestModule>(
-  "../../extensions.local/*/manifest.ts",
-  { eager: true },
+const localExtensionModules = scanned(() =>
+  import.meta.glob<ManifestModule>("../../extensions.local/*/manifest.ts", { eager: true }),
 );
 
 function pluginsFromModules(
