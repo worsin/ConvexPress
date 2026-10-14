@@ -21,6 +21,7 @@ import { v } from "convex/values";
 import { RESET_HEURISTIC_WINDOW_MS } from "./validators";
 import { timingSafeEquals } from "../helpers/timingSafe";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { isDelegatedSignInAccount } from "../auth/delegatedAccounts";
 
 // ─── verifyResetToken ──────────────────────────────────────────────────────
 
@@ -52,7 +53,8 @@ export const verifyResetToken = internalMutation({
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .unique();
 
-    if (!user) return null;
+    // A delegated sign-in account can never complete a ConvexPress reset.
+    if (!user || isDelegatedSignInAccount(user)) return null;
 
     // Check if there's a stored token
     if (!user.passwordResetToken || !user.passwordResetTokenExpiresAt) {

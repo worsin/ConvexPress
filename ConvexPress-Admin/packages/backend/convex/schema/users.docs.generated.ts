@@ -4,5 +4,6 @@ import { docValidator } from "./docValidator";
 import { usersTables } from "./users";
 
 export const usersDocs = {
+  userExternalIdentities: docValidator("userExternalIdentities", usersTables.userExternalIdentities.validator),
   users: docValidator("users", usersTables.users.validator),
 };

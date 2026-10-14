@@ -3,7 +3,9 @@
  *
  * Admin page for viewing and editing a user's profile, role, and settings.
  * Includes the Password Management System's ResetPasswordButton component
- * for admin-initiated password resets.
+ * for admin-initiated password resets. Accounts with authSource "external"
+ * (an integrator's identity provider) get an "External sign-in" badge, and
+ * password reset and impersonation are disabled with an explanation.
  *
  * This route is shared across multiple system experts:
  *   - User Profile System (profile fields, avatar, display name)
@@ -26,6 +28,7 @@ import {
   Trash2Icon,
   UserCheckIcon,
   ExternalLinkIcon,
+  KeyRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,10 +38,19 @@ import { RoleSelector } from "@/components/roles/role-selector";
 import { UserForm } from "@/components/users/user-form";
 import { DeactivateUserDialog } from "@/components/users/deactivate-user-dialog";
 import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
+import {
+  EXTERNAL_SIGN_IN_EXPLANATION,
+  ExternalSignInBadge,
+} from "@/components/users/external-sign-in-badge";
 import { useUpdateUser, useReactivateUser } from "@/hooks/users/useUserMutations";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import type { SocialLinks, UserPreferences, UserStatus } from "@/lib/users/types";
+import type {
+  SocialLinks,
+  UserAuthSource,
+  UserPreferences,
+  UserStatus,
+} from "@/lib/users/types";
 
 /** Shape returned by getUser query (enriched user profile) */
 interface EnrichedUser {
@@ -58,7 +70,7 @@ interface EnrichedUser {
   preferences?: UserPreferences;
   status: UserStatus;
   roleId?: Id<"roles">;
-  authSource?: "local" | "clerk" | "management";
+  authSource?: UserAuthSource;
   roleName?: string;
   roleLevel?: number;
   createdAt: number;
@@ -224,6 +236,9 @@ function EditUserPage() {
   }
 
   const user = userData as EnrichedUser;
+  // External accounts sign in through an integrator's identity provider:
+  // ConvexPress has no password or Clerk account to reset or impersonate.
+  const isExternal = user.authSource === "external";
 
   return (
     <RoutePermissionGuard requiredAccess="/admin/users/edit">
@@ -237,9 +252,12 @@ function EditUserPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-sm font-semibold text-foreground">
-            Edit User: {user.displayName || user.email}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-sm font-semibold text-foreground">
+              Edit User: {user.displayName || user.email}
+            </h1>
+            {isExternal && <ExternalSignInBadge />}
+          </div>
           <p className="text-xs text-muted-foreground">
             Manage user profile, role, and account settings.
           </p>
@@ -360,15 +378,25 @@ function EditUserPage() {
             Password Management
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Send a password reset email to this user. You cannot view or set
-            their password directly.
+            {isExternal
+              ? "This user has no ConvexPress password. Their identity provider manages sign-in and password changes."
+              : "Send a password reset email to this user. You cannot view or set their password directly."}
           </p>
         </div>
-        <ResetPasswordButton
-          targetUserId={typedUserId}
-          targetEmail={user.email}
-          targetDisplayName={user.displayName || user.email}
-        />
+        {isExternal ? (
+          <span className="inline-block" title={EXTERNAL_SIGN_IN_EXPLANATION}>
+            <Button variant="outline" size="sm" disabled>
+              <KeyRound className="size-3.5" />
+              <span>Reset Password</span>
+            </Button>
+          </span>
+        ) : (
+          <ResetPasswordButton
+            targetUserId={typedUserId}
+            targetEmail={user.email}
+            targetDisplayName={user.displayName || user.email}
+          />
+        )}
       </section>
 
       {/* User Impersonation Section */}
@@ -384,12 +412,15 @@ function EditUserPage() {
           will not be notified. All actions are logged to the audit trail with
           your identity as the impersonator.
         </p>
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          title={isExternal ? EXTERNAL_SIGN_IN_EXPLANATION : undefined}
+        >
           <Button
             variant="outline"
             size="sm"
             onClick={handleImpersonate}
-            disabled={user.status !== "active" || isImpersonating}
+            disabled={isExternal || user.status !== "active" || isImpersonating}
           >
             {isImpersonating ? (
               <LoaderIcon className="size-3.5 animate-spin" />
@@ -400,7 +431,12 @@ function EditUserPage() {
             {!isImpersonating && <ExternalLinkIcon className="size-3" />}
           </Button>
         </div>
-        {user.status !== "active" && (
+        {isExternal ? (
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            Cannot impersonate users who sign in through an external identity
+            provider.
+          </p>
+        ) : user.status !== "active" && (
           <p className="mt-2 text-[10px] text-muted-foreground">
             Cannot impersonate inactive or banned users.
           </p>

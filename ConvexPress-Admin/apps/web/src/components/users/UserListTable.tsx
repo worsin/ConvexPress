@@ -10,6 +10,7 @@
  *   - Sort by displayName, email, createdAt, postCount
  *   - Bulk delete with content disposition
  *   - Row actions: Edit, Delete, View
+ *   - "External sign-in" badge for accounts from an integrator's identity provider
  *   - Real-time: new registrations and status changes appear without refresh
  */
 
@@ -31,6 +32,7 @@ import { StatusTabs } from "@/components/shared/StatusTabs";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/users/avatar";
 import { UserStatusBadge } from "@/components/users/user-status-badge";
+import { ExternalSignInBadge } from "@/components/users/external-sign-in-badge";
 import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
 import { BulkChangeRoleDialog } from "@/components/users/BulkChangeRoleDialog";
 import { useListTable } from "@/hooks/useListTable";
@@ -67,8 +69,13 @@ const userColumns: ColumnDef<UserWithRole>[] = [
           >
             {row.displayName || row.username || row.email.split("@")[0]}
           </Link>
-          {row.status !== "active" && (
-            <UserStatusBadge status={row.status} className="mt-0.5" />
+          {(row.status !== "active" || row.authSource === "external") && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1">
+              {row.status !== "active" && (
+                <UserStatusBadge status={row.status} />
+              )}
+              {row.authSource === "external" && <ExternalSignInBadge />}
+            </div>
           )}
         </div>
       </div>

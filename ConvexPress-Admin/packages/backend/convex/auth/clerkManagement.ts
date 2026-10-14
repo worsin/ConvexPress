@@ -13,6 +13,7 @@ import {
   type ClerkProvisioningResult,
 } from "./clerkManagementHelpers";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { isDelegatedSignInAccount } from "./delegatedAccounts";
 
 import { usersDocs } from "../schema/users.docs.generated";
 const clerkSourceValidator = v.union(
@@ -62,6 +63,10 @@ export const markClerkProvisioning = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // External and management accounts sign in through another system. Never
+    // attach a Clerk identity to them or move them to Clerk auth.
+    const user = await ctx.db.get("users", args.userId);
+    if (!user || isDelegatedSignInAccount(user)) return null;
     const now = Date.now();
     const patch: Partial<WithoutSystemFields<Doc<"users">>> = {
       clerkProvisioningStatus: args.status,
@@ -85,6 +90,7 @@ export const markClerkProvisioning = internalMutation({
     }
 
     await patchWithMediaReferences<"users">(ctx, "users", args.userId, patch);
+    return null;
   },
 });
 
@@ -137,6 +143,11 @@ export const ensureUserInClerk = internalAction({
     });
     if (!user) {
       return { status: "failed", reason: "user_not_found" };
+    }
+    if (isDelegatedSignInAccount(user)) {
+      // Never create or link a Clerk user for an account whose sign-in is
+      // owned by an external identity provider or the control plane.
+      return { status: "skipped", reason: "delegated_sign_in" };
     }
 
     const setAuthSourceToClerk = args.setAuthSourceToClerk ?? !user.passwordHash;

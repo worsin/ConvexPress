@@ -40,6 +40,7 @@ import {
 import type { Capability } from "../types/capabilities";
 
 import { v } from "convex/values";
+import { userAuthSourceValidator } from "../schema/users";
 const USER_DIRECTORY_CAPABILITIES: Capability[] = [
   "profile.deactivate",
   "profile.delete_user",
@@ -70,7 +71,7 @@ export const getProfile = query({
     resolvedAvatarUrl: v.union(v.null(), v.string()),
     _id: v.id("users"),
     _creationTime: v.number(),
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    authSource: v.optional(userAuthSourceValidator),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     email: v.string(),
@@ -163,7 +164,7 @@ export const getUser = query({
     resolvedAvatarUrl: v.union(v.null(), v.string()),
     _id: v.id("users"),
     _creationTime: v.number(),
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    authSource: v.optional(userAuthSourceValidator),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     email: v.string(),
@@ -324,7 +325,7 @@ export const listUsers = query({
       roleLevel: v.optional(v.number()),
       _id: v.id("users"),
       _creationTime: v.number(),
-      authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+      authSource: v.optional(userAuthSourceValidator),
       passwordHash: v.optional(v.string()),
       clerkUserId: v.optional(v.string()),
       clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),

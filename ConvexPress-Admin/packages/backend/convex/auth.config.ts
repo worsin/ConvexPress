@@ -34,6 +34,10 @@ const providers: AuthConfig["providers"] = [
  * the variable without throwing; the Clerk provider is added as soon as it
  * exists. `helpers/permissions.ts` reads the same helper, so a Clerk identity
  * is only accepted from this exact issuer.
+ *
+ * Integrators that embed ConvexPress may append their own staff identity
+ * provider here. Its identities resolve only through server-side links in
+ * `userExternalIdentities` (see `users/externalIdentities.ts`).
  */
 const clerkDomain = clerkIssuerDomain();
 

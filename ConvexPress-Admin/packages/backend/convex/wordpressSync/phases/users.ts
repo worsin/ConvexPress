@@ -31,6 +31,7 @@ import {
   normalizeClerkEmail,
 } from "../../auth/clerkManagementHelpers";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
+import { isDelegatedSignInAccount } from "../../auth/delegatedAccounts";
 
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
@@ -456,6 +457,10 @@ export const markImportedUserCredentialMigration = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // An imported WordPress identity must never take over an account whose
+    // sign-in is owned by an external identity provider or the control plane.
+    const user = await ctx.db.get("users", args.userId);
+    if (!user || isDelegatedSignInAccount(user)) return null;
     const patch: Record<string, unknown> = {
       wpCredentialMigrationStatus: args.status,
       wpCredentialMigrationReason: args.reason,
@@ -472,6 +477,7 @@ export const markImportedUserCredentialMigration = internalMutation({
     }
 
     await patchWithMediaReferences<"users">(ctx, "users", args.userId, patch);
+    return null;
   },
 });
 

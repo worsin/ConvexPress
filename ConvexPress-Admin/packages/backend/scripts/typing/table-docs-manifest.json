@@ -91,6 +91,10 @@
     "module": "schema/contentPromotion.docs.generated",
     "exportName": "contentPromotionDocs"
   },
+  "userExternalIdentities": {
+    "module": "schema/users.docs.generated",
+    "exportName": "usersDocs"
+  },
   "users": {
     "module": "schema/users.docs.generated",
     "exportName": "usersDocs"

@@ -10,7 +10,8 @@
  *   management  Control-plane management session. Subject is the session id.
  *   clerk       The configured Clerk instance. Subject is `users.clerkUserId`.
  *   external    Any other issuer an integrator trusts in `auth.config.ts`.
- *               Never resolves by subject alone.
+ *               Resolves only through a server-side `userExternalIdentities`
+ *               link, never by subject alone.
  *
  * Pure module: no Convex runtime imports, so `auth.config.ts` can bundle it.
  */

@@ -2,6 +2,7 @@ import * as catalogRevisionWrites from "./media/attachmentGuard";
 import {
   roleCompatibleWithIdentity,
   CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
+  legacyInternalRoleForRoleSlug,
 } from "../lib/auth/roleAssignment";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
@@ -55,14 +56,6 @@ const LEGACY_UPDATE_ROLE_MAP: Record<string, string> = {
   ...LEGACY_ROLE_MAP,
   subscriber: "subscriber",
 };
-const ROLE_SLUG_TO_LEGACY_INTERNAL_ROLE: Record<string, string> = {
-  administrator: "admin",
-  subscriber: "customer",
-};
-
-function legacyInternalRoleForRoleSlug(slug: string): string {
-  return ROLE_SLUG_TO_LEGACY_INTERNAL_ROLE[slug] ?? slug;
-}
 
 function toPublicCurrentUser(user: Awaited<ReturnType<typeof getUser>>): CurrentUserPublic | null {
   if (!user || user.status !== "active") return null;
@@ -192,8 +185,8 @@ export const hasAnyAdmin = query({
  *   1. Legacy: `isInternal === true` (backward compatibility during migration)
  *   2. New system: An active role with type "internal" (Admin/Editor roles)
  *
- * Supports dual-auth: local admin JWT and Clerk. Uses getCurrentUser() which
- * handles both auth sources.
+ * Uses getCurrentUser(), which resolves every identity source (local admin
+ * JWT, management sessions, Clerk, linked external operators).
  *
  * TODO: Once all users are migrated to the new role system, remove the
  * `isInternal` check and rely solely on the role-based check.
@@ -213,7 +206,14 @@ export const checkAdminAccess = query({
     const user = await getUser(ctx);
     if (!user) return null;
     if (user.status !== "active") return null;
-    if (user.authSource !== "local" && user.authSource !== "management") {
+    // Operator identities only: local admin JWT, management sessions, and an
+    // integrator's linked external staff. Website (Clerk) accounts never
+    // reach the admin panel, whatever role they hold.
+    if (
+      user.authSource !== "local" &&
+      user.authSource !== "management" &&
+      user.authSource !== "external"
+    ) {
       return null;
     }
 

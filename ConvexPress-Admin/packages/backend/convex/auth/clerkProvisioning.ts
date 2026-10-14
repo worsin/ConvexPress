@@ -18,6 +18,7 @@ import {
 } from "../helpers/registration";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { classifyIdentity } from "./issuers";
+import { isDelegatedSignInAccount } from "./delegatedAccounts";
 
 import { v } from "convex/values";
 /**
@@ -129,6 +130,15 @@ async function provisionClerkIdentity(
         .unique();
 
       if (byEmail) {
+        // External and management accounts sign in through another system;
+        // a Clerk session must never claim them by email.
+        if (isDelegatedSignInAccount(byEmail)) {
+          console.warn(
+            `[ClerkProvisioning] Email ${normalizedEmail} belongs to an account with delegated sign-in; not linking to Clerk user ${clerkUserId}.`,
+          );
+          decline.reason = "email_conflict";
+          return null;
+        }
         if (!byEmail.clerkUserId) {
           if (!emailVerified) {
             decline.reason = "email_unverified";

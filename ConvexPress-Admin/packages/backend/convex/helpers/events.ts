@@ -32,8 +32,9 @@
  *   });
  */
 
-import type { RequestReadLedger } from "./requestReadLedger";
+import { isRequestReadBudgetError, type RequestReadLedger } from "./requestReadLedger";
 import { classifyIdentity } from "../auth/issuers";
+import { readExternalIdentityLink } from "./externalIdentities";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
@@ -69,12 +70,19 @@ const MAX_PAYLOAD_SIZE = 102400;
 /**
  * The audit actor identifier for a verified identity. ConvexPress's own and
  * Clerk identities keep their subject (a users `_id`, a management session id
- * or a clerkUserId, all resolvable by lookupUserByIdentifier). Any other
- * issuer's subject is only unique within that issuer, so it is recorded as
- * its full tokenIdentifier, never as a bare subject another account could match.
+ * or a clerkUserId, all resolvable by lookupUserByIdentifier). An external
+ * identity's subject is only unique within its issuer, so it is recorded as
+ * the linked user's `_id`, or as its full tokenIdentifier when unlinked; it is
+ * never recorded as a bare subject another account could match.
  */
-function eventActorIdentifier(identity: { subject: string; tokenIdentifier: string; issuer?: string }): string {
-  return classifyIdentity(identity) === "external" ? identity.tokenIdentifier : identity.subject;
+async function eventActorIdentifier(
+  ctx: Pick<MutationCtx, "db">,
+  identity: { subject: string; tokenIdentifier: string; issuer?: string },
+  budget?: RequestReadLedger,
+): Promise<string> {
+  if (classifyIdentity(identity) !== "external") return identity.subject;
+  const link = await readExternalIdentityLink(ctx, identity.tokenIdentifier, budget);
+  return link ? link.userId : identity.tokenIdentifier;
 }
 
 /**
@@ -175,9 +183,10 @@ export async function emitEvent(
     try {
       const identity = await ctx.auth.getUserIdentity();
       if (identity) {
-        actorId = eventActorIdentifier(identity);
+        actorId = await eventActorIdentifier(ctx, identity, budget);
       }
-    } catch {
+    } catch (error) {
+      if (isRequestReadBudgetError(error)) throw error;
       // No auth context available (system-initiated event). This is fine.
     }
   }

@@ -60,6 +60,12 @@ export function RoleSelector({
       targets.some(
         (target) => !roleCompatibleWithIdentity(target, { type: "internal" }),
       ));
+  // External operators may hold internal roles but never system-reserved ones.
+  const excludesSystemRoles =
+    targets !== undefined &&
+    targets.some(
+      (target) => !roleCompatibleWithIdentity(target, { type: "system" }),
+    );
 
   const sortedRoles = useMemo(() => {
     if (!roles) return [];
@@ -68,9 +74,10 @@ export function RoleSelector({
       (role) =>
         role.status === "active" &&
         (!customerOnly || role.type === "customer") &&
+        (!excludesSystemRoles || role.type !== "system") &&
         (!allowedSlugs || allowedSlugs.includes(role.slug)),
     );
-  }, [roles, customerOnly, allowedSlugs]);
+  }, [roles, customerOnly, excludesSystemRoles, allowedSlugs]);
 
   const isLoading = roles === undefined;
 

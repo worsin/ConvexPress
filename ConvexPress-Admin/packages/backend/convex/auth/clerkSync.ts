@@ -17,6 +17,7 @@ import {
 } from "../helpers/registration";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { canUseAdminLocalAuth } from "./adminPresence";
+import { isDelegatedSignInAccount } from "./delegatedAccounts";
 import type { Doc } from "../_generated/dataModel";
 import type { WithoutSystemFields } from "convex/server";
 
@@ -105,6 +106,12 @@ export const upsertClerkUser = internalMutation({
       .unique();
 
     if (byEmail) {
+      if (isDelegatedSignInAccount(byEmail)) {
+        console.warn(
+          `[ClerkSync] Email ${normalizedEmail} belongs to an account with delegated sign-in; skipping link for Clerk user ${clerkUserId}.`,
+        );
+        return;
+      }
       if (!byEmail.clerkUserId) {
         if (
           byEmail.passwordHash ||
