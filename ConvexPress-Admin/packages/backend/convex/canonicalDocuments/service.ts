@@ -74,9 +74,7 @@ import {
 import { resolveCanonicalPageData } from "./data";
 import { projectPublicBlocks } from "./publicBlocks";
 import { LegacyMigrationError, reviewLegacyDocumentSource } from "./foundation/legacyDocumentMigration";
-import { reviewLegacyBlocks } from "./foundation/legacyBlockMigration";
-import { hasStructuredArticle, migrateStructuredArticle } from "./foundation/legacyStructuredMigration";
-import { migrateLegacySections } from "./foundation/legacySectionMigration";
+import { convertLegacyAuthoring, legacySourceKind, type LegacyAuthoringConversion } from "./legacyAuthoringConversion";
 import { parseCanonicalMigration, type CanonicalMigrationDto, type MigrationPreservedStatus } from "./foundation/migrationContracts";
 function refuse(code: string, message: string): never {
 	throw new ConvexError({ code, message });
@@ -577,32 +575,11 @@ function prepareAuthoredMigration(post: HistoricalAuthoringSource, reusableSourc
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
   const revision = authoringRevision(post);
   if (revision >= Number.MAX_SAFE_INTEGER - 1) refuse("AUTHORING_REVISION_EXHAUSTED", "The document revision cannot advance safely.");
-  // Match the Website's visible-source precedence. In particular, block-mode
-  // posts prefer nonempty blocks to structured content, and block-mode pages
-  // use sections (including an empty list) rather than hidden article text.
-  let importedContent: "plain-text" | "html" | undefined;
-  const blockReview = post.contentMode === "blocks" && post.blocks?.length ? reviewLegacyBlocks(post.blocks) : null;
-  const blocks = blockReview
-    ? blockReview.blocks
-    : post.contentMode === "blocks" && post.type === "page"
-      ? migrateLegacySections(post.pageSections ?? [])
-      : migrateArticleSource();
-  return { title: post.title, blocks, digest: canonicalContentDigest(post.title, blocks), revision: revision + 1, changed: true, ...(importedContent ? {importedContent} : {}), ...(blockReview?.inactiveSettings.length ? {inactiveSettings:blockReview.inactiveSettings} : {}) };
-
-  function migrateArticleSource() {
-   if (post.type === "post" && hasStructuredArticle(post)) return migrateStructuredArticle({
-     postId: post._id, path: `/blog/${post.slug}`, hero: post.hero, topics: post.topics,
-     summary: post.summary, sources: post.sources, tableOfContents: post.tableOfContents,
-   });
-   const reviewed = reviewLegacyDocumentSource({ postId: post._id, content: post.content ?? "", reusableSources });
-   importedContent = reviewed.importedContent;
-   return reviewed.blocks;
-  }
+  const { blocks, importedContent, inactiveSettings } = convertLegacyAuthoring(post, post._id, reusableSources);
+  return { title: post.title, blocks, digest: canonicalContentDigest(post.title, blocks), revision: revision + 1, changed: true, ...(importedContent ? {importedContent} : {}), ...(inactiveSettings ? {inactiveSettings} : {}) };
 }
 async function prepareMigrationReferences(ctx: QueryCtx, post: HistoricalAuthoringSource, budget: RequestReadLedger) {
- const usesDocument = !(post.contentMode === "blocks" && (post.blocks?.length || post.type === "page"))
-  && !(post.type === "post" && hasStructuredArticle(post));
- const references = usesDocument ? await legacyReferenceMap(ctx,post.content ?? "",budget) : undefined;
+ const references = legacySourceKind(post) === "document" ? await legacyReferenceMap(ctx,post.content ?? "",budget) : undefined;
  return prepareAuthoredMigration(post,references);
 }
 /** Explicit migration retains lifecycle. Draft projection selects the legacy
@@ -809,8 +786,10 @@ async function authoringUpdatedEvent(ctx: MutationCtx, post: Doc<"posts">, field
     }, undefined, budget);
 }
 export type PublicationArgs = { postId: Id<"posts">; expectedRevision: number; status: PublicationStatus; scheduledAt?: number };
-async function publishedEvent(ctx: MutationCtx, post: Doc<"posts">, now: number, scheduled: boolean, budget: RequestReadLedger): Promise<void> {
-  await emitEvent(ctx, post.type === "page" ? PAGE_EVENTS.PUBLISHED : POST_EVENTS.PUBLISHED, post.type === "page" ? SYSTEM.PAGE : SYSTEM.POST, { postId: post._id, ...(post.type === "page" ? { pageId: post._id } : {}), title: post.title, authorId: post.authorId, publishedAt: now, url: post.type === "page" ? post.path ?? `/${post.slug}` : `/blog/${post.slug}`, scheduledPublish: scheduled }, undefined, budget);
+/** `imported` marks a document that was already published on its source site.
+ * Index, sitemap and count listeners still run; announcements do not. */
+async function publishedEvent(ctx: MutationCtx, post: Doc<"posts">, now: number, scheduled: boolean, budget: RequestReadLedger, imported = false): Promise<void> {
+  await emitEvent(ctx, post.type === "page" ? PAGE_EVENTS.PUBLISHED : POST_EVENTS.PUBLISHED, post.type === "page" ? SYSTEM.PAGE : SYSTEM.POST, { postId: post._id, ...(post.type === "page" ? { pageId: post._id } : {}), title: post.title, authorId: post.authorId, publishedAt: now, url: post.type === "page" ? post.path ?? `/${post.slug}` : `/blog/${post.slug}`, scheduledPublish: scheduled, ...(imported ? { imported: true } : {}) }, undefined, budget);
   await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", { authorId: Id<"users"> }>("posts/internals:updatePostCount"), { authorId: post.authorId });
 }
 export async function setDocumentPublication(ctx: MutationCtx, args: PublicationArgs): Promise<CanonicalWriteReceipt> {
@@ -1400,7 +1379,7 @@ function apiPublication(
 export async function createApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput): Promise<Id<"posts">> {
  return createForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
 }
-async function createForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput, user: Doc<"users">, imported: ImportMetadata = {}): Promise<Id<"posts">> {
+async function createForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput, user: Doc<"users">, imported?: ImportMetadata): Promise<Id<"posts">> {
  const budget = new RequestReadLedger();
 	await requireApiCapability(
 		ctx,
@@ -1581,7 +1560,7 @@ async function createForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 		budget,
 	);
 	if (publication.status === "publish")
-		await publishedEvent(ctx, ready, publication.publishedAt!, false, budget);
+		await publishedEvent(ctx, ready, publication.publishedAt!, false, budget, imported !== undefined);
 	return id;
 }
 export async function updateApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number }): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
@@ -1972,4 +1951,77 @@ export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "
  if (mapping) await ctx.db.patch("wpIdMappings",mapping._id,receipt);
  else await ctx.db.insert("wpIdMappings",{siteId:args.siteId,objectType:type,wpId:wp.id,...receipt,createdAt:Date.now()});
  return id;
+}
+
+// Older ConvexPress sites store posts and pages in the legacy authoring shape.
+// A migration tool is a trusted server caller. The named author is also the
+// actor whose capabilities are checked, as for API keys and WordPress jobs.
+// Conversion uses the in-editor migration's precedence and converters; content
+// they cannot represent is returned, not thrown, and nothing is written.
+import type { LegacyDocumentImportArgs, LegacyDocumentImportResult } from "./legacyImportContracts";
+const LEGACY_IMPORT_RECEIPT_PREFIX = "_convexpress_legacy_import:";
+const LEGACY_IMPORT_SOURCE_KEY = "_convexpress_legacy_source";
+const LEGACY_IMPORT_ARCHIVE_BYTES = 768 * 1024;
+function recordedImportDigest(value: string): string | null {
+ try {
+  const receipt: unknown = JSON.parse(value);
+  return receipt && typeof receipt === "object" && "requestDigest" in receipt && typeof receipt.requestDigest === "string" ? receipt.requestDigest : null;
+ } catch { return null; }
+}
+function legacyPageSections(json: string | undefined): unknown {
+ if (json === undefined) return undefined;
+ try { return JSON.parse(json); }
+ catch { throw new LegacyMigrationError(["pageSections"], "Page sections must be the stored JSON array"); }
+}
+export async function importLegacyDocument(ctx: MutationCtx, args: LegacyDocumentImportArgs): Promise<LegacyDocumentImportResult> {
+ if (!/^[!-~]{1,200}$/u.test(args.sourceRef)) refuse("INVALID_IMPORT_SOURCE_REF", "The source reference must be 1 to 200 printable characters without spaces.");
+ // The archive keeps the whole request recoverable, except a document password,
+ // which protects the document and is never copied into its metadata.
+ const { password, ...request } = args;
+ let archive: string;
+ try { archive = canonicalJson({ ...request, hasPassword: password !== undefined }); }
+ catch { refuse("IMPORT_SOURCE_INVALID", "The import request must contain only JSON values."); }
+ const requestDigest = sha256Hex(archive);
+ const receiptKey = `${LEGACY_IMPORT_RECEIPT_PREFIX}${args.sourceRef}`;
+ const receipt = await ctx.db.query("postMeta").withIndex("by_key", q => q.eq("key", receiptKey)).unique();
+ if (receipt) {
+  const existing = await ctx.db.get("posts", receipt.postId);
+  if (!existing || existing.type !== args.type) refuse("CONFLICT", "The recorded import no longer matches a document of this type.");
+  return { ok: true, postId: existing._id, created: false, sourceChanged: recordedImportDigest(receipt.value) !== requestDigest };
+ }
+ if (new TextEncoder().encode(archive).length > LEGACY_IMPORT_ARCHIVE_BYTES)
+  refuse("IMPORT_RECORD_TOO_LARGE", "The recoverable import source exceeds the bounded record limit.");
+ if (args.type === "post" && (args.parentId !== undefined || args.menuOrder !== undefined || args.pageTemplate !== undefined))
+  refuse("IMPORT_FIELD_INVALID", "Parent, menu order and template apply only to pages.");
+ if (apiSlugify(args.slug) !== args.slug) refuse("INVALID_IMPORT_SLUG", "Supply the source document's canonical slug.");
+ const now = Date.now();
+ if (args.publishedAt !== undefined && (args.status === "future" || !Number.isSafeInteger(args.publishedAt) || args.publishedAt <= 0 || args.publishedAt > now))
+  refuse("INVALID_PUBLICATION_TIME", "The original publication time must be a past timestamp. A scheduled import supplies scheduledAt instead.");
+ if (args.status === "future" ? args.scheduledAt === undefined || !Number.isSafeInteger(args.scheduledAt) || args.scheduledAt <= now : args.scheduledAt !== undefined)
+  refuse("INVALID_PUBLICATION_TIME", "Only a scheduled import supplies scheduledAt, and it must be in the future.");
+ const author = await ctx.db.get("users", args.authorId);
+ if (!author || author.status !== "active" || author.authSource === "management")
+  refuse("IMPORT_AUTHOR_INVALID", "The import author must be an active site user.");
+ if (args.featuredImageId !== undefined) {
+  const media = await ctx.db.get("media", args.featuredImageId);
+  if (!media || (media.status !== "active" && media.status !== "processing")) refuse("IMPORT_MEDIA_INVALID", "The featured image is missing or unavailable.");
+ }
+ let converted: LegacyAuthoringConversion;
+ try {
+  converted = convertLegacyAuthoring({
+   type: args.type, slug: args.slug, contentMode: args.source.contentMode, blocks: args.source.blocks,
+   pageSections: legacyPageSections(args.source.pageSectionsJson), content: args.source.content,
+  }, `legacy-import:${args.sourceRef}`);
+ } catch (error) {
+  if (error instanceof LegacyMigrationError) return { ok: false, code: error.code, path: error.path, message: error.message };
+  throw error;
+ }
+ const { type, authorId, featuredImageId, publishedAt, source, sourceRef, ...fields } = args;
+ const metadata: ImportMetadata = { authorId: author._id, ...(featuredImageId !== undefined ? { featuredImageId } : {}), ...(publishedAt !== undefined ? { publishedAt } : {}) };
+ const postId = await createForActor(ctx, type, { ...fields, blocks: converted.blocks }, author, metadata);
+ const created = await ctx.db.get("posts", postId);
+ if (created?.slug !== args.slug) refuse("IMPORT_SLUG_UNAVAILABLE", "Another document already uses this slug. Resolve the route conflict before importing.");
+ await insertWithMediaReferences(ctx, "postMeta", { postId, key: receiptKey, value: JSON.stringify({ contract: "convexpress-legacy-import-v1", sourceRef, requestDigest }) });
+ await insertWithMediaReferences(ctx, "postMeta", { postId, key: LEGACY_IMPORT_SOURCE_KEY, value: archive });
+ return { ok: true, postId, created: true, ...(converted.importedContent ? { importedContent: converted.importedContent } : {}), ...(converted.inactiveSettings ? { inactiveSettings: converted.inactiveSettings } : {}) };
 }

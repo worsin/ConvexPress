@@ -54,6 +54,52 @@ export const postTypeValidator = v.union(
   v.literal("page"),
 );
 
+/** Saved layout of a version 1 block. The old renderer never applied it, so a
+ * migration reports it rather than activating it. */
+export const legacyBlockLayoutValidator = v.object({
+  tone: v.optional(v.union(
+    v.literal("default"),
+    v.literal("muted"),
+    v.literal("accent"),
+    v.literal("contrast"),
+  )),
+  padding: v.optional(v.union(
+    v.literal("compact"),
+    v.literal("normal"),
+    v.literal("spacious"),
+  )),
+  container: v.optional(v.union(
+    v.literal("content"),
+    v.literal("wide"),
+    v.literal("full"),
+  )),
+  align: v.optional(v.union(
+    v.literal("default"),
+    v.literal("wide"),
+    v.literal("full"),
+  )),
+});
+
+/** Saved editing locks of a version 1 block. */
+export const legacyBlockLockValidator = v.object({
+  move: v.optional(v.boolean()),
+  remove: v.optional(v.boolean()),
+  edit: v.optional(v.boolean()),
+});
+
+/** The version 1 block-editor tree. Live posts store canonical trees; this
+ * shape survives in archived revisions and in sources imported from older
+ * ConvexPress sites. */
+export const legacyBlockArrayValidator = v.array(v.object({
+  id: v.string(),
+  name: v.string(),
+  version: v.number(),
+  attrs: v.any(),
+  innerBlocks: v.optional(v.any()),
+  layout: v.optional(legacyBlockLayoutValidator),
+  lock: v.optional(legacyBlockLockValidator),
+}));
+
 // ─── Tables ─────────────────────────────────────────────────────────────────
 
 export const postTables = {
@@ -115,41 +161,7 @@ export const postTables = {
     pageTemplate: v.optional(v.string()), // Page template key (pages only)
     // Current authoring uses the canonical tree. Legacy text/mode/sections
     // are retained only in immutable revisions, never in the live post table.
-    blocks: v.optional(v.union(canonicalStoredTreeValidator, v.array(v.object({
-      id: v.string(),
-      name: v.string(),
-      version: v.number(),
-      attrs: v.any(),
-      innerBlocks: v.optional(v.any()),
-      layout: v.optional(v.object({
-        tone: v.optional(v.union(
-          v.literal("default"),
-          v.literal("muted"),
-          v.literal("accent"),
-          v.literal("contrast"),
-        )),
-        padding: v.optional(v.union(
-          v.literal("compact"),
-          v.literal("normal"),
-          v.literal("spacious"),
-        )),
-        container: v.optional(v.union(
-          v.literal("content"),
-          v.literal("wide"),
-          v.literal("full"),
-        )),
-        align: v.optional(v.union(
-          v.literal("default"),
-          v.literal("wide"),
-          v.literal("full"),
-        )),
-      })),
-      lock: v.optional(v.object({
-        move: v.optional(v.boolean()),
-        remove: v.optional(v.boolean()),
-        edit: v.optional(v.boolean()),
-      })),
-    })))),
+    blocks: v.optional(v.union(canonicalStoredTreeValidator, legacyBlockArrayValidator)),
     blocksVersion: v.optional(v.number()),
     blocksRevision: v.optional(v.number()),
     // Immutable definitions used by this authored tree. The canonical service
