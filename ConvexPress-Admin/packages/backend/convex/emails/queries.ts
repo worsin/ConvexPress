@@ -33,10 +33,10 @@ import {
 import { EMAIL_TEMPLATE_REGISTRY_BY_SLUG, type EmailTemplateTriggerKind } from "./registry";
 
 import { v } from "convex/values";
-const TEMPLATE_REGISTRY = EMAIL_TEMPLATE_REGISTRY_BY_SLUG as Record<
+const TEMPLATE_REGISTRY: Record<
   string,
-  { canonicalEventCode?: string; triggerKind?: EmailTemplateTriggerKind }
->;
+  { canonicalEventCode?: string; triggerKind?: EmailTemplateTriggerKind } | undefined
+> = EMAIL_TEMPLATE_REGISTRY_BY_SLUG;
 
 // ─── listQueue ───────────────────────────────────────────────────────────────
 
