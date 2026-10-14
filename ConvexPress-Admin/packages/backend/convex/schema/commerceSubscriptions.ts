@@ -506,7 +506,8 @@ export const commerceSubscriptionTables = {
     updatedAt: v.number(),
   })
     .index("by_subscription", ["subscriptionId"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_status_grace_ends", ["status", "graceEndsAt"]),
 
   commerce_subscription_dunning_attempts: defineTable({
     subscriptionId: v.id("commerce_subscriptions"),
