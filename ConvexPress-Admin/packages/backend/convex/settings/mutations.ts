@@ -43,6 +43,7 @@ import {
 
 import { v } from "convex/values";
 import { settingsRecord } from "../helpers/settingsReader";
+import { upgradeLegacySettingSecrets } from "./internals";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const SETTINGS_DOCUMENT_METADATA_KEYS = new Set([
@@ -480,7 +481,6 @@ export const encryptStoredSecrets = mutation({
   returns: v.object({ upgraded: v.number(), sections: v.array(v.string()) }),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
-    const { upgradeLegacySettingSecrets } = await import("./internals");
     return await upgradeLegacySettingSecrets(ctx);
   },
 });

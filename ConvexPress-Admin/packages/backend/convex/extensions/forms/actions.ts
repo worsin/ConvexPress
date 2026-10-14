@@ -42,6 +42,8 @@ import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
+import { emitEvent } from "../../helpers/events";
+import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
@@ -655,9 +657,7 @@ export const emitActionEvent = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { emitEvent } = await import("../../helpers/events");
-    const { FORM_EVENTS, SYSTEM } = await import("../../events/constants");
-    const code =
+        const code =
       args.kind === "completed"
         ? FORM_EVENTS.ACTION_COMPLETED
         : FORM_EVENTS.ACTION_FAILED;

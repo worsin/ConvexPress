@@ -12,9 +12,9 @@ import {
   normalizeOptionalString,
   readLimitedRequestText,
 } from "./inputLimits";
+import { getServiceKeyFromAction } from "../helpers/serviceKeys";
 
 export const clerkWebhookHandler = httpAction(async (ctx, request) => {
-  const { getServiceKeyFromAction } = await import("../helpers/serviceKeys");
   const webhookSecret = await getServiceKeyFromAction(
     ctx,
     "integrations.clerk",

@@ -65,6 +65,8 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { getPayPalBaseUrl } from "./commerce/paypalMode";
 import { jsonAt } from "./helpers/jsonValue";
+import { getServiceKeyFromAction } from "./helpers/serviceKeys";
+import { verifyStripeWebhook } from "./helpers/stripeWebhookSignature";
 import { readExternalJson } from "./helpers/externalJson";
 import { z } from "zod";
 import {
@@ -477,18 +479,11 @@ http.route({
 
     // Settings-first, env-fallback. Keys live in commerce.payments section
     // (admin UI at /settings/integrations/stripe).
-    const { getServiceKeyFromAction } = await import("./helpers/serviceKeys");
     const webhookSecret = await getServiceKeyFromAction(
       ctx,
       "commerce.payments",
       "stripeWebhookSecret",
       "STRIPE_WEBHOOK_SECRET",
-    );
-    const stripeSecretKey = await getServiceKeyFromAction(
-      ctx,
-      "commerce.payments",
-      "stripeSecretKey",
-      "STRIPE_SECRET_KEY",
     );
     if (!webhookSecret || !signature) {
       return new Response(
@@ -496,25 +491,12 @@ http.route({
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
-    if (!stripeSecretKey) {
-      return new Response(
-        JSON.stringify({ error: "Stripe secret key not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // Dynamic import for Stripe SDK (Node.js action context)
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(stripeSecretKey);
 
     let webhookEventId: Id<"commerce_webhook_events"> | undefined;
 
     try {
-      const event = await stripe.webhooks.constructEventAsync(
-        body,
-        signature,
-        webhookSecret,
-      );
+      // HTTP actions run in V8: verify with Web Crypto, not the Node SDK.
+      const event = await verifyStripeWebhook(body, signature, webhookSecret);
 
       // Log the webhook event and check for idempotency
       const logResult = await ctx.runMutation(
@@ -872,10 +854,7 @@ http.route({
 
     // ── PayPal Signature Verification ──────────────────────────────────────
     // Settings-first, env-fallback.
-    const { getServiceKeyFromAction: getPPKey } = await import(
-      "./helpers/serviceKeys"
-    );
-    const webhookId = await getPPKey(
+    const webhookId = await getServiceKeyFromAction(
       ctx,
       "commerce.payments",
       "paypalWebhookId",
@@ -909,20 +888,20 @@ http.route({
     }
 
     // Verify signature via PayPal API
-    const paypalClientId = await getPPKey(
+    const paypalClientId = await getServiceKeyFromAction(
       ctx,
       "commerce.payments",
       "paypalClientId",
       "PAYPAL_CLIENT_ID",
     );
-    const paypalClientSecret = await getPPKey(
+    const paypalClientSecret = await getServiceKeyFromAction(
       ctx,
       "commerce.payments",
       "paypalClientSecret",
       "PAYPAL_CLIENT_SECRET",
     );
     const paypalMode =
-      (await getPPKey(ctx, "commerce.payments", "paypalMode", "PAYPAL_MODE")) ||
+      (await getServiceKeyFromAction(ctx, "commerce.payments", "paypalMode", "PAYPAL_MODE")) ||
       "sandbox";
     const paypalBaseUrl = getPayPalBaseUrl(paypalMode);
 

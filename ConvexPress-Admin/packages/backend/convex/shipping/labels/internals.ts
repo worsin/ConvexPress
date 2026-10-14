@@ -4,6 +4,7 @@ import { internalQuery } from "../../_generated/server";
 
 import { commerceDocs } from "../../schema/commerce.docs.generated";
 import { shippingDocs } from "../../schema/shipping.docs.generated";
+import { computeAddressFingerprint } from "../helpers/addressFingerprint";
 export const getOrderById = internalQuery({
   args: { orderId: v.id("commerce_orders") },
   returns: v.union(v.null(), commerceDocs.commerce_orders),
@@ -54,10 +55,6 @@ export const getCurrentQuoteFingerprint = internalQuery({
       .query("commerce_order_items")
       .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
-
-    const { computeAddressFingerprint } = await import(
-      "../helpers/addressFingerprint"
-    );
     const addressKey = order.shippingAddress
       ? computeAddressFingerprint(order.shippingAddress)
       : null;

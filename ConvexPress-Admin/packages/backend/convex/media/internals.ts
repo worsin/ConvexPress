@@ -31,8 +31,8 @@ import { internal } from "../_generated/api";
 import { prepareMediaDeletion, applyMediaDeletionPreflight, prepareSizeWipe, preflightOriginalSwap } from "./deletion";
 import { requireAttachableMedia } from "./attachmentGuard";
 import { makeFunctionReference } from "convex/server";
-import { requireCan } from "../helpers/permissions";
-import { getUserRoleLevel } from "./mediaAuth";
+import { getUserIdentifier, requireCan } from "../helpers/permissions";
+import { checkMediaCapability, getUserRoleLevel } from "./mediaAuth";
 import { emitEvent } from "../helpers/events";
 import { MEDIA_EVENTS, SYSTEM } from "../events/constants";
 import type { Id } from "../_generated/dataModel";
@@ -1064,8 +1064,6 @@ export const deleteMediaInternal = internalMutation({
     await applyMediaDeletionPreflight(ctx, plan);
 
     // Emit media.deleted event (LOW #21 fix)
-    const { emitEvent } = await import("../helpers/events");
-    const { MEDIA_EVENTS, SYSTEM } = await import("../events/constants");
 
     await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, {
       mediaId: args.mediaId,
@@ -1117,14 +1115,12 @@ export const checkEditCapability = internalMutation({
   },
   returns: v.object({ userIdentifier: v.string(), userId: v.id("users") }),
   handler: async (ctx, args) => {
-    const { requireCan } = await import("../helpers/permissions");
-    const { checkMediaCapability } = await import("./mediaAuth");
 
     const user = await requireCan(ctx, "media.update");
 
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) {
-      throw new (await import("convex/values")).ConvexError({
+      throw new ConvexError({
         code: "NOT_FOUND",
         message: "Media item not found",
       });
@@ -1132,7 +1128,6 @@ export const checkEditCapability = internalMutation({
 
     await checkMediaCapability(ctx, user, media, "edit");
 
-    const { getUserIdentifier } = await import("../helpers/permissions");
     return { userIdentifier: getUserIdentifier(user), userId: user._id };
   },
 });
@@ -1161,8 +1156,6 @@ export const emitMediaEditedEvent = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     // Import lazily to avoid circular deps
-    const { emitEvent } = await import("../helpers/events");
-    const { MEDIA_EVENTS, SYSTEM } = await import("../events/constants");
 
     await emitEvent(ctx, MEDIA_EVENTS.UPDATED, SYSTEM.MEDIA, {
       mediaId: args.mediaId,
