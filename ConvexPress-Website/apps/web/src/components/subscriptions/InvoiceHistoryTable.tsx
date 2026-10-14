@@ -4,8 +4,15 @@ import { toast } from "sonner";
 import { Download, FileText } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
-import { cn } from "@/lib/utils";
-import { idFromString } from "@/lib/ids";
+import { cn, getErrorMessage } from "@/lib/utils";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { formatDate, formatMoney, type CustomerInvoice } from "./portalTypes";
+
+const KIND_LABELS: Record<CustomerInvoice["kind"], string> = {
+  signup: "Signup",
+  renewal: "Renewal",
+  plan_change: "Plan change",
+};
 
 /**
  * Renders the current user's subscription invoice history across all their
@@ -17,20 +24,6 @@ import { idFromString } from "@/lib/ids";
  * Theme-token colours only.
  */
 
-type Invoice = {
-  _id: string;
-  status: string;
-  totalAmount: number;
-  currencyCode: string;
-  dueAt?: number;
-  paidAt?: number;
-  createdAt: number;
-  subscription?: {
-    _id: string;
-    status: string;
-  } | null;
-};
-
 interface InvoiceHistoryTableProps {
   /**
    * Optional filter: limit the list to invoices belonging to ONE specific
@@ -41,22 +34,6 @@ interface InvoiceHistoryTableProps {
   /** Max invoices to show. Defaults to 100. */
   limit?: number;
   className?: string;
-}
-
-function formatMoney(amount: number, currencyCode = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-  }).format(amount / 100);
-}
-
-function formatDate(ts: number | undefined) {
-  if (!ts) return "--";
-  return new Date(ts).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 // ─── Status badge ───────────────────────────────────────────────────────────
@@ -107,7 +84,7 @@ export function InvoiceHistoryTable({
   limit = 100,
   className,
 }: InvoiceHistoryTableProps) {
-  const invoices: Invoice[] | undefined = useQuery(
+  const invoices: CustomerInvoice[] | undefined = useQuery(
     api.commerceSubscriptions.portal.listMyInvoices,
     { limit },
   );
@@ -116,27 +93,20 @@ export function InvoiceHistoryTable({
     api.commerceSubscriptions.portal.getInvoicePdf,
   );
 
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<Id<"commerce_subscription_invoices"> | null>(null);
 
   const rows = (invoices ?? []).filter((invoice) => {
     if (!contractId) return true;
-    return invoice.subscription?._id === contractId;
+    return invoice.subscription._id === contractId;
   });
 
-  async function handleDownload(invoiceId: string) {
+  async function handleDownload(invoiceId: Id<"commerce_subscription_invoices">) {
     setDownloadingId(invoiceId);
     try {
-      const result = await getInvoicePdf({ invoiceId: idFromString<"commerce_subscription_invoices">(invoiceId) });
-      downloadFile(
-        result.filename,
-        result.content,
-        result.contentType ?? "application/pdf",
-      );
+      const result = await getInvoicePdf({ invoiceId });
+      downloadFile(result.filename, result.content, result.contentType);
     } catch (error) {
-      toast.error(
-        (error as { data?: { message?: string } })?.data?.message ??
-          "Could not download invoice",
-      );
+      toast.error(getErrorMessage(error, "Could not download invoice"));
     } finally {
       setDownloadingId(null);
     }
@@ -194,10 +164,13 @@ export function InvoiceHistoryTable({
           >
             <div className="min-w-0">
               <p className="text-xs font-medium text-foreground">
-                {formatDate(invoice.createdAt)}
+                {invoice.invoiceNumber ?? formatDate(invoice.createdAt)}
+                <span className="ml-2 font-normal text-muted-foreground">{KIND_LABELS[invoice.kind]}</span>
               </p>
-              <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                {invoice._id}
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                {invoice.periodStartAt !== undefined && invoice.periodEndAt !== undefined
+                  ? `${formatDate(invoice.periodStartAt)} – ${formatDate(invoice.periodEndAt)}`
+                  : `Issued ${formatDate(invoice.createdAt)}`}
               </p>
             </div>
 
@@ -211,7 +184,7 @@ export function InvoiceHistoryTable({
                 onClick={() => handleDownload(invoice._id)}
                 disabled={downloadingId === invoice._id}
                 className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-                aria-label={`Download invoice ${invoice._id}`}
+                aria-label={`Download invoice ${invoice.invoiceNumber ?? formatDate(invoice.createdAt)}`}
               >
                 <Download className="h-3 w-3" />
                 {downloadingId === invoice._id ? "…" : "Download"}

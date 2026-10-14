@@ -65,6 +65,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { getPayPalBaseUrl } from "./commerce/paypalMode";
 import { jsonAt } from "./helpers/jsonValue";
+import { PAYMENT_METHOD_SETUP_KIND } from "./commerceSubscriptions/stripeKinds";
 import { getServiceKeyFromAction } from "./helpers/serviceKeys";
 import { verifyStripeWebhook } from "./helpers/stripeWebhookSignature";
 import { readExternalJson } from "./helpers/externalJson";
@@ -654,6 +655,19 @@ http.route({
           const setupIntent = event.data.object;
           const intentId = setupIntent.metadata?.checkoutIntentId;
           const kind = setupIntent.metadata?.kind;
+          // A card change on an existing subscription (account page). The
+          // SetupIntent is retrieved from Stripe again before anything is
+          // recorded.
+          if (kind === PAYMENT_METHOD_SETUP_KIND) {
+            const contractRef = setupIntent.metadata?.contractId;
+            if (contractRef) {
+              await ctx.runAction(
+                internal.commerceSubscriptions.paymentMethods.recordVerifiedSetupIntent,
+                { contractRef, setupIntentId: setupIntent.id },
+              );
+            }
+            break;
+          }
           const paymentMethodId =
             typeof setupIntent.payment_method === "string"
               ? setupIntent.payment_method

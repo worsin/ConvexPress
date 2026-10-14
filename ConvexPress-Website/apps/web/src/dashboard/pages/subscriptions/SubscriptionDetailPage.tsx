@@ -1,7 +1,9 @@
 /**
- * Subscription detail loader: subscriptions gate, the getById query and the
- * pause / resume / scheduleCancel mutations with their toasts, handed to the
- * `dashboard.subscription` surface.
+ * Subscription detail loader: subscriptions gate, the customer portal's
+ * `getMyContract` (summary, invoices, plain-words timeline) and its lifecycle
+ * mutations with their toasts, handed to the `dashboard.subscription` surface.
+ * The customer portal (not the admin API) serves this page, so the customer
+ * sees only customer-safe fields and only the actions the server allows.
  *
  * The loading and not-found states render outside the plugin gate, exactly as
  * before, so the gate's NotFound only applies once a subscription resolves.
@@ -20,50 +22,46 @@ import CoreDashboardSubscription, {
 } from "@/templates/packs/core/surfaces/dashboard.subscription";
 import { Surface } from "@/templates/sdk/Surface";
 import { idFromString } from "@/lib/ids";
+import { getErrorMessage } from "@/lib/utils";
+
+const SUCCESS: Record<DashboardSubscriptionAction, string> = {
+  pause: "Subscription paused",
+  resume: "Subscription resumed",
+  keep: "Your subscription will continue",
+  schedule_cancel: "Cancellation scheduled for the end of the billing period",
+  cancel_now: "Subscription cancelled",
+};
 
 export function DashboardSubscriptionDetailPage({ subscriptionId }: { subscriptionId: string }) {
   const settings = useSettings();
   const { to } = useDashboardPath();
-  const subscriptionsEnabled =
-    settings?.plugins?.commerceSubscriptionsEnabled === true;
+  const subscriptionsEnabled = settings?.plugins?.commerceSubscriptionsEnabled === true;
+  const contractId = idFromString<"commerce_subscriptions">(subscriptionId);
 
   const subscription = useQuery(
-    api.commerceSubscriptions.queries.getById,
-    subscriptionsEnabled ? { subscriptionId: idFromString<"commerce_subscriptions">(subscriptionId) } : "skip",
+    api.commerceSubscriptions.portal.getMyContract,
+    subscriptionsEnabled ? { contractId } : "skip",
   );
 
-  const pauseMutation = useMutation(
-    api.commerceSubscriptions.mutations.pause,
-  );
-  const resumeMutation = useMutation(
-    api.commerceSubscriptions.mutations.resume,
-  );
-  const scheduleCancelMutation = useMutation(
-    api.commerceSubscriptions.mutations.scheduleCancel,
-  );
+  const pauseMutation = useMutation(api.commerceSubscriptions.portal.requestPauseContract);
+  const resumeMutation = useMutation(api.commerceSubscriptions.portal.requestResumeContract);
+  const keepMutation = useMutation(api.commerceSubscriptions.portal.requestKeepContract);
+  const cancelMutation = useMutation(api.commerceSubscriptions.portal.requestCancelContract);
 
   const [busy, setBusy] = useState(false);
 
   async function run(action: DashboardSubscriptionAction): Promise<boolean> {
     setBusy(true);
     try {
-      const id = subscriptionId;
-      if (action === "pause") {
-        await pauseMutation({ subscriptionId: idFromString<"commerce_subscriptions">(id) });
-        toast.success("Subscription paused");
-      } else if (action === "resume") {
-        await resumeMutation({ subscriptionId: idFromString<"commerce_subscriptions">(id) });
-        toast.success("Subscription resumed");
-      } else if (action === "schedule_cancel") {
-        await scheduleCancelMutation({ subscriptionId: idFromString<"commerce_subscriptions">(id) });
-        toast.success("Cancellation scheduled for end of billing period");
-      }
+      if (action === "pause") await pauseMutation({ contractId });
+      else if (action === "resume") await resumeMutation({ contractId });
+      else if (action === "keep") await keepMutation({ contractId });
+      else if (action === "schedule_cancel") await cancelMutation({ contractId });
+      else await cancelMutation({ contractId, immediate: true });
+      toast.success(SUCCESS[action]);
       return true;
     } catch (error) {
-      toast.error(
-        (error as { data?: { message?: string } })?.data?.message ??
-          "Something went wrong",
-      );
+      toast.error(getErrorMessage(error, "Something went wrong"));
       return false;
     } finally {
       setBusy(false);

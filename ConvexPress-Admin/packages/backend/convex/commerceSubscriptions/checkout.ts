@@ -45,6 +45,7 @@ import {
 import { normalizeFormReturnUrl } from "../extensions/forms/redirects";
 import { commerceSubscriptionCheckoutIntentStatusValidator } from "../schema/commerceSubscriptions";
 import { completeCheckoutRuns } from "../extensions/forms/checkoutRuns";
+import { allocateSubscriptionInvoiceNumber } from "./invoiceNumbers";
 import { addBillingPeriod } from "./lifecycle";
 import { snapshotNumber, snapshotString } from "./snapshot";
 import { activationResultValidator, type ActivationResult } from "./validators";
@@ -1047,6 +1048,25 @@ async function activateIntent(
 		},
 	});
 
+	if (intent.initialAmount > 0) {
+		await insertSignupInvoice(ctx, {
+			intent,
+			subscriptionId,
+			settlement,
+			paymentMethodId,
+			offerTitle: offer.title,
+			periodStartAt: currentPeriodStartAt,
+			periodEndAt: currentPeriodEndAt,
+			now,
+		});
+	}
+	// The card's brand and last four for the account page come from Stripe.
+	if (settlement.provider === "stripe" && paymentMethodId) {
+		await ctx.scheduler.runAfter(0, internal.commerceSubscriptions.paymentMethods.refreshPaymentMethodSummary, {
+			contractId: subscriptionId,
+		});
+	}
+
 	try {
 		await emitEvent(ctx, "commerce.subscription_created", "commerce", {
 			subscriptionId,
@@ -1072,6 +1092,70 @@ async function activateIntent(
 		trialDays,
 		currentPeriodEndAt,
 	};
+}
+
+/**
+ * The signup charge as the contract's first invoice, so billing history starts
+ * with what the customer paid at signup: the first period (or trial) and any
+ * setup fee. It shares the signup's purchase record instead of creating a
+ * second one for the same payment.
+ */
+async function insertSignupInvoice(
+	ctx: MutationCtx,
+	args: {
+		intent: IntentDoc;
+		subscriptionId: Id<"commerce_subscriptions">;
+		settlement: Settlement;
+		paymentMethodId: string | undefined;
+		offerTitle: string;
+		periodStartAt: number;
+		periodEndAt: number;
+		now: number;
+	},
+): Promise<void> {
+	const { intent, now } = args;
+	const synced = await ctx.db.get(intent._id);
+	const setupFee = Math.min(intent.setupFeeAmount ?? 0, intent.initialAmount);
+	const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
+		subscriptionId: args.subscriptionId,
+		checkoutIntentId: intent._id,
+		purchaseOrderId: synced?.purchaseOrderId,
+		sourceChannel: "direct_form",
+		status: "paid",
+		invoiceNumber: await allocateSubscriptionInvoiceNumber(ctx),
+		currencyCode: intent.currencyCode,
+		subtotalAmount: intent.initialAmount,
+		taxAmount: 0,
+		totalAmount: intent.initialAmount,
+		paymentProvider: args.settlement.provider,
+		paymentTransactionId: args.settlement.providerTransactionId,
+		savedPaymentMethodId: args.paymentMethodId,
+		manualBilling: false,
+		kind: "signup",
+		periodStartAt: args.periodStartAt,
+		periodEndAt: args.periodEndAt,
+		paidAt: now,
+		createdAt: now,
+		updatedAt: now,
+	});
+	const lines: Array<{ description: string; amount: number; lineType: string }> = [];
+	if (setupFee > 0) lines.push({ description: `${args.offerTitle} setup fee`, amount: setupFee, lineType: "setup_fee" });
+	if (intent.initialAmount - setupFee > 0) {
+		lines.push({ description: args.offerTitle, amount: intent.initialAmount - setupFee, lineType: "recurring" });
+	}
+	for (const line of lines) {
+		await ctx.db.insert("commerce_subscription_invoice_items", {
+			invoiceId,
+			description: line.description,
+			quantity: 1,
+			unitAmount: line.amount,
+			lineType: line.lineType,
+			currencyCode: intent.currencyCode,
+			lineTotalAmount: line.amount,
+			createdAt: now,
+		});
+	}
+	await ctx.db.patch("commerce_subscriptions", args.subscriptionId, { lastInvoiceId: invoiceId });
 }
 
 async function loadIntent(

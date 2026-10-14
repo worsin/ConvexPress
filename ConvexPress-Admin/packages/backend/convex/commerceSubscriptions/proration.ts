@@ -236,6 +236,7 @@ export const applyUpgradeProration = internalMutation({
       savedPaymentMethodId: contract.defaultPaymentMethodId,
       manualBilling: false,
       prorationEventId,
+      kind: "plan_change",
       periodStartAt: now,
       periodEndAt: cycleEnd,
       dueAt: now,
