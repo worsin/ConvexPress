@@ -17,7 +17,7 @@
     "codegen:media-writers": "node scripts/generate-media-writer-coverage.mjs",
     "check:media-writers": "node scripts/generate-media-writer-coverage.mjs --check",
     "codegen:typing": "bun scripts/typing/generate-table-docs.ts && bun scripts/typing/generate-static-api.ts",
-    "check:typing": "bun scripts/typing/generate-table-docs.ts --check && bun scripts/typing/generate-static-api.ts --check"
+    "check:typing": "bun scripts/typing/generate-table-docs.ts --check && bun scripts/typing/generate-static-api.ts --check && bun scripts/typing/check-table-identities.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.81.0",
