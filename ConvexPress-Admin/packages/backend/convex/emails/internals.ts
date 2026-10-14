@@ -43,6 +43,7 @@ import {
   isValidEmail,
   EMAIL_TEMPLATES,
   parseTemplateVariables,
+  withDeclaredDefaults,
 } from "../helpers/email";
 import { settingsRecord } from "../helpers/settingsReader";
 import { getUserIdentifier, lookupUserByIdentifier, requireCan } from "../helpers/permissions";
@@ -1007,17 +1008,21 @@ export const generateDigest = internalMutation({
           );
           if (isUnsubscribed) continue;
 
-          const variables = injectGlobalVariables(
-            {
-              post_count: String(postsThisWeek.length),
-              post_list: postList,
-            },
-            {
-              siteName: settings.siteName,
-              siteUrl: settings.siteUrl,
-              unsubscribeUrl: settings.unsubscribeUrl,
-            },
-            user.name,
+          const variables = withDeclaredDefaults(
+            injectGlobalVariables(
+              {
+                post_count: String(postsThisWeek.length),
+                post_list: postList,
+              },
+              {
+                siteName: settings.siteName,
+                siteUrl: settings.siteUrl,
+                unsubscribeUrl: settings.unsubscribeUrl,
+              },
+              user.name,
+            ),
+            digestTemplate.availableVariables,
+            settings.siteUrl,
           );
 
           const subject = renderTemplate(
@@ -1106,16 +1111,20 @@ export const generateDigest = internalMutation({
           (comment) => comment.status === "pending",
         ).length;
 
-        const variables = injectGlobalVariables(
-          {
-            comment_summary: `${recentComments.length} comments were posted across ${touchedPosts.size} of your posts this week, including ${recentReplies} replies and ${pendingComments} awaiting moderation.`,
-          },
-          {
-            siteName: settings.siteName,
-            siteUrl: settings.siteUrl,
-            unsubscribeUrl: settings.unsubscribeUrl,
-          },
-          employee.name,
+        const variables = withDeclaredDefaults(
+          injectGlobalVariables(
+            {
+              comment_summary: `${recentComments.length} comments were posted across ${touchedPosts.size} of your posts this week, including ${recentReplies} replies and ${pendingComments} awaiting moderation.`,
+            },
+            {
+              siteName: settings.siteName,
+              siteUrl: settings.siteUrl,
+              unsubscribeUrl: settings.unsubscribeUrl,
+            },
+            employee.name,
+          ),
+          commentDigestTemplate.availableVariables,
+          settings.siteUrl,
         );
 
         const subject = renderTemplate(

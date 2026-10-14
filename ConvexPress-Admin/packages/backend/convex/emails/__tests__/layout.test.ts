@@ -115,4 +115,18 @@ describe("settings", () => {
     expect(email?.bodyText).toContain("Manage email preferences (https://clinic.example/dashboard/settings)");
     expect(email?.bodyText).toMatch(/© \d{4} Clinic\. All rights reserved\./);
   });
+
+  test("a declared variable the caller left out takes its default; a link default is made absolute", async () => {
+    const t = await site({ general: { siteTitle: "Clinic", siteUrl: "https://clinic.example" }, email: { enabled: true } });
+    await t.mutation(internal.emails.internals.bootstrapTemplates, {});
+    await t.mutation(internal.emails.internals.queueEmail, {
+      templateSlug: "subscription-paused",
+      variables: JSON.stringify({ offer_title: "Growth" }),
+      recipientEmail: "casey@example.invalid",
+    });
+    const email = await t.run(async (ctx) => (await ctx.db.query("emailQueue").collect())[0]);
+    expect(email?.bodyText).toContain("Hi there");
+    expect(email?.bodyHtml).toContain('href="https://clinic.example/dashboard/subscriptions"');
+    expect(`${email?.subject} ${email?.bodyHtml}`).not.toMatch(/\{[a-z_]+\}/);
+  });
 });
