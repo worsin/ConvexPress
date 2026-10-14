@@ -28,6 +28,7 @@ import { Loader2 } from "lucide-react";
 import { AuthError } from "@/components/auth/AuthError";
 import { useDashboardPath } from "@/hooks/useDashboardConfig";
 import { FormStripePaymentForm } from "./FormStripePaymentForm";
+import type { PendingPaymentDescriptor } from "./useFormSubscriptionPayment";
 import {
   INITIAL_CHECKOUT_STATE,
   browserCheckoutStorage,
@@ -262,11 +263,12 @@ export function FormSubscriptionCheckout({ formId, formTitle, submission, return
         <AuthError message="Payments are not configured on this site yet. Please contact us to subscribe." />
       ) : (
         <>
-          <AmountSummary
+          <OrderSummary
             mode={descriptor.mode}
             amount={descriptor.amount}
             recurringAmount={descriptor.recurringAmount}
             currency={descriptor.currency}
+            summary={descriptor.summary}
           />
           {state.error ? <AuthError message={state.error} /> : null}
           <FormStripePaymentForm
@@ -274,7 +276,13 @@ export function FormSubscriptionCheckout({ formId, formTitle, submission, return
             clientSecret={descriptor.clientSecret}
             mode={descriptor.mode}
             returnUrl={resumePath}
-            submitLabel={descriptor.mode === "setup" ? "Save card and subscribe" : "Pay and subscribe"}
+            submitLabel={
+              descriptor.mode === "setup"
+                ? descriptor.summary && descriptor.summary.trialDays > 0
+                  ? "Start free trial"
+                  : "Save card and subscribe"
+                : `Pay ${formatMinor(descriptor.amount, descriptor.currency)} and subscribe`
+            }
             onError={(message) => dispatch({ type: "card_error", message })}
             onConfirmed={() => dispatch({ type: "stripe_confirmed", confirmation: cardConfirmation })}
           />
@@ -374,34 +382,80 @@ function Progress({ message }: { message: string }) {
   );
 }
 
-function AmountSummary({
+type CheckoutSummary = NonNullable<PendingPaymentDescriptor["summary"]>;
+
+function formatLongDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+function cadence(summary: CheckoutSummary | null): string {
+  if (!summary) return "each billing period";
+  const n = summary.billingIntervalCount > 1 ? summary.billingIntervalCount : 1;
+  return n === 1 ? `per ${summary.billingInterval}` : `every ${n} ${summary.billingInterval}s`;
+}
+
+/**
+ * What the customer is buying and paying: the plan, setup fee, coupon, what
+ * is due today, and what happens after (the next charge and its date). Every
+ * figure comes from the server's checkout intent.
+ */
+export function OrderSummary({
   mode,
   amount,
   recurringAmount,
   currency,
+  summary,
 }: {
   mode: "payment" | "setup";
   amount: number;
   recurringAmount: number;
   currency: string;
+  summary: CheckoutSummary | null;
 }) {
+  const money = (value: number) => formatMinor(value, currency);
+  const trial = summary && summary.trialDays > 0;
   return (
-    <div className="flex flex-col gap-2 border-b border-border pb-4 text-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Due today</span>
-        <span className="text-lg font-semibold tabular-nums text-foreground">{formatMinor(amount, currency)}</span>
-      </div>
-      {recurringAmount > 0 ? (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Then, each billing period</span>
-          <span className="font-medium tabular-nums text-foreground">{formatMinor(recurringAmount, currency)}</span>
+    <div data-slot="checkout-order-summary" className="flex flex-col gap-3 border-b border-border pb-4 text-sm">
+      {summary ? (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-medium text-foreground">{summary.planTitle}</p>
+            <p className="text-xs text-muted-foreground">
+              {money(summary.recurringAmount)} {cadence(summary)}
+              {trial ? ` · ${summary.trialDays}-day free trial` : ""}
+            </p>
+          </div>
+          <span className="shrink-0 tabular-nums text-foreground">{trial ? money(0) : money(summary.recurringAmount)}</span>
         </div>
       ) : null}
-      {mode === "setup" ? (
+      {summary && summary.setupFeeAmount > 0 ? (
+        <div className="flex items-center justify-between gap-3 text-muted-foreground">
+          <span>One-time setup fee</span>
+          <span className="tabular-nums text-foreground">{money(summary.setupFeeAmount)}</span>
+        </div>
+      ) : null}
+      {summary && summary.firstChargeDiscount > 0 ? (
+        <div className="flex items-center justify-between gap-3 text-muted-foreground">
+          <span>Coupon {summary.couponCode}</span>
+          <span className="tabular-nums text-foreground">−{money(summary.firstChargeDiscount)}</span>
+        </div>
+      ) : null}
+      <div className="flex items-center justify-between border-t border-border pt-3">
+        <span className="font-medium text-foreground">Due today</span>
+        <span className="text-lg font-semibold tabular-nums text-foreground">{money(amount)}</span>
+      </div>
+      {recurringAmount > 0 ? (
         <p className="text-xs text-muted-foreground">
-          You won't be charged today. Your card is saved for future billing.
+          {summary
+            ? `Then ${money(recurringAmount)} ${cadence(summary)}, starting ${formatLongDate(summary.nextChargeAt)}. Cancel any time from your account.`
+            : `Then ${money(recurringAmount)} each billing period. Cancel any time from your account.`}
+          {summary?.couponCode && summary.firstChargeDiscount === 0 ? ` Coupon ${summary.couponCode} applies to your upcoming charges.` : ""}
         </p>
       ) : null}
+      {mode === "setup" ? (
+        <p className="text-xs text-muted-foreground">You won't be charged today. Your card is saved for the charges above.</p>
+      ) : null}
+      <p className="text-xs text-muted-foreground">Your card details are encrypted and never stored on this site.</p>
     </div>
   );
 }

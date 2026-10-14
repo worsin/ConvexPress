@@ -89,7 +89,8 @@ export async function validateCoupon(
   ctx: QueryCtx | MutationCtx,
   couponCode: string,
   _contractId: Id<"commerce_subscriptions"> | null,
-  customerId: Id<"users">,
+  /** Null before the customer is known (a signed-out checkout): the per-customer limit is checked at activation. */
+  customerId: Id<"users"> | null,
   targetOfferId: Id<"commerce_subscription_offers">,
 ): Promise<CouponValidationResult> {
   const now = Date.now();
@@ -128,7 +129,7 @@ export async function validateCoupon(
   }
 
   // Per-customer cap — count this customer's redemptions of this coupon.
-  if (typeof coupon.perCustomerLimit === "number") {
+  if (customerId !== null && typeof coupon.perCustomerLimit === "number") {
     const customerRedemptions = await ctx.db
       .query("commerce_subscription_coupon_redemptions")
       .withIndex("by_customer_and_coupon", (q) =>
@@ -141,6 +142,34 @@ export async function validateCoupon(
   }
 
   return { valid: true, coupon };
+}
+
+/** What to tell a customer whose code was refused. */
+export function couponRefusalMessage(reason: CouponValidationFailureReason): string {
+  switch (reason) {
+    case "not_found":
+      return "That code isn't valid.";
+    case "not_active":
+      return "That code isn't active.";
+    case "starts_in_future":
+      return "That code isn't active yet.";
+    case "expired":
+      return "That code has expired.";
+    case "not_valid_for_offer":
+      return "That code doesn't apply to this plan.";
+    case "max_redemptions_reached":
+      return "That code has been used up.";
+    case "customer_limit_reached":
+      return "You've already used that code.";
+  }
+}
+
+/** The first charge's discount in minor units (whole units, as invoices are). */
+export function firstChargeDiscount(
+  amount: number,
+  coupon: Pick<Doc<"commerce_subscription_coupons">, "discountType" | "amount">,
+): number {
+  return Math.max(0, amount - Math.round(applyDiscount(amount, coupon.discountType, coupon.amount)));
 }
 
 // ─── Apply to invoice ───────────────────────────────────────────────────────

@@ -62,6 +62,8 @@ import { getCurrentUser } from "../../helpers/auth";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
 import { ALREADY_SUBSCRIBED_MESSAGE } from "../../commerceSubscriptions/ownership";
+import { addBillingPeriod, addDays } from "../../commerceSubscriptions/lifecycle";
+import { snapshotNumber, snapshotString } from "../../commerceSubscriptions/snapshot";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
 /**
@@ -179,6 +181,45 @@ async function callerOwnsSubmissionCheckout(
   return user !== null && user._id === submission.userId;
 }
 
+const checkoutSummaryValidator = v.object({
+  planTitle: v.string(),
+  billingInterval: v.union(v.literal("day"), v.literal("week"), v.literal("month"), v.literal("year")),
+  billingIntervalCount: v.number(),
+  recurringAmount: v.number(),
+  setupFeeAmount: v.number(),
+  trialDays: v.number(),
+  couponCode: v.optional(v.string()),
+  /** Taken off the first charge. */
+  firstChargeDiscount: v.number(),
+  /** When the next charge after today's runs (the end of the trial or the first period). */
+  nextChargeAt: v.number(),
+});
+
+/** The plan, its terms and the coupon of a checkout intent, from its pricing snapshot. */
+export async function checkoutSummary(ctx: QueryCtx, rawIntentId: string) {
+  const intentId = ctx.db.normalizeId("commerce_subscription_checkout_intents", rawIntentId);
+  const intent = intentId ? await ctx.db.get(intentId) : null;
+  if (!intent) return null;
+  const snapshot = intent.pricingSnapshot;
+  const offerId = intent.selectedOfferIds[0];
+  const offer = offerId ? await ctx.db.get(offerId) : null;
+  const template = offer ? await ctx.db.get(offer.templateId) : null;
+  const interval = template?.billingInterval ?? "month";
+  const count = template?.billingIntervalCount ?? 1;
+  const trialDays = snapshotNumber(snapshot, "trialDays") ?? 0;
+  return {
+    planTitle: snapshotString(snapshot, "offerTitle") ?? offer?.title ?? "Subscription",
+    billingInterval: interval,
+    billingIntervalCount: count,
+    recurringAmount: intent.recurringAmount,
+    setupFeeAmount: intent.setupFeeAmount,
+    trialDays,
+    couponCode: snapshotString(snapshot, "couponCode"),
+    firstChargeDiscount: snapshotNumber(snapshot, "firstChargeDiscount") ?? 0,
+    nextChargeAt: trialDays > 0 ? addDays(intent.createdAt, trialDays) : addBillingPeriod(intent.createdAt, interval, count),
+  };
+}
+
 /**
  * PUBLIC: the pending-payment descriptor for a submission, if any. Returns the
  * `needsPayment` data stored on an `awaiting_payment` commerce run so the
@@ -203,6 +244,8 @@ export const getPendingPayment = query({
     currency: v.string(),
     accountPolicy: v.string(),
     returnUrl: v.optional(v.string()),
+    /** What the customer is buying, for the order summary beside the card form. */
+    summary: v.union(v.null(), checkoutSummaryValidator),
   })),
   handler: async (ctx, { submissionId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
@@ -218,29 +261,32 @@ export const getPendingPayment = query({
       .collect();
     for (const run of runs) {
       if (run.status !== "awaiting_payment" || !run.result) continue;
+      let parsed: unknown;
       try {
-        const data = JSON.parse(run.result) as Record<string, unknown>;
-        if (data && data.needsPayment === true) {
-          // The stored run result is untyped JSON: read each field by its runtime type.
-          const text = (value: unknown) => (typeof value === "string" && value ? value : null);
-          const amount = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
-          return {
-            runId: run._id,
-            formActionId: run.formActionId,
-            intentId: text(data.intentId),
-            clientSecret: text(data.clientSecret),
-            publishableKey: text(data.publishableKey),
-            mode: data.mode === "setup" ? "setup" as const : "payment" as const,
-            amount: amount(data.amount),
-            recurringAmount: amount(data.recurringAmount),
-            currency: text(data.currency) ?? "USD",
-            accountPolicy: text(data.accountPolicy) ?? "require_existing",
-            returnUrl: normalizeFormReturnUrl(text(data.returnUrl) ?? undefined),
-          };
-        }
+        parsed = JSON.parse(run.result);
       } catch {
-        // skip malformed
+        continue; // skip malformed
       }
+      if (!parsed || typeof parsed !== "object" || Reflect.get(parsed, "needsPayment") !== true) continue;
+      // The stored run result is untyped JSON: read each field by its runtime type.
+      const field = (key: string): unknown => Reflect.get(parsed, key);
+      const text = (value: unknown) => (typeof value === "string" && value ? value : null);
+      const amount = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+      const intentId = text(field("intentId"));
+      return {
+        runId: run._id,
+        formActionId: run.formActionId,
+        intentId,
+        clientSecret: text(field("clientSecret")),
+        publishableKey: text(field("publishableKey")),
+        mode: field("mode") === "setup" ? "setup" as const : "payment" as const,
+        amount: amount(field("amount")),
+        recurringAmount: amount(field("recurringAmount")),
+        currency: text(field("currency")) ?? "USD",
+        accountPolicy: text(field("accountPolicy")) ?? "require_existing",
+        returnUrl: normalizeFormReturnUrl(text(field("returnUrl")) ?? undefined),
+        summary: intentId ? await checkoutSummary(ctx, intentId) : null,
+      };
     }
     return null;
   },
