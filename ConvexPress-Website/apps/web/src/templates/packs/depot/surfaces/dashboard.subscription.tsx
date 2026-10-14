@@ -7,6 +7,7 @@
 import { Pause, Play, RotateCcw, XCircle } from "lucide-react";
 import { useState } from "react";
 
+import { discountText, nextChargeText, planPriceText } from "@/components/subscriptions/portalTypes";
 import { formatMoney } from "@/lib/commerce/format";
 import { PaymentMethodPanel } from "@/components/subscriptions/PaymentMethodPanel";
 import { CONFIRMATIONS, type DashboardSubscriptionAction, type DashboardSubscriptionSurfaceData } from "@/templates/packs/core/surfaces/dashboard.subscription";
@@ -64,8 +65,9 @@ export default function DepotDashboardSubscription({ data }: SurfaceProps<Dashbo
         caption="Billing details"
         firstColumnLabel
         rows={[
-          { key: "amount", cells: ["Recurring amount", <span className="font-semibold tabular-nums text-foreground">{typeof sub.recurringAmount === "number" ? formatMoney(sub.recurringAmount, currency) : "—"}</span>] },
-          { key: "next", cells: ["Next billing", <span className="tabular-nums">{dateOrDash(sub.nextChargeAt)}</span>] },
+          { key: "amount", cells: ["Plan", <span className="font-semibold tabular-nums text-foreground">{planPriceText(sub)}</span>] },
+          { key: "next", cells: [sub.status === "trialing" ? "First charge" : "Next charge", <span className="tabular-nums">{nextChargeText(sub)}</span>] },
+          ...sub.discounts.map((discount) => ({ key: `discount-${discount.code}`, cells: ["Discount", <span>{discountText(discount, currency)}</span>] })),
           { key: "period", cells: ["Current period", <span className="tabular-nums">{dateOrDash(sub.currentPeriodStartAt)} – {dateOrDash(sub.currentPeriodEndAt)}</span>] },
           ...(sub.trialEndsAt ? [{ key: "trial", cells: ["Trial ends", <span className="tabular-nums">{dateOrDash(sub.trialEndsAt)}</span>] }] : []),
         ]}

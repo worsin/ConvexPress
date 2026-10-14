@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Calendar, CreditCard, Pause, Play, RotateCcw, Shield, Tag, XCircle } from "lucide-react";
+import { Calendar, CreditCard, Pause, Play, RotateCcw, Tag, XCircle } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn, getErrorMessage } from "@/lib/utils";
 import { PaymentMethodPanel } from "./PaymentMethodPanel";
-import { formatDate, formatMoney, type CustomerContract, type CustomerLifecycleAction } from "./portalTypes";
+import {
+  INVOICE_STATUS_LABEL,
+  discountText,
+  formatCadence,
+  formatDate,
+  formatMoney,
+  grantStatusText,
+  type CustomerContract,
+  type CustomerLifecycleAction,
+} from "./portalTypes";
 
 /**
  * One subscription on the account page.
  *
- * Renders the plan, status and next charge; the card on file (with on-site
+ * Renders the plan, status and next charge (what it takes, with any coupon,
+ * and when); the coupons still discounting renewals; the card on file (with on-site
  * card replacement and a past-due notice); scheduled changes and
  * cancellations; coupon entry; and the lifecycle actions the server says this
  * contract allows (`contract.actions`), so the page never offers something the
@@ -68,6 +78,7 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
 
   const { actions } = contract;
   const contractId = contract._id;
+  const currency = contract.offer?.currencyCode ?? contract.currencyCode;
 
   async function run(action: CustomerLifecycleAction) {
     setBusy(true);
@@ -102,8 +113,12 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
     if (code.length === 0) return;
     setCouponBusy(true);
     try {
-      await applyCouponMutation({ contractId, couponCode: code });
-      toast.success("Coupon applied to your next renewal");
+      const applied = await applyCouponMutation({ contractId, couponCode: code });
+      const off =
+        applied.coupon.discountType === "percent"
+          ? `${applied.coupon.amount}% off`
+          : `${formatMoney(applied.coupon.amount, currency)} off`;
+      toast.success(`${off} applies from your next charge`);
       setCouponCode("");
     } catch (error) {
       toast.error(getErrorMessage(error, "Coupon could not be applied"));
@@ -112,10 +127,28 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
     }
   }
 
-  const currency = contract.offer?.currencyCode ?? contract.currencyCode;
   const offerTitle = contract.offer?.title ?? contract.product?.title ?? "Subscription";
-  const activeEntitlements = contract.entitlements.filter((entitlement) => entitlement.status === "active").length;
   const confirmText = confirmAction ? CONFIRM_TEXT[confirmAction] : undefined;
+  const discounted = contract.nextChargeAmount !== contract.recurringAmount;
+
+  const next: { label: string; value: string; detail?: string } =
+    contract.status === "pending_cancel"
+      ? { label: "Access until", value: formatDate(contract.currentPeriodEndAt), detail: "No further charges" }
+      : contract.status === "past_due" && contract.billingIssue
+        ? {
+            label: "Payment due",
+            value: formatMoney(contract.billingIssue.amountDue, contract.billingIssue.currencyCode),
+            detail: contract.billingIssue.nextRetryAt ? `Next try ${formatDate(contract.billingIssue.nextRetryAt)}` : "Update your card",
+          }
+        : contract.status === "paused"
+          ? { label: "Next charge", value: "Paused", detail: "Resume to continue billing" }
+          : contract.nextChargeAt
+            ? {
+                label: contract.status === "trialing" ? "First charge" : "Next charge",
+                value: formatMoney(contract.nextChargeAmount, currency),
+                detail: `on ${formatDate(contract.nextChargeAt)}${discounted ? ", with your discount" : ""}`,
+              }
+            : { label: "Next charge", value: "--" };
 
   return (
     <div className={cn("overflow-hidden rounded-2xl border border-border bg-card shadow-sm", className)} data-slot="portal-card">
@@ -129,15 +162,15 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
       </div>
 
       {/* Summary row */}
-      <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
+      <div className="grid gap-4 px-5 py-4 sm:grid-cols-2">
         <div className="flex items-start gap-3">
           <div className="rounded-lg bg-muted p-2">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Amount</p>
+            <p className="text-xs text-muted-foreground">Plan</p>
             <p className="text-sm font-medium text-foreground">
-              {formatMoney(contract.recurringAmount, currency)} / {contract.billingInterval ?? "period"}
+              {formatMoney(contract.recurringAmount, currency)} {formatCadence(contract.billingInterval, contract.billingIntervalCount)}
             </p>
           </div>
         </div>
@@ -147,39 +180,36 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">
-              {contract.status === "pending_cancel" ? "Access until" : "Next charge"}
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {contract.status === "pending_cancel"
-                ? formatDate(contract.currentPeriodEndAt)
-                : contract.nextChargeAt
-                  ? formatDate(contract.nextChargeAt)
-                  : "--"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-muted p-2">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Included access</p>
-            <p className="text-sm font-medium text-foreground">{activeEntitlements} active</p>
+            <p className="text-xs text-muted-foreground">{next.label}</p>
+            <p className="text-sm font-medium text-foreground">{next.value}</p>
+            {next.detail ? <p className="text-[11px] text-muted-foreground">{next.detail}</p> : null}
           </div>
         </div>
       </div>
 
+      {/* Discounts */}
+      {contract.discounts.length > 0 ? (
+        <ul className="mx-5 mb-4 space-y-1 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          {contract.discounts.map((discount) => (
+            <li key={discount.code} className="flex items-center gap-2 text-xs text-foreground">
+              <Tag className="h-3.5 w-3.5 text-primary" />
+              {discountText(discount, currency)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       {/* Notices */}
       {contract.trialEndsAt && contract.status === "trialing" ? (
         <div className="mx-5 mb-4 rounded-xl bg-accent px-4 py-3 text-xs text-accent-foreground">
-          Trial ends {formatDate(contract.trialEndsAt)}. You will be charged when the trial completes.
+          Your free trial ends {formatDate(contract.trialEndsAt)}. Your first charge of {formatMoney(contract.nextChargeAmount, currency)} is
+          that day; cancel before then and you won't be charged.
         </div>
       ) : null}
       {contract.status === "pending_cancel" ? (
         <div className="mx-5 mb-4 rounded-xl border border-border bg-muted px-4 py-3 text-xs text-muted-foreground">
-          Your subscription ends on {formatDate(contract.currentPeriodEndAt)}. You can keep it until then.
+          Your subscription ends on {formatDate(contract.currentPeriodEndAt)}. You keep full access until then, and you can keep the
+          subscription instead.
         </div>
       ) : null}
       {contract.status === "paused" ? (
@@ -189,8 +219,8 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
       ) : null}
       {contract.scheduledOffer ? (
         <div className="mx-5 mb-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-foreground">
-          Changes to {contract.scheduledOffer.title} ({formatMoney(contract.scheduledOffer.recurringAmount, currency)}) on{" "}
-          {formatDate(contract.scheduledOffer.effectiveAt)}.
+          Changes to {contract.scheduledOffer.title} ({formatMoney(contract.scheduledOffer.recurringAmount, currency)}{" "}
+          {formatCadence(contract.billingInterval, contract.billingIntervalCount)}) on {formatDate(contract.scheduledOffer.effectiveAt)}.
         </div>
       ) : null}
 
@@ -206,12 +236,12 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
       {/* Membership grants */}
       {contract.membershipGrants.length > 0 ? (
         <div className="mx-5 mb-4 rounded-xl border border-border bg-muted/40 px-4 py-3">
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Linked Memberships</p>
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Included memberships</p>
           <ul className="space-y-1">
             {contract.membershipGrants.map((grant) => (
               <li key={grant._id} className="flex items-center justify-between text-xs text-foreground">
                 <span>{grant.plan?.name ?? "Membership"}</span>
-                <span className="text-muted-foreground">{grant.status}</span>
+                <span className="text-muted-foreground">{grantStatusText(grant)}</span>
               </li>
             ))}
           </ul>
@@ -330,9 +360,9 @@ export function CustomerPortalCard({ contract, planChangeSlot, className }: Cust
 
         {contract.currentInvoice ? (
           <p className="text-[10px] text-muted-foreground">
-            Last invoice {contract.currentInvoice.invoiceNumber ?? ""}:{" "}
-            {formatMoney(contract.currentInvoice.totalAmount, contract.currentInvoice.currencyCode)}{" "}
-            {contract.currentInvoice.status}
+            Last invoice{contract.currentInvoice.invoiceNumber ? ` ${contract.currentInvoice.invoiceNumber}` : ""} ·{" "}
+            {formatMoney(contract.currentInvoice.totalAmount, contract.currentInvoice.currencyCode)} ·{" "}
+            {INVOICE_STATUS_LABEL[contract.currentInvoice.status]}
           </p>
         ) : null}
       </div>

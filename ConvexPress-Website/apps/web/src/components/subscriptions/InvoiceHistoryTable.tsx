@@ -6,7 +6,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn, getErrorMessage } from "@/lib/utils";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-import { formatDate, formatMoney, type CustomerInvoice } from "./portalTypes";
+import { INVOICE_STATUS_LABEL, formatDate, formatMoney, type CustomerInvoice } from "./portalTypes";
 
 const KIND_LABELS: Record<CustomerInvoice["kind"], string> = {
   signup: "Signup",
@@ -38,15 +38,13 @@ interface InvoiceHistoryTableProps {
 
 // ─── Status badge ───────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: CustomerInvoice["status"] }) {
   const tone =
     status === "paid"
       ? "bg-primary/10 text-primary"
       : status === "failed"
         ? "bg-destructive/10 text-destructive"
-        : status === "refunded"
-          ? "bg-accent text-accent-foreground"
-          : "bg-muted text-muted-foreground";
+        : "bg-muted text-muted-foreground";
   return (
     <span
       className={cn(
@@ -54,7 +52,7 @@ function StatusBadge({ status }: { status: string }) {
         tone,
       )}
     >
-      {status}
+      {INVOICE_STATUS_LABEL[status]}
     </span>
   );
 }
