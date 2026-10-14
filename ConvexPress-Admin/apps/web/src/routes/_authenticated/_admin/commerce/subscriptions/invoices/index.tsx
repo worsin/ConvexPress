@@ -1,234 +1,139 @@
 /**
- * Subscription Invoices list.
+ * Subscription invoices: every charge a subscription has made or tried to
+ * make, newest first, with the customer and any refunds. Filter by status.
  *
- * Backend: commerceSubscriptions.queries.listInvoices.
- * Filter by invoice status. Search by invoice id or subscription id.
+ * Data: `adminContracts.listInvoices` (paginated).
  */
-
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "convex-helpers/react/cache";
-import { ChevronRight, Receipt, Search } from "lucide-react";
+import { usePaginatedQuery } from "convex-helpers/react/cache";
+import { ChevronRight, Receipt } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";
-import type { Id } from "@backend/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import {
+  formatDate,
+  formatMoney,
+  INVOICE_KIND_LABEL,
+  INVOICE_STATUS_LABEL,
+  INVOICE_STATUS_TONE,
+  invoiceStatusText,
+  type InvoiceStatus,
+} from "@/components/subscriptions/billingFormat";
 
-export const Route = createFileRoute(
-  "/_authenticated/_admin/commerce/subscriptions/invoices/",
-)({
+export const Route = createFileRoute("/_authenticated/_admin/commerce/subscriptions/invoices/")({
   component: InvoicesIndex,
 });
 
-type InvoiceStatus = "draft" | "open" | "paid" | "failed" | "void";
-
-type Invoice = {
-  _id: Id<"commerce_subscription_invoices">;
-  subscriptionId: Id<"commerce_subscriptions">;
-  status: InvoiceStatus;
-  invoiceNumber?: string;
-  currencyCode: string;
-  subtotalAmount: number;
-  taxAmount: number;
-  totalAmount: number;
-  paymentProvider?: string;
-  dueAt?: number;
-  paidAt?: number;
-  createdAt: number;
-  subscription?: {
-    _id: string;
-    status?: string;
-  } | null;
-};
-
-function formatMoney(amount: number, currencyCode = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-  }).format(amount / 100);
-}
-
-function formatDate(ts?: number) {
-  if (!ts) return "--";
-  return new Date(ts).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function StatusBadge({ status }: { status: InvoiceStatus }) {
-  const styles: Record<InvoiceStatus, string> = {
-    paid: "bg-primary/15 text-primary",
-    open: "bg-accent/20 text-accent-foreground",
-    failed: "bg-destructive/10 text-destructive",
-    void: "bg-muted text-muted-foreground",
-    draft: "bg-muted text-muted-foreground",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-        styles[status],
-      )}
-    >
-      {status}
-    </span>
-  );
-}
+const FILTERS: ReadonlyArray<InvoiceStatus | undefined> = [undefined, "paid", "open", "failed", "void"];
+const PAGE_SIZE = 25;
+const COLUMNS = "grid-cols-[130px_minmax(0,1.3fr)_minmax(0,1fr)_120px_minmax(0,1.2fr)_20px]";
 
 function InvoicesIndex() {
-  const [statusFilter, setStatusFilter] = useState<"" | InvoiceStatus>("");
-  const [search, setSearch] = useState("");
-
-  const invoices = useQuery(
-    (api as any).commerceSubscriptions.queries.listInvoices,
-    {
-      status: statusFilter || undefined,
-      limit: 200,
-    },
-  ) as Invoice[] | null | undefined;
-
-  const pluginDisabled = invoices === null;
-
-  const filtered = useMemo(() => {
-    if (!invoices) return [];
-    const needle = search.trim().toLowerCase();
-    if (!needle) return invoices;
-    return invoices.filter(
-      (inv) =>
-        String(inv._id).toLowerCase().includes(needle) ||
-        String(inv.subscriptionId).toLowerCase().includes(needle),
-    );
-  }, [invoices, search]);
-
-  const statuses: Array<"" | InvoiceStatus> = [
-    "",
-    "paid",
-    "open",
-    "failed",
-    "void",
-    "draft",
-  ];
+  const [status, setStatus] = useState<InvoiceStatus | undefined>(undefined);
+  const list = usePaginatedQuery(api.commerceSubscriptions.adminContracts.listInvoices, { status }, { initialNumItems: PAGE_SIZE });
+  const rows = list.status === "LoadingFirstPage" ? undefined : list.results;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Subscription invoices across all contracts. Click a row to
-            see line items.
-          </p>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Every subscription charge: first payments, renewals and plan changes. Open one to see its lines, payment attempts and refunds.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1" role="tablist" aria-label="Status">
+        {FILTERS.map((value) => (
+          <button
+            key={value ?? "all"}
+            type="button"
+            role="tab"
+            aria-selected={status === value}
+            onClick={() => setStatus(value)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              status === value ? "bg-primary text-primary-foreground" : "border border-border text-foreground hover:bg-muted",
+            )}
+          >
+            {value ? INVOICE_STATUS_LABEL[value] : "All"}
+          </button>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+        <div className="min-w-[820px]">
+          <div className={cn("grid gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground", COLUMNS)}>
+            <div>Invoice</div>
+            <div>Customer</div>
+            <div>For</div>
+            <div>Amount</div>
+            <div>Status</div>
+            <div />
+          </div>
+          {rows === undefined ? (
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-12 animate-pulse rounded-xl bg-muted" />
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="p-10 text-center">
+              <Receipt className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-3 text-sm text-muted-foreground">{status ? `No ${INVOICE_STATUS_LABEL[status].toLowerCase()} invoices.` : "No invoices yet."}</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {rows.map((row) => (
+                <li key={row._id}>
+                  <Link
+                    to="/commerce/subscriptions/invoices/$invoiceId"
+                    params={{ invoiceId: row._id }}
+                    className={cn("grid items-center gap-4 px-5 py-3.5 text-sm transition-colors hover:bg-muted/30", COLUMNS)}
+                  >
+                    <div>
+                      <p className="font-medium">{row.invoiceNumber ?? "Draft"}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(row.paidAt ?? row.createdAt)}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate">{row.customerName ?? row.customerEmail ?? "Unknown customer"}</p>
+                      {row.customerName && row.customerEmail ? <p className="truncate text-xs text-muted-foreground">{row.customerEmail}</p> : null}
+                    </div>
+                    <div className="min-w-0 text-xs text-muted-foreground">
+                      <p>{INVOICE_KIND_LABEL[row.kind]}</p>
+                      {row.periodStartAt !== undefined && row.periodEndAt !== undefined ? (
+                        <p>
+                          {formatDate(row.periodStartAt)} – {formatDate(row.periodEndAt)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="font-medium">{formatMoney(row.totalAmount, row.currencyCode)}</div>
+                    <div>
+                      <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", INVOICE_STATUS_TONE[row.status])}>
+                        {invoiceStatusText(row)}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
-      {pluginDisabled && (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center">
-          <Receipt className="mx-auto h-8 w-8 text-muted-foreground/50" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            The commerce subscriptions plugin is disabled.
-          </p>
+      {list.status === "CanLoadMore" || list.status === "LoadingMore" ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            disabled={list.status === "LoadingMore"}
+            onClick={() => list.loadMore(PAGE_SIZE)}
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+          >
+            {list.status === "LoadingMore" ? "Loading…" : "Load more"}
+          </button>
         </div>
-      )}
-
-      {!pluginDisabled && (
-        <>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap items-center gap-1">
-              {statuses.map((s) => (
-                <button
-                  key={s || "all"}
-                  type="button"
-                  onClick={() => setStatusFilter(s)}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                    statusFilter === s
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border text-foreground hover:bg-muted",
-                  )}
-                >
-                  {s || "All"}
-                </button>
-              ))}
-            </div>
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by invoice or contract id…"
-                className="w-full rounded-xl border border-border bg-background py-2 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="grid grid-cols-[1fr_100px_130px_130px_130px_32px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              <div>Invoice #</div>
-              <div>Status</div>
-              <div>Total</div>
-              <div>Due</div>
-              <div>Paid</div>
-              <div />
-            </div>
-
-            {invoices === undefined ? (
-              <div className="space-y-3 p-5">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-14 animate-pulse rounded-xl bg-muted"
-                  />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="p-10 text-center">
-                <Receipt className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                <p className="mt-3 text-sm text-muted-foreground">
-                  {search || statusFilter
-                    ? "No invoices match your filter."
-                    : "No invoices yet."}
-                </p>
-              </div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {filtered.map((inv) => (
-                  <li key={inv._id}>
-                    <Link
-                      to="/commerce/subscriptions/invoices/$invoiceId"
-                      params={{ invoiceId: inv._id }}
-                      className="grid grid-cols-[1fr_100px_130px_130px_130px_32px] items-center gap-4 px-5 py-4 text-sm transition-colors hover:bg-muted/30"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-sm text-foreground">
-                          {inv.invoiceNumber ?? String(inv._id).slice(-8)}
-                        </p>
-                        <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                          contract: {String(inv.subscriptionId)}
-                        </p>
-                      </div>
-                      <div>
-                        <StatusBadge status={inv.status} />
-                      </div>
-                      <div className="font-medium text-foreground">
-                        {formatMoney(inv.totalAmount, inv.currencyCode)}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {formatDate(inv.dueAt)}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {formatDate(inv.paidAt)}
-                      </div>
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </>
-      )}
+      ) : null}
     </div>
   );
 }

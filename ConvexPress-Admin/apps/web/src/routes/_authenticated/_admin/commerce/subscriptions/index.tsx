@@ -1,562 +1,199 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { toast } from "sonner";
-import {
-  RefreshCw,
-  Pause,
-  Play,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-  TrendingUp,
-  Users,
-  AlertCircle,
-  DollarSign,
-} from "lucide-react";
-import { api } from "@backend/convex/_generated/api";
+/**
+ * Subscriptions overview.
+ *
+ * The numbers (active, monthly recurring revenue, past due, churn), then what
+ * needs attention now (past-due contracts, with retry), what renews in the
+ * next seven days and how much it should bring in, and the latest invoices.
+ *
+ * Data: `queries.getMetrics`, `adminContracts.listDunningQueue`,
+ * `adminContracts.listUpcomingRenewals` and `adminContracts.listInvoices`.
+ */
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, DollarSign, TrendingDown, Users } from "lucide-react";
 
-export const Route = createFileRoute(
-  "/_authenticated/_admin/commerce/subscriptions/",
-)({
-  component: CommerceSubscriptionsPage,
+import { api } from "@backend/convex/_generated/api";
+import { cn } from "@/lib/utils";
+import {
+  describeFailure,
+  formatCadence,
+  formatDate,
+  formatMoney,
+  INVOICE_KIND_LABEL,
+  INVOICE_STATUS_TONE,
+  invoiceStatusText,
+} from "@/components/subscriptions/billingFormat";
+
+export const Route = createFileRoute("/_authenticated/_admin/commerce/subscriptions/")({
+  component: SubscriptionsOverview,
 });
 
-// ─── Formatters ────────────────────────────────────────────────────────────
-
-function formatMoney(amount: number, currencyCode = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-  }).format(amount / 100);
-}
-
-function formatDate(ts: number | undefined) {
-  if (!ts) return "--";
-  return new Date(ts).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-// ─── Status Badge ──────────────────────────────────────────────────────────
-
-function SubStatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    active: "bg-emerald-100 text-emerald-800",
-    trialing: "bg-blue-100 text-blue-800",
-    paused: "bg-amber-100 text-amber-800",
-    past_due: "bg-orange-100 text-orange-800",
-    pending_cancel: "bg-red-100 text-red-700",
-    cancelled: "bg-red-100 text-red-800",
-    expired: "bg-muted text-muted-foreground",
-    draft: "bg-muted text-muted-foreground",
-  };
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] ?? "bg-muted text-muted-foreground"}`}
-    >
-      {status.replace("_", " ")}
-    </span>
-  );
-}
-
-// ─── Stat Card ─────────────────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  accent,
-  sub,
-}: {
+function StatCard({ label, value, sub, icon: Icon, tone = "default" }: {
   label: string;
-  value: string | number;
-  icon: React.ElementType;
-  accent?: string;
+  value: string;
   sub?: string;
+  icon: typeof Users;
+  tone?: "default" | "danger";
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-2">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            {label}
-          </p>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          {sub && (
-            <p className="text-xs text-muted-foreground">{sub}</p>
-          )}
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+          <p className="text-2xl font-semibold text-foreground">{value}</p>
+          {sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}
         </div>
-        <div
-          className={`rounded-xl p-2.5 ${accent ?? "bg-muted text-muted-foreground"}`}
-        >
-          <Icon className="h-5 w-5" />
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", tone === "danger" ? "bg-destructive/10 text-destructive" : "bg-primary/15 text-primary")}>
+          <Icon className="h-4 w-4" />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Action Buttons ────────────────────────────────────────────────────────
-
-function SubscriptionActions({
-  subscription,
-}: {
-  subscription: {
-    _id: string;
-    status: string;
-  };
-}) {
-  const pauseMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.pause,
-  );
-  const resumeMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.resume,
-  );
-  const cancelMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.cancelNow,
-  );
-  const scheduleCancelMutation = useMutation(
-    (api as any).commerceSubscriptions.mutations.scheduleCancel,
-  );
-
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handleAction(
-    action: "pause" | "resume" | "cancel" | "schedule_cancel",
-  ) {
-    setBusy(true);
-    try {
-      const id = subscription._id as any;
-      if (action === "pause") {
-        await pauseMutation({ subscriptionId: id });
-        toast.success("Subscription paused");
-      } else if (action === "resume") {
-        await resumeMutation({ subscriptionId: id });
-        toast.success("Subscription resumed");
-      } else if (action === "cancel") {
-        await cancelMutation({ subscriptionId: id });
-        toast.success("Subscription cancelled");
-      } else if (action === "schedule_cancel") {
-        await scheduleCancelMutation({ subscriptionId: id });
-        toast.success("Cancellation scheduled for end of period");
-      }
-      setConfirming(null);
-    } catch (error) {
-      toast.error(
-        (error as { data?: { message?: string } })?.data?.message ??
-          `Failed to ${action.replace("_", " ")} subscription`,
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const { status } = subscription;
-
-  // Determine available actions based on status
-  const canPause =
-    status === "active" || status === "trialing" || status === "past_due";
-  const canResume = status === "paused" || status === "pending_cancel";
-  const canCancel =
-    status !== "cancelled" && status !== "expired" && status !== "draft";
-  const canScheduleCancel =
-    status === "active" || status === "trialing";
-
-  if (!canPause && !canResume && !canCancel) return null;
-
+function Panel({ title, to, linkLabel, children }: { title: string; to: "/commerce/subscriptions/dunning" | "/commerce/subscriptions/contracts" | "/commerce/subscriptions/invoices"; linkLabel: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1">
-      {canPause && (
-        <button
-          type="button"
-          onClick={() => void handleAction("pause")}
-          disabled={busy}
-          title="Pause"
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-100 hover:text-amber-700 disabled:opacity-50"
-        >
-          <Pause className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {canResume && (
-        <button
-          type="button"
-          onClick={() => void handleAction("resume")}
-          disabled={busy}
-          title="Resume"
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-100 hover:text-emerald-700 disabled:opacity-50"
-        >
-          <Play className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {canScheduleCancel && confirming !== "schedule" && (
-        <button
-          type="button"
-          onClick={() => setConfirming("schedule")}
-          disabled={busy}
-          title="Schedule cancellation"
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50"
-        >
-          <XCircle className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {canCancel && !canScheduleCancel && confirming !== "cancel" && (
-        <button
-          type="button"
-          onClick={() => setConfirming("cancel")}
-          disabled={busy}
-          title="Cancel now"
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-100 hover:text-red-700 disabled:opacity-50"
-        >
-          <XCircle className="h-3.5 w-3.5" />
-        </button>
-      )}
-
-      {/* Confirmation */}
-      {confirming === "schedule" && (
-        <div className="ml-2 flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1 text-xs">
-          <span className="text-orange-800">Cancel at period end?</span>
-          <button
-            type="button"
-            onClick={() => void handleAction("schedule_cancel")}
-            disabled={busy}
-            className="font-medium text-orange-700 underline"
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(null)}
-            className="text-orange-600"
-          >
-            No
-          </button>
-        </div>
-      )}
-      {confirming === "cancel" && (
-        <div className="ml-2 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs">
-          <span className="text-red-800">Cancel immediately?</span>
-          <button
-            type="button"
-            onClick={() => void handleAction("cancel")}
-            disabled={busy}
-            className="font-medium text-red-700 underline"
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(null)}
-            className="text-red-600"
-          >
-            No
-          </button>
-        </div>
-      )}
-    </div>
+    <section className="rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-3">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <Link to={to} className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+          {linkLabel} <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+      {children}
+    </section>
   );
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────
-
-function CommerceSubscriptionsPage() {
-  const metrics = useQuery(
-    (api as any).commerceSubscriptions.queries.getMetrics,
-    {},
-  ) as
-    | {
-        total: number;
-        active: number;
-        paused: number;
-        pastDue: number;
-        cancelled: number;
-        mrr: number;
-        arr: number;
-        startedLast30: number;
-        cancelledLast30: number;
-        churnRate30d: number;
-      }
-    | undefined;
-
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const subscriptions = useQuery(
-    (api as any).commerceSubscriptions.queries.list,
-    statusFilter ? { status: statusFilter } : {},
-  ) as
-    | Array<{
-        _id: string;
-        status: string;
-        currencyCode?: string;
-        recurringAmount?: number;
-        nextBillingAt?: number;
-        currentPeriodStartAt?: number;
-        currentPeriodEndAt?: number;
-        createdAt: number;
-        cancelledAt?: number;
-        customer?: {
-          _id: string;
-          email?: string;
-          firstName?: string;
-          lastName?: string;
-        } | null;
-        product?: {
-          _id: string;
-          title?: string;
-          slug?: string;
-        } | null;
-      }>
-    | undefined;
-
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+function SubscriptionsOverview() {
+  const metrics = useQuery(api.commerceSubscriptions.queries.getMetrics, {});
+  const pastDue = useQuery(api.commerceSubscriptions.adminContracts.listDunningQueue, {});
+  const upcoming = useQuery(api.commerceSubscriptions.adminContracts.listUpcomingRenewals, { days: 7 });
+  const invoices = usePaginatedQuery(api.commerceSubscriptions.adminContracts.listInvoices, {}, { initialNumItems: 8 });
+  const owed = (pastDue ?? []).reduce((sum, row) => sum + (row.billingIssue?.amountDue ?? 0), 0);
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Subscriptions</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Manage subscription lifecycle, view billing schedules, and take
-          actions on active, paused, and past-due subscriptions.
-        </p>
+        <p className="max-w-3xl text-sm text-muted-foreground">Recurring revenue at a glance: what needs attention, what renews this week, and the latest charges.</p>
       </div>
 
-      {/* Metrics grid */}
       {metrics === undefined ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-24 animate-pulse rounded-2xl bg-muted"
-            />
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-28 animate-pulse rounded-2xl bg-muted" />
           ))}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Active"
-            value={metrics.active}
+            value={String(metrics.active)}
+            sub={[`${metrics.startedLast30} new in 30 days`, metrics.pendingCancel > 0 ? `${metrics.pendingCancel} cancelling` : undefined].filter(Boolean).join(" · ")}
             icon={Users}
-            accent="bg-emerald-100 text-emerald-700"
-            sub={`${metrics.total} total`}
           />
+          <StatCard label="Monthly recurring" value={formatMoney(metrics.mrr)} sub={`${formatMoney(metrics.arr)} a year`} icon={DollarSign} />
           <StatCard
-            label="MRR"
-            value={formatMoney(metrics.mrr)}
-            icon={DollarSign}
-            accent="bg-blue-100 text-blue-700"
-            sub={`ARR: ${formatMoney(metrics.arr)}`}
+            label="Past due"
+            value={String(metrics.pastDue)}
+            sub={metrics.pastDue > 0 ? `${formatMoney(owed)} outstanding` : "Every card is current"}
+            icon={AlertTriangle}
+            tone={metrics.pastDue > 0 ? "danger" : "default"}
           />
-          <StatCard
-            label="Past Due"
-            value={metrics.pastDue}
-            icon={AlertCircle}
-            accent="bg-orange-100 text-orange-700"
-            sub={`${metrics.paused} paused`}
-          />
-          <StatCard
-            label="Churn (30d)"
-            value={`${metrics.churnRate30d.toFixed(1)}%`}
-            icon={TrendingUp}
-            accent="bg-red-100 text-red-700"
-            sub={`${metrics.cancelledLast30} cancelled / ${metrics.startedLast30} started`}
-          />
+          <StatCard label="Churn, 30 days" value={`${metrics.churnRate30d.toFixed(1)}%`} sub={`${metrics.cancelledLast30} ended`} icon={TrendingDown} />
         </div>
       )}
 
-      {/* Filter toolbar */}
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-medium text-muted-foreground">
-          Filter:
-        </span>
-        {["", "active", "trialing", "paused", "past_due", "pending_cancel", "cancelled", "expired"].map(
-          (s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatusFilter(s)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                statusFilter === s
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border text-foreground hover:bg-muted"
-              }`}
-            >
-              {s ? s.replace("_", " ") : "All"}
-            </button>
-          ),
-        )}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel title="Needs attention" to="/commerce/subscriptions/dunning" linkLabel="Failed payments">
+          {pastDue === undefined ? (
+            <div className="m-5 h-16 animate-pulse rounded-xl bg-muted" />
+          ) : pastDue.length === 0 ? (
+            <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" /> No payment problems.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {pastDue.slice(0, 6).map((row) => (
+                <li key={row._id}>
+                  <Link to="/commerce/subscriptions/contracts/$contractId" params={{ contractId: row._id }} className="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-muted/30">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{row.customerName ?? row.customerEmail ?? "Unknown customer"}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {describeFailure(row.billingIssue?.lastFailureReason)}
+                        {row.billingIssue?.nextRetryAt ? ` · retry ${formatDate(row.billingIssue.nextRetryAt)}` : " · no retries left"}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-semibold text-destructive">{formatMoney(row.billingIssue?.amountDue, row.currencyCode)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel title="Renewing in the next 7 days" to="/commerce/subscriptions/contracts" linkLabel="All contracts">
+          {upcoming === undefined ? (
+            <div className="m-5 h-16 animate-pulse rounded-xl bg-muted" />
+          ) : upcoming.rows.length === 0 ? (
+            <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground">
+              <CalendarClock className="h-4 w-4" /> Nothing renews this week.
+            </p>
+          ) : (
+            <>
+              <p className="border-b border-border px-5 py-2 text-xs text-muted-foreground">
+                {upcoming.rows.length}
+                {upcoming.truncated ? "+" : ""} renewal{upcoming.rows.length === 1 ? "" : "s"} · about {formatMoney(upcoming.expectedAmount)} expected
+              </p>
+              <ul className="divide-y divide-border">
+                {upcoming.rows.slice(0, 6).map((row) => (
+                  <li key={row._id}>
+                    <Link to="/commerce/subscriptions/contracts/$contractId" params={{ contractId: row._id }} className="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-muted/30">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{row.customerName ?? row.customerEmail ?? "Unknown customer"}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {row.planTitle ?? "Subscription"} · {formatDate(row.nextChargeAt)}
+                          {row.card ? "" : " · no card on file"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-right">
+                        <span className="font-semibold">{formatMoney(row.recurringAmount, row.currencyCode)}</span>
+                        <span className="block text-xs text-muted-foreground">{formatCadence(row.billingInterval, row.billingIntervalCount)}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
       </div>
 
-      {/* Subscriptions table */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="grid grid-cols-[1fr_1fr_100px_140px_140px_120px_120px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          <div>Customer</div>
-          <div>Product</div>
-          <div>Status</div>
-          <div>Amount</div>
-          <div>Next Billing</div>
-          <div>Created</div>
-          <div>Actions</div>
-        </div>
-
-        {subscriptions === undefined ? (
-          <div className="space-y-3 p-5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 animate-pulse rounded-xl bg-muted"
-              />
-            ))}
-          </div>
-        ) : subscriptions.length === 0 ? (
-          <div className="p-10 text-center">
-            <RefreshCw className="mx-auto h-10 w-10 text-muted-foreground/40" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              {statusFilter
-                ? `No subscriptions with status "${statusFilter.replace("_", " ")}".`
-                : "No subscriptions exist yet."}
-            </p>
-          </div>
+      <Panel title="Latest invoices" to="/commerce/subscriptions/invoices" linkLabel="All invoices">
+        {invoices.status === "LoadingFirstPage" ? (
+          <div className="m-5 h-16 animate-pulse rounded-xl bg-muted" />
+        ) : invoices.results.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-muted-foreground">No invoices yet.</p>
         ) : (
-          <div className="divide-y divide-border">
-            {subscriptions.map((sub) => (
-              <div key={sub._id}>
-                <div className="grid grid-cols-[1fr_1fr_100px_140px_140px_120px_120px] gap-4 px-5 py-4">
-                  {/* Customer */}
+          <ul className="divide-y divide-border">
+            {invoices.results.map((row) => (
+              <li key={row._id}>
+                <Link to="/commerce/subscriptions/invoices/$invoiceId" params={{ invoiceId: row._id }} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-5 py-3 text-sm hover:bg-muted/30">
                   <div className="min-w-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedId(
-                          expandedId === sub._id ? null : sub._id,
-                        )
-                      }
-                      className="flex items-center gap-2 text-left"
-                    >
-                      {expandedId === sub._id ? (
-                        <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {sub.customer
-                            ? [sub.customer.firstName, sub.customer.lastName]
-                                .filter(Boolean)
-                                .join(" ") || sub.customer.email
-                            : "Unknown"}
-                        </p>
-                        {sub.customer?.email && (
-                          <p className="truncate text-xs text-muted-foreground">
-                            {sub.customer.email}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Product */}
-                  <div className="flex items-center">
-                    <p className="truncate text-sm text-foreground">
-                      {sub.product?.title ?? "Unknown product"}
+                    <p className="truncate font-medium">{row.customerName ?? row.customerEmail ?? "Unknown customer"}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {row.invoiceNumber ?? "Draft"} · {INVOICE_KIND_LABEL[row.kind]} · {formatDate(row.paidAt ?? row.createdAt)}
                     </p>
                   </div>
-
-                  {/* Status */}
-                  <div className="flex items-center">
-                    <SubStatusBadge status={sub.status} />
-                  </div>
-
-                  {/* Amount */}
-                  <div className="flex items-center text-sm text-foreground">
-                    {typeof sub.recurringAmount === "number"
-                      ? formatMoney(
-                          sub.recurringAmount,
-                          sub.currencyCode ?? "USD",
-                        )
-                      : "--"}
-                  </div>
-
-                  {/* Next billing */}
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    {formatDate(sub.nextBillingAt)}
-                  </div>
-
-                  {/* Created */}
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    {formatDate(sub.createdAt)}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center">
-                    <SubscriptionActions subscription={sub} />
-                  </div>
-                </div>
-
-                {/* Expanded detail */}
-                {expandedId === sub._id && (
-                  <div className="border-t border-border/50 bg-muted/20 px-5 py-4">
-                    <div className="grid gap-4 text-sm sm:grid-cols-4">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Current Period
-                        </p>
-                        <p className="mt-1 text-foreground">
-                          {formatDate(sub.currentPeriodStartAt)} --{" "}
-                          {formatDate(sub.currentPeriodEndAt)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Next Billing
-                        </p>
-                        <p className="mt-1 text-foreground">
-                          {formatDate(sub.nextBillingAt)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Recurring Amount
-                        </p>
-                        <p className="mt-1 text-foreground">
-                          {typeof sub.recurringAmount === "number"
-                            ? formatMoney(
-                                sub.recurringAmount,
-                                sub.currencyCode ?? "USD",
-                              )
-                            : "--"}{" "}
-                          / period
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Subscription ID
-                        </p>
-                        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
-                          {sub._id}
-                        </p>
-                      </div>
-                      {sub.cancelledAt && (
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Cancelled At
-                          </p>
-                          <p className="mt-1 text-red-600">
-                            {formatDate(sub.cancelledAt)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                  <span className={cn("hidden rounded-full px-2.5 py-0.5 text-xs font-medium sm:inline-flex", INVOICE_STATUS_TONE[row.status])}>{invoiceStatusText(row)}</span>
+                  <span className="font-semibold">{formatMoney(row.totalAmount, row.currencyCode)}</span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }
