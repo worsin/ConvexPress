@@ -54,9 +54,9 @@ export function useAuthRedirect(): UseAuthRedirectResult {
 
 	  const redirectAfterAuth = useCallback(() => {
 	    if (returnTo) {
-	      navigate({ to: returnTo } as any);
+	      navigate({ to: returnTo });
 	    } else {
-	      navigate({ to: "/" } as any);
+	      navigate({ to: "/" });
 	    }
 	  }, [returnTo, navigate]);
 

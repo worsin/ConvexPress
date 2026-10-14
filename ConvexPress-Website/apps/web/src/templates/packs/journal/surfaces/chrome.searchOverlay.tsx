@@ -50,7 +50,7 @@ export default function JournalChromeSearchOverlay({ data }: SurfaceProps<Search
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
-    void navigate({ to: searchTarget, search: { q: trimmed } } as any);
+    void navigate({ to: searchTarget, search: { q: trimmed } });
     close();
   }
 

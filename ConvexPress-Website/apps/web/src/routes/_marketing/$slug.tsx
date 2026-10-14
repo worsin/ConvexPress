@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_marketing/$slug")({
       // Settings unavailable: treat as a page slug.
     }
     // Keep the query string: template / Customizer previews and campaign tags survive the redirect.
-    throw redirect({ to: "/page/$", params: { _splat: params.slug }, search: location.search as any, replace: true });
+    throw redirect({ to: "/page/$", params: { _splat: params.slug }, search: location.search, replace: true });
   },
   component: SlugDashboardHost,
 });

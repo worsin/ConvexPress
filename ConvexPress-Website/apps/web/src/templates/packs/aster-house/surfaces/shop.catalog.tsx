@@ -92,7 +92,7 @@ export default function AsterShopCatalog(_props: SurfaceProps<Record<string, nev
               <Link
                 key={chip.label}
                 to="/products"
-                search={{ q: chip.query ?? q, category: chip.categorySlug } as any}
+                search={{ q: chip.query ?? q, category: chip.categorySlug }}
                 className="rounded-full border border-border px-3 py-1 text-xs text-foreground transition-colors hover:border-primary hover:text-primary"
               >
                 {chip.label}

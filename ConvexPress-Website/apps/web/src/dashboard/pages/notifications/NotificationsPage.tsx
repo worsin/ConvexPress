@@ -75,7 +75,7 @@ export function NotificationsPage() {
           return merged;
         },
         replace: true,
-      } as never);
+      });
     },
     [navigate],
   );

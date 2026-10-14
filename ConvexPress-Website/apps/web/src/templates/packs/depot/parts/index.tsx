@@ -81,7 +81,7 @@ export function SectionHeading({
         {count !== undefined && count !== null ? <span className="text-[13px] font-normal tabular-nums text-muted-foreground">{count}</span> : null}
       </Tag>
       {action && (
-        <Link to={action.to} search={action.search as any} className="text-[13px] font-medium text-primary hover:underline">
+        <Link to={action.to} search={action.search} className="text-[13px] font-medium text-primary hover:underline">
           {action.label}
         </Link>
       )}
@@ -146,7 +146,7 @@ export function LinkButton({
   children: ReactNode;
 } & Record<string, unknown>) {
   return (
-    <Link to={to} params={params as any} search={search as any} hash={hash} className={buttonClasses(variant, size, className)} {...rest}>
+    <Link to={to} params={params} search={search} hash={hash} className={buttonClasses(variant, size, className)} {...rest}>
       {children}
     </Link>
   );
@@ -272,7 +272,7 @@ export function Pagination({
       </span>
       <div className="flex items-center gap-1">
         {page > 1 ? (
-          <Link to={prev.to} search={prev.search as any} className={cn(cell, idle)} aria-label="Previous page">
+          <Link to={prev.to} search={prev.search} className={cn(cell, idle)} aria-label="Previous page">
             <ChevronLeft className="size-3.5" aria-hidden="true" />
           </Link>
         ) : (
@@ -289,7 +289,7 @@ export function Pagination({
             <Link
               key={entry}
               to={linkFor(entry).to}
-              search={linkFor(entry).search as any}
+              search={linkFor(entry).search}
               className={cn(cell, entry === page ? "border-primary bg-primary font-semibold text-primary-foreground" : idle)}
               aria-label={`Page ${entry}`}
               aria-current={entry === page ? "page" : undefined}
@@ -299,7 +299,7 @@ export function Pagination({
           ),
         )}
         {page < totalPages ? (
-          <Link to={next.to} search={next.search as any} className={cn(cell, idle)} aria-label="Next page">
+          <Link to={next.to} search={next.search} className={cn(cell, idle)} aria-label="Next page">
             <ChevronRight className="size-3.5" aria-hidden="true" />
           </Link>
         ) : (
@@ -382,7 +382,7 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
                   {item.label}
                 </span>
               ) : (
-                <Link to={item.to} params={item.params as any} search={item.search as any} className="transition-colors hover:text-foreground">
+                <Link to={item.to} params={item.params} search={item.search} className="transition-colors hover:text-foreground">
                   {item.label}
                 </Link>
               )}

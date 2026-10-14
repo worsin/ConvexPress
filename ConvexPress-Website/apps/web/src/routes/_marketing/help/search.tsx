@@ -64,7 +64,7 @@ function KbSearchResults() {
     navigate({
       to: "/help/search",
       search: { q: query.trim() || undefined, category },
-    } as any);
+    });
   }
 
   const surfaceData: HelpSearchSurfaceData = {

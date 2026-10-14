@@ -30,7 +30,7 @@ export default function AsterHome({ data }: SurfaceProps<HomeSurfaceData>) {
       </figure>}
     </>}
     <div id="aster-story" style={{ scrollMarginTop: "calc(var(--site-header-offset, 0px) + 1rem)" }}>{body}</div>
-    {frontPage.children && frontPage.children.length > 0 && <Container className="py-20"><nav aria-label="Explore more" className="divide-y divide-border border-y border-border">{frontPage.children.map((page, index) => <Link key={page._id} to={`/page${page.path}` as any} className="group flex items-center justify-between gap-6 py-8 text-foreground"><span className="text-xs text-primary">{String(index + 1).padStart(2, "0")}</span><span className="flex-1 font-display text-3xl md:text-5xl">{page.title}</span><ArrowUpRight className="size-7 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true" /></Link>)}</nav></Container>}
+    {frontPage.children && frontPage.children.length > 0 && <Container className="py-20"><nav aria-label="Explore more" className="divide-y divide-border border-y border-border">{frontPage.children.map((page, index) => <Link key={page._id} to="/page/$" params={{ _splat: page.path.replace(/^\//, "") }} className="group flex items-center justify-between gap-6 py-8 text-foreground"><span className="text-xs text-primary">{String(index + 1).padStart(2, "0")}</span><span className="flex-1 font-display text-3xl md:text-5xl">{page.title}</span><ArrowUpRight className="size-7 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true" /></Link>)}</nav></Container>}
   </div>;
   return <PublicCanonicalBody documentId={frontPage._id} renderLayout={layout} />;
 }

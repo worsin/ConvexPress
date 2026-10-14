@@ -35,7 +35,7 @@ export function SearchFormWidget({
 	    navigate({
 	      to: "/search",
 	      search: { q: trimmed },
-	    } as any);
+	    });
   };
 
   if (variant === "expanded") {

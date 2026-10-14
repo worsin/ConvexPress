@@ -105,7 +105,7 @@ const redirectMiddleware = createMiddleware().server(async ({ request, next }) =
       (api as any).routing.public.resolveRedirect,
       { url: pathname + url.search },
     );
-    const redirect = processRedirectResult(redirectRecord as any);
+    const redirect = processRedirectResult(redirectRecord);
     if (!redirect) return next();
 
     if (redirect.redirectId) {

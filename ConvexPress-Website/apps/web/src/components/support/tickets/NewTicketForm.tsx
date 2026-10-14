@@ -180,7 +180,7 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
       })) as { ticketId: string; ticketNumber: string };
       if (aiResult) void logAi("escalated", result.ticketId);
       toast.success("Ticket opened", { description: `${result.ticketNumber}. We'll email you when we reply.` });
-      void navigate({ to: ticketHref(result.ticketNumber) } as never);
+      void navigate({ to: ticketHref(result.ticketNumber) });
     } catch (err) {
       setError(explainError(err));
       setSubmitting(false);

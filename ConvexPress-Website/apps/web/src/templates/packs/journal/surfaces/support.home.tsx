@@ -41,7 +41,7 @@ export default function JournalSupportHome({ data }: SurfaceProps<SupportHomeSur
         <ul className="flex flex-col divide-y divide-border border-y border-border">
           {rows.map((row) => (
             <li key={row.to}>
-              <Link to={row.to as any} className="group flex items-center justify-between gap-6 py-7">
+              <Link to={row.to} className="group flex items-center justify-between gap-6 py-7">
                 <span className="flex min-w-0 flex-col gap-1.5">
                   <span className="font-display text-2xl leading-snug tracking-tight text-foreground transition-colors group-hover:text-primary">{row.title}</span>
                   <span className="text-base leading-7 text-muted-foreground">{row.description}</span>

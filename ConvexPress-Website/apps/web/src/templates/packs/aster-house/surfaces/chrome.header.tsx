@@ -73,7 +73,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
           <HeaderSearchTrigger config={headerConfig.search} />
           {headerConfig.cta.enabled ? (
             <Link
-              data-customize="header.cta.label" to={headerConfig.cta.url as any}
+              data-customize="header.cta.label" to={headerConfig.cta.url}
               className={cn(
                 "mx-1 hidden h-9 items-center rounded-full px-4 text-sm font-medium transition-colors md:inline-flex",
                 headerConfig.cta.style === "outline"

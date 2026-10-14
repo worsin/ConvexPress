@@ -149,7 +149,7 @@ export function ShopCatalog({ variant }: { variant?: string }) {
               <Link
                 key={chip.label}
                 to="/products"
-                search={{ q: chip.query ?? q, category: chip.categorySlug } as any}
+                search={{ q: chip.query ?? q, category: chip.categorySlug }}
                 className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
               >
                 {chip.label}
@@ -204,14 +204,14 @@ export function ShopCatalog({ variant }: { variant?: string }) {
                   </span>
                   <div className="flex gap-3">
                     {data.page > 1 ? (
-                      <Link to="/products" search={{ ...search, page: data.page - 1 } as any} className="font-medium text-primary hover:underline">
+                      <Link to="/products" search={{ ...search, page: data.page - 1 }} className="font-medium text-primary hover:underline">
                         Previous
                       </Link>
                     ) : (
                       <span className="text-muted-foreground/60">Previous</span>
                     )}
                     {data.page < data.totalPages ? (
-                      <Link to="/products" search={{ ...search, page: data.page + 1 } as any} className="font-medium text-primary hover:underline">
+                      <Link to="/products" search={{ ...search, page: data.page + 1 }} className="font-medium text-primary hover:underline">
                         Next
                       </Link>
                     ) : (

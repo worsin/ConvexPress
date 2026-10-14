@@ -41,12 +41,18 @@ import { Surface } from "@/templates/sdk/Surface";
 
 const getBySlugFn = (api as any).extensions.forms.queries.getBySlug;
 
+/** Payment-return keys; prefill keys ride along untyped (see validateSearch). */
+type FormRouteSearch = { payment?: string; redirect_status?: string };
+
 export const Route = createFileRoute("/_marketing/forms/$slug")({
   component: FormPage,
   notFoundComponent: FormRouteNotFound,
-  // Permissive search: arbitrary prefill query params pass through as a string
-  // map. parsePrefill decides which are eligible (allowlisted opt-in fields).
-  validateSearch: (search: Record<string, unknown>): Record<string, string> => {
+  // Permissive search: arbitrary prefill query params pass through as strings
+  // and parsePrefill decides which are eligible (allowlisted opt-in fields).
+  // The declared type names only the keys this route reads directly: an index
+  // signature here would join every route's search schema and force every
+  // link's search values in the site to be strings.
+  validateSearch: (search: Record<string, unknown>): FormRouteSearch => {
     const out: Record<string, string> = {};
     for (const [key, value] of Object.entries(search)) {
       if (typeof value === "string") out[key] = value;

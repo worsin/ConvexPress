@@ -116,7 +116,7 @@ export function AssistantBlocks({
                   {block.seeMoreQuery && (
                     <Link
                       to="/products"
-                      search={{ q: block.seeMoreQuery } as any}
+                      search={{ q: block.seeMoreQuery }}
                       onClick={onNavigate}
                       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                     >
@@ -192,7 +192,7 @@ export function AssistantBlocks({
                   <Link
                     key={facet.label}
                     to="/products"
-                    search={{ q: facet.query, category: facet.categorySlug } as any}
+                    search={{ q: facet.query, category: facet.categorySlug }}
                     onClick={onNavigate}
                     className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                   >

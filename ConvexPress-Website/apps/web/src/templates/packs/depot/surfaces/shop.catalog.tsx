@@ -96,7 +96,7 @@ export default function DepotShopCatalog(_props: SurfaceProps<Record<string, nev
           <div className="flex flex-wrap items-center gap-1.5">
             <Label className="mr-1">Narrow your search</Label>
             {facetChips.map((chip) => (
-              <Link key={chip.label} to="/products" search={{ q: chip.query ?? q, category: chip.categorySlug } as any} className={buttonClasses("secondary", "sm")}>
+              <Link key={chip.label} to="/products" search={{ q: chip.query ?? q, category: chip.categorySlug }} className={buttonClasses("secondary", "sm")}>
                 {chip.label}
               </Link>
             ))}

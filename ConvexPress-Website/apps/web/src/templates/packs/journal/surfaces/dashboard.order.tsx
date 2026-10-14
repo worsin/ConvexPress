@@ -171,7 +171,7 @@ export default function JournalDashboardOrder({ data }: SurfaceProps<DashboardOr
                     </div>
                     <div className="flex items-center gap-5">
                       <StatusPill status={ret.status} />
-                      <Link to={hrefs.returnDetail(ret._id) as any} className={textActionClasses("primary")}>
+                      <Link to={hrefs.returnDetail(ret._id)} className={textActionClasses("primary")}>
                         View return details
                       </Link>
                     </div>

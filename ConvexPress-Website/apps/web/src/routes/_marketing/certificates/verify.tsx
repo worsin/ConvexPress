@@ -36,7 +36,7 @@ function VerifyCertificatePage() {
     void navigate({
       to: "/certificates/verify",
       search: next ? { serial: next } : {},
-    } as any);
+    });
   }
 
   const data: CertificateVerifySurfaceData = { serial, result, actions: { verify } };

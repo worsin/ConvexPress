@@ -17,12 +17,13 @@ import CoreCoursesIndex, {
 } from "@/templates/packs/core/surfaces/courses.index";
 import { Surface } from "@/templates/sdk/Surface";
 
+const courseSortSchema = z.enum(["newest", "title_asc", "title_desc", "popular"]);
 const coursesSearchSchema = z.object({
   q: z.string().optional(),
   category: z.string().optional(),
   tag: z.string().optional(),
   access: z.string().optional(),
-  sort: z.enum(["newest", "title_asc", "title_desc", "popular"]).optional(),
+  sort: courseSortSchema.optional(),
   page: z.coerce.number().int().positive().optional(),
 });
 
@@ -145,10 +146,13 @@ function useCatalogActions(): CoursesIndexSurfaceData["actions"] {
         sort: sort === "newest" ? undefined : sort,
         page: undefined,
       },
-    } as any);
+    });
   }
 
-  function changeSort(nextSort: string) {
+  function changeSort(value: string) {
+    // The surface hands over a raw <select> value; unknown values fall back to the default order.
+    const parsed = courseSortSchema.safeParse(value);
+    const nextSort = parsed.success ? parsed.data : "newest";
     void navigate({
       to: "/courses",
       search: {
@@ -159,7 +163,7 @@ function useCatalogActions(): CoursesIndexSurfaceData["actions"] {
         sort: nextSort === "newest" ? undefined : nextSort,
         page: undefined,
       },
-    } as any);
+    });
   }
 
   return { search, changeSort };

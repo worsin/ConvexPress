@@ -53,7 +53,7 @@ function HelpCenter() {
 
   function search(query: string) {
     if (query.trim()) {
-      navigate({ to: "/help/search", search: { q: query.trim() } } as any);
+      navigate({ to: "/help/search", search: { q: query.trim() } });
     }
   }
 

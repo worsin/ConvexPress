@@ -85,7 +85,7 @@ export default function AsterDashboardReturns({ data }: SurfaceProps<DashboardRe
                 {ret.trackingNumber ? <SmallCaps>Tracking {ret.trackingNumber}</SmallCaps> : null}
 
                 <div>
-                  <Link to={hrefs.returnDetail(ret._id) as any} className={textActionClasses("primary")}>
+                  <Link to={hrefs.returnDetail(ret._id)} className={textActionClasses("primary")}>
                     View return details
                   </Link>
                 </div>

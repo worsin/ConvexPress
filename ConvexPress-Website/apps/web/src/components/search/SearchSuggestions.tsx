@@ -115,7 +115,7 @@ export function SearchSuggestions({
 	              navigate({
 	                to: "/search",
 	                search: { q: suggestion.text },
-	              } as any);
+	              });
               onClose();
             }}
           >

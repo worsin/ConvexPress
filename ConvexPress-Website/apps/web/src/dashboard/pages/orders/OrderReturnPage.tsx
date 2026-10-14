@@ -75,7 +75,7 @@ export function OrderReturnPage({ orderId }: { orderId: string }) {
     hrefs: { returns: to("/returns") },
     actions: {
       submit,
-      backToDashboard: () => navigate({ to: to("") } as any),
+      backToDashboard: () => navigate({ to: to("") }),
     },
   };
 

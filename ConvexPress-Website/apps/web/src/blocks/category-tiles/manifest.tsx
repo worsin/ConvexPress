@@ -52,7 +52,7 @@ function CategoryTilesRenderer({ attrs }: BlockRendererProps<CategoryTilesAttrs>
             <Link
               key={tile.id}
               to="/products"
-              search={{ category: tile.slug } as any}
+              search={{ category: tile.slug }}
               className="group relative block aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted"
             >
               {tile.coverMediaId ? (

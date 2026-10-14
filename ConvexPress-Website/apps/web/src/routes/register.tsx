@@ -34,7 +34,7 @@ function RegisterComponent() {
   // Redirect authenticated users
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      navigate({ to: safeReturnTo } as any);
+      navigate({ to: safeReturnTo });
     }
   }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
 

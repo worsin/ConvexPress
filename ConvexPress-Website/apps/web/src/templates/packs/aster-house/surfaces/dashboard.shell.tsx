@@ -204,7 +204,7 @@ function Wordmark({ config, href }: { config: DashboardConfig; href: string }) {
   const title = identity?.title ?? "";
   const logoUrl = config.brandMark === "custom" && config.customLogoUrl ? config.customLogoUrl : config.brandMark === "site" ? identity?.logoUrl : undefined;
   return (
-    <Link to={href as any} data-slot="dashboard-brand" aria-label={`${title} dashboard home`} className="flex min-w-0 items-center gap-3 text-foreground no-underline">
+    <Link to={href} data-slot="dashboard-brand" aria-label={`${title} dashboard home`} className="flex min-w-0 items-center gap-3 text-foreground no-underline">
       {logoUrl ? <img src={logoUrl} alt="" width={28} height={28} className="h-7 w-auto shrink-0 object-contain" /> : null}
       <span className="truncate font-display text-xl tracking-tight">{title}</span>
     </Link>

@@ -60,7 +60,8 @@ export function PageBreadcrumbs({
         <span key={ancestor._id} className="flex items-center gap-1">
           <ChevronRight className="size-3 text-muted-foreground/50" aria-hidden="true" />
 	          <Link
-	            to={`/page${ancestor.path}`}
+	            to="/page/$"
+	            params={{ _splat: ancestor.path.replace(/^\//, "") }}
 	            className="transition-colors hover:text-foreground"
           >
             {ancestor.title}

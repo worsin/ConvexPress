@@ -35,7 +35,7 @@ export function ProductBreadcrumb({ product, className }: Pick<PartProps, "produ
       {category && (
         <>
           <span aria-hidden="true">/</span>
-          <Link to="/products" search={{ category: category.slug } as any} className="hover:text-foreground">
+          <Link to="/products" search={{ category: category.slug }} className="hover:text-foreground">
             {category.name}
           </Link>
         </>
@@ -140,7 +140,7 @@ export function ProductSummary({ product, state, className, size = "lg" }: PartP
             <Link
               key={category._id}
               to="/products"
-              search={{ category: category.slug } as any}
+              search={{ category: category.slug }}
               className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/15"
             >
               {category.name}

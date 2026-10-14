@@ -40,7 +40,7 @@ function QuietSearch() {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
-    void navigate({ to: "/search", search: { q: trimmed } } as any);
+    void navigate({ to: "/search", search: { q: trimmed } });
   }
   return (
     <form onSubmit={onSubmit} role="search" aria-label="Search the site" className="mt-12 flex w-full max-w-sm items-end gap-4">

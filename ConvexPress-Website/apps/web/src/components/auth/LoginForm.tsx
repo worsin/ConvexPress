@@ -115,7 +115,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
       await signIn.prepareSecondFactor({
         strategy: "email_code",
         ...(next.factor?.emailAddressId ? { emailAddressId: next.factor.emailAddressId } : {}),
-      } as never);
+      });
     }
     setStep({ kind: "second_code", strategy: next.strategy, factor: next.factor, alternatives: next.alternatives });
   };
