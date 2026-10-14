@@ -5,7 +5,6 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { useSetting } from "@/contexts/SettingsContext";
 import type { PaginationData, PostCard as PostCardType } from "@/lib/blog/types";
-import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent";
 import { PostCardSkeletonGrid } from "@/components/blog/PostCardSkeleton";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 import CoreBlogIndex from "@/templates/packs/core/surfaces/blog.index";
@@ -59,7 +58,7 @@ function BlogIndex() {
     _id: post._id,
     title: post.title,
     slug: post.slug,
-    excerpt: post.excerpt || generateExcerpt(post.content),
+    excerpt: post.excerpt || post.textExcerpt,
     featuredImageUrl: post.featuredImageUrl ?? undefined,
     featuredImageAlt: post.featuredImageAlt ?? undefined,
     publishedAt: post.publishedAt
@@ -80,7 +79,7 @@ function BlogIndex() {
       : undefined,
     commentCount: post.commentCount ?? 0,
     isSticky: post.isSticky ?? false,
-    readingTime: estimateReadingTime(post.content),
+    readingTime: post.readingTimeMinutes,
   }));
 
   const pagination: PaginationData = {
@@ -99,15 +98,4 @@ function BlogIndex() {
       fallback={CoreBlogIndex}
     />
   );
-}
-
-/**
- * Generate an excerpt from block editor content (first 150 chars of plain text).
- */
-function generateExcerpt(content: string | undefined | null): string | undefined {
-  if (!content) return undefined;
-  const plainText = extractPlainText(content);
-  if (!plainText) return undefined;
-  if (plainText.length <= 150) return plainText;
-  return plainText.slice(0, 150).trimEnd() + "...";
 }

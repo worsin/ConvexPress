@@ -14,7 +14,6 @@ import type { RestrictedTeaserMode } from "@/components/membership/RestrictedCon
 import { SeoHead } from "@/components/seo/SeoHead";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
-import { estimateReadingTime } from "@/lib/blog/renderContent";
 import type {
 	AuthorData,
 	PostCard as PostCardType,
@@ -278,7 +277,7 @@ function SinglePost() {
 		publishedAt: resolvedPostData.publishedAt
 			? new Date(resolvedPostData.publishedAt).toISOString()
 			: undefined,
-		readingTime: estimateReadingTime(resolvedPostData.content),
+		readingTime: resolvedPostData.readingTimeMinutes,
 		author: {
 			_id: resolvedPostData.author?._id ?? "",
 			displayName: resolvedPostData.author?.displayName ?? "Unknown",
@@ -328,7 +327,7 @@ function SinglePost() {
 						slug: post.slug,
 						type: "post",
 						excerpt: post.excerpt,
-						content: rawPost.content,
+						textExcerpt: rawPost.textExcerpt,
 						featuredImageUrl: post.featuredImageUrl,
 						publishedAt: post.publishedAt,
 					},
@@ -346,7 +345,7 @@ function SinglePost() {
 						slug: post.slug,
 						type: "post",
 						excerpt: post.excerpt,
-						content: rawPost.content,
+						textExcerpt: rawPost.textExcerpt,
 						featuredImageUrl: post.featuredImageUrl,
 						publishedAt: post.publishedAt,
 					},

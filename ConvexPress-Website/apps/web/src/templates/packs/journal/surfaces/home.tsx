@@ -4,7 +4,6 @@
  * feature (image left, text right), a rule, then a two-column list.
  */
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
-import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent";
 import type { HomeSurfaceData } from "@/templates/packs/core/surfaces/home";
 import { Surface } from "@/templates/sdk/Surface";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -33,9 +32,9 @@ export default function JournalHome({ data }: SurfaceProps<HomeSurfaceData>) {
     _id: post._id,
     title: post.title,
     slug: post.slug,
-    excerpt: post.excerpt || excerptFrom(post.content),
+    excerpt: post.excerpt || post.textExcerpt || undefined,
     publishedAt: post.publishedAt ?? null,
-    readingTime: estimateReadingTime(post.content),
+    readingTime: post.readingTimeMinutes,
   }));
   const [feature, ...rest] = posts;
 
@@ -112,11 +111,4 @@ function FeedSkeleton() {
       </div>
     </div>
   );
-}
-
-function excerptFrom(content: string | null | undefined): string | undefined {
-  if (!content) return undefined;
-  const text = extractPlainText(content);
-  if (!text) return undefined;
-  return text.length <= 160 ? text : `${text.slice(0, 160).trimEnd()}...`;
 }

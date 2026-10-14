@@ -54,25 +54,6 @@ export const TipTapDocumentSchema = z.object({
 export type TipTapDocument = z.infer<typeof TipTapDocumentSchema>;
 
 // ---------------------------------------------------------------------------
-// SEO Content Extraction Schemas
-// ---------------------------------------------------------------------------
-
-/**
- * Schema for block content when extracting plain text for SEO.
- * Used in SEO meta description generation.
- */
-export const ContentBlockSchema = z.object({
-  text: z.string().optional(),
-  content: z.string().optional(),
-});
-
-export const ContentBlockArraySchema = z.array(ContentBlockSchema);
-
-export const ContentDocumentSchema = z.object({
-  content: z.union([z.string(), z.array(z.unknown())]).optional(),
-});
-
-// ---------------------------------------------------------------------------
 // Custom Field Value Schemas
 // ---------------------------------------------------------------------------
 
@@ -197,59 +178,4 @@ export function parseLinkField(value: string): LinkFieldValue {
 export function parseRepeaterField(value: string): Record<string, unknown>[] {
   const result = safeJsonParse(value || "[]", RepeaterFieldSchema);
   return result ?? [];
-}
-
-/**
- * Extract plain text from content for SEO purposes.
- * Handles both array format and document format.
- */
-export function extractSeoText(content: string | null | undefined, maxLength = 160): string {
-  if (!content) return "";
-
-  let text = content;
-
-  try {
-    const parsed = JSON.parse(content);
-
-    // Array of blocks format
-    const arrayResult = ContentBlockArraySchema.safeParse(parsed);
-    if (arrayResult.success) {
-      text = arrayResult.data
-        .map((block) => block.text || block.content || "")
-        .join(" ");
-    }
-    // Document format with content property
-    else {
-      const docResult = ContentDocumentSchema.safeParse(parsed);
-      if (docResult.success && typeof docResult.data.content === "string") {
-        text = docResult.data.content;
-      }
-    }
-  } catch {
-    // Not JSON - treat as raw text/HTML
-  }
-
-  // Strip HTML tags
-  text = text.replace(/<[^>]*>/g, "");
-
-  // Decode common HTML entities
-  text = text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&nbsp;/g, " ");
-
-  // Normalize whitespace
-  text = text.replace(/\s+/g, " ").trim();
-
-  // Truncate to maxLength
-  if (text.length > maxLength) {
-    const truncated = text.substring(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(" ");
-    text = lastSpace > maxLength * 0.7 ? truncated.substring(0, lastSpace) : truncated;
-  }
-
-  return text;
 }

@@ -29,9 +29,11 @@ async function textFromTree(tree: RuntimeCanonicalTree, options: {
   registry?: ComposedRegistry;
   renderLibrary?: (node: RuntimeCanonicalTree[number], children: () => Promise<string>) => Promise<string>;
   renderComposed?: (node: RuntimeCanonicalTree[number], children: () => Promise<string>) => Promise<string>;
+  /** Character budget for this subtree; callers needing a short prefix stop early. */
+  limit?: number;
 } = {}): Promise<string> {
   const parts: string[] = [];
-  let remaining = 100_000;
+  let remaining = options.limit ?? 100_000;
   for (const node of tree) {
     if (remaining <= 0) break;
     const children = () => textFromTree(node.children ?? [], options);
@@ -61,6 +63,70 @@ export async function canonicalSearchCandidates(ctx: QueryCtx, post: Doc<"posts"
   if (authored.composedDefinitions) return "";
   const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(authored.blocks), budget);
   return textFromTree(plan.resolverTree);
+}
+
+/** Words per minute behind `readingTimeMinutes`. */
+export const READING_WORDS_PER_MINUTE = 200;
+/** Upper bound, in UTF-16 code units and including the ellipsis, of `textExcerpt`. */
+export const TEXT_EXCERPT_MAX_LENGTH = 160;
+
+export interface StoredTextSummary {
+  /** Whole minutes, at least 1. */
+  readingTimeMinutes: number;
+  /** Opening paragraph prose, plain text, at most TEXT_EXCERPT_MAX_LENGTH. */
+  textExcerpt?: string;
+}
+
+/** Plain-text prefix ending on a word boundary where one is near. */
+export function boundedTextExcerpt(text: string, max = TEXT_EXCERPT_MAX_LENGTH): string | undefined {
+  const clean = text.replace(/\s+/gu, " ").trim();
+  if (!clean) return undefined;
+  if (clean.length <= max) return clean;
+  let end = clean.lastIndexOf(" ", max - 1);
+  if (end < max / 2) end = max - 1;
+  // Never split a surrogate pair.
+  if (/[\uD800-\uDBFF]/u.test(clean[end - 1])) end--;
+  return `${clean.slice(0, end).trimEnd()}…`;
+}
+
+/** Display summary of a stored post, derived from the canonical tree held in the
+ * same document. Performs no database reads, so it is safe inside list pages.
+ *
+ * Reading time counts the authored candidate corpus (Library copy, plus composed
+ * copy from the document's own definition snapshot). Synced references are not
+ * followed. A tree that is not a valid canonical tree yields the 1-minute floor.
+ *
+ * The excerpt is public body text, so it is deliberately narrower than the
+ * corpus: `core/paragraph` prose only, reached through Library blocks, with every
+ * node on the path visible to everyone. Composed and synced subtrees are skipped.
+ * Callers must pass `excerpt: true` only when the visitor may read the body and no
+ * block-level access rule can apply (block membership rules need reads). */
+export async function storedPostTextSummary(
+  post: Pick<Doc<"posts">, "blocks" | "composedDefinitions">,
+  options: { excerpt: boolean },
+): Promise<StoredTextSummary> {
+  let tree: RuntimeCanonicalTree;
+  let registry: ComposedRegistry | undefined;
+  try {
+    registry = post.composedDefinitions ? createComposedRegistry(post.composedDefinitions, post.composedDefinitions.scope) : undefined;
+    tree = registry ? registry.validateTree(post.blocks) : validateCanonicalTree(post.blocks);
+  } catch {
+    return { readingTimeMinutes: 1 };
+  }
+  const corpus = await textFromTree(tree, { registry });
+  const words = corpus.split(/\s+/u).filter(Boolean).length;
+  const readingTimeMinutes = Math.max(1, Math.ceil(words / READING_WORDS_PER_MINUTE));
+  if (!options.excerpt) return { readingTimeMinutes };
+  const everyone = (node: RuntimeCanonicalTree[number]) => !node.visibility || node.visibility === "everyone";
+  const opening = await textFromTree(tree, {
+    limit: TEXT_EXCERPT_MAX_LENGTH + 1,
+    renderLibrary: async (node, children) =>
+      !everyone(node) || node.name === "core/synced" ? ""
+        : node.name === "core/paragraph" ? authoredBlockSearchText(node.name, node.attrs)
+          : children(),
+  });
+  const textExcerpt = boundedTextExcerpt(opening);
+  return textExcerpt ? { readingTimeMinutes, textExcerpt } : { readingTimeMinutes };
 }
 
 /** Called only after the page's current publication/password/membership checks.

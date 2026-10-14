@@ -13,7 +13,6 @@
  */
 
 import type { ResolvedSeoData } from "./types";
-import { extractSeoText } from "@/lib/schemas/content";
 
 // ─── Types for raw query data ────────────────────────────────────────────────
 
@@ -93,7 +92,8 @@ export interface PostForSeoResolution {
   slug: string;
   type: "post" | "page";
   excerpt?: string | null;
-  content?: string | null;
+  /** Backend-derived plain-text opening (`textExcerpt`), used without a manual excerpt. */
+  textExcerpt?: string | null;
   featuredImageUrl?: string | null;
   publishedAt?: string | number | null;
 }
@@ -139,8 +139,6 @@ function applyTemplate(
   return result || null;
 }
 
-// extractPlainText is now handled by extractSeoText from @/lib/schemas/content
-// which uses Zod validation for safe JSON parsing
 // ─── Client-Side SEO Resolution ──────────────────────────────────────────────
 
 /**
@@ -149,7 +147,7 @@ function applyTemplate(
  * This is the client-side equivalent of the backend resolvePostSeo() helper.
  * It applies the same resolution order:
  *   title:       custom SEO title -> title template -> "{post.title} {sep} {siteName}"
- *   description: custom SEO description -> post excerpt -> first 160 chars of content
+ *   description: custom SEO description -> post excerpt -> backend text excerpt
  *   canonical:   custom canonical -> "{siteUrl}/blog/{slug}" or "{siteUrl}/{slug}"
  *   og/twitter:  custom overrides -> resolved primary fields -> defaults
  *
@@ -201,7 +199,7 @@ export function resolvePostSeoFromQueries(
   const resolvedDescription =
     postSeo.seoDescription ||
     post.excerpt ||
-    extractSeoText(post.content, 160) ||
+    post.textExcerpt ||
     "";
 
   // Canonical URL resolution

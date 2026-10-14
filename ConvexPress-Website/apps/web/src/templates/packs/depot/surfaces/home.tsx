@@ -3,7 +3,6 @@
  * a "news" list of the latest posts in a two-column grid when the front page
  * is the latest-posts feed. Same links as Core (blog, search).
  */
-import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent";
 import CorePage from "@/templates/packs/core/surfaces/page";
 import type { HomeSurfaceData } from "@/templates/packs/core/surfaces/home";
 import { Surface } from "@/templates/sdk/Surface";
@@ -69,9 +68,9 @@ export default function DepotHome({ data }: SurfaceProps<HomeSurfaceData>) {
                 post={{
                   title: post.title,
                   slug: post.slug,
-                  excerpt: post.excerpt || excerptFrom(post.content) || "Read the full article.",
+                  excerpt: post.excerpt || post.textExcerpt || "Read the full article.",
                   date: post.publishedAt ?? null,
-                  readingTime: estimateReadingTime(post.content),
+                  readingTime: post.readingTimeMinutes,
                 }}
               />
             ))}
@@ -80,11 +79,4 @@ export default function DepotHome({ data }: SurfaceProps<HomeSurfaceData>) {
       )}
     </Container>
   );
-}
-
-function excerptFrom(content: string | undefined | null): string | undefined {
-  if (!content) return undefined;
-  const text = extractPlainText(content);
-  if (!text) return undefined;
-  return text.length <= 160 ? text : `${text.slice(0, 160).trimEnd()}...`;
 }

@@ -5,7 +5,6 @@
 import { Link } from "@tanstack/react-router";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent";
 import type { PageDetail } from "@/lib/blog/types";
 import CorePage from "@/templates/packs/core/surfaces/page";
 import { Surface } from "@/templates/sdk/Surface";
@@ -16,7 +15,9 @@ export interface HomeLatestPost {
   title: string;
   slug: string;
   excerpt?: string | null;
-  content?: string | null;
+  /** Backend-derived plain-text opening, used when there is no manual excerpt. */
+  textExcerpt?: string | null;
+  readingTimeMinutes: number;
   publishedAt?: number | null;
 }
 
@@ -128,11 +129,11 @@ export default function CoreHome({ data }: SurfaceProps<HomeSurfaceData>) {
                           year: "numeric",
                         }).format(new Date(post.publishedAt))
                       : "Published"}{" "}
-                    · {estimateReadingTime(post.content)} min read
+                    · {post.readingTimeMinutes} min read
                   </p>
                 </div>
                 <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-                  {post.excerpt || generateExcerpt(post.content) || "Read the full article."}
+                  {post.excerpt || post.textExcerpt || "Read the full article."}
                 </p>
               </article>
             ))}
@@ -162,13 +163,4 @@ function LatestPostsSkeleton() {
       ))}
     </section>
   );
-}
-
-function generateExcerpt(content: string | undefined | null): string | undefined {
-  if (!content) return undefined;
-  const plainText = extractPlainText(content);
-  if (!plainText) return undefined;
-  return plainText.length <= 160
-    ? plainText
-    : `${plainText.slice(0, 160).trimEnd()}...`;
 }

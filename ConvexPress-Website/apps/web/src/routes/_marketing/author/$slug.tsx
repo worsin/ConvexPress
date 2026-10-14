@@ -11,7 +11,6 @@ import type {
   PaginationData,
   PostCard as PostCardType,
 } from "@/lib/blog/types";
-import { estimateReadingTime } from "@/lib/blog/renderContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { siteTitled } from "@/lib/seo/head";
 import CoreBlogAuthor from "@/templates/packs/core/surfaces/blog.author";
@@ -127,7 +126,7 @@ function AuthorArchive() {
     _id: post._id,
     title: post.title,
     slug: post.slug,
-    excerpt: post.excerpt,
+    excerpt: post.excerpt || post.textExcerpt,
     featuredImageUrl: post.featuredImageUrl ?? undefined,
     featuredImageAlt: post.featuredImageAlt ?? undefined,
     publishedAt: post.publishedAt
@@ -142,7 +141,7 @@ function AuthorArchive() {
     primaryCategory: undefined,
     commentCount: post.commentCount ?? 0,
     isSticky: post.isSticky ?? false,
-    readingTime: estimateReadingTime(post.content),
+    readingTime: post.readingTimeMinutes,
   }));
 
   const pagination: PaginationData | undefined = postsData
