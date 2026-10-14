@@ -768,6 +768,50 @@ export const expirePendingCancellations = internalMutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// GRACE EXPIRY
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Persist the end of grace: entitlements whose `graceEndsAt` has passed move
+ * from `grace` to `expired`, so the stored row says what access is and
+ * reactive readers update when the window closes. A contract that recovers
+ * reactivates them (`syncEntitlementsForStatus`); one that ends revokes them.
+ * Bounded and indexed; registered in crons.ts.
+ */
+export const expireLapsedGrace = internalMutation({
+	args: { limit: v.optional(v.number()) },
+	returns: v.object({ expired: v.number() }),
+	handler: async (ctx, args) => {
+		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return { expired: 0 };
+		const now = Date.now();
+		const lapsed = await ctx.db
+			.query("commerce_subscription_entitlements")
+			.withIndex("by_status_grace_ends", (q) => q.eq("status", "grace").lte("graceEndsAt", now))
+			.take(args.limit ?? 200);
+		for (const entitlement of lapsed) {
+			await ctx.db.patch("commerce_subscription_entitlements", entitlement._id, {
+				status: "expired",
+				endsAt: entitlement.graceEndsAt,
+				updatedAt: now,
+			});
+			await writeHistory(ctx, {
+				subscriptionId: entitlement.subscriptionId,
+				eventType: "subscription.entitlement_expired",
+				reason: "grace_ended",
+				data: { entitlementId: entitlement._id, entitlementCode: entitlement.entitlementCode, graceEndsAt: entitlement.graceEndsAt },
+			});
+			await emitEvent(ctx, SUBSCRIPTION_EVENTS.ENTITLEMENT_EXPIRED, "commerce", {
+				subscriptionId: entitlement.subscriptionId,
+				userId: entitlement.userId,
+				entitlementCode: entitlement.entitlementCode,
+				graceEndsAt: entitlement.graceEndsAt,
+			});
+		}
+		return { expired: lapsed.length };
+	},
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DUNNING RETRIES
 // ═══════════════════════════════════════════════════════════════════════════
 

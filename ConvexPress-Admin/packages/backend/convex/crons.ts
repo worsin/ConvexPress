@@ -442,6 +442,15 @@ crons.hourly(
   {},
 );
 
+// Grace windows that have closed: entitlements move from grace to expired so
+// stored access matches the clock. Indexed and bounded.
+crons.interval(
+  "subscription-entitlement-grace-expiry",
+  { minutes: 10 },
+  internal.commerceSubscriptions.internals.expireLapsedGrace,
+  {},
+);
+
 // Daily sweep of contracts past their cancelAt timestamp (scheduled
 // cancellations at end of period).
 // Added by: Commerce Subscriptions System Expert (Wave 7)

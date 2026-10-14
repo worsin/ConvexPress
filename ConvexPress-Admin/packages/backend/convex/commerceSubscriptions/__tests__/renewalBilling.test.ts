@@ -696,3 +696,65 @@ describe("lifecycle events", () => {
     expect(charges).toHaveLength(0);
   });
 });
+
+// ─── Grace expiry (upstream PR 013) ─────────────────────────────────────────
+
+describe("grace expiry", () => {
+  const expire = (f: Fixture) => f.t.mutation(internal.commerceSubscriptions.internals.expireLapsedGrace, {});
+
+  test("grace that has run out is stored as expired, once", async () => {
+    const f = await fixture({ gracePeriodDays: 7 });
+    const { subscriptionId } = await f.contract({ card: CARD_DECLINED });
+    await renew(f);
+
+    setSystemTime(new Date(START + 7 * DAY - 1000));
+    expect(await expire(f)).toEqual({ expired: 0 });
+
+    setSystemTime(new Date(START + 7 * DAY + 1000));
+    expect(await expire(f)).toEqual({ expired: 1 });
+    expect(await expire(f)).toEqual({ expired: 0 });
+
+    const after = await f.state(subscriptionId);
+    expect(after.entitlements[0]).toMatchObject({ status: "expired", endsAt: START + 7 * DAY });
+    expect(after.subscription.status).toBe("past_due");
+    const events = await f.t.run(async (ctx) => (await ctx.db.query("events").collect()).map((row) => row.code));
+    expect(events.filter((code) => code === "commerce.subscription_entitlement_expired")).toHaveLength(1);
+  });
+
+  test("a contract that pays after grace expired gets access back", async () => {
+    const f = await fixture({ gracePeriodDays: 2 });
+    const { subscriptionId } = await f.contract({ card: CARD_DECLINED });
+    await renew(f);
+    advanceToRetry((await f.state(subscriptionId)).attempts);
+    await dun(f);
+    setSystemTime(new Date(START + 2 * DAY + 1000));
+    await expire(f);
+    expect((await f.state(subscriptionId)).entitlements[0]?.status).toBe("expired");
+
+    await f.setCard(subscriptionId, CARD_OK);
+    advanceToRetry((await f.state(subscriptionId)).attempts);
+    expect(await dun(f)).toMatchObject({ succeeded: 1 });
+
+    const after = await f.state(subscriptionId);
+    expect(after.subscription.status).toBe("active");
+    expect(after.entitlements[0]).toMatchObject({ status: "active" });
+    expect(after.entitlements[0]?.endsAt).toBeUndefined();
+  });
+
+  test("a contract cancelled after grace expired ends revoked", async () => {
+    const f = await fixture({ gracePeriodDays: 1 });
+    const { subscriptionId } = await f.contract({ card: CARD_DECLINED });
+    await renew(f);
+    setSystemTime(new Date(START + DAY + 1000));
+    await expire(f);
+    for (let retry = 0; retry < 10; retry++) {
+      const current = await f.state(subscriptionId);
+      if (scheduled(current.attempts).length === 0) break;
+      advanceToRetry(current.attempts);
+      await dun(f);
+    }
+    const after = await f.state(subscriptionId);
+    expect(after.subscription.status).toBe("cancelled");
+    expect(after.entitlements[0]?.status).toBe("revoked");
+  });
+});
