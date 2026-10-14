@@ -3049,6 +3049,8 @@ export type Dto3044 = { "totalSites": number; "activeSites": number; "activeJobs
 export type Dto3045 = { "name": string; "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "error"); "username": string; "capabilities"?: (undefined | Dto1819); "createdBy": GenericId<"users">; "siteUrl": string; "lastConnectionTest"?: (undefined | number); "lastSyncAt"?: (undefined | number); "connectionError"?: (undefined | string); "wpVersion"?: (undefined | string); "siteName"?: (undefined | string); "siteDescription"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "_id": GenericId<"wordpressSites">; };
 export type Dto3046 = { "hasWooCredentials": boolean; };
 export type Dto3047 = { "_id": GenericId<"wordpressSites">; "name": string; "siteUrl": string; "username": string; "status": ("active" | "inactive" | "error"); "lastConnectionTest": (undefined | number); "lastSyncAt": (undefined | number); "connectionError": (undefined | string); "wpVersion": (undefined | string); "siteName": (undefined | string); "siteDescription": (undefined | string); "capabilities": (undefined | Dto1819); "hasWooCredentials": boolean; "wooAuthMode": (undefined | "shared" | "separate"); "createdAt": number; "updatedAt": number; "activeJob": boolean; };
+export type Dto3048 = { "sessionId"?: (undefined | GenericId<"commerce_payment_sessions">); "collectionId"?: (undefined | GenericId<"commerce_payment_collections">); "transactionId": GenericId<"commerce_payment_transactions">; };
+export type Dto3049 = { "status": string; "providerTransactionId": (null | string); "failureMessage": (null | string); "clientSecret": (null | string); "_id": GenericId<"commerce_payment_transactions">; };
 export type PublicApi = {
   "ai": {
   "actions": {
@@ -3709,16 +3711,16 @@ export type PublicApi = {
   "updateStatus": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "status": ("pending" | "failed" | "processing" | "completed" | "cancelled" | "paid" | "refunded" | "fulfilled"); "note"?: (undefined | string); }, unknown>;
 };
   "payments": {
-  "capturePayPalOrder": FunctionReference<"mutation", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "paypalOrderId": string; }, Dto1231>;
-  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; }, Dto1232>;
+  "capturePayPalOrder": FunctionReference<"mutation", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "paypalOrderId": string; "sessionToken"?: (undefined | string); }, Dto1231>;
+  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
   "deletePaymentMethod": FunctionReference<"mutation", "public", { "id": GenericId<"commerce_saved_payment_methods">; }, Dto1233>;
   "getAvailableMethods": FunctionReference<"query", "public", {  }, Dto1234>;
   "getSavedMethods": FunctionReference<"query", "public", {  }, Array<Dto1236>>;
   "getSettings": FunctionReference<"query", "public", {  }, Dto1237>;
   "getTransaction": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; }, (null | Dto1239)>;
   "getTransactionStats": FunctionReference<"query", "public", { "days"?: (undefined | number); }, Dto1243>;
-  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; }, (null | Dto1244)>;
-  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; }, Dto1246>;
+  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "sessionToken"?: (undefined | string); }, (null | Dto3049)>;
+  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
   "listCaptures": FunctionReference<"query", "public", { "orderId"?: (undefined | GenericId<"commerce_orders">); "limit"?: (undefined | number); }, Array<Dto1247>>;
   "listCollections": FunctionReference<"query", "public", { "status"?: (undefined | string); "limit"?: (undefined | number); }, Array<unknown>>;
   "listTransactions": FunctionReference<"query", "public", { "status"?: (undefined | string); "provider"?: (undefined | string); "limit"?: (undefined | number); }, Array<Dto1248>>;
@@ -3998,16 +4000,16 @@ export type PublicApi = {
   "updateStatus": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "status": ("pending" | "failed" | "processing" | "completed" | "cancelled" | "paid" | "refunded" | "fulfilled"); "note"?: (undefined | string); }, unknown>;
 };
   "commerce/payments": {
-  "capturePayPalOrder": FunctionReference<"mutation", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "paypalOrderId": string; }, Dto1231>;
-  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; }, Dto1232>;
+  "capturePayPalOrder": FunctionReference<"mutation", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "paypalOrderId": string; "sessionToken"?: (undefined | string); }, Dto1231>;
+  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
   "deletePaymentMethod": FunctionReference<"mutation", "public", { "id": GenericId<"commerce_saved_payment_methods">; }, Dto1233>;
   "getAvailableMethods": FunctionReference<"query", "public", {  }, Dto1234>;
   "getSavedMethods": FunctionReference<"query", "public", {  }, Array<Dto1236>>;
   "getSettings": FunctionReference<"query", "public", {  }, Dto1237>;
   "getTransaction": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; }, (null | Dto1239)>;
   "getTransactionStats": FunctionReference<"query", "public", { "days"?: (undefined | number); }, Dto1243>;
-  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; }, (null | Dto1244)>;
-  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; }, Dto1246>;
+  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "sessionToken"?: (undefined | string); }, (null | Dto3049)>;
+  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
   "listCaptures": FunctionReference<"query", "public", { "orderId"?: (undefined | GenericId<"commerce_orders">); "limit"?: (undefined | number); }, Array<Dto1247>>;
   "listCollections": FunctionReference<"query", "public", { "status"?: (undefined | string); "limit"?: (undefined | number); }, Array<unknown>>;
   "listTransactions": FunctionReference<"query", "public", { "status"?: (undefined | string); "provider"?: (undefined | string); "limit"?: (undefined | number); }, Array<Dto1248>>;
@@ -4257,7 +4259,6 @@ export type PublicApi = {
   "getBalance": FunctionReference<"query", "public", { "userId": GenericId<"users">; }, Dto1421>;
   "issue": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "amount": number; "sourceReturnId"?: (undefined | GenericId<"commerce_return_requests">); "sourceOrderId"?: (undefined | GenericId<"commerce_orders">); "note"?: (undefined | string); "expiresAt"?: (undefined | number); }, Dto1422>;
   "listLedger": FunctionReference<"query", "public", { "userId": GenericId<"users">; "limit"?: (undefined | number); }, Array<Dto1423>>;
-  "redeem": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "amount": number; "orderId"?: (undefined | GenericId<"commerce_orders">); "note"?: (undefined | string); }, Dto1424>;
 };
 };
   "commerceReturns/mutations": {
@@ -4299,7 +4300,6 @@ export type PublicApi = {
   "getBalance": FunctionReference<"query", "public", { "userId": GenericId<"users">; }, Dto1421>;
   "issue": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "amount": number; "sourceReturnId"?: (undefined | GenericId<"commerce_return_requests">); "sourceOrderId"?: (undefined | GenericId<"commerce_orders">); "note"?: (undefined | string); "expiresAt"?: (undefined | number); }, Dto1422>;
   "listLedger": FunctionReference<"query", "public", { "userId": GenericId<"users">; "limit"?: (undefined | number); }, Array<Dto1423>>;
-  "redeem": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "amount": number; "orderId"?: (undefined | GenericId<"commerce_orders">); "note"?: (undefined | string); }, Dto1424>;
 };
   "commerceReviews": {
   "mutations": {
@@ -7879,10 +7879,12 @@ export type InternalApi = {
   "commerceReturns": {
   "storeCredit": {
   "expireExpired": FunctionReference<"mutation", "internal", {  }, Dto1420>;
+  "redeem": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; "amount": number; "orderId"?: (undefined | GenericId<"commerce_orders">); "note"?: (undefined | string); }, Dto1424>;
 };
 };
   "commerceReturns/storeCredit": {
   "expireExpired": FunctionReference<"mutation", "internal", {  }, Dto1420>;
+  "redeem": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; "amount": number; "orderId"?: (undefined | GenericId<"commerce_orders">); "note"?: (undefined | string); }, Dto1424>;
 };
   "commerceReviews": {
   "ratingMaintenance": {

@@ -5,7 +5,9 @@
  * most recent ledger row. `issue` adds to balance, `redeem` subtracts,
  * `expire` subtracts via cron, `adjust` is admin manual.
  *
- * Redemption is called at checkout finalize (Cart/Checkout system).
+ * Redemption is server-only (`redeem` is internal): checkout finalize debits
+ * credit for the order it is creating. No client can debit a balance, and a
+ * balance or ledger is readable only by its owner or returns staff.
  */
 
 import { ConvexError, v } from "convex/values";
@@ -17,7 +19,7 @@ import {
   type QueryCtx,
 } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { requireCan } from "../helpers/permissions";
+import { currentUserCan, getCurrentUser, requireCan } from "../helpers/permissions";
 
 import { commerceReturnsDocs } from "../schema/commerceReturns.docs.generated";
 async function latestEntry(ctx: Pick<QueryCtx, "db">, userId: Id<"users">) {
@@ -28,10 +30,25 @@ async function latestEntry(ctx: Pick<QueryCtx, "db">, userId: Id<"users">) {
     .first();
 }
 
+/** The ledger owner, or staff who may view returns, may read a balance. */
+async function requireLedgerReadAccess(
+  ctx: Pick<QueryCtx, "auth" | "db" | "runQuery">,
+  userId: Id<"users">,
+): Promise<void> {
+  const user = await getCurrentUser(ctx);
+  if (user && user.status === "active" && user._id === userId) return;
+  if (await currentUserCan(ctx, "commerce.returns.view")) return;
+  throw new ConvexError({
+    code: "FORBIDDEN",
+    message: "You cannot view this store credit balance.",
+  });
+}
+
 export const getBalance = query({
   args: { userId: v.id("users") },
   returns: v.object({ balance: v.number() }),
   handler: async (ctx, args) => {
+    await requireLedgerReadAccess(ctx, args.userId);
     const latest = await latestEntry(ctx, args.userId);
     return { balance: latest?.balanceAfter ?? 0 };
   },
@@ -41,6 +58,7 @@ export const listLedger = query({
   args: { userId: v.id("users"), limit: v.optional(v.number()) },
   returns: v.array(commerceReturnsDocs.commerce_store_credit_ledger),
   handler: async (ctx, args) => {
+    await requireLedgerReadAccess(ctx, args.userId);
     return await ctx.db
       .query("commerce_store_credit_ledger")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -91,10 +109,10 @@ export const issue = mutation({
 });
 
 /**
- * Redeem store credit against an order. Called from Cart/Checkout
- * finalize. Throws if balance is insufficient.
+ * Redeem store credit against an order. Internal: called from Cart/Checkout
+ * finalize for the order it is creating. Throws if balance is insufficient.
  */
-export const redeem = mutation({
+export const redeem = internalMutation({
   args: {
     userId: v.id("users"),
     amount: v.number(),

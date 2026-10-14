@@ -14,7 +14,8 @@ const invoke = (fn: any, ctx: any, args: any = {}) => fn._handler(ctx, args);
 
 describe("commerce hardening: production handlers", () => {
   test("B01 pre-provider failure marks the local transaction failed and allows a fresh attempt", async () => {
-    const ctx = commerceHarness({ commerce_orders: [{ _id: "order", paymentStatus: "pending", totalAmount: 1000, currencyCode: "USD" }], commerce_payment_transactions: [{ _id: "txn", orderId: "order", provider: "stripe", status: "pending", amount: { amount: 1000, currencyCode: "USD" } }] });
+    // The order belongs to the harness's signed-in user: only an order's shopper may start its payment.
+    const ctx = commerceHarness({ commerce_orders: [{ _id: "order", userId: "admin", paymentStatus: "pending", totalAmount: 1000, currencyCode: "USD" }], commerce_payment_transactions: [{ _id: "txn", orderId: "order", provider: "stripe", status: "pending", amount: { amount: 1000, currencyCode: "USD" } }] });
     ctx.handlers["commerce/workflows:beginInternal"] = () => ({ runId: "workflow", existing: false });
     ctx.handlers["commerce/settingsInternals:getPaymentSettings"] = () => { throw new Error("Synthetic missing configuration"); };
     ctx.handlers["commerce/payments:confirmPaymentFailure"] = payments.confirmPaymentFailure;
