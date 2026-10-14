@@ -564,18 +564,24 @@ http.route({
             break;
           }
           if (kind === "subscription_first_charge") {
-            const checkoutIntentId = paymentIntent.metadata?.checkoutIntentId;
+            // The event is signature-verified above. The PaymentIntent's own
+            // status, amount, currency and metadata go to the internal
+            // activation, which checks them against the server-computed intent.
+            const checkoutIntentRef = paymentIntent.metadata?.checkoutIntentId;
             const paymentMethodId =
               typeof paymentIntent.payment_method === "string"
                 ? paymentIntent.payment_method
                 : paymentIntent.payment_method?.id;
-            if (checkoutIntentId) {
+            if (checkoutIntentRef) {
               await ctx.runMutation(
                 internal.commerceSubscriptions.internals
                   .activateCheckoutIntentFromStripe,
                 {
-                  checkoutIntentId: checkoutIntentId as Id<"commerce_subscription_checkout_intents">,
+                  checkoutIntentRef,
                   paymentIntentId: paymentIntent.id,
+                  paymentIntentStatus: paymentIntent.status,
+                  amountReceived: paymentIntent.amount_received,
+                  currency: paymentIntent.currency,
                   paymentMethodId: paymentMethodId ?? undefined,
                   stripeCustomerId:
                     typeof paymentIntent.customer === "string"
@@ -678,7 +684,7 @@ http.route({
               internal.commerceSubscriptions.stripeCharge
                 .saveSetupIntentResult,
               {
-                checkoutIntentId: intentId as Id<"commerce_subscription_checkout_intents">,
+                checkoutIntentRef: intentId,
                 stripeCustomerId: customerId,
                 paymentMethodId,
                 setupIntentId: setupIntent.id,

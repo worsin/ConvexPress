@@ -7,6 +7,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Check, Eye, EyeOff, Loader2, Tag } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,16 +29,21 @@ import { cn } from "@/lib/utils";
  * Direct-signup form for a subscription offer.
  *
  * Checkout always starts with `createCheckoutIntent`. Live charging uses
- * Stripe Elements and lets the webhook activate the intent. Zero-amount
- * checkouts activate with the explicit `free` provider. Paid checkouts are
- * blocked when live charging is not configured so the UI cannot imply that a
- * test-only activation path is production-ready.
+ * Stripe Elements and the signature-verified Stripe webhook activates the
+ * intent — the browser can never activate a paid checkout. Zero-amount
+ * checkouts are activated with `activateFreeIntent`, which the server only
+ * honours for the signed-in owner of an intent whose server-computed price is
+ * 0. Paid checkouts are blocked when live charging is not configured.
  *
  * Colours: theme tokens only (primary / foreground / muted / destructive).
  */
 
+/** How long to wait for a just-completed sign-in to reach Convex. */
+const ACCOUNT_READY_ATTEMPTS = 10;
+const ACCOUNT_READY_DELAY_MS = 300;
+
 interface Offer {
-  _id: string;
+  _id: Id<"commerce_subscription_offers">;
   title: string;
   slug?: string;
   description?: string;
@@ -98,17 +104,20 @@ export function SignupForm({ offer, className }: SignupFormProps) {
   const capabilities = useAuthCapabilities();
 
   const createCheckoutIntent = useMutation(
-    (api as any).commerceSubscriptions.checkout.createCheckoutIntent,
+    api.commerceSubscriptions.checkout.createCheckoutIntent,
   );
-  const activateFromIntent = useMutation(
-    (api as any).commerceSubscriptions.checkout.activateFromIntent,
+  const activateFreeIntent = useMutation(
+    api.commerceSubscriptions.checkout.activateFreeIntent,
+  );
+  const ensureClerkUser = useMutation(
+    api.auth.clerkProvisioning.ensureClerkUser,
   );
   const beginFirstCharge = useAction(
-    (api as any).commerceSubscriptions.publicCharge.beginFirstCharge,
+    api.commerceSubscriptions.publicCharge.beginFirstCharge,
   );
   const chargingStatus = useQuery(
-    (api as any).commerceSubscriptions.queries.getLiveChargingStatus,
-  ) as { live: boolean; publishableKey: string | null } | undefined;
+    api.commerceSubscriptions.queries.getLiveChargingStatus,
+  );
 
   const [stripeContext, setStripeContext] = useState<{
     clientSecret: string;
@@ -188,7 +197,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         // screen. After verification we return the user to this same offer
         // page and let them complete checkout while signed in.
         const intent = await createCheckoutIntent({
-          offerId: offer._id as any,
+          offerId: offer._id,
           customerEmail: email.trim(),
           couponCode: couponCode.trim() || undefined,
         });
@@ -233,6 +242,38 @@ export function SignupForm({ offer, className }: SignupFormProps) {
     }
   }
 
+  /**
+   * Free activation requires the signed-in owner, and a sign-in completed a
+   * moment ago may not have reached Convex yet. `ensureClerkUser` reports
+   * `unauthenticated` until it has, and makes sure the account row exists.
+   */
+  async function ensureAccountReady(): Promise<void> {
+    for (let attempt = 0; attempt < ACCOUNT_READY_ATTEMPTS; attempt += 1) {
+      const result = await ensureClerkUser({});
+      if (result.ok) return;
+      if (result.reason !== "unauthenticated") {
+        throw new Error(
+          "Your account could not be prepared for this subscription. Please contact support.",
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, ACCOUNT_READY_DELAY_MS));
+    }
+    throw new Error("Please sign in again to finish activating your subscription.");
+  }
+
+  async function activateFree(
+    intentId: Id<"commerce_subscription_checkout_intents">,
+  ): Promise<void> {
+    await ensureAccountReady();
+    await activateFreeIntent({ intentId });
+    clearPendingVerificationContext();
+    clearPendingSubscriptionIntent();
+    toast.success("Subscription activated");
+    if (typeof window !== "undefined") {
+      window.location.assign("/dashboard/subscriptions");
+    }
+  }
+
   async function runCheckout({
     forEmail,
   }: {
@@ -241,7 +282,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
     setIsSubmitting(true);
     try {
       const intent = await createCheckoutIntent({
-        offerId: offer._id as any,
+        offerId: offer._id,
         customerEmail: forEmail,
         couponCode: couponCode.trim() || undefined,
       });
@@ -251,17 +292,17 @@ export function SignupForm({ offer, className }: SignupFormProps) {
       // PaymentIntent or SetupIntent succeeds.
       if (chargingStatus?.live && chargingStatus.publishableKey) {
         try {
-          const charge = (await beginFirstCharge({
-            checkoutIntentId: intent.intentId as any,
-          })) as { clientSecret?: string | null; mode?: "payment" | "setup" };
-          if (!charge?.clientSecret) {
+          const charge = await beginFirstCharge({
+            checkoutIntentId: intent.intentId,
+          });
+          if (!charge.clientSecret) {
             setError("Could not start payment. Please try again.");
             return;
           }
           setStripeContext({
             clientSecret: charge.clientSecret,
             publishableKey: chargingStatus.publishableKey,
-            mode: charge.mode ?? "payment",
+            mode: charge.mode,
           });
           return;
         } catch (err: unknown) {
@@ -269,40 +310,16 @@ export function SignupForm({ offer, className }: SignupFormProps) {
           if (!message.includes("no_charge_needed_free_initial_amount")) {
             throw err;
           }
-          if ((intent.recurringAmount ?? offer.recurringAmount ?? 0) > 0) {
+          if (intent.recurringAmount > 0) {
             throw err;
           }
-
-          const activation = await activateFromIntent({
-            intentId: intent.intentId as any,
-            paymentResult: {
-              provider: "free",
-              providerTransactionId: `free_${Date.now()}`,
-              status: "succeeded" as const,
-            },
-          });
-
-          if (activation?.ok) {
-            clearPendingVerificationContext();
-            clearPendingSubscriptionIntent();
-            toast.success("Subscription activated");
-            if (typeof window !== "undefined") {
-              window.location.assign("/dashboard/subscriptions");
-            }
-            return;
-          }
-
-          setError(
-            "Subscription could not be activated. Please try again or contact support.",
-          );
+          // The server re-checks that every amount is 0 before activating.
+          await activateFree(intent.intentId);
           return;
         }
       }
 
-      const initialAmount = intent.amount ?? 0;
-      const recurringAmount = intent.recurringAmount ?? offer.recurringAmount ?? 0;
-      const isZeroAmount = initialAmount <= 0 && recurringAmount <= 0;
-
+      const isZeroAmount = intent.amount <= 0 && intent.recurringAmount <= 0;
       if (!isZeroAmount) {
         setError(
           "Subscription payments are not enabled for this site. Please contact support before subscribing.",
@@ -310,29 +327,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         return;
       }
 
-      const paymentResult = {
-        provider: "free",
-        providerTransactionId: `free_${Date.now()}`,
-        status: "succeeded" as const,
-      };
-
-      const activation = await activateFromIntent({
-        intentId: intent.intentId as any,
-        paymentResult,
-      });
-
-      if (activation?.ok) {
-        clearPendingVerificationContext();
-        clearPendingSubscriptionIntent();
-        toast.success("Subscription activated");
-        if (typeof window !== "undefined") {
-          window.location.assign("/dashboard/subscriptions");
-        }
-      } else {
-        setError(
-          "Subscription could not be activated. Please try again or contact support.",
-        );
-      }
+      await activateFree(intent.intentId);
     } catch (err: unknown) {
       setError(extractErrorMessage(err));
     } finally {

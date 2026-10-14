@@ -5,20 +5,26 @@
  * Actions & Feeds registry. The action DRIVES the existing commerceSubscriptions
  * flow — it does NOT reimplement billing:
  *
- *   createCheckoutIntent  → server recomputes the price + persists an intent
- *   beginFirstCharge      → Stripe Customer + PaymentIntent (paid + live)
- *   activateFromIntent    → contract + entitlements (ZERO-amount path only here;
- *                           membership grant auto-delegates inside it)
+ *   createCheckoutIntent              → server recomputes the price + persists an intent
+ *   beginSubscriptionFirstCharge      → Stripe Customer + PaymentIntent (paid + live)
+ *   activateFreeIntentForSubmission   → contract + entitlements (ZERO-amount path only
+ *                                       here; membership grant auto-delegates inside it)
  *
  * NON-NEGOTIABLE INVARIANTS:
  *   - Never double-charge · never double-activate · server-authoritative price
  *     only · no card data server-side · PAID activation is WEBHOOK-owned.
  *
- * The PAID path is the spiky core: `run()` STARTS the charge (beginFirstCharge)
- * and returns a NON-terminal `awaitingPayment` outcome. The runner records the
- * run as `awaiting_payment` (no retry, no `form.action_failed`). The Stripe
- * webhook (`provider:"stripe"`) calls `activateFromIntent` later — the action
- * NEVER activates a paid intent.
+ * The PAID path is the spiky core: `run()` STARTS the charge and returns a
+ * NON-terminal `awaitingPayment` outcome. The runner records the run as
+ * `awaiting_payment` (no retry, no `form.action_failed`). The signature-verified
+ * Stripe webhook activates the intent later through the internal
+ * `checkout.activateFromIntent` — the action NEVER activates a paid intent.
+ *
+ * The ZERO-amount path activates through `checkout.activateFreeIntentForSubmission`.
+ * The runner has no caller identity, so the subscription belongs to the
+ * signed-in user the server recorded on the submission. An anonymous
+ * submission cannot claim one (the visitor signs in and submits again) — an
+ * email typed into the form is never proof of account ownership.
  *
  * Idempotency (anti-double-charge):
  *   - Layer 1 (runner): a `completed` run never re-fires.
@@ -28,11 +34,11 @@
  *     A `by_form_submission` index + `getIntentBySubmission` query on the
  *     subscription side would be stronger, but that table's indexes are the
  *     subscription system's to own; the per-run reuse here is the additive guard.
- *   - Layer 3 (free): `activateFromIntent`'s intent-status guard is idempotent.
+ *   - Layer 3 (free): activation's intent-status guard is idempotent.
  *
- * Anonymous account creation is CLIENT-side Clerk on the Website (out of scope
- * server-side). `USER_NOT_FOUND` from `activateFromIntent` is treated as
- * recoverable (the website completes signup before activation).
+ * Anonymous account creation for the paid path is CLIENT-side Clerk on the
+ * Website: it completes signup before the card confirms, so the webhook finds
+ * the verified account (`USER_NOT_FOUND` makes the webhook retry until it does).
  *
  * `emitSubscriptionStarted` is an internalMutation wrapper because a Convex
  * action ctx cannot call `emitEvent` (needs MutationCtx) — mirrors the
@@ -245,9 +251,13 @@ export const emitSubscriptionStarted = internalMutation({
 /** Map a permanent ConvexError code → a non-retryable failure result. */
 const PERMANENT_CODES = new Set([
   "OFFER_ARCHIVED",
+  "OFFER_UNAVAILABLE",
   "COUPON_INVALID",
   "NOT_FOUND",
   "VALIDATION_ERROR",
+  "FORBIDDEN",
+  "PAYMENT_REQUIRED",
+  "INTENT_ALREADY_PROCESSED",
 ]);
 
 /** Extract a ConvexError `data.code`, if any. */
@@ -295,11 +305,12 @@ async function runSubscriptionAction(
   }
 
   // Account policy: require_existing means a logged-in user must own the
-  // checkout. The action runs server-side without an end-user identity, so we
-  // cannot confirm sign-in here; `activateFromIntent` enforces it (USER_NOT_FOUND
-  // for an anonymous paid intent). For the paid path the Website client handles
-  // sign-in (create_on_website) before confirming the card. We surface the
-  // policy in the result so the renderer can branch.
+  // checkout. The action runs server-side without an end-user identity, so
+  // ownership is enforced by activation: the free path binds to the signed-in
+  // submitter recorded on the submission, and the paid webhook activation needs
+  // a verified account (USER_NOT_FOUND otherwise). For the paid path the Website
+  // client handles sign-in (create_on_website) before confirming the card. We
+  // surface the policy in the result so the renderer can branch.
 
   // ── Idempotency layer 2: reuse an intentId stored on a prior run ──────────
   // A re-emit / retry of an awaiting_payment run must reuse the SAME intent so
@@ -402,45 +413,51 @@ async function runSubscriptionAction(
 
   // ── Zero-amount path: free activation (action owns this) ──────────────────
   // Route the free/paid decision through the pure, unit-tested mapping so the
-  // server-recomputed cents are the ONLY thing that picks the branch.
+  // server-recomputed cents are the ONLY thing that picks the branch. The
+  // activation itself re-checks that every server-computed amount is 0.
   const chargeShape = pricingToChargeShape({
     initialAmount: amount,
     recurringAmount,
     currency,
   });
-  const isZeroAmount = chargeShape.mode === "free";
-  if (isZeroAmount) {
+  const activateFree = async (
+    checkoutIntentId: Id<"commerce_subscription_checkout_intents">,
+  ): Promise<ActionResult> => {
     try {
       const activation = await ctx.ctx.runMutation(
-        api.commerceSubscriptions.checkout.activateFromIntent,
-        {
-          intentId,
-          paymentResult: {
-            provider: "free",
-            providerTransactionId: `free_${Date.now()}`,
-            status: "succeeded",
-          },
-        },
+        internal.commerceSubscriptions.checkout.activateFreeIntentForSubmission,
+        { intentId: checkoutIntentId, submissionId: ctx.submissionId },
       );
-      if (activation.ok) {
+      if (!activation.ok) {
         return {
-          ok: true,
-          data: {
-            intentId,
-            contractId: activation.contractId,
-            status: activation.status,
-            amount: 0,
-            recurringAmount,
-            currency,
-            paid: false,
-          },
+          ok: false,
+          retryable: false,
+          error:
+            "Sign in before submitting this form to start a free subscription.",
         };
       }
-      return { ok: false, retryable: true, error: "Free activation failed." };
+      return {
+        ok: true,
+        data: {
+          intentId: checkoutIntentId,
+          contractId: activation.contractId,
+          status: activation.status,
+          amount: 0,
+          recurringAmount,
+          currency,
+          paid: false,
+        },
+      };
     } catch (err) {
-      // USER_NOT_FOUND is recoverable (website completes signup) — retryable.
+      const code = errorCode(err);
+      if (code && PERMANENT_CODES.has(code)) {
+        return { ok: false, retryable: false, error: errorMessage(err) };
+      }
       return { ok: false, retryable: true, error: errorMessage(err) };
     }
+  };
+  if (chargeShape.mode === "free") {
+    return await activateFree(intentId);
   }
 
   // ── Paid path: start the charge, return NON-terminal awaiting_payment ─────
@@ -449,45 +466,21 @@ async function runSubscriptionAction(
   let mode: "payment" | "setup" | undefined;
   try {
     const charge = await ctx.ctx.runAction(
-      api.commerceSubscriptions.publicCharge.beginFirstCharge,
+      internal.commerceSubscriptions.stripeCharge.beginSubscriptionFirstCharge,
       { checkoutIntentId: intentId },
     );
     clientSecret = charge.clientSecret;
     mode = charge.mode;
   } catch (err) {
     const msg = errorMessage(err);
-    // Pricing changed under us to zero → fall back to free activation.
+    // Pricing changed under us to zero → fall back to free activation, which
+    // re-verifies the zero price server-side.
     if (msg.includes("no_charge_needed_free_initial_amount")) {
-      try {
-        const activation = await ctx.ctx.runMutation(
-          api.commerceSubscriptions.checkout.activateFromIntent,
-          {
-            intentId,
-            paymentResult: {
-              provider: "free",
-              providerTransactionId: `free_${Date.now()}`,
-              status: "succeeded",
-            },
-          },
-        );
-        if (activation.ok) {
-          return {
-            ok: true,
-            data: {
-              intentId,
-              contractId: activation.contractId,
-              status: activation.status,
-              amount: 0,
-              recurringAmount,
-              currency,
-              paid: false,
-            },
-          };
-        }
-        return { ok: false, retryable: true, error: "Free activation failed." };
-      } catch (innerErr) {
-        return { ok: false, retryable: true, error: errorMessage(innerErr) };
-      }
+      return await activateFree(intentId);
+    }
+    // An activated/failed intent can never be charged again.
+    if (msg.includes("checkout_intent_not_payable")) {
+      return { ok: false, retryable: false, error: "This checkout can no longer be paid." };
     }
     // Otherwise transient — let the framework retry the charge start.
     return { ok: false, retryable: true, error: msg };

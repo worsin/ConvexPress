@@ -926,7 +926,7 @@ export declare const api:
 {
 "checkout":
 {
-"activateFromIntent": FunctionReference<"mutation", "public", { intentId: Id<"commerce_subscription_checkout_intents">, paymentResult: { provider: string, providerTransactionId: string, status: "succeeded" | "pending_settlement" | "failed", paymentMethodId?: string, stripeCustomerId?: string } }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number } | { ok: false, reason: "payment_failed" }>,
+"activateFreeIntent": FunctionReference<"mutation", "public", { intentId: Id<"commerce_subscription_checkout_intents"> }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number }>,
 "createCheckoutIntent": FunctionReference<"mutation", "public", { offerId: Id<"commerce_subscription_offers">, customerEmail?: string, couponCode?: string, returnUrl?: string, formId?: Id<"forms">, formSubmissionId?: Id<"form_submissions"> }, { intentId: Id<"commerce_subscription_checkout_intents">, amount: number, recurringAmount: number, currency: string, trialDays: number, paymentProcessorData: { provider: string, ready: boolean, message: string } }>,
 }
 ,
@@ -3561,6 +3561,13 @@ export declare const internal:
 "processRenewals": FunctionReference<"action", "internal", { limit?: number }, { processed: number, succeeded: number, failed: number, invoiceIds: Array<Id<"commerce_subscription_invoices">>, skipped: boolean, reason: string, message: string }>,
 }
 ,
+"checkout":
+{
+"activateFreeIntentForSubmission": FunctionReference<"mutation", "internal", { intentId: Id<"commerce_subscription_checkout_intents">, submissionId: Id<"form_submissions"> }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number } | { ok: false, reason: "sign_in_required" }>,
+"activateFromIntent": FunctionReference<"mutation", "internal", { intentId: Id<"commerce_subscription_checkout_intents">, settlement: { kind: "payment_intent", paymentIntentId: string, status: "succeeded", amountReceived: number, currency: string, checkoutIntentRef: string, paymentMethodId?: string, stripeCustomerId?: string } | { kind: "setup_intent", setupIntentId: string, status: "succeeded", checkoutIntentRef: string, paymentMethodId: string, stripeCustomerId: string } }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number }>,
+"getChargeStartAccess": FunctionReference<"query", "internal", { intentId: Id<"commerce_subscription_checkout_intents"> }, { allowed: true } | { allowed: false, reason: "not_found" | "not_owner" | "not_payable" }>,
+}
+,
 "dunning":
 {
 "runDunningSweep": FunctionReference<"action", "internal", { limit?: number }, { processed: number, succeeded: number, failed: number, cancelled: number }>,
@@ -3579,8 +3586,8 @@ export declare const internal:
 "internals":
 {
 "abortDunningAttempt": FunctionReference<"mutation", "internal", { attemptId: Id<"commerce_subscription_dunning_attempts">, reason: string }, null>,
-"activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, paymentIntentId: string, paymentMethodId?: string, stripeCustomerId?: string }, null>,
-"activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, setupIntentId: string, paymentMethodId: string, stripeCustomerId: string }, null>,
+"activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { checkoutIntentRef: string, paymentIntentId: string, paymentIntentStatus: string, amountReceived: number, currency: string, paymentMethodId?: string, stripeCustomerId?: string }, null>,
+"activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { checkoutIntentRef: string, setupIntentId: string, paymentMethodId: string, stripeCustomerId: string }, null>,
 "applyDueScheduledOfferChanges": FunctionReference<"mutation", "internal", {  }, { applied: number }>,
 "checkEntitlementForUser": FunctionReference<"query", "internal", { userId: Id<"users">, entitlementCode: string }, { hasEntitlement: boolean, entitlement: null | { subscriptionId: Id<"commerce_subscriptions">, userId?: Id<"users">, entitlementCode: string, status: "active" | "grace" | "revoked" | "expired", startsAt: number, endsAt?: number, graceEndsAt?: number, metadata?: any, createdAt: number, updatedAt: number, _id: Id<"commerce_subscription_entitlements">, _creationTime: number }, inGracePeriod?: boolean }>,
 "completeDunningAttempt": FunctionReference<"mutation", "internal", { attemptId: Id<"commerce_subscription_dunning_attempts">, outcome: "success" }, null>,
@@ -3599,7 +3606,7 @@ export declare const internal:
 "processScheduledDunning": FunctionReference<"mutation", "internal", { dunningAttemptId: Id<"commerce_subscription_dunning_attempts"> }, { skipped: boolean } | { subscriptionId: Id<"commerce_subscriptions">, invoiceId?: Id<"commerce_subscription_invoices">, attemptNumber: number }>,
 "recordDunningFailure": FunctionReference<"mutation", "internal", { attemptId: Id<"commerce_subscription_dunning_attempts">, subscriptionId: Id<"commerce_subscriptions">, invoiceId: Id<"commerce_subscription_invoices">, attemptNumber: number, failureReason?: string, maxAttempts: number, retryDays: Array<number> }, { cancelled: boolean, nextRetryAt?: number }>,
 "recordFirstChargeIntent": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, stripeCustomerId: string, paymentIntentId: string }, null>,
-"recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, stripeCustomerId: string, paymentMethodId: string }, null>,
+"recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { checkoutIntentRef: string, stripeCustomerId: string, paymentMethodId: string }, null>,
 }
 ,
 "proration":
@@ -3617,7 +3624,7 @@ export declare const internal:
 {
 "beginSubscriptionFirstCharge": FunctionReference<"action", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents"> }, { clientSecret: null | string, paymentIntentId: string, amount: number, currency: string, stripeCustomerId: string, mode: "payment" | "setup" }>,
 "chargeSubscriptionInvoice": FunctionReference<"action", "internal", { invoiceId: Id<"commerce_subscription_invoices"> }, { success: boolean, transactionId?: string, failureReason?: string, requiresAction?: boolean }>,
-"saveSetupIntentResult": FunctionReference<"action", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, stripeCustomerId: string, paymentMethodId: string, setupIntentId?: string, activateCheckout?: boolean }, null>,
+"saveSetupIntentResult": FunctionReference<"action", "internal", { checkoutIntentRef: string, stripeCustomerId: string, paymentMethodId: string, setupIntentId?: string, activateCheckout?: boolean }, null>,
 }
 ,
 }

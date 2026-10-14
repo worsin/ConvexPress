@@ -2,12 +2,14 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
+
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { SignupForm } from "@/components/subscriptions/SignupForm";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export interface SignupOfferPublicOffer {
-  _id: string;
+  _id: Id<"commerce_subscription_offers">;
   title: string;
   slug?: string;
   description?: string;

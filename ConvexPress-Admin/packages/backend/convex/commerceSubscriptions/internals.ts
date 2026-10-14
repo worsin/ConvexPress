@@ -15,8 +15,8 @@ import type { Doc, Id } from "../_generated/dataModel";
  *   - processScheduledDunning     Process a single scheduled dunning attempt
  */
 
-import { v } from "convex/values";
-import { api, internal } from "../_generated/api";
+import { ConvexError, v } from "convex/values";
+import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
@@ -1484,93 +1484,99 @@ export const recordFirstChargeIntent = internalMutation({
 });
 
 /**
- * Activate a checkout intent from a successful Stripe first-charge webhook.
- * Records the Stripe IDs on the intent and then delegates to the canonical
- * activation mutation so webhook-driven signups create the real subscription
- * contract and initial membership bridge in the same way as other flows.
+ * Resolve the checkout intent a Stripe object names in its metadata. The id
+ * arrives as text from Stripe, so it is normalized rather than cast; a
+ * signed event naming no intent of ours is a reconciliation failure the
+ * webhook must surface, not swallow.
+ */
+function requireCheckoutIntentRef(
+	ctx: MutationCtx,
+	checkoutIntentRef: string,
+): Id<"commerce_subscription_checkout_intents"> {
+	const intentId = ctx.db.normalizeId(
+		"commerce_subscription_checkout_intents",
+		checkoutIntentRef,
+	);
+	if (!intentId) {
+		throw new ConvexError({
+			code: "NOT_FOUND",
+			message: `Stripe metadata names unknown checkout intent "${checkoutIntentRef}".`,
+		});
+	}
+	return intentId;
+}
+
+/**
+ * Activate a checkout intent from a signature-verified Stripe
+ * `payment_intent.succeeded` event (metadata.kind `subscription_first_charge`).
+ * Passes the PaymentIntent's own status, amount, currency and metadata to the
+ * internal activation, which checks them against the server-computed intent.
  */
 export const activateCheckoutIntentFromStripe = internalMutation({
 	args: {
-		checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+		checkoutIntentRef: v.string(),
 		paymentIntentId: v.string(),
+		paymentIntentStatus: v.string(),
+		amountReceived: v.number(),
+		currency: v.string(),
 		paymentMethodId: v.optional(v.string()),
 		stripeCustomerId: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const intent = await ctx.db.get(args.checkoutIntentId);
-		if (!intent) return;
-
-		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
-			savedPaymentMethodId: intent.savedPaymentMethodId ?? args.paymentMethodId,
-			stripeCustomerId: intent.stripeCustomerId ?? args.stripeCustomerId,
-			paymentTransactionId: args.paymentIntentId,
-			paymentProvider: "stripe",
-			updatedAt: Date.now(),
-		});
-
-		if (intent.status !== "payment_pending" && intent.status !== "draft") {
-			return;
+		const intentId = requireCheckoutIntentRef(ctx, args.checkoutIntentRef);
+		if (args.paymentIntentStatus !== "succeeded") {
+			throw new ConvexError({
+				code: "PAYMENT_MISMATCH",
+				message: `PaymentIntent ${args.paymentIntentId} is "${args.paymentIntentStatus}", not succeeded.`,
+			});
 		}
-
-		await ctx.runMutation(
-			api.commerceSubscriptions.checkout.activateFromIntent,
-			{
-				intentId: args.checkoutIntentId,
-				paymentResult: {
-					provider: "stripe",
-					providerTransactionId: args.paymentIntentId,
-					status: "succeeded",
-					paymentMethodId: args.paymentMethodId ?? intent.savedPaymentMethodId,
-					stripeCustomerId: args.stripeCustomerId ?? intent.stripeCustomerId,
-				},
+		await ctx.runMutation(internal.commerceSubscriptions.checkout.activateFromIntent, {
+			intentId,
+			settlement: {
+				kind: "payment_intent",
+				paymentIntentId: args.paymentIntentId,
+				status: "succeeded",
+				amountReceived: args.amountReceived,
+				currency: args.currency,
+				checkoutIntentRef: args.checkoutIntentRef,
+				paymentMethodId: args.paymentMethodId,
+				stripeCustomerId: args.stripeCustomerId,
 			},
-		);
+		});
+		return null;
 	},
 });
 
 /**
- * Activate a paid-recurring, zero-initial checkout from a successful Stripe
- * SetupIntent. This covers trials and $0 initial invoices where there is no
- * first charge, but a reusable payment method is still required for renewal.
+ * Activate a paid-recurring, zero-initial checkout from a signature-verified
+ * Stripe `setup_intent.succeeded` event (metadata.kind `subscription_setup`).
+ * This covers trials and $0 initial invoices where there is no first charge,
+ * but a reusable payment method is still required for renewal. The internal
+ * activation refuses a SetupIntent for an intent that charges now.
  */
 export const activateCheckoutIntentFromStripeSetup = internalMutation({
 	args: {
-		checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+		checkoutIntentRef: v.string(),
 		setupIntentId: v.string(),
 		paymentMethodId: v.string(),
 		stripeCustomerId: v.string(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const intent = await ctx.db.get(args.checkoutIntentId);
-		if (!intent) return;
-
-		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
-			savedPaymentMethodId: args.paymentMethodId,
-			stripeCustomerId: args.stripeCustomerId,
-			paymentTransactionId: args.setupIntentId,
-			paymentProvider: "stripe",
-			updatedAt: Date.now(),
-		});
-
-		if (intent.status !== "payment_pending" && intent.status !== "draft") {
-			return;
-		}
-
-		await ctx.runMutation(
-			api.commerceSubscriptions.checkout.activateFromIntent,
-			{
-				intentId: args.checkoutIntentId,
-				paymentResult: {
-					provider: "stripe",
-					providerTransactionId: args.setupIntentId,
-					status: "succeeded",
-					paymentMethodId: args.paymentMethodId,
-					stripeCustomerId: args.stripeCustomerId,
-				},
+		const intentId = requireCheckoutIntentRef(ctx, args.checkoutIntentRef);
+		await ctx.runMutation(internal.commerceSubscriptions.checkout.activateFromIntent, {
+			intentId,
+			settlement: {
+				kind: "setup_intent",
+				setupIntentId: args.setupIntentId,
+				status: "succeeded",
+				checkoutIntentRef: args.checkoutIntentRef,
+				paymentMethodId: args.paymentMethodId,
+				stripeCustomerId: args.stripeCustomerId,
 			},
-		);
+		});
+		return null;
 	},
 });
 
@@ -1585,15 +1591,19 @@ export const activateCheckoutIntentFromStripeSetup = internalMutation({
  */
 export const recordSavedPaymentMethod = internalMutation({
 	args: {
-		checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+		checkoutIntentRef: v.string(),
 		stripeCustomerId: v.string(),
 		paymentMethodId: v.string(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const intent = await ctx.db.get(args.checkoutIntentId);
-		if (!intent) return;
-		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
+		const intentId = ctx.db.normalizeId(
+			"commerce_subscription_checkout_intents",
+			args.checkoutIntentRef,
+		);
+		const intent = intentId ? await ctx.db.get(intentId) : null;
+		if (!intent) return null;
+		await ctx.db.patch("commerce_subscription_checkout_intents", intent._id, {
 			savedPaymentMethodId: args.paymentMethodId,
 			stripeCustomerId: args.stripeCustomerId,
 			paymentProvider: "stripe",
@@ -1613,6 +1623,7 @@ export const recordSavedPaymentMethod = internalMutation({
 				});
 			}
 		}
+		return null;
 	},
 });
 

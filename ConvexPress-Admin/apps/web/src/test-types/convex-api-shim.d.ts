@@ -3049,8 +3049,14 @@ export type Dto3044 = { "totalSites": number; "activeSites": number; "activeJobs
 export type Dto3045 = { "name": string; "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "error"); "username": string; "capabilities"?: (undefined | Dto1819); "createdBy": GenericId<"users">; "siteUrl": string; "lastConnectionTest"?: (undefined | number); "lastSyncAt"?: (undefined | number); "connectionError"?: (undefined | string); "wpVersion"?: (undefined | string); "siteName"?: (undefined | string); "siteDescription"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "_id": GenericId<"wordpressSites">; };
 export type Dto3046 = { "hasWooCredentials": boolean; };
 export type Dto3047 = { "_id": GenericId<"wordpressSites">; "name": string; "siteUrl": string; "username": string; "status": ("active" | "inactive" | "error"); "lastConnectionTest": (undefined | number); "lastSyncAt": (undefined | number); "connectionError": (undefined | string); "wpVersion": (undefined | string); "siteName": (undefined | string); "siteDescription": (undefined | string); "capabilities": (undefined | Dto1819); "hasWooCredentials": boolean; "wooAuthMode": (undefined | "shared" | "separate"); "createdAt": number; "updatedAt": number; "activeJob": boolean; };
-export type Dto3048 = { "sessionId"?: (undefined | GenericId<"commerce_payment_sessions">); "collectionId"?: (undefined | GenericId<"commerce_payment_collections">); "transactionId": GenericId<"commerce_payment_transactions">; };
-export type Dto3049 = { "status": string; "providerTransactionId": (null | string); "failureMessage": (null | string); "clientSecret": (null | string); "_id": GenericId<"commerce_payment_transactions">; };
+export type Dto3048 = { "currentPeriodEndAt"?: (undefined | number); "status": ("draft" | "active" | "cancelled" | "expired" | "paused" | "trialing" | "past_due" | "pending_cancel"); "ok": true; "trialDays": number; "contractId": GenericId<"commerce_subscriptions">; };
+export type Dto3049 = { "reason": "sign_in_required"; "ok": false; };
+export type Dto3050 = { "stripeCustomerId"?: (undefined | string); "paymentMethodId"?: (undefined | string); "status": "succeeded"; "kind": "payment_intent"; "paymentIntentId": string; "currency": string; "amountReceived": number; "checkoutIntentRef": string; };
+export type Dto3051 = { "status": "succeeded"; "kind": "setup_intent"; "stripeCustomerId": string; "checkoutIntentRef": string; "paymentMethodId": string; "setupIntentId": string; };
+export type Dto3052 = { "allowed": true; };
+export type Dto3053 = { "reason": ("not_found" | "not_owner" | "not_payable"); "allowed": false; };
+export type Dto3054 = { "sessionId"?: (undefined | GenericId<"commerce_payment_sessions">); "collectionId"?: (undefined | GenericId<"commerce_payment_collections">); "transactionId": GenericId<"commerce_payment_transactions">; };
+export type Dto3055 = { "status": string; "providerTransactionId": (null | string); "failureMessage": (null | string); "clientSecret": (null | string); "_id": GenericId<"commerce_payment_transactions">; };
 export type PublicApi = {
   "ai": {
   "actions": {
@@ -3712,15 +3718,15 @@ export type PublicApi = {
 };
   "payments": {
   "capturePayPalOrder": FunctionReference<"mutation", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "paypalOrderId": string; "sessionToken"?: (undefined | string); }, Dto1231>;
-  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
+  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3054>;
   "deletePaymentMethod": FunctionReference<"mutation", "public", { "id": GenericId<"commerce_saved_payment_methods">; }, Dto1233>;
   "getAvailableMethods": FunctionReference<"query", "public", {  }, Dto1234>;
   "getSavedMethods": FunctionReference<"query", "public", {  }, Array<Dto1236>>;
   "getSettings": FunctionReference<"query", "public", {  }, Dto1237>;
   "getTransaction": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; }, (null | Dto1239)>;
   "getTransactionStats": FunctionReference<"query", "public", { "days"?: (undefined | number); }, Dto1243>;
-  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "sessionToken"?: (undefined | string); }, (null | Dto3049)>;
-  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
+  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "sessionToken"?: (undefined | string); }, (null | Dto3055)>;
+  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3054>;
   "listCaptures": FunctionReference<"query", "public", { "orderId"?: (undefined | GenericId<"commerce_orders">); "limit"?: (undefined | number); }, Array<Dto1247>>;
   "listCollections": FunctionReference<"query", "public", { "status"?: (undefined | string); "limit"?: (undefined | number); }, Array<unknown>>;
   "listTransactions": FunctionReference<"query", "public", { "status"?: (undefined | string); "provider"?: (undefined | string); "limit"?: (undefined | number); }, Array<Dto1248>>;
@@ -4001,15 +4007,15 @@ export type PublicApi = {
 };
   "commerce/payments": {
   "capturePayPalOrder": FunctionReference<"mutation", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "paypalOrderId": string; "sessionToken"?: (undefined | string); }, Dto1231>;
-  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
+  "createPayPalOrder": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3054>;
   "deletePaymentMethod": FunctionReference<"mutation", "public", { "id": GenericId<"commerce_saved_payment_methods">; }, Dto1233>;
   "getAvailableMethods": FunctionReference<"query", "public", {  }, Dto1234>;
   "getSavedMethods": FunctionReference<"query", "public", {  }, Array<Dto1236>>;
   "getSettings": FunctionReference<"query", "public", {  }, Dto1237>;
   "getTransaction": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; }, (null | Dto1239)>;
   "getTransactionStats": FunctionReference<"query", "public", { "days"?: (undefined | number); }, Dto1243>;
-  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "sessionToken"?: (undefined | string); }, (null | Dto3049)>;
-  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3048>;
+  "getTransactionStatus": FunctionReference<"query", "public", { "transactionId": GenericId<"commerce_payment_transactions">; "sessionToken"?: (undefined | string); }, (null | Dto3055)>;
+  "initiatePayment": FunctionReference<"mutation", "public", { "orderId": GenericId<"commerce_orders">; "sessionToken"?: (undefined | string); }, Dto3054>;
   "listCaptures": FunctionReference<"query", "public", { "orderId"?: (undefined | GenericId<"commerce_orders">); "limit"?: (undefined | number); }, Array<Dto1247>>;
   "listCollections": FunctionReference<"query", "public", { "status"?: (undefined | string); "limit"?: (undefined | number); }, Array<unknown>>;
   "listTransactions": FunctionReference<"query", "public", { "status"?: (undefined | string); "provider"?: (undefined | string); "limit"?: (undefined | number); }, Array<Dto1248>>;
@@ -4349,7 +4355,7 @@ export type PublicApi = {
 };
   "commerceSubscriptions": {
   "checkout": {
-  "activateFromIntent": FunctionReference<"mutation", "public", { "intentId": GenericId<"commerce_subscription_checkout_intents">; "paymentResult": Dto1443; }, (Dto1444 | Dto1445)>;
+  "activateFreeIntent": FunctionReference<"mutation", "public", { "intentId": GenericId<"commerce_subscription_checkout_intents">; }, Dto3048>;
   "createCheckoutIntent": FunctionReference<"mutation", "public", { "offerId": GenericId<"commerce_subscription_offers">; "customerEmail"?: (undefined | string); "couponCode"?: (undefined | string); "returnUrl"?: (undefined | string); "formId"?: (undefined | GenericId<"forms">); "formSubmissionId"?: (undefined | GenericId<"form_submissions">); }, Dto1446>;
 };
   "coupons": {
@@ -4429,7 +4435,7 @@ export type PublicApi = {
 };
 };
   "commerceSubscriptions/checkout": {
-  "activateFromIntent": FunctionReference<"mutation", "public", { "intentId": GenericId<"commerce_subscription_checkout_intents">; "paymentResult": Dto1443; }, (Dto1444 | Dto1445)>;
+  "activateFreeIntent": FunctionReference<"mutation", "public", { "intentId": GenericId<"commerce_subscription_checkout_intents">; }, Dto3048>;
   "createCheckoutIntent": FunctionReference<"mutation", "public", { "offerId": GenericId<"commerce_subscription_offers">; "customerEmail"?: (undefined | string); "couponCode"?: (undefined | string); "returnUrl"?: (undefined | string); "formId"?: (undefined | GenericId<"forms">); "formSubmissionId"?: (undefined | GenericId<"form_submissions">); }, Dto1446>;
 };
   "commerceSubscriptions/coupons": {
@@ -7907,6 +7913,11 @@ export type InternalApi = {
   "processExpiredSubscriptions": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, unknown>;
   "processRenewals": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, Dto1442>;
 };
+  "checkout": {
+  "activateFreeIntentForSubmission": FunctionReference<"mutation", "internal", { "intentId": GenericId<"commerce_subscription_checkout_intents">; "submissionId": GenericId<"form_submissions">; }, (Dto3048 | Dto3049)>;
+  "activateFromIntent": FunctionReference<"mutation", "internal", { "intentId": GenericId<"commerce_subscription_checkout_intents">; "settlement": (Dto3050 | Dto3051); }, Dto3048>;
+  "getChargeStartAccess": FunctionReference<"query", "internal", { "intentId": GenericId<"commerce_subscription_checkout_intents">; }, (Dto3052 | Dto3053)>;
+};
   "dunning": {
   "runDunningSweep": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, Dto1452>;
 };
@@ -7920,8 +7931,8 @@ export type InternalApi = {
 };
   "internals": {
   "abortDunningAttempt": FunctionReference<"mutation", "internal", { "attemptId": GenericId<"commerce_subscription_dunning_attempts">; "reason": string; }, null>;
-  "activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "paymentIntentId": string; "paymentMethodId"?: (undefined | string); "stripeCustomerId"?: (undefined | string); }, null>;
-  "activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "setupIntentId": string; "paymentMethodId": string; "stripeCustomerId": string; }, null>;
+  "activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { "checkoutIntentRef": string; "paymentIntentId": string; "paymentIntentStatus": string; "amountReceived": number; "currency": string; "paymentMethodId"?: (undefined | string); "stripeCustomerId"?: (undefined | string); }, null>;
+  "activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { "checkoutIntentRef": string; "setupIntentId": string; "paymentMethodId": string; "stripeCustomerId": string; }, null>;
   "applyDueScheduledOfferChanges": FunctionReference<"mutation", "internal", {  }, Dto1453>;
   "checkEntitlementForUser": FunctionReference<"query", "internal", { "userId": GenericId<"users">; "entitlementCode": string; }, (Dto1454 | Dto1455 | Dto1457)>;
   "completeDunningAttempt": FunctionReference<"mutation", "internal", { "attemptId": GenericId<"commerce_subscription_dunning_attempts">; "outcome": "success"; }, null>;
@@ -7939,7 +7950,7 @@ export type InternalApi = {
   "processScheduledDunning": FunctionReference<"mutation", "internal", { "dunningAttemptId": GenericId<"commerce_subscription_dunning_attempts">; }, (Dto1473 | Dto1474)>;
   "recordDunningFailure": FunctionReference<"mutation", "internal", { "attemptId": GenericId<"commerce_subscription_dunning_attempts">; "subscriptionId": GenericId<"commerce_subscriptions">; "invoiceId": GenericId<"commerce_subscription_invoices">; "attemptNumber": number; "failureReason"?: (undefined | string); "maxAttempts": number; "retryDays": Array<number>; }, (Dto1475 | Dto1476)>;
   "recordFirstChargeIntent": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "stripeCustomerId": string; "paymentIntentId": string; }, null>;
-  "recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "stripeCustomerId": string; "paymentMethodId": string; }, null>;
+  "recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { "checkoutIntentRef": string; "stripeCustomerId": string; "paymentMethodId": string; }, null>;
 };
   "proration": {
   "applyDowngradeProration": FunctionReference<"mutation", "internal", { "contractId": GenericId<"commerce_subscriptions">; "toOfferId": GenericId<"commerce_subscription_offers">; "triggeredByUserId": GenericId<"users">; }, Dto1501>;
@@ -7951,7 +7962,7 @@ export type InternalApi = {
   "stripeCharge": {
   "beginSubscriptionFirstCharge": FunctionReference<"action", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; }, Dto1524>;
   "chargeSubscriptionInvoice": FunctionReference<"action", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; }, Dto1525>;
-  "saveSetupIntentResult": FunctionReference<"action", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "stripeCustomerId": string; "paymentMethodId": string; "setupIntentId"?: (undefined | string); "activateCheckout"?: (undefined | false | true); }, null>;
+  "saveSetupIntentResult": FunctionReference<"action", "internal", { "checkoutIntentRef": string; "stripeCustomerId": string; "paymentMethodId": string; "setupIntentId"?: (undefined | string); "activateCheckout"?: (undefined | false | true); }, null>;
 };
 };
   "commerceSubscriptions/actions": {
@@ -7959,6 +7970,11 @@ export type InternalApi = {
   "processDunningRetries": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, Dto1441>;
   "processExpiredSubscriptions": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, unknown>;
   "processRenewals": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, Dto1442>;
+};
+  "commerceSubscriptions/checkout": {
+  "activateFreeIntentForSubmission": FunctionReference<"mutation", "internal", { "intentId": GenericId<"commerce_subscription_checkout_intents">; "submissionId": GenericId<"form_submissions">; }, (Dto3048 | Dto3049)>;
+  "activateFromIntent": FunctionReference<"mutation", "internal", { "intentId": GenericId<"commerce_subscription_checkout_intents">; "settlement": (Dto3050 | Dto3051); }, Dto3048>;
+  "getChargeStartAccess": FunctionReference<"query", "internal", { "intentId": GenericId<"commerce_subscription_checkout_intents">; }, (Dto3052 | Dto3053)>;
 };
   "commerceSubscriptions/dunning": {
   "runDunningSweep": FunctionReference<"action", "internal", { "limit"?: (undefined | number); }, Dto1452>;
@@ -7973,8 +7989,8 @@ export type InternalApi = {
 };
   "commerceSubscriptions/internals": {
   "abortDunningAttempt": FunctionReference<"mutation", "internal", { "attemptId": GenericId<"commerce_subscription_dunning_attempts">; "reason": string; }, null>;
-  "activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "paymentIntentId": string; "paymentMethodId"?: (undefined | string); "stripeCustomerId"?: (undefined | string); }, null>;
-  "activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "setupIntentId": string; "paymentMethodId": string; "stripeCustomerId": string; }, null>;
+  "activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { "checkoutIntentRef": string; "paymentIntentId": string; "paymentIntentStatus": string; "amountReceived": number; "currency": string; "paymentMethodId"?: (undefined | string); "stripeCustomerId"?: (undefined | string); }, null>;
+  "activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { "checkoutIntentRef": string; "setupIntentId": string; "paymentMethodId": string; "stripeCustomerId": string; }, null>;
   "applyDueScheduledOfferChanges": FunctionReference<"mutation", "internal", {  }, Dto1453>;
   "checkEntitlementForUser": FunctionReference<"query", "internal", { "userId": GenericId<"users">; "entitlementCode": string; }, (Dto1454 | Dto1455 | Dto1457)>;
   "completeDunningAttempt": FunctionReference<"mutation", "internal", { "attemptId": GenericId<"commerce_subscription_dunning_attempts">; "outcome": "success"; }, null>;
@@ -7992,7 +8008,7 @@ export type InternalApi = {
   "processScheduledDunning": FunctionReference<"mutation", "internal", { "dunningAttemptId": GenericId<"commerce_subscription_dunning_attempts">; }, (Dto1473 | Dto1474)>;
   "recordDunningFailure": FunctionReference<"mutation", "internal", { "attemptId": GenericId<"commerce_subscription_dunning_attempts">; "subscriptionId": GenericId<"commerce_subscriptions">; "invoiceId": GenericId<"commerce_subscription_invoices">; "attemptNumber": number; "failureReason"?: (undefined | string); "maxAttempts": number; "retryDays": Array<number>; }, (Dto1475 | Dto1476)>;
   "recordFirstChargeIntent": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "stripeCustomerId": string; "paymentIntentId": string; }, null>;
-  "recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "stripeCustomerId": string; "paymentMethodId": string; }, null>;
+  "recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { "checkoutIntentRef": string; "stripeCustomerId": string; "paymentMethodId": string; }, null>;
 };
   "commerceSubscriptions/proration": {
   "applyDowngradeProration": FunctionReference<"mutation", "internal", { "contractId": GenericId<"commerce_subscriptions">; "toOfferId": GenericId<"commerce_subscription_offers">; "triggeredByUserId": GenericId<"users">; }, Dto1501>;
@@ -8004,7 +8020,7 @@ export type InternalApi = {
   "commerceSubscriptions/stripeCharge": {
   "beginSubscriptionFirstCharge": FunctionReference<"action", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; }, Dto1524>;
   "chargeSubscriptionInvoice": FunctionReference<"action", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; }, Dto1525>;
-  "saveSetupIntentResult": FunctionReference<"action", "internal", { "checkoutIntentId": GenericId<"commerce_subscription_checkout_intents">; "stripeCustomerId": string; "paymentMethodId": string; "setupIntentId"?: (undefined | string); "activateCheckout"?: (undefined | false | true); }, null>;
+  "saveSetupIntentResult": FunctionReference<"action", "internal", { "checkoutIntentRef": string; "stripeCustomerId": string; "paymentMethodId": string; "setupIntentId"?: (undefined | string); "activateCheckout"?: (undefined | false | true); }, null>;
 };
   "commerceWishlists": {
   "cleanup": {

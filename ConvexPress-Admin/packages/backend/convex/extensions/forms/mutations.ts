@@ -1147,6 +1147,12 @@ async function submitForm(
       form,
       isComplete,
     );
+    // The signed-in submitter, resolved server-side from the auth token. It is
+    // recorded on the submission so post-submit actions that run without a
+    // caller identity (the Forms action runner) can bind what the submission
+    // buys to the account that submitted it — never to an email typed into it.
+    const submitter = submitterIdentity ? await getCurrentUser(ctx) : null;
+    const submitterUserId = submitter?.status === "active" ? submitter._id : undefined;
 
     // (a2) Payload bounds (DoS guard). This endpoint is public + unauthenticated,
     // so before ANY further work we cap the size/shape of `values` (entry count,
@@ -1381,6 +1387,9 @@ async function submitForm(
       const mergedMeta = mergeMetaPricing(existing.meta, calcResult.pricing);
       await patchCountedFormSubmission(ctx, submissionId, {
         ...confirmationProof,
+        // A draft started signed-out is claimed by the account that completes
+        // it; one already owned keeps its owner.
+        userId: existing.userId ?? submitterUserId,
         status: isComplete ? ("complete" as const) : ("partial" as const),
         submittedAt: existing.submittedAt ?? now,
         completedAt: isComplete ? now : existing.completedAt,
@@ -1402,7 +1411,7 @@ async function submitForm(
         ip: undefined,
         userAgent: undefined,
         referrer: undefined,
-        userId: undefined,
+        userId: submitterUserId,
         resumeToken: effectiveResumeToken,
         currentStep,
         read: false,

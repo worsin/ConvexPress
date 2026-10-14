@@ -131,6 +131,44 @@ function canTransition(
 	return STATUS_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+// Customer (non-admin) lifecycle limits. The status table above is what staff
+// may do; a customer acting on their own contract may only move it within good
+// standing. Without these, an owner could pause or schedule-cancel a past_due,
+// cancelled or expired contract and then resume it to `active` — regaining
+// entitlements without paying the outstanding invoice.
+const OWNER_PAUSABLE: readonly SubscriptionStatus[] = ["active", "trialing"];
+const OWNER_RESUMABLE: readonly SubscriptionStatus[] = ["paused", "pending_cancel"];
+const OWNER_SCHEDULE_CANCELLABLE: readonly SubscriptionStatus[] = [
+	"active",
+	"trialing",
+	"paused",
+];
+
+function assertOwnerMayTransition(
+	isAdmin: boolean,
+	from: SubscriptionStatus,
+	allowed: readonly SubscriptionStatus[],
+	action: string,
+): void {
+	if (isAdmin || allowed.includes(from)) return;
+	throw new ConvexError({
+		code: "INVALID_STATE",
+		message: `You cannot ${action} a subscription that is ${from}.`,
+		currentStatus: from,
+	});
+}
+
+/**
+ * When a resumed contract's paid period has already ended, the renewal falls
+ * due immediately (the renewal sweep invoices and charges it) instead of
+ * starting a fresh, unpaid period.
+ */
+function resumedBillingAt(currentPeriodEndAt: number | undefined, now: number): number {
+	return currentPeriodEndAt !== undefined && currentPeriodEndAt > now
+		? currentPeriodEndAt
+		: now;
+}
+
 function addDays(timestamp: number, days: number): number {
 	return timestamp + days * 24 * 60 * 60 * 1000;
 }
@@ -1085,6 +1123,7 @@ export const pause = mutation({
 				message: "Access denied.",
 			});
 		}
+		assertOwnerMayTransition(isAdmin, subscription.status, OWNER_PAUSABLE, "pause");
 
 		return transitionSubscription(ctx, {
 			subscription,
@@ -1139,16 +1178,10 @@ export const resume = mutation({
 				message: "Access denied.",
 			});
 		}
+		assertOwnerMayTransition(isAdmin, subscription.status, OWNER_RESUMABLE, "resume");
 
 		const now = Date.now();
-		const nextBillingAt =
-			(subscription.currentPeriodEndAt ?? 0) < now
-				? addBillingPeriod(
-						now,
-						subscription.billingInterval ?? "month",
-						subscription.billingIntervalCount ?? 1,
-					)
-				: subscription.currentPeriodEndAt;
+		const nextBillingAt = resumedBillingAt(subscription.currentPeriodEndAt, now);
 
 		return transitionSubscription(ctx, {
 			subscription,
@@ -1209,6 +1242,12 @@ export const scheduleCancel = mutation({
 				message: "Access denied.",
 			});
 		}
+		assertOwnerMayTransition(
+			isAdmin,
+			subscription.status,
+			OWNER_SCHEDULE_CANCELLABLE,
+			"schedule cancellation of",
+		);
 
 		return transitionSubscription(ctx, {
 			subscription,
