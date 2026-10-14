@@ -29,12 +29,9 @@ import {
 } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";
-import type { Id } from "@backend/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
-import {
-  PricingCardPreview,
-  type PricingCardOffer,
-} from "@/components/subscriptions/PricingCardPreview";
+import type { Doc, Id } from "@backend/convex/_generated/dataModel";
+import { cn, getErrorMessage } from "@/lib/utils";
+import { PricingCardPreview } from "@/components/subscriptions/PricingCardPreview";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/commerce/subscriptions/pricing-cards",
@@ -45,38 +42,12 @@ export const Route = createFileRoute(
 const inputClass =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
-type PricingCardOfferRow = PricingCardOffer & {
-  _id: Id<"commerce_subscription_offers">;
-  slug: string;
-  status: "draft" | "active" | "archived";
-  pricingCardVisible?: boolean;
-};
+type PricingCardOfferRow = Doc<"commerce_subscription_offers">;
 
 function PricingCardsPage() {
-  const config = useQuery(
-    (api as any).commerceSubscriptions.pricingCards.getPricingCardConfig,
-    {},
-  ) as
-    | {
-        _id: Id<"commerce_subscription_pricing_card_config"> | null;
-        orderedOfferIds: Array<Id<"commerce_subscription_offers">>;
-        featuredOfferId?: Id<"commerce_subscription_offers">;
-        headline?: string;
-        subheadline?: string;
-        templateKey: string;
-        updatedAt: number;
-      }
-    | null
-    | undefined;
-
-  const offers = useQuery(
-    (api as any).commerceSubscriptions.offers.listOffers,
-    {},
-  ) as Array<PricingCardOfferRow> | null | undefined;
-
-  const updateConfig = useMutation(
-    (api as any).commerceSubscriptions.pricingCards.updatePricingCardConfig,
-  );
+  const config = useQuery(api.commerceSubscriptions.pricingCards.getPricingCardConfig, {});
+  const offers = useQuery(api.commerceSubscriptions.offers.listOffers, {});
+  const updateConfig = useMutation(api.commerceSubscriptions.pricingCards.updatePricingCardConfig);
 
   const [orderedOfferIds, setOrderedOfferIds] = useState<
     Array<Id<"commerce_subscription_offers">>
@@ -152,10 +123,7 @@ function PricingCardsPage() {
       });
       toast.success("Pricing page saved");
     } catch (error) {
-      toast.error(
-        (error as { data?: { message?: string } })?.data?.message ??
-          "Failed to save pricing configuration",
-      );
+      toast.error(getErrorMessage(error, "The pricing page could not be saved."));
     } finally {
       setSubmitting(false);
     }

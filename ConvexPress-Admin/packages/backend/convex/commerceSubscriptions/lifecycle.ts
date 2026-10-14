@@ -129,6 +129,32 @@ export const DEFAULT_DUNNING_POLICY: DunningPolicy = {
 
 export const DEFAULT_GRACE_PERIOD_DAYS = 3;
 
+export const MAX_DUNNING_RETRIES = 8;
+export const MAX_DUNNING_RETRY_GAP_DAYS = 30;
+
+/** A template's retry schedule, checked: whole days, 1–30 apart, at most 8 retries. */
+export function assertValidRetryDays(days: readonly number[]): void {
+	if (days.length > MAX_DUNNING_RETRIES) {
+		throw new ConvexError({ code: "VALIDATION_ERROR", message: `At most ${MAX_DUNNING_RETRIES} retries.` });
+	}
+	for (const gap of days) {
+		if (!Number.isInteger(gap) || gap < 1 || gap > MAX_DUNNING_RETRY_GAP_DAYS) {
+			throw new ConvexError({
+				code: "VALIDATION_ERROR",
+				message: `Each retry waits a whole number of days, 1 to ${MAX_DUNNING_RETRY_GAP_DAYS}.`,
+			});
+		}
+	}
+}
+
+/** The retry policy a template sets, or the default. */
+export function dunningPolicyFor(template: Doc<"commerce_subscription_templates"> | null): DunningPolicy {
+	return {
+		retryIntervalsDays: template?.dunningRetryDays ?? DEFAULT_DUNNING_POLICY.retryIntervalsDays,
+		cancelAfterFinalFailure: template?.cancelAfterFinalFailure ?? DEFAULT_DUNNING_POLICY.cancelAfterFinalFailure,
+	};
+}
+
 export type LifecycleTerms = {
 	billingInterval: BillingInterval;
 	billingIntervalCount: number;
@@ -160,7 +186,7 @@ export async function resolveLifecycleTerms(
 			1,
 		gracePeriodDays: override?.overrideGracePeriodDays ?? template?.gracePeriodDays ?? DEFAULT_GRACE_PERIOD_DAYS,
 		pausable: override?.overridePausable ?? template?.pausable ?? true,
-		dunningPolicy: DEFAULT_DUNNING_POLICY,
+		dunningPolicy: dunningPolicyFor(template),
 	};
 }
 

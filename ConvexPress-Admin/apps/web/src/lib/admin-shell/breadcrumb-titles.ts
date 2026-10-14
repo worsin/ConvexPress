@@ -10,10 +10,12 @@ import { useEffect, useSyncExternalStore } from "react";
 
 const titles = new Map<string, string>();
 const listeners = new Set<() => void>();
-let version = 0;
+// A fresh snapshot per change: readers (and the React Compiler's memoization)
+// compare by identity, so the same Map mutated in place would never re-render.
+let snapshot: ReadonlyMap<string, string> = new Map();
 
 function changed(): void {
-  version += 1;
+  snapshot = new Map(titles);
   for (const listener of listeners) listener();
 }
 
@@ -38,8 +40,7 @@ export function useBreadcrumbTitle(segment: string | undefined, title: string | 
 
 /** The titles pages have registered; re-renders when one changes. */
 export function useBreadcrumbTitles(): ReadonlyMap<string, string> {
-  useSyncExternalStore(subscribe, () => version, () => version);
-  return titles;
+  return useSyncExternalStore(subscribe, () => snapshot, () => snapshot);
 }
 
 /** A Convex document id: 31–37 lowercase base32 characters, at least one digit. */

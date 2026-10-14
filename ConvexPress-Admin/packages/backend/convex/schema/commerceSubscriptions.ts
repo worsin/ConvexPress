@@ -123,7 +123,16 @@ export const commerceSubscriptionTables = {
     gracePeriodDays: v.optional(v.number()),
     pausable: v.boolean(),
     cancelAtPeriodEndDefault: v.boolean(),
+    /** Legacy free-text policy name; never read. Superseded by `dunningRetryDays`. */
     dunningPolicyCode: v.optional(v.string()),
+    /**
+     * Days after each failed renewal charge until the next retry, one entry
+     * per retry (`[1, 3, 7]`: retry 1, 3 and 7 days after each failure).
+     * Unset uses the default; `[]` means no retries.
+     */
+    dunningRetryDays: v.optional(v.array(v.number())),
+    /** When the last retry fails: cancel (default) or leave the contract past due. */
+    cancelAfterFinalFailure: v.optional(v.boolean()),
     version: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),

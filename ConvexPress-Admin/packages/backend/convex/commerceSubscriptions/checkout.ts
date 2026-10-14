@@ -35,7 +35,7 @@ import {
 	type QueryCtx,
 } from "../_generated/server";
 import { getCurrentUser, requireAuth } from "../helpers/auth";
-import { initializeRedemption, validateCoupon } from "../helpers/coupons";
+import { findCouponByCode, initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import {
@@ -245,10 +245,7 @@ async function insertCheckoutIntent(
 			}
 		} else {
 			// Anonymous: check the non-customer-limit gates only.
-			const coupon = await ctx.db
-				.query("commerce_subscription_coupons")
-				.withIndex("by_code", (q) => q.eq("code", code))
-				.unique();
+			const coupon = await findCouponByCode(ctx, code);
 			if (!coupon) {
 				throw new ConvexError({
 					code: "COUPON_INVALID",

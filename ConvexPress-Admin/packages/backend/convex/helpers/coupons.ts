@@ -29,6 +29,36 @@ import { applyDiscount } from "./proration";
 // the redemption row's shape so the UI never shows "999 left" as a number.
 const FOREVER_REDEMPTION_APPLICATIONS = 9999;
 
+// ─── Codes ──────────────────────────────────────────────────────────────────
+
+/** How a coupon code is stored and matched: trimmed, upper case ("save20" → "SAVE20"). */
+export function normalizeCouponCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
+/**
+ * The coupon a customer typed, in any case. Codes are stored normalized; a
+ * code saved before normalization still matches when typed exactly.
+ */
+export async function findCouponByCode(
+  ctx: QueryCtx | MutationCtx,
+  typed: string,
+): Promise<Doc<"commerce_subscription_coupons"> | null> {
+  const normalized = normalizeCouponCode(typed);
+  if (!normalized) return null;
+  const byNormalized = await ctx.db
+    .query("commerce_subscription_coupons")
+    .withIndex("by_code", (q) => q.eq("code", normalized))
+    .unique();
+  if (byNormalized) return byNormalized;
+  const exact = typed.trim();
+  if (exact === normalized) return null;
+  return ctx.db
+    .query("commerce_subscription_coupons")
+    .withIndex("by_code", (q) => q.eq("code", exact))
+    .unique();
+}
+
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 export type CouponValidationFailureReason =
@@ -64,10 +94,7 @@ export async function validateCoupon(
 ): Promise<CouponValidationResult> {
   const now = Date.now();
 
-  const coupon = await ctx.db
-    .query("commerce_subscription_coupons")
-    .withIndex("by_code", (q) => q.eq("code", couponCode))
-    .unique();
+  const coupon = await findCouponByCode(ctx, couponCode);
 
   if (!coupon) return { valid: false, reason: "not_found" };
 

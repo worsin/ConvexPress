@@ -25,6 +25,7 @@
  * capability.
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { ConvexError, v } from "convex/values";
 
 import type { Doc, Id } from "../_generated/dataModel";
@@ -213,7 +214,8 @@ export const updateOffer = mutation({
     createNewSubscription: v.optional(v.boolean()),
     allowAddToExistingSubscription: v.optional(v.boolean()),
     limitOnePerCustomer: v.optional(v.boolean()),
-    trialDaysOverride: v.optional(v.number()),
+    /** Days of free trial; null clears it (the template's trial applies). */
+    trialDaysOverride: v.optional(v.union(v.number(), v.null())),
     entitlementCodes: v.optional(v.array(v.string())),
     features: v.optional(v.array(featureValidator)),
     pricingCardVisible: v.optional(v.boolean()),
@@ -245,7 +247,7 @@ export const updateOffer = mutation({
     }
 
     const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
+    const patch: Partial<WithoutSystemFields<Doc<"commerce_subscription_offers">>> = { updatedAt: now };
 
     // Collect proposed changes to immutable-if-hot fields.
     const immutableAttempted: string[] = [];
@@ -323,34 +325,27 @@ export const updateOffer = mutation({
       patch.slug = args.slug;
     }
 
-    // Copy all other updatable fields if provided.
-    const maybeFields: Array<keyof typeof args> = [
-      "title",
-      "status",
-      "description",
-      "publicSummary",
-      "availableInCart",
-      "availableInDirectForms",
-      "availableForAdminProvisioning",
-      "createNewSubscription",
-      "allowAddToExistingSubscription",
-      "limitOnePerCustomer",
-      "trialDaysOverride",
-      "entitlementCodes",
-      "features",
-      "pricingCardVisible",
-      "excludedPlanFeatureIds",
-      "currencyCode",
-      "recurringAmount",
-      "setupFeeAmount",
-      "minimumQuantity",
-      "maximumQuantity",
-    ];
-    for (const field of maybeFields) {
-      if (args[field] !== undefined) {
-        patch[field] = args[field];
-      }
-    }
+    // Everything else that was provided.
+    if (args.title !== undefined) patch.title = args.title;
+    if (args.status !== undefined) patch.status = args.status;
+    if (args.description !== undefined) patch.description = args.description;
+    if (args.publicSummary !== undefined) patch.publicSummary = args.publicSummary;
+    if (args.availableInCart !== undefined) patch.availableInCart = args.availableInCart;
+    if (args.availableInDirectForms !== undefined) patch.availableInDirectForms = args.availableInDirectForms;
+    if (args.availableForAdminProvisioning !== undefined) patch.availableForAdminProvisioning = args.availableForAdminProvisioning;
+    if (args.createNewSubscription !== undefined) patch.createNewSubscription = args.createNewSubscription;
+    if (args.allowAddToExistingSubscription !== undefined) patch.allowAddToExistingSubscription = args.allowAddToExistingSubscription;
+    if (args.limitOnePerCustomer !== undefined) patch.limitOnePerCustomer = args.limitOnePerCustomer;
+    if (args.trialDaysOverride !== undefined) patch.trialDaysOverride = args.trialDaysOverride ?? undefined;
+    if (args.entitlementCodes !== undefined) patch.entitlementCodes = args.entitlementCodes;
+    if (args.features !== undefined) patch.features = args.features;
+    if (args.pricingCardVisible !== undefined) patch.pricingCardVisible = args.pricingCardVisible;
+    if (args.excludedPlanFeatureIds !== undefined) patch.excludedPlanFeatureIds = args.excludedPlanFeatureIds;
+    if (args.currencyCode !== undefined) patch.currencyCode = args.currencyCode;
+    if (args.recurringAmount !== undefined) patch.recurringAmount = args.recurringAmount;
+    if (args.setupFeeAmount !== undefined) patch.setupFeeAmount = args.setupFeeAmount;
+    if (args.minimumQuantity !== undefined) patch.minimumQuantity = args.minimumQuantity;
+    if (args.maximumQuantity !== undefined) patch.maximumQuantity = args.maximumQuantity;
     if (args.metadataJson !== undefined) {
       patch.metadata = parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson");
     }
