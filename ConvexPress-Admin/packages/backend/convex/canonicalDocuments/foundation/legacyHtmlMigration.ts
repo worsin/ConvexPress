@@ -4,7 +4,12 @@ type Element = {tag:string; attrs:Record<string,string>; children:(Element|strin
 type Mark = {type:string; attrs?:Record<string,string>};
 type Inline = {type:'text'; text:string; marks?:Mark[]} | {type:'hardBreak'};
 const marks:Record<string,string>={strong:'bold',b:'bold',em:'italic',i:'italic',s:'strike',strike:'strike',u:'underline',code:'code'};
-const isBlock=(name:string)=>name==='p'||/^h[1-6]$/u.test(name);
+const isHeading=(name:string)=>/^h[1-6]$/u.test(name);
+const isList=(name:string)=>name==='ul'||name==='ol';
+/** Elements that hold inline content (text, marks, links, line breaks). */
+const holdsInline=(name:string)=>name==='p'||isHeading(name)||name==='li'||Object.prototype.hasOwnProperty.call(marks,name)||name==='a';
+/** Where each structural element may appear: '' is the document root. */
+const allowedParents:Record<string,readonly string[]>={p:['','li'],ul:['','li'],ol:['','li'],li:['ul','ol']};
 
 /** Parse a declared HTML subset into editable rich text. This is deliberately
  * not a sanitizer: unrepresentable authoring and parser repairs reject the
@@ -23,18 +28,22 @@ export function legacyHtmlDocument(source:string,fail:(message:string)=>never):u
    if(implied)fail('Repaired HTML requires review');
    consume();
    if(++nodes>10000||stack.length>=16)fail('HTML exceeds the migration node/depth budget');
-   if(!isBlock(tag)&&!Object.prototype.hasOwnProperty.call(marks,tag)&&tag!=='a'&&tag!=='br')fail(`A lossless HTML ${tag} adapter is required`);
-   const allowed=tag==='a'?['href','target']:[];
+   const structural=Object.prototype.hasOwnProperty.call(allowedParents,tag)||isHeading(tag);
+   if(!structural&&!Object.prototype.hasOwnProperty.call(marks,tag)&&tag!=='a'&&tag!=='br')fail(`A lossless HTML ${tag} adapter is required`);
+   const allowed=tag==='a'?['href','target']:tag==='ol'?['start']:[];
    if(Object.keys(attrs).some(key=>!allowed.includes(key)))fail('An authored HTML attribute requires a lossless adapter');
+   if(tag==='ol'&&attrs.start!==undefined&&!/^[1-9][0-9]{0,8}$/u.test(attrs.start))fail('An ordered-list start must be a positive integer');
    if(tag==='a'&&(!attrs.href||stack.some(node=>node.tag==='a')))fail('HTML links require one explicit destination');
-   if(isBlock(tag)?stack.length>0:stack.length===0)fail('HTML nesting requires a lossless adapter');
+   const parent=stack.length?stack[stack.length-1].tag:'';
+   if(isHeading(tag)?parent!=='':structural?!allowedParents[tag].includes(parent):!holdsInline(parent))fail('HTML nesting requires a lossless adapter');
    const node:Element={tag,attrs,children:[]};
    if(stack.length)stack[stack.length-1].children.push(node);else roots.push(node);
    if(tag!=='br')stack.push(node);
   },
   ontext(text){
    consume();
-   if(!stack.length){if(text.trim())fail('Unwrapped HTML text requires a lossless adapter');return;}
+   // Whitespace between top-level blocks or list items is formatting.
+   if(!stack.length||isList(stack[stack.length-1].tag)){if(text.trim())fail('Unwrapped HTML text requires a lossless adapter');return;}
    const children=stack[stack.length-1].children;
    if(typeof children[children.length-1]==='string')children[children.length-1]+=text;
    else children.push(text);
@@ -62,5 +71,32 @@ export function legacyHtmlDocument(source:string,fail:(message:string)=>never):u
    return inline(child.children,previous?active:[...active,mark]);
   });
  }
- return {type:'doc',content:roots.map(node=>({type:node.tag==='p'?'paragraph':'heading',...(node.tag==='p'?{}:{attrs:{level:Number(node.tag.slice(1))}}),content:inline(node.children)}))};
+ function list(node:Element):unknown{
+  const items=node.children.map(child=>{
+   if(typeof child==='string'||child.tag!=='li')fail('HTML lists may only contain list items');
+   return listItem(child);
+  });
+  if(!items.length)fail('Empty HTML lists require review');
+  const start=node.tag==='ol'&&node.attrs.start!==undefined?Number(node.attrs.start):undefined;
+  return {type:node.tag==='ul'?'bulletList':'orderedList',...(start!==undefined?{attrs:{start}}:{}),content:items};
+ }
+ /** A list item's inline runs become paragraphs; nested paragraphs and lists keep their place. */
+ function listItem(node:Element):unknown{
+  const content:unknown[]=[];let run:(Element|string)[]=[];
+  const flush=()=>{
+   const meaningful=run.some(child=>typeof child!=='string'||child.trim());
+   if(meaningful)content.push({type:'paragraph',content:inline(run)});
+   run=[];
+  };
+  for(const child of node.children){
+   if(typeof child!=='string'&&(child.tag==='p'||isList(child.tag))){
+    flush();
+    content.push(child.tag==='p'?{type:'paragraph',content:inline(child.children)}:list(child));
+   }else run.push(child);
+  }
+  flush();
+  if(!content.length)fail('Empty HTML list items require review');
+  return {type:'listItem',content};
+ }
+ return {type:'doc',content:roots.map(node=>isList(node.tag)?list(node):({type:node.tag==='p'?'paragraph':'heading',...(node.tag==='p'?{}:{attrs:{level:Number(node.tag.slice(1))}}),content:inline(node.children)}))};
 }

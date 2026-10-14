@@ -97,7 +97,7 @@
     "documentState.ts": "50ecfe4f40e1d546b253d903d974262358c0a488583787e4becc5481506d1be7",
     "draftRecovery.ts": "383e4046ec952a6850dd39f700315d0c592d6aa57fd3583793eb1c854855faaa",
     "legacyDocumentMigration.ts": "b42f4104a3d4743e96f532964ae1489148d0af918d57c3ad8c818b7bbcf82da2",
-    "legacyHtmlMigration.ts": "07507c0bf9d32c72aa7b83242e52864b75d036a72d6f6d58b620424443aa6e96",
+    "legacyHtmlMigration.ts": "1134e5c1c74c62e86b2d7676bbf515971dd80bc3f4581ab171a989c0ded18fb6",
     "legacyStructuredMigration.ts": "29789cddeedcfb8f023123124d013f7cca4515f5a668bbbe1a757ecbac99189d",
     "shared/legacyHref.ts": "9d9f64890a8b81cdb9032be441dbbf401e395979de195e33526b6e1934838bd6",
     "legacyBlockMigration.ts": "be7390839e4f83363d3569d8a5f2664c0b35818ce3eb4854e405cb467618cd90",
