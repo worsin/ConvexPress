@@ -18,11 +18,11 @@
  */
 
 import { Check } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import type { PricingOffer } from "@/lib/pricingCardRenderer";
+import { OfferSignupLink } from "./OfferSignupLink";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -117,8 +117,8 @@ export function PricingCard({ offer, isFeatured = false }: PricingCardProps) {
       {/* Title */}
       <div className="flex flex-col gap-1">
         <h3 className="text-xl font-semibold text-foreground">{offer.title}</h3>
-        {offer.description && (
-          <p className="text-sm text-muted-foreground">{offer.description}</p>
+        {offer.publicSummary && (
+          <p className="text-sm text-muted-foreground">{offer.publicSummary}</p>
         )}
       </div>
 
@@ -164,16 +164,15 @@ export function PricingCard({ offer, isFeatured = false }: PricingCardProps) {
 
       {/* CTA */}
       <div className="mt-auto pt-2">
-        <Link
-          to="/signup/$offerId"
-          params={{ offerId: offer._id }}
+        <OfferSignupLink
+          offer={offer}
           className={cn(
             buttonVariants({ variant: "default", size: "default" }),
             "w-full justify-center",
           )}
         >
           {ctaLabel}
-        </Link>
+        </OfferSignupLink>
       </div>
     </div>
   );

@@ -9,40 +9,16 @@
  *   The MVP renderer supports the "default-grid" template.
  */
 
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@convexpress-website/backend/generated/api";
+
 import { PricingCard } from "@/components/subscriptions/PricingCard";
 
-// ─── Types (locally mirrored from listOffersForPricing return shape) ─────────
+// ─── Types (the public pricing read, `offers.listOffersForPricing`) ──────────
 
-export type OfferFeature = {
-  text: string;
-  highlighted?: boolean;
-  icon?: string;
-};
-
-export type PlanBenefit = {
-  _id: string;
-  label: string;
-  description?: string;
-  sourcePlanId: string;
-};
-
-export type PricingOffer = {
-  _id: string;
-  title: string;
-  description?: string;
-  currencyCode: string;
-  recurringAmount: number;
-  trialDaysOverride?: number;
-  features?: OfferFeature[];
-  pricingCardVisible?: boolean;
-  planBenefits: PlanBenefit[];
-  // Template-joined fields (Wave 6.1 backend enrichment):
-  billingInterval: "day" | "week" | "month" | "year" | null;
-  billingIntervalCount: number | null;
-  templateTrialDays: number | null;
-  createdAt?: number;
-  [key: string]: unknown;
-};
+export type PricingOffer = FunctionReturnType<typeof api.commerceSubscriptions.offers.listOffersForPricing>[number];
+export type OfferFeature = NonNullable<PricingOffer["features"]>[number];
+export type PlanBenefit = PricingOffer["planBenefits"][number];
 
 export type PricingCardConfig = {
   orderedOfferIds?: string[];

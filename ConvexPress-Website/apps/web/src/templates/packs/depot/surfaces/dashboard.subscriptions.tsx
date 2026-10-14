@@ -82,7 +82,7 @@ export default function DepotDashboardSubscriptions({ data }: SurfaceProps<Dashb
             <div className="flex flex-col gap-3">
               {contracts.map((contract) => {
                 // Candidate offers for plan change: same product, active, excluding the current offer (as in Core).
-                const candidates = (offers ?? []).filter((offer) => offer.status === "active" && (!contract.product?._id || !offer.productId || offer.productId === contract.product._id));
+                const candidates = (offers ?? []).filter((offer) => (!contract.product?._id || !offer.productId || offer.productId === contract.product._id));
                 return (
                   <CustomerPortalCard
                     key={contract._id}

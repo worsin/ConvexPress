@@ -40,6 +40,7 @@ import {
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import { getDisplayableBenefitsForCodesHelper } from "../membership/helpers";
 import { displayableBenefitValidator } from "../membership/validators";
+import { actionPlan, choiceForOffer, planParam, type ActionPlan } from "../extensions/forms/planLinks";
 
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 // ─── Shared shape validators ────────────────────────────────────────────────
@@ -454,35 +455,85 @@ export const getOffer = query({
 });
 
 /**
- * Public (no auth, no capability) query feeding the `/pricing` page.
- * Plugin-gated — disabled commerce subscriptions returns `[]`.
+ * Where a pricing card's button leads: into the site's signup form (the one
+ * the pricing config names) with this plan chosen, or null for the plain
+ * `/signup/<offer>` page. Read from the form's `subscription` action, so a
+ * plan field remap or a fixed-offer form is honoured.
+ */
+const pricingSignupValidator = v.union(
+  v.null(),
+  v.object({ formSlug: v.string(), param: v.optional(v.string()), value: v.optional(v.string()) }),
+);
+
+type PricingSignupForm = { slug: string; plan: ActionPlan; param: string | null };
+
+async function pricingSignupForm(ctx: { db: QueryCtx["db"] }): Promise<PricingSignupForm | null> {
+  const config = await ctx.db
+    .query("commerce_subscription_pricing_card_config")
+    .withIndex("by_singleton", (q) => q.eq("singletonKey", "main"))
+    .unique();
+  const formId = config?.signupFormId;
+  if (!formId) return null;
+  const form = await ctx.db.get(formId);
+  if (!form || form.status !== "published") return null;
+  const actions = await ctx.db
+    .query("form_actions")
+    .withIndex("by_form_enabled", (q) => q.eq("formId", form._id).eq("enabled", true))
+    .collect();
+  for (const action of actions) {
+    if (action.type !== "subscription") continue;
+    const plan = actionPlan(action.config);
+    if (!plan) continue;
+    if (plan.mode === "fixed") return { slug: form.slug, plan, param: null };
+    const groupId = form.fieldGroupId;
+    const field = groupId
+      ? (
+          await ctx.db
+            .query("fieldDefinitions")
+            .withIndex("by_group", (q) => q.eq("groupId", groupId))
+            .collect()
+        ).find((definition) => definition.key === plan.fieldKey)
+      : undefined;
+    return { slug: form.slug, plan, param: field ? planParam(field.settings) : null };
+  }
+  return null;
+}
+
+function signupFor(target: PricingSignupForm | null, offerId: Id<"commerce_subscription_offers">) {
+  if (!target) return null;
+  if (target.plan.mode === "fixed") return target.plan.offerId === offerId ? { formSlug: target.slug } : null;
+  const mapped = Object.values(target.plan.offerByChoice);
+  // A form that maps its choices sells only the offers it maps.
+  if (mapped.length > 0 && !mapped.includes(offerId)) return null;
+  const value = choiceForOffer(target.plan, offerId);
+  return target.param ? { formSlug: target.slug, param: target.param, value } : { formSlug: target.slug };
+}
+
+/**
+ * Public read for pricing cards: active offers shown on the pricing page, as
+ * customers see them. Only public fields: the internal note, entitlement
+ * codes, integration metadata and sales-channel switches stay private.
  *
- * Surfaces only offers with `status === "active"` AND
- * `pricingCardVisible !== false`. Treats absence of `pricingCardVisible`
- * as visible.
- *
- * Wave 6 enriches each offer with:
- *   1. `planBenefits` — displayable benefits pulled from any membership
- *      plans linked via `entitlementCodes`. The `excludedPlanFeatureIds`
- *      field on the offer suppresses specific benefit IDs from surfacing.
- *   2. `billingInterval`, `billingIntervalCount`, `templateTrialDays` —
- *      copied from the linked `commerce_subscription_templates` row so the
- *      pricing card can render "/ month", "/ year", etc. without a second
- *      round-trip. `trialDaysOverride` (on the offer) still wins over
- *      `templateTrialDays` when both are set.
- *
- * Return shape per offer (all existing fields +):
- *   planBenefits:        Array<{ _id, label, description?, sourcePlanId }>
- *   billingInterval:     "week" | "month" | "year" | null
- *   billingIntervalCount: number | null
- *   templateTrialDays:   number | null
- *
- * Offer's own `features` array is unchanged.
+ * Per offer, beyond the offer's public fields:
+ *   planBenefits:         displayable membership benefits (minus exclusions)
+ *   billingInterval / billingIntervalCount / templateTrialDays: from the
+ *                         template, so a card can render "/ month" and the
+ *                         trial (`trialDaysOverride` still wins)
+ *   signup:               where the card's button leads (see above)
  */
 export const listOffersForPricing = query({
   args: {},
   returns: v.array(
-    commerceSubscriptionsDocs.commerce_subscription_offers.extend({
+    v.object({
+      _id: v.id("commerce_subscription_offers"),
+      title: v.string(),
+      slug: v.string(),
+      publicSummary: v.optional(v.string()),
+      currencyCode: v.string(),
+      recurringAmount: v.number(),
+      setupFeeAmount: v.optional(v.number()),
+      trialDaysOverride: v.optional(v.number()),
+      features: v.optional(v.array(featureValidator)),
       planBenefits: v.array(displayableBenefitValidator),
       billingInterval: v.union(
         v.null(),
@@ -490,6 +541,10 @@ export const listOffersForPricing = query({
       ),
       billingIntervalCount: v.union(v.null(), v.number()),
       templateTrialDays: v.union(v.null(), v.number()),
+      signup: pricingSignupValidator,
+      /** Set when the offer sells a shop product (plan changes stay within it). */
+      productId: v.optional(v.id("commerce_products")),
+      createdAt: v.number(),
     }),
   ),
   handler: async (ctx) => {
@@ -499,53 +554,41 @@ export const listOffersForPricing = query({
       .query("commerce_subscription_offers")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
+    const visible = offers.filter((o) => o.pricingCardVisible !== false).sort((a, b) => b.createdAt - a.createdAt);
 
-    const visible = offers
-      .filter((o) => o.pricingCardVisible !== false)
-      .sort((a, b) => b.createdAt - a.createdAt);
-
-    // Batch-load templates so we can surface billingInterval / trialDays.
-    // Uses a Map keyed by templateId (deduped across offers sharing one).
-    const uniqueTemplateIds = Array.from(
-      new Set(visible.map((o) => o.templateId)),
-    );
     const templateMap = new Map<string, Doc<"commerce_subscription_templates">>();
-    await Promise.all(
-      uniqueTemplateIds.map(async (tid) => {
-        const t = await ctx.db.get(tid);
-        if (t) templateMap.set(String(tid), t);
-      }),
-    );
+    for (const templateId of new Set(visible.map((o) => o.templateId))) {
+      const template = await ctx.db.get(templateId);
+      if (template) templateMap.set(String(templateId), template);
+    }
+    const signupTarget = await pricingSignupForm(ctx);
 
-    // Enrich each offer with displayable plan benefits + template fields.
-    // When the membership plugin is disabled, the benefit helper returns []
-    // gracefully; when a template is missing (orphan offer) the interval
-    // fields are null so the UI can fall back to a generic label.
-    const enriched = await Promise.all(
-      visible.map(async (offer) => {
-        const allPlanBenefits = await getDisplayableBenefitsForCodesHelper(
-          ctx,
-          offer.entitlementCodes ?? [],
-        );
-
-        // Filter out any benefits the offer has explicitly excluded.
-        const excluded: string[] = offer.excludedPlanFeatureIds ?? [];
-        const planBenefits = allPlanBenefits.filter(
-          (b) => !excluded.includes(b._id),
-        );
-
-        const template = templateMap.get(String(offer.templateId));
-
-        return {
-          ...offer,
-          planBenefits,
-          billingInterval: template?.billingInterval ?? null,
-          billingIntervalCount: template?.billingIntervalCount ?? null,
-          templateTrialDays: template?.trialDays ?? null,
-        };
-      }),
-    );
-
-    return enriched;
+    const rows = [];
+    for (const offer of visible) {
+      const excluded: string[] = offer.excludedPlanFeatureIds ?? [];
+      const planBenefits = (await getDisplayableBenefitsForCodesHelper(ctx, offer.entitlementCodes ?? [])).filter(
+        (benefit) => !excluded.includes(benefit._id),
+      );
+      const template = templateMap.get(String(offer.templateId));
+      rows.push({
+        _id: offer._id,
+        title: offer.title,
+        slug: offer.slug,
+        publicSummary: offer.publicSummary,
+        currencyCode: offer.currencyCode,
+        recurringAmount: offer.recurringAmount,
+        setupFeeAmount: offer.setupFeeAmount,
+        trialDaysOverride: offer.trialDaysOverride,
+        features: offer.features,
+        planBenefits,
+        billingInterval: template?.billingInterval ?? null,
+        billingIntervalCount: template?.billingIntervalCount ?? null,
+        templateTrialDays: template?.trialDays ?? null,
+        signup: signupFor(signupTarget, offer._id),
+        productId: offer.productId,
+        createdAt: offer.createdAt,
+      });
+    }
+    return rows;
   },
 });
