@@ -21,7 +21,7 @@ export const Route=createFileRoute("/_marketing/brands/$slug")({
   head:({loaderData})=>loaderData?.seoHead??{},
   component:BrandPage,
 });
-function BrandPage(){const {slug}=Route.useParams();return <PublicPluginGate pluginId="commerce"><BrandPageContent key={slug} slug={slug}/></PublicPluginGate>;}
+function BrandPage(){const {slug}=Route.useParams();return <PublicPluginGate pluginId="commerceStorefront"><BrandPageContent key={slug} slug={slug}/></PublicPluginGate>;}
 function BrandPageContent({slug}:{slug:string}){
   const [cursors,setCursors]=useState<Array<string|null>>([null]);
   const [refresh,setRefresh]=useState(0);

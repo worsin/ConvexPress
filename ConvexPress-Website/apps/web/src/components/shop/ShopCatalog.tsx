@@ -20,6 +20,7 @@ import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { formatMoney } from "@/lib/commerce/format";
 import { perPageFor, queryArgs, type SearchResponse, type ShopSearch, type Sort } from "@/lib/commerce/shopSearch";
 import { cn } from "@/lib/utils";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export function ShopCatalog({ variant }: { variant?: string }) {
   const { sessionToken } = useCommerceSessionToken();
@@ -33,7 +34,7 @@ export function ShopCatalog({ variant }: { variant?: string }) {
   const q = search.q?.trim() || "";
   const marketplace = layout.shopLayout === "marketplace";
   const args = queryArgs(search, perPageFor(layout.shopLayout, layout.gridDensity));
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const { data }: { data: SearchResponse | undefined } = useTanStackQuery(convexQuery(api.commerce.storefront.searchProducts, args));
   const facets: { chips: Array<{ label: string; query?: string; categorySlug?: string }> } | null | undefined = useQuery(api.commerce.storefront.facetsForQuery, q && config.searchFacets && sessionToken ? { q, sessionToken } : "skip");
   const [draft, setDraft] = useState(q);

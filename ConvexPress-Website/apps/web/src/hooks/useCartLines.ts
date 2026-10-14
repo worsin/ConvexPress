@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { parseCartLinesMetadata, type CartLineMetadata, type CartLineProduct, type CartLineVariant } from "@/components/commerce/cartLine";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export interface CartLine {
   _id: Id<"commerce_cart_items">;
@@ -38,7 +39,7 @@ export interface CartLines {
 
 export function useCartLines() {
   const settings = useSettings();
-  const enabled = settings?.plugins?.commerceEnabled === true;
+  const enabled = isPublicPluginEnabled("commerceStorefront", settings);
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const { sessionToken, isReady } = useCommerceSessionToken();
   const raw = useQuery(

@@ -8,6 +8,7 @@
 import { useMemo } from "react";
 
 import { useSettings } from "@/contexts/SettingsContext";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export interface AssistantConfig {
   enabled: boolean;
@@ -58,7 +59,7 @@ const FALLBACK: AssistantConfig = {
 export function useAssistantConfig(): AssistantConfig {
   const settings = useSettings();
   const raw = (settings as { assistantConfig?: Partial<AssistantConfig> | null } | null)?.assistantConfig;
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   return useMemo(() => {
     const merged: AssistantConfig = {
       ...FALLBACK,

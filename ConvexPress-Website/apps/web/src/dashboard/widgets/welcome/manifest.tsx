@@ -17,6 +17,7 @@ import type { DashboardWidgetModule, DashboardWidgetProps } from "../../contract
 import { WidgetSkeleton } from "../../grid/WidgetCard";
 import { resolveIcon } from "../../icons";
 import { useDashboardShell } from "../../shell/DashboardShellContext";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 interface NextStep {
   id: string;
@@ -29,7 +30,7 @@ function WelcomeWidget({ size }: DashboardWidgetProps) {
   const { user } = useCurrentUser();
   const { config, badges, to } = useDashboardShell();
   const settings = useSettings();
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const addresses: unknown[] | undefined = useQuery(api.commerce.customers.getMyAddresses, commerceEnabled ? {} : "skip");
 
   if (!user) return <WidgetSkeleton rows={3} />;

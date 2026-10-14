@@ -20,6 +20,7 @@ import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS } from "@/hooks/useShopLayout";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 import CoreProduct from "@/templates/packs/core/surfaces/shop.product";
 import { Surface } from "@/templates/sdk/Surface";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 const searchSchema = z.object({
   optionType: z.string().min(1).max(256).optional().catch(undefined),
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
     const publicSettings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
     const siteUrl = normalizeSiteUrl((publicSettings as { siteUrl?: string | null })?.siteUrl);
     const siteTitle = (publicSettings as { siteTitle?: string | null })?.siteTitle || "Shop";
-    if (publicSettings?.plugins?.commerceEnabled !== true) {
+    if (!isPublicPluginEnabled("commerceStorefront", publicSettings)) {
       throw notFound();
     }
 

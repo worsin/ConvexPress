@@ -215,6 +215,8 @@ export interface DiscussionSettings {
 export interface PluginsSettings {
   dashboardEnabled: boolean;
   commerceEnabled: boolean;
+  /** The shop under Commerce: products, cart, checkout. Off for a subscription-only site. */
+  commerceStorefrontEnabled: boolean;
   commerceSubscriptionsEnabled: boolean;
   commerceDigitalEnabled: boolean;
   commerceReviewsEnabled: boolean;
@@ -1355,6 +1357,7 @@ export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
 export const PLUGINS_DEFAULTS: PluginsSettings = {
   dashboardEnabled: true,
   commerceEnabled: false,
+  commerceStorefrontEnabled: true,
   commerceSubscriptionsEnabled: false,
   commerceDigitalEnabled: false,
   commerceReviewsEnabled: false,

@@ -20,6 +20,7 @@ import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { RelatedProducts } from "@/components/shop/RelatedProducts";
 import { cn } from "@/lib/utils";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 interface CartDrawerProps {
   open: boolean;
@@ -62,7 +63,7 @@ type CartDrawerCart =
 export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const settings = useSettings();
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const { sessionToken, isReady } = useCommerceSessionToken();
   const rawCart = useQuery(
     api.commerce.cart.getMine,

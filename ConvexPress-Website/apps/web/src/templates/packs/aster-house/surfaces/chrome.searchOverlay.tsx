@@ -14,6 +14,7 @@ import type { SearchOverlaySurfaceData } from "@/templates/packs/core/surfaces/c
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, UnderlineInput } from "../parts";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export default function AsterChromeSearchOverlay({ data }: SurfaceProps<SearchOverlaySurfaceData>) {
   const { open, onClose } = data;
@@ -22,7 +23,7 @@ export default function AsterChromeSearchOverlay({ data }: SurfaceProps<SearchOv
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const settings = useSettings();
-  const searchTarget = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
+  const searchTarget = isPublicPluginEnabled("commerceStorefront", settings) ? "/products" : "/search";
 
   useEffect(() => {
     if (open) inputRef.current?.focus();

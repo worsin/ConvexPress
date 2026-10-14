@@ -7,10 +7,11 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 import CoreOrderTrack, { type OrderTrackSurfaceData } from "@/templates/packs/core/surfaces/order.track";
 import { Surface } from "@/templates/sdk/Surface";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/track/$token")({
   loader: async ({ context: { queryClient } }) => {
-    await requirePublicPluginEnabled(queryClient, "commerce");
+    await requirePublicPluginEnabled(queryClient, "commerceStorefront");
   },
   component: TrackOrderPage,
 });
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/_marketing/track/$token")({
 function TrackOrderPage() {
   const { token } = Route.useParams();
   const settings = useSettings();
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const order = useQuery(
     api.commerce.orders.getByTrackingToken,
     commerceEnabled ? { trackingToken: token } : "skip",
@@ -33,7 +34,7 @@ function TrackOrderPage() {
   const surfaceData: OrderTrackSurfaceData = { order, trackingTimeline };
 
   return (
-    <PublicPluginGate pluginId="commerce">
+    <PublicPluginGate pluginId="commerceStorefront">
       <Surface name="order.track" data={surfaceData} fallback={CoreOrderTrack} />
     </PublicPluginGate>
   );

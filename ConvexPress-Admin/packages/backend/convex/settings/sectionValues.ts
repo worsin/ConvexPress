@@ -219,6 +219,7 @@ export const blockSettingsValidator = v.object({
 const staticPluginFlagFields = {
   dashboardEnabled: v.boolean(),
   commerceEnabled: v.boolean(),
+  commerceStorefrontEnabled: v.boolean(),
   commerceSubscriptionsEnabled: v.boolean(),
   commerceDigitalEnabled: v.boolean(),
   commerceReviewsEnabled: v.boolean(),

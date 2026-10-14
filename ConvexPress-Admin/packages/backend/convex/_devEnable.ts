@@ -27,6 +27,7 @@ export const enableCommercePlugins = internalMutation({
       .unique();
     const enabled = {
       commerceEnabled: true,
+      commerceStorefrontEnabled: true,
       commerceSubscriptionsEnabled: true,
       commerceDigitalEnabled: true,
       commerceReviewsEnabled: true,

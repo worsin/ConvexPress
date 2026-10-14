@@ -27,7 +27,7 @@ export function DashboardOrdersPage() {
   );
 
   return (
-    <PublicPluginGate pluginId="commerce">
+    <PublicPluginGate pluginId="commerceStorefront">
       <Surface name="dashboard.orders" data={data} fallback={CoreDashboardOrders} />
     </PublicPluginGate>
   );

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/clerk";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { persistCommerceSession, resolveCommerceSession, type CommerceSession } from "./commerce-session";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 const memorySessions = new Map<string, CommerceSession>();
 const clientResolutions = new WeakMap<object, Map<string, Promise<string>>>();
 const sessionRevisions = new Map<string, number>();
@@ -35,7 +36,7 @@ export function useCommerceSessionToken() {
   const identitySettled = auth.isSignedIn === true
     ? Boolean(auth.userId && auth.sessionId && convex.isAuthenticated)
     : auth.isSignedIn === false && !auth.userId && !auth.sessionId && !convex.isAuthenticated;
-  const ready = Boolean(runtime.convexUrl) && settings?.plugins?.commerceEnabled === true && auth.isLoaded && !convex.isLoading && identitySettled;
+  const ready = Boolean(runtime.convexUrl) && isPublicPluginEnabled("commerceStorefront", settings) && auth.isLoaded && !convex.isLoading && identitySettled;
   const owner = auth.userId || "anonymous";
   const authority = JSON.stringify([scope, owner, auth.sessionId ?? null, ready]);
   const lifetime = useRef({ authority, client, generation: 0 });

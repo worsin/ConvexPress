@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   SlidersHorizontal,
+  Store,
   Star,
   TicketCheck,
   UtensilsCrossed,
@@ -24,6 +25,7 @@ import {
  */
 export type BuiltinAdminPluginId =
   | "commerce"
+  | "commerceStorefront"
   | "commerceDigital"
   | "commerceReviews"
   | "commerceWishlists"
@@ -54,6 +56,7 @@ export type AdminPluginId = BuiltinAdminPluginId | (string & {});
  */
 export interface BuiltinPluginSettingsValues {
   commerceEnabled: boolean;
+  commerceStorefrontEnabled: boolean;
   commerceDigitalEnabled: boolean;
   commerceReviewsEnabled: boolean;
   commerceWishlistsEnabled: boolean;
@@ -129,12 +132,41 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     id: "commerce",
     title: "Commerce",
     description:
-      "Products, cart, checkout, orders, customers, payments, shipping, and tax.",
+      "Orders, customers and payments: the base for selling anything, products or subscriptions.",
     icon: ShoppingCart,
     settingsKey: "commerceEnabled",
     navSectionIds: ["commerce"],
     adminAccessPrefixes: ["/commerce"],
-    routePrefixes: ["/shop", "/products", "/categories", "/cart", "/checkout", "/track"],
+    routePrefixes: [],
+  },
+  {
+    id: "commerceStorefront",
+    title: "Storefront",
+    description:
+      "The shop: products, cart and checkout, discounts, shipping and tax. Turn it off for a site that sells only subscriptions.",
+    icon: Store,
+    settingsKey: "commerceStorefrontEnabled",
+    defaultEnabled: true,
+    navSectionIds: ["products"],
+    adminAccessPrefixes: [
+      "/commerce/products",
+      "/commerce/categories",
+      "/commerce/brands",
+      "/commerce/attributes",
+      "/commerce/orders/abandoned",
+      "/commerce/discounts",
+      "/commerce/pricing",
+      "/commerce/draft-orders",
+      "/commerce/order-changes",
+      "/commerce/regions",
+      "/commerce/sales-channels",
+      "/commerce/customer-groups",
+      "/commerce/workflows",
+      "/commerce/shipping",
+      "/commerce/settings/shipping",
+      "/commerce/settings/tax",
+    ],
+    routePrefixes: ["/shop", "/products", "/categories", "/brands", "/cart", "/checkout", "/track"],
   },
   {
     id: "commerceDigital",
@@ -345,6 +377,7 @@ export const PLUGINS_NAV_SECTION = {
 /** Platform-shipped default-enabled state for each builtin plugin. */
 const PLATFORM_DEFAULT_SETTINGS: BuiltinPluginSettingsValues = {
   commerceEnabled: false,
+  commerceStorefrontEnabled: true,
   commerceDigitalEnabled: false,
   commerceReviewsEnabled: false,
   commerceWishlistsEnabled: false,
@@ -381,6 +414,7 @@ export const DEFAULT_PLUGIN_SETTINGS: PluginSettingsValues = (() => {
  * their manifest (TBD field); for now this is the platform list.
  */
 export const PLUGIN_PARENT: Partial<Record<string, AdminPluginId>> = {
+  commerceStorefront: "commerce",
   commerceDigital: "commerce",
   commerceReviews: "commerce",
   commerceWishlists: "commerce",
@@ -429,23 +463,25 @@ export function getPluginIdForNavSection(sectionId: string): AdminPluginId | nul
   return plugin?.id ?? null;
 }
 
-export function getPluginIdForAdminAccess(
-  adminAccessPath: string,
-): AdminPluginId | null {
-  const plugin = ADMIN_PLUGINS.find((entry) =>
-    entry.adminAccessPrefixes.some(
-      (prefix) =>
-        adminAccessPath === prefix || adminAccessPath.startsWith(prefix + "/"),
-    ),
-  );
-  return plugin?.id ?? null;
+/** The plugin whose prefix matches `path` most specifically (`/commerce/returns` over `/commerce`). */
+function mostSpecificOwner(path: string, prefixesOf: (plugin: AdminPluginDefinition) => string[]): AdminPluginId | null {
+  let owner: AdminPluginId | null = null;
+  let length = -1;
+  for (const plugin of ADMIN_PLUGINS) {
+    for (const prefix of prefixesOf(plugin)) {
+      if ((path === prefix || path.startsWith(prefix + "/")) && prefix.length > length) {
+        owner = plugin.id;
+        length = prefix.length;
+      }
+    }
+  }
+  return owner;
+}
+
+export function getPluginIdForAdminAccess(adminAccessPath: string): AdminPluginId | null {
+  return mostSpecificOwner(adminAccessPath, (plugin) => plugin.adminAccessPrefixes);
 }
 
 export function getPluginIdForRoutePath(pathname: string): AdminPluginId | null {
-  const plugin = ADMIN_PLUGINS.find((entry) =>
-    entry.routePrefixes.some(
-      (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
-    ),
-  );
-  return plugin?.id ?? null;
+  return mostSpecificOwner(pathname, (plugin) => plugin.routePrefixes);
 }

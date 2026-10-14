@@ -15,6 +15,7 @@ import CoreCart, { type CartSurfaceCart, type CartSurfaceData } from "@/template
 import { Surface } from "@/templates/sdk/Surface";
 import { SavedCarts } from "@/components/commerce/SavedCarts";
 import { parseCartLinesMetadata } from "@/components/commerce/cartLine";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/cart/")({
   loader: async ({ context: { queryClient } }) => {
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_marketing/cart/")({
 
 function CartPage() {
   const settings = useSettings();
-  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const { sessionToken, isReady, changeCart } = useCommerceSessionToken();
   const rawCart = useQuery(
@@ -190,7 +191,7 @@ function CartPage() {
   };
 
   return (
-    <PublicPluginGate pluginId="commerce">
+    <PublicPluginGate pluginId="commerceStorefront">
       <ShopShell kind="cart" cart={false}>
         {isReady && sessionToken ? <SavedCarts sessionToken={sessionToken} changeCart={changeCart} canCombine={Boolean(cart?.items.length) && cart?.status !== "pending_payment"} /> : null}
         <Surface name="cart" data={surfaceData} fallback={CoreCart} />

@@ -181,6 +181,7 @@ export const permalinkValuesValidator = v.object({
 
 export const pluginsValuesValidator = v.object({
   commerceEnabled: v.boolean(),
+  commerceStorefrontEnabled: v.boolean(),
   commerceSubscriptionsEnabled: v.boolean(),
   commerceDigitalEnabled: v.boolean(),
   commerceReviewsEnabled: v.boolean(),
