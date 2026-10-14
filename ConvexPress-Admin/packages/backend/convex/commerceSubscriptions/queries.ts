@@ -24,6 +24,7 @@ import { query, type QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { dunningPolicyFor } from "./lifecycle";
 import {
   commerceSubscriptionStatusValidator,
   commerceSubscriptionInvoiceStatusValidator,
@@ -43,11 +44,6 @@ import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.
 type BillingInterval = NonNullable<Doc<"commerce_subscriptions">["billingInterval"]>;
 type DunningAttemptStatus = Doc<"commerce_subscription_dunning_attempts">["status"];
 
-const DEFAULT_DUNNING_POLICY = {
-  maxAttempts: 3,
-  retryIntervalsDays: [1, 3, 7],
-  cancelAfterFinalFailure: true,
-};
 
 const DUNNING_STATUS_RANK: Record<DunningAttemptStatus, number> = {
   processing: 0,
@@ -120,6 +116,7 @@ async function resolveEffectiveConfig(
   const gracePeriodDays = override?.overrideGracePeriodDays ?? template?.gracePeriodDays ?? 3;
   const pausable = override?.overridePausable ?? template?.pausable ?? true;
   const cancelAtPeriodEndDefault = template?.cancelAtPeriodEndDefault ?? true;
+  const dunningPolicy = dunningPolicyFor(template ?? null);
 
   const pricing = buildSubscriptionPricingSnapshot({
     product,
@@ -141,7 +138,12 @@ async function resolveEffectiveConfig(
     gracePeriodDays,
     pausable,
     cancelAtPeriodEndDefault,
-    dunningPolicy: DEFAULT_DUNNING_POLICY,
+    dunningPolicy: {
+      // The first charge plus each retry.
+      maxAttempts: dunningPolicy.retryIntervalsDays.length + 1,
+      retryIntervalsDays: [...dunningPolicy.retryIntervalsDays],
+      cancelAfterFinalFailure: dunningPolicy.cancelAfterFinalFailure,
+    },
   };
 }
 

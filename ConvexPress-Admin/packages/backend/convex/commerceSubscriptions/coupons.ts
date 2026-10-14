@@ -31,12 +31,13 @@
  *   `commerceSubscriptions.coupons.manage`.
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { ConvexError, v } from "convex/values";
 
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
-import { initializeRedemption, validateCoupon } from "../helpers/coupons";
+import { findCouponByCode, initializeRedemption, normalizeCouponCode, validateCoupon } from "../helpers/coupons";
 import { requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
@@ -74,6 +75,16 @@ async function couponHasRedemptions(
 }
 
 // ─── Mutations ──────────────────────────────────────────────────────────────
+
+/** A code customers can type: 3–32 letters, digits, hyphens or underscores. */
+function assertCouponCodeShape(code: string): void {
+  if (!/^[A-Z0-9_-]{3,32}$/.test(code)) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "A coupon code is 3 to 32 letters, digits, hyphens or underscores.",
+    });
+  }
+}
 
 /**
  * Create a new subscription coupon (admin).
@@ -151,21 +162,19 @@ export const createCoupon = mutation({
       });
     }
 
-    // Enforce code uniqueness.
-    const existingByCode = await ctx.db
-      .query("commerce_subscription_coupons")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
-    if (existingByCode) {
+    // Codes are stored normalized (trimmed, upper case) and unique.
+    const code = normalizeCouponCode(args.code);
+    assertCouponCodeShape(code);
+    if (await findCouponByCode(ctx, code)) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
-        message: `A coupon with code "${args.code}" already exists.`,
+        message: `A coupon with code "${code}" already exists.`,
       });
     }
 
     const now = Date.now();
     return ctx.db.insert("commerce_subscription_coupons", {
-      code: args.code,
+      code,
       discountType: args.discountType,
       amount: args.amount,
       duration: args.duration,
@@ -195,12 +204,13 @@ export const updateCoupon = mutation({
     // Always-editable:
     amount: v.optional(v.number()),
     duration: v.optional(durationValidator),
-    durationMonths: v.optional(v.number()),
-    maxRedemptions: v.optional(v.number()),
-    perCustomerLimit: v.optional(v.number()),
+    // For these, null clears the value (no limit, no start or end date).
+    durationMonths: v.optional(v.union(v.number(), v.null())),
+    maxRedemptions: v.optional(v.union(v.number(), v.null())),
+    perCustomerLimit: v.optional(v.union(v.number(), v.null())),
     offerIds: v.optional(v.array(v.id("commerce_subscription_offers"))),
-    startsAt: v.optional(v.number()),
-    expiresAt: v.optional(v.number()),
+    startsAt: v.optional(v.union(v.number(), v.null())),
+    expiresAt: v.optional(v.union(v.number(), v.null())),
     status: v.optional(couponStatusValidator),
     // Immutable-if-redeemed:
     code: v.optional(v.string()),
@@ -221,7 +231,9 @@ export const updateCoupon = mutation({
     }
 
     const immutableAttempted: string[] = [];
-    if (args.code !== undefined && args.code !== existing.code) {
+    const normalizedCode = args.code === undefined ? undefined : normalizeCouponCode(args.code);
+    if (normalizedCode !== undefined) assertCouponCodeShape(normalizedCode);
+    if (normalizedCode !== undefined && normalizedCode !== existing.code) {
       immutableAttempted.push("code");
     }
     if (
@@ -247,7 +259,7 @@ export const updateCoupon = mutation({
     const newDuration = args.duration ?? existing.duration;
     const newDurationMonths =
       args.durationMonths !== undefined
-        ? args.durationMonths
+        ? (args.durationMonths ?? undefined)
         : existing.durationMonths;
 
     if (newAmount < 0) {
@@ -274,9 +286,9 @@ export const updateCoupon = mutation({
 
     // Validate startsAt/expiresAt if both ultimately set.
     const newStartsAt =
-      args.startsAt !== undefined ? args.startsAt : existing.startsAt;
+      args.startsAt !== undefined ? (args.startsAt ?? undefined) : existing.startsAt;
     const newExpiresAt =
-      args.expiresAt !== undefined ? args.expiresAt : existing.expiresAt;
+      args.expiresAt !== undefined ? (args.expiresAt ?? undefined) : existing.expiresAt;
     if (
       typeof newStartsAt === "number" &&
       typeof newExpiresAt === "number" &&
@@ -289,7 +301,7 @@ export const updateCoupon = mutation({
     }
 
     // Enforce unique code if being changed.
-    const newCode = args.code;
+    const newCode = normalizedCode;
     if (newCode !== undefined && newCode !== existing.code) {
       const dupe = await ctx.db
         .query("commerce_subscription_coupons")
@@ -298,33 +310,27 @@ export const updateCoupon = mutation({
       if (dupe && dupe._id !== existing._id) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: `A coupon with code "${args.code}" already exists.`,
+          message: `A coupon with code "${newCode}" already exists.`,
         });
       }
     }
 
-    const patch: Record<string, unknown> = {};
-    const fields: Array<keyof typeof args> = [
-      "code",
-      "discountType",
-      "amount",
-      "duration",
-      "durationMonths",
-      "maxRedemptions",
-      "perCustomerLimit",
-      "offerIds",
-      "startsAt",
-      "expiresAt",
-      "status",
-    ];
-    for (const f of fields) {
-      if (args[f] !== undefined) {
-        patch[f] = args[f];
-      }
-    }
+    const { couponId, code: _typedCode, ...changes } = args;
+    const patch: Partial<WithoutSystemFields<Doc<"commerce_subscription_coupons">>> = {};
+    if (normalizedCode !== undefined) patch.code = normalizedCode;
+    if (changes.discountType !== undefined) patch.discountType = changes.discountType;
+    if (changes.amount !== undefined) patch.amount = changes.amount;
+    if (changes.duration !== undefined) patch.duration = changes.duration;
+    if (changes.durationMonths !== undefined) patch.durationMonths = changes.durationMonths ?? undefined;
+    if (changes.maxRedemptions !== undefined) patch.maxRedemptions = changes.maxRedemptions ?? undefined;
+    if (changes.perCustomerLimit !== undefined) patch.perCustomerLimit = changes.perCustomerLimit ?? undefined;
+    if (changes.offerIds !== undefined) patch.offerIds = changes.offerIds;
+    if (changes.startsAt !== undefined) patch.startsAt = changes.startsAt ?? undefined;
+    if (changes.expiresAt !== undefined) patch.expiresAt = changes.expiresAt ?? undefined;
+    if (changes.status !== undefined) patch.status = changes.status;
 
-    await ctx.db.patch("commerce_subscription_coupons", args.couponId, patch);
-    return args.couponId;
+    await ctx.db.patch("commerce_subscription_coupons", couponId, patch);
+    return couponId;
   },
 });
 
@@ -553,9 +559,6 @@ export const getCouponByCode = query({
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    return ctx.db
-      .query("commerce_subscription_coupons")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
+    return findCouponByCode(ctx, args.code);
   },
 });

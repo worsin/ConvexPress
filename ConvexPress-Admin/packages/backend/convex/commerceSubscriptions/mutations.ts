@@ -24,6 +24,7 @@
  *   - revokeEntitlement        Revoke an entitlement
  */
 
+import type { WithoutSystemFields } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
 import { validate } from "convex-helpers/validators";
 import { internal } from "../_generated/api";
@@ -49,8 +50,9 @@ import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } fro
 import {
 	addBillingPeriod,
 	addDays,
+	assertValidRetryDays,
 	createCorrelationId,
-	DEFAULT_DUNNING_POLICY,
+	dunningPolicyFor,
 	syncEntitlementsForStatus,
 	transitionSubscription,
 	writeHistory,
@@ -187,7 +189,7 @@ async function resolveEffectiveConfig(
 		gracePeriodDays,
 		pausable,
 		cancelAtPeriodEndDefault,
-		dunningPolicy: DEFAULT_DUNNING_POLICY,
+		dunningPolicy: dunningPolicyFor(template ?? null),
 	};
 }
 
@@ -303,8 +305,40 @@ async function failIdempotency(ctx: MutationCtx, claim: FinalizableClaim) {
 // TEMPLATE & OVERRIDE MUTATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
+type TemplateFields = WithoutSystemFields<Doc<"commerce_subscription_templates">>;
+
+/** The plan terms a template may set, checked before they are saved. */
+function assertValidTemplateTerms(terms: {
+	title?: string;
+	slug?: string;
+	billingIntervalCount?: number;
+	trialDays?: number;
+	gracePeriodDays?: number;
+	dunningRetryDays?: number[];
+}): void {
+	const fail = (message: string): never => {
+		throw new ConvexError({ code: "VALIDATION_ERROR", message });
+	};
+	if (terms.title !== undefined && !terms.title.trim()) fail("A title is required.");
+	if (terms.slug !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(terms.slug)) {
+		fail("The slug may contain lowercase letters, digits and single hyphens.");
+	}
+	if (terms.billingIntervalCount !== undefined && (!Number.isInteger(terms.billingIntervalCount) || terms.billingIntervalCount < 1 || terms.billingIntervalCount > 36)) {
+		fail("Bill every 1 to 36 intervals.");
+	}
+	if (terms.trialDays !== undefined && (!Number.isInteger(terms.trialDays) || terms.trialDays < 0 || terms.trialDays > 365)) {
+		fail("A trial is 0 to 365 whole days.");
+	}
+	if (terms.gracePeriodDays !== undefined && (!Number.isInteger(terms.gracePeriodDays) || terms.gracePeriodDays < 0 || terms.gracePeriodDays > 90)) {
+		fail("Grace is 0 to 90 whole days.");
+	}
+	if (terms.dunningRetryDays !== undefined) assertValidRetryDays(terms.dunningRetryDays);
+}
+
 /**
- * Create a subscription template (admin).
+ * Create a subscription template (admin): the billing cadence, trial, grace
+ * and failed-payment retry schedule offers are sold on. A slug used before
+ * starts a new version.
  */
 export const createTemplate = mutation({
 	args: {
@@ -319,28 +353,25 @@ export const createTemplate = mutation({
 		gracePeriodDays: v.optional(v.number()),
 		pausable: v.boolean(),
 		cancelAtPeriodEndDefault: v.boolean(),
-		dunningPolicyCode: v.optional(v.string()),
+		dunningRetryDays: v.optional(v.array(v.number())),
+		cancelAfterFinalFailure: v.optional(v.boolean()),
 	},
 	returns: v.id("commerce_subscription_templates"),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		await requireCan(ctx, "manage_options");
+		assertValidTemplateTerms(args);
 		const now = Date.now();
 
-		// Check slug uniqueness and determine version
 		const existing = await ctx.db
 			.query("commerce_subscription_templates")
 			.withIndex("by_slug", (q) => q.eq("slug", args.slug))
 			.collect();
-		const nextVersion =
-			existing.reduce(
-				(max: number, t) => Math.max(max, t.version),
-				0,
-			) + 1;
+		const nextVersion = existing.reduce((max: number, t) => Math.max(max, t.version), 0) + 1;
 
 		return ctx.db.insert("commerce_subscription_templates", {
-			title: args.title,
+			title: args.title.trim(),
 			slug: args.slug,
 			status: args.status ?? "draft",
 			version: nextVersion,
@@ -350,7 +381,8 @@ export const createTemplate = mutation({
 			gracePeriodDays: args.gracePeriodDays,
 			pausable: args.pausable,
 			cancelAtPeriodEndDefault: args.cancelAtPeriodEndDefault,
-			dunningPolicyCode: args.dunningPolicyCode,
+			dunningRetryDays: args.dunningRetryDays,
+			cancelAfterFinalFailure: args.cancelAfterFinalFailure,
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -358,7 +390,10 @@ export const createTemplate = mutation({
 });
 
 /**
- * Update a subscription template (admin).
+ * Update a subscription template (admin). Contracts already sold keep the
+ * cadence they were sold on (it is copied onto the contract); trial, grace,
+ * pause and the retry schedule apply to every contract on the template from
+ * now on.
  */
 export const updateTemplate = mutation({
 	args: {
@@ -374,7 +409,8 @@ export const updateTemplate = mutation({
 		gracePeriodDays: v.optional(v.number()),
 		pausable: v.optional(v.boolean()),
 		cancelAtPeriodEndDefault: v.optional(v.boolean()),
-		dunningPolicyCode: v.optional(v.string()),
+		dunningRetryDays: v.optional(v.array(v.number())),
+		cancelAfterFinalFailure: v.optional(v.boolean()),
 	},
 	returns: v.id("commerce_subscription_templates"),
 	handler: async (ctx, args) => {
@@ -389,37 +425,33 @@ export const updateTemplate = mutation({
 				message: "Subscription template not found.",
 			});
 		}
+		assertValidTemplateTerms(args);
 
-		const now = Date.now();
-		const patch: Record<string, unknown> = { updatedAt: now };
+		const { templateId, ...changes } = args;
+		const patch: Partial<TemplateFields> = { updatedAt: Date.now() };
+		if (changes.title !== undefined) patch.title = changes.title.trim();
+		if (changes.slug !== undefined) patch.slug = changes.slug;
+		if (changes.status !== undefined) patch.status = changes.status;
+		if (changes.billingInterval !== undefined) patch.billingInterval = changes.billingInterval;
+		if (changes.billingIntervalCount !== undefined) patch.billingIntervalCount = changes.billingIntervalCount;
+		if (changes.trialDays !== undefined) patch.trialDays = changes.trialDays;
+		if (changes.gracePeriodDays !== undefined) patch.gracePeriodDays = changes.gracePeriodDays;
+		if (changes.pausable !== undefined) patch.pausable = changes.pausable;
+		if (changes.cancelAtPeriodEndDefault !== undefined) patch.cancelAtPeriodEndDefault = changes.cancelAtPeriodEndDefault;
+		if (changes.dunningRetryDays !== undefined) patch.dunningRetryDays = changes.dunningRetryDays;
+		if (changes.cancelAfterFinalFailure !== undefined) patch.cancelAfterFinalFailure = changes.cancelAfterFinalFailure;
 
-		if (args.title !== undefined) patch.title = args.title;
-		if (args.slug !== undefined) patch.slug = args.slug;
-		if (args.status !== undefined) patch.status = args.status;
-		if (args.billingInterval !== undefined)
-			patch.billingInterval = args.billingInterval;
-		if (args.billingIntervalCount !== undefined)
-			patch.billingIntervalCount = args.billingIntervalCount;
-		if (args.trialDays !== undefined) patch.trialDays = args.trialDays;
-		if (args.gracePeriodDays !== undefined)
-			patch.gracePeriodDays = args.gracePeriodDays;
-		if (args.pausable !== undefined) patch.pausable = args.pausable;
-		if (args.cancelAtPeriodEndDefault !== undefined)
-			patch.cancelAtPeriodEndDefault = args.cancelAtPeriodEndDefault;
-		if (args.dunningPolicyCode !== undefined)
-			patch.dunningPolicyCode = args.dunningPolicyCode;
-
-		// Increment version on status or billing changes
+		// A new version when what is sold changes: status or cadence.
 		if (
-			args.status !== undefined ||
-			args.billingInterval !== undefined ||
-			args.billingIntervalCount !== undefined
+			(changes.status !== undefined && changes.status !== template.status) ||
+			(changes.billingInterval !== undefined && changes.billingInterval !== template.billingInterval) ||
+			(changes.billingIntervalCount !== undefined && changes.billingIntervalCount !== template.billingIntervalCount)
 		) {
 			patch.version = (template.version ?? 0) + 1;
 		}
 
-		await ctx.db.patch("commerce_subscription_templates", args.templateId, patch);
-		return args.templateId;
+		await ctx.db.patch("commerce_subscription_templates", templateId, patch);
+		return templateId;
 	},
 });
 
