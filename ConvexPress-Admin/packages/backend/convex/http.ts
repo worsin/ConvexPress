@@ -65,6 +65,8 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { getPayPalBaseUrl } from "./commerce/paypalMode";
 import { jsonAt } from "./helpers/jsonValue";
+import { readExternalJson } from "./helpers/externalJson";
+import { z } from "zod";
 import {
   healthHandler as managementHealthHandler,
   sessionExchangeHandler as managementSessionExchangeHandler,
@@ -957,10 +959,8 @@ http.route({
         );
       }
 
-      const tokenBody = (await tokenResponse.json()) as {
-        access_token?: string;
-      };
-      const accessToken = tokenBody.access_token;
+      const tokenBody = await readExternalJson(tokenResponse, z.object({ access_token: z.string().optional() }));
+      const accessToken = tokenBody.ok ? tokenBody.value.access_token : undefined;
 
       if (!accessToken) {
         return new Response(
@@ -1001,10 +1001,8 @@ http.route({
         );
       }
 
-      const verifyBody = (await verifyResponse.json()) as {
-        verification_status?: string;
-      };
-      if (verifyBody.verification_status !== "SUCCESS") {
+      const verifyBody = await readExternalJson(verifyResponse, z.object({ verification_status: z.string().optional() }));
+      if (!verifyBody.ok || verifyBody.value.verification_status !== "SUCCESS") {
         return new Response(
           JSON.stringify({ error: "Invalid webhook signature" }),
           { status: 401, headers: { "Content-Type": "application/json" } },

@@ -18,6 +18,30 @@ import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import { getPayPalBaseUrl } from "./paypalMode";
+import { readExternalJson } from "../helpers/externalJson";
+import { z } from "zod";
+
+// PayPal REST responses, at exactly the fields read below.
+const paypalTokenSchema = z.object({ access_token: z.string().optional() });
+const paypalCreatedOrderSchema = z.object({
+  id: z.string().optional(),
+  links: z.array(z.object({ rel: z.string(), href: z.string() })).optional(),
+  message: z.string().optional(),
+});
+const paypalCaptureSchema = z.object({ status: z.string().optional() });
+const paypalOrderCapturesSchema = z.object({
+  purchase_units: z.array(z.object({
+    payments: z.object({ captures: z.array(z.object({ id: z.string() })).optional() }).optional(),
+  })).optional(),
+});
+const paypalRefundSchema = z.object({ id: z.string().optional(), status: z.string().optional() });
+
+/** A PayPal response body checked against `schema`; a body that is not one throws, naming `what`. */
+async function readPayPal<T>(response: Response, schema: z.ZodType<T>, what: string): Promise<T> {
+  const body = await readExternalJson(response, schema);
+  if (!body.ok) throw new Error(`PayPal ${what} response could not be read: ${body.problem}`);
+  return body.value;
+}
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -411,7 +435,7 @@ async function getPayPalAccessToken(
     );
   }
 
-  const authData = (await authResponse.json()) as { access_token?: string };
+  const authData = await readPayPal(authResponse, paypalTokenSchema, "OAuth");
   if (!authData.access_token) {
     throw new Error("PayPal OAuth response missing access_token");
   }
@@ -495,11 +519,7 @@ export const createPayPalOrderAction = internalAction({
         }),
       });
 
-      const order = (await orderResponse.json()) as {
-        id?: string;
-        links?: Array<{ rel: string; href: string }>;
-        message?: string;
-      };
+      const order = await readPayPal(orderResponse, paypalCreatedOrderSchema, "order");
 
       if (order.id) {
         const approvalUrl = order.links?.find(
@@ -584,10 +604,7 @@ export const capturePayPalOrderAction = internalAction({
         },
       );
 
-      const capture = (await captureResponse.json()) as {
-        status?: string;
-        payer?: { payer_id?: string; email_address?: string };
-      };
+      const capture = await readPayPal(captureResponse, paypalCaptureSchema, "capture");
 
       if (capture.status === "COMPLETED") {
         await ctx.runMutation(
@@ -697,13 +714,7 @@ export const processProviderRefundAction = internalAction({
           },
         );
 
-        const order = (await orderResponse.json()) as {
-          purchase_units?: Array<{
-            payments?: {
-              captures?: Array<{ id: string }>;
-            };
-          }>;
-        };
+        const order = await readPayPal(orderResponse, paypalOrderCapturesSchema, "order");
 
         const captureId =
           order.purchase_units?.[0]?.payments?.captures?.[0]?.id;
@@ -736,7 +747,7 @@ export const processProviderRefundAction = internalAction({
           throw new Error(`PayPal refund failed with status ${refundResponse.status}`);
         }
 
-        const refund = (await refundResponse.json()) as { id?: string; status?: string };
+        const refund = await readPayPal(refundResponse, paypalRefundSchema, "refund");
         if (!refund.id) throw new Error("PayPal refund response missing ID");
         providerRefundId = refund.id;
         providerStatus = refund.status?.toLowerCase() ?? "pending";

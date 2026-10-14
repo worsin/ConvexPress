@@ -26,7 +26,7 @@ test('reviewed nested import preserves originals, sharing, publication, locks an
  const result=await f.operator.mutation(apply,{legacyId:f.parent,expectedDigest:plan.digest});expect(result).toMatchObject({created:2,reused:0});
  const heads=await f.t.run(ctx=>ctx.db.query('syncedBlocks').collect()),leaf=heads.find(h=>h.legacySourceId===f.leaf)!;expect(heads).toHaveLength(2);expect(leaf.isLocked).toBe(true);const first=await f.t.run(ctx=>ctx.db.query("syncedBlockRevisions").withIndex("by_source_revision",q=>q.eq("syncedBlockId",leaf._id).eq("revision",1)).unique());expect(JSON.parse(first!.legacySourceJson!)).toEqual(original.find(s=>s._id===f.leaf));
  const p=await f.operator.query(get,{id:result.id});expect(p.blocks.map((b:any)=>b.attrs.syncedBlock)).toEqual([leaf._id,leaf._id]);expect(p.blocks.every((b:any)=>b.attrs.revisionPolicy==='latest')).toBe(true);expect(p.publishedRevision).toBe(1);
- await expect(f.operator.mutation(save,{id:leaf._id,expectedGeneration:2,title:'Overwrite locked source',blocks:[]})).rejects.toThrow('locked');
+ await expect(f.operator.mutation(save,{id:leaf._id,expectedGeneration:2,title:'Overwrite locked source',blocksJson: JSON.stringify([])})).rejects.toThrow('locked');
  expect(await f.t.run(ctx=>ctx.db.query('reusableBlocks').collect())).toEqual(original);
  const replay=await f.operator.query(review,{legacyId:f.parent});expect(await f.operator.mutation(apply,{legacyId:f.parent,expectedDigest:replay.digest})).toEqual({id:result.id,created:0,reused:2});expect(await f.t.run(ctx=>ctx.db.query('syncedBlockRevisions').collect())).toHaveLength(2);
 });

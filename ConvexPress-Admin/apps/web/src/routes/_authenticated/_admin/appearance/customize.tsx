@@ -28,7 +28,7 @@ import { TemplatePromotionPanel } from "@/components/appearance/TemplatePromotio
 import { HeaderSettingsEditor } from "@/components/appearance/HeaderComposer";
 import { FooterSettingsEditor } from "@/components/appearance/FooterComposer";
 import { FooterRowsBuilder } from "@/components/appearance/FooterRowsBuilder";
-import { createDraftHistory, applyDraftChange, setDraftField, readDraftField, resetDraftModule, resetDraftBrand, applyColorPreset, undoDraft, redoDraft, draftChanges, type DraftSnapshot, type Values } from "@/lib/templates/draftModel";
+import { createDraftHistory, applyDraftChange, setDraftField, readDraftField, resetDraftModule, resetDraftBrand, applyColorPreset, undoDraft, redoDraft, draftChanges, templateValues, type DraftSnapshot, type Values } from "@/lib/templates/draftModel";
 import { type TemplateSnapshot } from "@/lib/templates/templatePublishing";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { getElectronBridge } from "@/lib/electron";
@@ -177,7 +177,7 @@ function CustomizePage() {
     if (!base) return;
     setSaving(true); const requestScope = scope;
     try {
-      const result = await saveStoredDraft({ packId: activeId, sourceRevision: base.revision, expectedDraftRevision: savedRevision === undefined ? savedDraft?.revision ?? null : savedRevision, values, variants });
+      const result = await saveStoredDraft({ packId: activeId, sourceRevision: base.revision, expectedDraftRevision: savedRevision === undefined ? savedDraft?.revision ?? null : savedRevision, values: templateValues(values), variants });
       if (scopeRef.current !== requestScope) return;
       setSavedRevision(result.revision); toast.success("Draft saved. Published settings are unchanged.");
     } catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Could not save the draft.")); }
@@ -187,7 +187,7 @@ function CustomizePage() {
     if (!base || conflict) return;
     setSaving(true); const requestScope = scope;
     try {
-      const next = await publishSettings({ values: { ...base.values, variants, settings: { ...base.values.settings, [activeId]: values } }, expectedRevision: base.revision, confirmLive });
+      const next = await publishSettings({ values: { ...base.values, variants, settings: { ...Object.fromEntries(Object.entries(base.values.settings).map(([packId, packValues]) => [packId, templateValues(packValues)])), [activeId]: templateValues(values) } }, expectedRevision: base.revision, confirmLive });
       if (scopeRef.current !== requestScope) return;
       seed(next); toast.success("Template settings published.");
       const revision = savedRevision === undefined ? savedDraft?.revision : savedRevision;

@@ -12,6 +12,7 @@ import {
   lmsPrereqModeValidator,
 } from "../../schema/lms";
 import { lmsDocs } from "../../schema/lms.docs.generated";
+import { tiptapDocValidator } from "../tiptapDoc";
 
 /**
  * Public (non-staff) projection of a course. `descriptionDoc` is stored Tiptap
@@ -54,7 +55,7 @@ export const updateCourseArgs = {
   courseId: v.id("lms_courses"),
   title: v.optional(v.string()),
   slug: v.optional(v.string()),
-  descriptionDoc: v.optional(v.any()),
+  descriptionDoc: v.optional(tiptapDocValidator),
   excerpt: v.optional(v.string()),
   featuredImageId: v.optional(v.id("media")),
   promoVideoUrl: v.optional(v.string()),
@@ -79,7 +80,7 @@ export const updateCourseArgs = {
   contentVisibility: v.optional(lmsContentVisibilityValidator),
   certificateId: v.optional(v.id("lms_certificates")),
   completionRedirectUrl: v.optional(v.string()),
-  materialsDoc: v.optional(v.any()),
+  materialsDoc: v.optional(tiptapDocValidator),
 };
 
 export const courseIdArg = { courseId: v.id("lms_courses") };

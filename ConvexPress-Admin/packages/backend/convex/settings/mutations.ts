@@ -22,7 +22,7 @@ import { ConvexError } from "convex/values";
 import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { SETTINGS_EVENTS, SYSTEM } from "../events/constants";
-import { updateSectionArgs, importAllArgs } from "./validators";
+import { updateSectionArgs, importAllArgs, sectionValuesPatchErrors } from "./validators";
 import {
   getDefaults,
   isValidSection,
@@ -54,7 +54,11 @@ const SETTINGS_DOCUMENT_METADATA_KEYS = new Set([
   "legacyAppearanceMigration",
 ]);
 
-function stripSettingsDocumentMetadata(values: Record<string, unknown>) {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stripSettingsDocumentMetadata(values: object): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(values).filter(
       ([key]) => !SETTINGS_DOCUMENT_METADATA_KEYS.has(key),
@@ -158,9 +162,7 @@ export const updateSection = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const { section, values } = args;
-    const incomingValues = stripSettingsDocumentMetadata(
-      values as Record<string, unknown>,
-    );
+    const incomingValues: Record<string, unknown> = stripSettingsDocumentMetadata(values);
 
     // 1. Validate section name
     if (!isValidSection(section)) {
@@ -169,10 +171,19 @@ export const updateSection = mutation({
         message: `Invalid settings section: "${section}"`,
       });
     }
-
     // 2. Check authorization - section-specific capability
     const capability = SECTION_CAPABILITY_MAP[section];
     const user = await requireCan(ctx, capability);
+
+    // 3. The args validator accepts any section's fields; these must be this section's.
+    const shapeErrors = sectionValuesPatchErrors(section, incomingValues);
+    if (shapeErrors.length > 0) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Validation failed for ${section} settings`,
+        errors: shapeErrors,
+      });
+    }
 
     // Preserve legacy values before the first explicit template write and record its cutoff.
     if (section === "appearance.template") await persistLegacyAppearance(ctx, user._id);
@@ -331,9 +342,17 @@ export const importAll = mutation({
     // 1. Check auth
     const user = await requireCan(ctx, "settings.import");
 
-    // 2. Extract settings from data
-    const data = args.data as Record<string, unknown>;
-    const settingsData = (data.settings ?? data) as Record<string, unknown>;
+    // 2. Extract settings from the file's JSON
+    let data: unknown;
+    try {
+      data = JSON.parse(args.dataJson);
+    } catch {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "The settings import is not valid JSON." });
+    }
+    if (!isPlainRecord(data)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "The settings import must be a JSON object." });
+    }
+    const settingsData = isPlainRecord(data.settings) ? data.settings : data;
 
     const imported: string[] = [];
     const skipped: string[] = [];
@@ -344,18 +363,22 @@ export const importAll = mutation({
       const sectionValues = settingsData[sectionName];
 
       // Skip sections not present in the import data
-      if (
-        sectionValues === undefined ||
-        sectionValues === null ||
-        typeof sectionValues !== "object"
-      ) {
+      if (!isPlainRecord(sectionValues)) {
         skipped.push(sectionName);
         continue;
       }
 
       // Get defaults and merge
       const defaults = getDefaults(sectionName);
-      const incoming = stripSettingsDocumentMetadata(sectionValues as Record<string, unknown>);
+      const incoming = stripSettingsDocumentMetadata(sectionValues);
+      const shapeErrors = sectionValuesPatchErrors(sectionName, incoming);
+      if (shapeErrors.length > 0) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Import failed for ${sectionName} settings`,
+          errors: shapeErrors,
+        });
+      }
       if (sectionName === "appearance.template") await persistLegacyAppearance(ctx, user._id);
       // Get current stored values
       const existingDoc = await ctx.db

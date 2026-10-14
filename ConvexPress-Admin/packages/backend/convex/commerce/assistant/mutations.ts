@@ -14,13 +14,13 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, mutation, type MutationCtx } from "../../_generated/server";
 import { readAssistantSettings } from "../settingsInternals";
 import {
-  assistantBlockValidator,
   recommendationEventValidator,
   recommendationSurfaceValidator,
   shopperMemoryKindValidator,
 } from "../../schema/commerceAssistant";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
 import { convexErrorCode } from "../errorCode";
+import { assistantBlockShapeValidator } from "./blocks";
 
 
 type AssistantSession = Doc<"commerce_assistant_sessions">;
@@ -149,7 +149,7 @@ export const appendMessage = internalMutation({
     sessionToken: v.string(),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
     text: v.optional(v.string()),
-    blocks: v.array(assistantBlockValidator),
+    blocks: v.array(assistantBlockShapeValidator),
     toolCalls: v.optional(v.array(v.any())),
     model: v.optional(v.string()),
     latencyMs: v.optional(v.number()),

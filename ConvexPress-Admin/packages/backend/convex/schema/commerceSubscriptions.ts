@@ -167,6 +167,7 @@ export const commerceSubscriptionTables = {
     excludedPlanFeatureIds: v.optional(
       v.array(v.id("membership_plan_benefits")),
     ),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -196,6 +197,7 @@ export const commerceSubscriptionTables = {
     setupFeeAmount: v.optional(v.number()),
     entitlementCodes: v.optional(v.array(v.string())),
     sortOrder: v.optional(v.number()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -211,6 +213,7 @@ export const commerceSubscriptionTables = {
     status: commerceSubscriptionOrderFormStatusValidator,
     selectionMode: commerceSubscriptionSelectionModeValidator,
     offerIds: v.array(v.id("commerce_subscription_offers")),
+    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
     fieldSchema: v.optional(v.any()),
     accountMode: commerceSubscriptionAccountModeValidator,
     paymentMode: commerceSubscriptionPaymentModeValidator,
@@ -218,6 +221,7 @@ export const commerceSubscriptionTables = {
     successMessage: v.optional(v.string()),
     allowedDiscountCodes: v.optional(v.array(v.string())),
     rateLimitKey: v.optional(v.string()),
+    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -232,6 +236,7 @@ export const commerceSubscriptionTables = {
     customerId: v.optional(v.id("commerce_customer_profiles")),
     email: v.optional(v.string()),
     selectedOfferIds: v.array(v.id("commerce_subscription_offers")),
+    // v.any(): answers keyed by the form's own fields; the shape is defined per form at runtime.
     fieldValues: v.optional(v.any()),
     checkoutIntentId: v.optional(
       v.id("commerce_subscription_checkout_intents"),
@@ -239,6 +244,7 @@ export const commerceSubscriptionTables = {
     subscriptionId: v.optional(v.id("commerce_subscriptions")),
     ipHash: v.optional(v.string()),
     userAgent: v.optional(v.string()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -264,6 +270,7 @@ export const commerceSubscriptionTables = {
       v.id("commerce_subscription_form_submissions"),
     ),
     selectedOfferIds: v.array(v.id("commerce_subscription_offers")),
+    // v.any(): exact shape is the pricing snapshot read by commerceSubscriptions/snapshot.ts, but rows written before PR 008 are unaudited; tighten after a migration.
     pricingSnapshot: v.optional(v.any()),
     initialAmount: v.number(),
     recurringAmount: v.number(),
@@ -276,6 +283,7 @@ export const commerceSubscriptionTables = {
     subscriptionId: v.optional(v.id("commerce_subscriptions")),
     idempotencyKey: v.optional(v.string()),
     expiresAt: v.optional(v.number()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -353,7 +361,9 @@ export const commerceSubscriptionTables = {
     paymentTransactionId: v.optional(v.string()),
     lastInvoiceId: v.optional(v.id("commerce_subscription_invoices")),
     manualBilling: v.optional(v.boolean()),
+    // v.any(): exact shape is the pricing snapshot read by commerceSubscriptions/snapshot.ts, but rows written before PR 008 are unaudited; tighten after a migration.
     pricingSnapshot: v.optional(v.any()),
+    // v.any(): caller JSON (sourceMetadataJson) merged with system flags such as trialEndingEmailSent; it has no fixed shape.
     sourceMetadata: v.optional(v.any()),
     offerHistory: v.optional(
       v.array(
@@ -403,7 +413,9 @@ export const commerceSubscriptionTables = {
     cancelAtPeriodEnd: v.optional(v.boolean()),
     cancelledAt: v.optional(v.number()),
     entitlementCodes: v.optional(v.array(v.string())),
+    // v.any(): exact shape is the pricing snapshot read by commerceSubscriptions/snapshot.ts, but rows written before PR 008 are unaudited; tighten after a migration.
     priceSnapshot: v.optional(v.any()),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -454,6 +466,7 @@ export const commerceSubscriptionTables = {
     lineType: v.optional(v.string()),
     currencyCode: v.optional(v.string()),
     lineTotalAmount: v.number(),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   }).index("by_invoice", ["invoiceId"]),
@@ -463,6 +476,7 @@ export const commerceSubscriptionTables = {
     eventType: v.string(),
     message: v.string(),
     actorUserId: v.optional(v.id("users")),
+    // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   }).index("by_subscription", ["subscriptionId"]),
@@ -475,6 +489,7 @@ export const commerceSubscriptionTables = {
     startsAt: v.number(),
     endsAt: v.optional(v.number()),
     graceEndsAt: v.optional(v.number()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),

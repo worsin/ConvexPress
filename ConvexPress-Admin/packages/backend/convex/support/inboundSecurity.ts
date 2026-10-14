@@ -1,3 +1,20 @@
+import { v, type Infer } from "convex/values";
+
+/**
+ * A support channel's `config`: the inbound-webhook security settings
+ * `parseInboundChannelSecurity` reads. `secret` is the older name for
+ * `signingSecret`; `allowUnsigned` is for test-only channels.
+ */
+export const supportChannelConfigValidator = v.object({
+  signingSecret: v.optional(v.string()),
+  secret: v.optional(v.string()),
+  signatureHeader: v.optional(v.string()),
+  timestampHeader: v.optional(v.string()),
+  toleranceSeconds: v.optional(v.number()),
+  allowUnsigned: v.optional(v.boolean()),
+});
+export type SupportChannelConfig = Infer<typeof supportChannelConfigValidator>;
+
 export type InboundChannelSecurity = {
   signingSecret: string | null;
   allowUnsigned: boolean;

@@ -168,14 +168,23 @@ function generateDashboardIndex() {
 		"// `widgets`) into one list the dashboard extension registry reads.",
 		"",
 	].join("\n");
-	const imports = all.map((e) => `import * as ${e.slug}Dashboard from "${e.importPath}";`).join("\n");
-	const entries = all
-		.map((e) => `\t{ id: "${e.id}", pages: (${e.slug}Dashboard as any).pages ?? [], widgets: (${e.slug}Dashboard as any).widgets ?? [] },`)
-		.join("\n");
+	const imports = [
+		'import type { DashboardPageDefinition, DashboardWidgetDefinition } from "../extensions/dashboard/registry";',
+		...all.map((e) => `import * as ${e.slug}Dashboard from "${e.importPath}";`),
+	].join("\n");
+	const entries = all.map((e) => `\tcontribution("${e.id}", ${e.slug}Dashboard),`).join("\n");
 	const body = [
 		imports,
 		"",
-		"export const extensionDashboardContributions: Array<{ id: string; pages: any[]; widgets: any[] }> = [",
+		"/** What an extension's dashboard.ts may export; both lists are optional. */",
+		"type DashboardContributionModule = { readonly pages?: readonly DashboardPageDefinition[]; readonly widgets?: readonly DashboardWidgetDefinition[] };",
+		"export type DashboardContribution = { id: string; pages: DashboardPageDefinition[]; widgets: DashboardWidgetDefinition[] };",
+		"",
+		"function contribution(id: string, module: DashboardContributionModule): DashboardContribution {",
+		"\treturn { id, pages: [...(module.pages ?? [])], widgets: [...(module.widgets ?? [])] };",
+		"}",
+		"",
+		"export const extensionDashboardContributions: DashboardContribution[] = [",
 		entries,
 		"];",
 		"",

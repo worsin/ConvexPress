@@ -18,7 +18,7 @@ const failRef=makeFunctionReference<"mutation",{receiptId:Id<"overseer_contentPr
 const getRef=makeFunctionReference<"query",{receiptId:Id<"overseer_contentPromotionReviews">},Summary>("contentPromotion/records:get");
 const exchangeRef=makeFunctionReference<"action",{connectionId:Id<"overseer_connections">;requestedCapabilities:string[];requestedSiteRole:"administrator"},unknown>("siteBroker/session:exchange");
 const exportRef=makeFunctionReference<"query",{target:BrokerTarget["identity"];selection:BrokerRequest["selection"]},unknown>("contentPromotion/operations:exportManifest");
-const dryRunRef=makeFunctionReference<"mutation",{manifest:ContentPromotionManifest;mediaBindings:BrokerRequest["mediaBindings"];dependencyBindings:BrokerRequest["dependencyBindings"]},unknown>("contentPromotion/operations:dryRun");
+const dryRunRef=makeFunctionReference<"mutation",{manifestJson:string;mediaBindings:BrokerRequest["mediaBindings"];dependencyBindings:BrokerRequest["dependencyBindings"]},unknown>("contentPromotion/operations:dryRun");
 const sessionSchema=z.object({token:z.string().min(1).max(20_000),websiteKey:z.string(),instanceKey:z.string(),siteOrigin:z.string(),capabilities:z.array(z.string()).max(100),siteRole:z.string(),siteCapabilities:z.array(z.string()).max(2000),expiresAt:z.number()}).strict();
 
 export function boundedSiteFetch(origin: string, fetcher:typeof fetch=fetch):typeof fetch {
@@ -42,7 +42,7 @@ export interface ReviewTransport {
 }
 const transport:ReviewTransport={
   export:async(source,token,request,target)=>new ConvexHttpClient(source.identity.deploymentOrigin,{auth:token,logger:false,fetch:boundedSiteFetch(source.identity.deploymentOrigin)}).query(exportRef,{target:target.identity,selection:request.selection}),
-  dryRun:async(target,token,manifest,request)=>new ConvexHttpClient(target.identity.deploymentOrigin,{auth:token,logger:false,fetch:boundedSiteFetch(target.identity.deploymentOrigin)}).mutation(dryRunRef,{manifest,mediaBindings:request.mediaBindings,dependencyBindings:request.dependencyBindings}),
+  dryRun:async(target,token,manifest,request)=>new ConvexHttpClient(target.identity.deploymentOrigin,{auth:token,logger:false,fetch:boundedSiteFetch(target.identity.deploymentOrigin)}).mutation(dryRunRef,{manifestJson:JSON.stringify(manifest),mediaBindings:request.mediaBindings,dependencyBindings:request.dependencyBindings}),
 };
 export async function exchangeBrokerSession(ctx: ActionCtx, target: BrokerTarget) {
       const result=sessionSchema.parse(await ctx.runAction(exchangeRef,{connectionId:target.connectionId as Id<"overseer_connections">,requestedCapabilities:["session.exchange","site.select","site.promote"],requestedSiteRole:"administrator"}));

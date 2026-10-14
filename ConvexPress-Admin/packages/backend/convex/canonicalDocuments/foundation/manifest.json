@@ -107,6 +107,6 @@
     "compatibility/rich_text.mjs": "3349516bb2c8b12ff8be5119f64272b278f1216adaf79606a647f3770e9e1c8f",
     "compatibility/rich_text.d.mts": "5da566831696a1632ba432c888fdce65d00ee177770a06dd14c4497cb5641177",
     "shared/authoringFields.ts": "97649b3b1d7e453239cf1377c5eb3ea2ff9e817ad0c5b44d4fbad2d47a6fbb79",
-    "generated/storage.ts": "b2f5ebbfe01a0797325cf5f71700a05f508a3a46ccf9ddd4eb89b6bcda5df1db"
+    "generated/storage.ts": "6dfa41ab0a1cdc5a8e175ccabd02b5f1094490564129ce47a59fca19e85c9ac4"
   }
 }

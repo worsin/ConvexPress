@@ -48,6 +48,7 @@ export const membershipTables = {
     label: v.string(),
     description: v.optional(v.string()),
     displayAsFeature: v.optional(v.boolean()),
+    // v.any(): open-ended integrator JSON object (taken as JSON text, helpers/jsonArgs.ts); it has no fixed shape.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -70,6 +71,7 @@ export const membershipTables = {
     endsAt: v.optional(v.number()),
     graceEndsAt: v.optional(v.number()),
     revokedAt: v.optional(v.number()),
+    // v.any(): admin notes plus the revoke/extend audit trail (membership/mutations.ts); older rows are unaudited.
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),

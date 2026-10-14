@@ -1,7 +1,7 @@
 // Build-time only. Generate Convex transport validators outside the deployment isolate.
 /** Finite Convex transport shapes derived from the authoritative pure schemas.
  * Zod/full-tree validation remains mandatory for refinements and bounded bytes. */
-import { v, type Validator } from "convex/values";
+import { v, type GenericValidator, type Validator } from "convex/values";
 import { z } from "zod";
 import {
 	canonicalDocumentSchema,
@@ -28,7 +28,8 @@ type Shape = {
 	required?: string[];
 	additionalProperties?: boolean | Shape;
 };
-function fromShape(shape: Shape): Validator<any, "required", string> {
+/** A validator built from runtime JSON Schema: its value type is only known to the caller. */
+function fromShape(shape: Shape): GenericValidator {
 	if (shape.const !== undefined) return v.literal(shape.const);
 	if (shape.enum)
 		return v.union(...shape.enum.map((value) => v.literal(value)));
@@ -62,6 +63,7 @@ function fromShape(shape: Shape): Validator<any, "required", string> {
 			);
 		}
 		case undefined:
+			// Untyped JSON Schema node (block attrs, recursive children): the canonical service validates it with Zod.
 			return v.any();
 		default:
 			throw Error("Unsupported canonical transport schema");

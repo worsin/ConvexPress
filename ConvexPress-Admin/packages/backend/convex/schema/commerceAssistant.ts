@@ -37,6 +37,7 @@ export const productRelationSourceValidator = v.union(
   v.literal("seed"),
 );
 
+// v.any(): exact shape is assistantBlockShapeValidator (commerce/assistant/blocks.ts), which new writes pass, but rows written before it are unaudited; tighten after a migration.
 export const assistantBlockValidator = v.any();
 
 export const shopperMemoryKindValidator = v.union(
@@ -108,6 +109,7 @@ export const commerceAssistantTables = {
     text: v.optional(v.string()),
     /** Structured assistant output; see commerce/assistant/blocks.ts. */
     blocks: v.array(assistantBlockValidator),
+    // v.any(): model tool calls kept as the provider sent them; their arguments are model-defined JSON.
     toolCalls: v.optional(v.array(v.any())),
     model: v.optional(v.string()),
     latencyMs: v.optional(v.number()),
@@ -151,6 +153,7 @@ export const commerceAssistantTables = {
     /** Legacy unscoped briefs are not returned to shoppers. */
     sessionToken: v.optional(v.string()),
     query: v.optional(v.string()),
+    // v.any(): assistant brief JSON produced by the model; stored rows are unaudited against assistantBlockShapeValidator.
     payload: v.any(),
     model: v.optional(v.string()),
     generatedAt: v.number(),

@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
@@ -35,7 +36,8 @@ export const create = mutation({
     description: v.optional(v.string()),
     isDefault: v.optional(v.boolean()),
     isDisabled: v.optional(v.boolean()),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_sales_channels"),
   handler: async (ctx, args) => {
@@ -47,7 +49,7 @@ export const create = mutation({
       description: args.description,
       isDefault: args.isDefault,
       isDisabled: args.isDisabled ?? false,
-      metadata: args.metadata,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       createdAt: now,
       updatedAt: now,
     });
@@ -62,7 +64,8 @@ export const update = mutation({
       description: v.optional(v.string()),
       isDefault: v.optional(v.boolean()),
       isDisabled: v.optional(v.boolean()),
-      metadata: v.optional(v.any()),
+      /** Replaces the stored metadata: a JSON object, JSON-encoded. */
+      metadataJson: v.optional(v.string()),
     }),
   },
   returns: v.id("commerce_sales_channels"),
@@ -71,7 +74,12 @@ export const update = mutation({
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new ConvexError({ code: "NOT_FOUND", message: "Sales channel not found." });
     if (args.patch.isDefault) await clearDefault(ctx, args.channelId);
-    await ctx.db.patch("commerce_sales_channels", args.channelId, { ...args.patch, updatedAt: Date.now() });
+    const { metadataJson, ...patch } = args.patch;
+    await ctx.db.patch("commerce_sales_channels", args.channelId, {
+      ...patch,
+      ...(metadataJson === undefined ? {} : { metadata: parseOptionalJsonObjectArgument(metadataJson, "patch.metadataJson") }),
+      updatedAt: Date.now(),
+    });
     return args.channelId;
   },
 });

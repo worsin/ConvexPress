@@ -19,7 +19,7 @@ async function withEpoch(run: () => Promise<void>) {
 async function setup() {
   const f = await fixture();
   await f.t.run(async ctx => { const role = (await ctx.db.get("roles", f.ids.role))!; await ctx.db.patch("roles", role._id, { capabilities: [...role.capabilities, "manage_options"] }); });
-  const source = await f.operator.mutation(create, { title: "Shared text", blocks: [{ id: "text", name: "core/paragraph", version: 2, attrs: {} }] }); await f.release(source.id, 1, 1);
+  const source = await f.operator.mutation(create, { title: "Shared text", blocksJson: JSON.stringify([{ id: "text", name: "core/paragraph", version: 2, attrs: {} }]) }); await f.release(source.id, 1, 1);
   async function addPage(blocks = validateCanonicalTree(reference(source.id))) {
     return f.t.run(ctx => ctx.db.insert("posts", { type: "page", title: "Existing private page", slug: "existing", status: "draft", visibility: "private", authorId: f.ids.user, commentStatus: "closed", blocksVersion: 2, blocks, createdAt: 1, updatedAt: 1 }));
   }
@@ -33,7 +33,7 @@ async function setup() {
 }
 
 test("bounded rebuild discovers old private pages and nested pinned references without authoring or Forms writes", () => withEpoch(async () => {
-  const f = await setup(); const outer = await f.operator.mutation(create, { title: "Nested", blocks: reference(f.source.id, 1) }); await f.release(outer.id, 1, 1);
+  const f = await setup(); const outer = await f.operator.mutation(create, { title: "Nested", blocksJson: JSON.stringify(reference(f.source.id, 1)) }); await f.release(outer.id, 1, 1);
   const page = await f.addPage(validateCanonicalTree(reference(outer.id))), other = await f.addPage();
   await f.addPage([]);
   const before = await f.t.run(ctx => ctx.db.get("posts", page));
@@ -149,7 +149,7 @@ test("Forms verification pauses after complete discovery, authorized refresh rep
     await ctx.db.patch("roles", role._id, { capabilities: [...role.capabilities, "form.create", "form.update"] });
     await ctx.db.insert("settings", { section: "plugins", values: { formsEnabled: true, membershipEnabled: false }, updatedAt: 1, updatedBy: f.ids.user });
   });
-  const contact = await f.operator.mutation(create, { title: "Imported contact", blocks: [{ id: "contact", name: "core/contact-form", version: 2, attrs: { heading: "Contact", fields: [{ name: "email", type: "email", label: "Email", required: true }] } }] });
+  const contact = await f.operator.mutation(create, { title: "Imported contact", blocksJson: JSON.stringify([{ id: "contact", name: "core/contact-form", version: 2, attrs: { heading: "Contact", fields: [{ name: "email", type: "email", label: "Email", required: true }] } }]) });
   await f.release(contact.id, 1, 1);
   const pages = [await f.addPage(validateCanonicalTree(reference(contact.id))), await f.addPage(validateCanonicalTree(reference(contact.id)))];
   const before = await f.t.run(async ctx => Promise.all(pages.map(id => ctx.db.get("posts", id))));
@@ -210,7 +210,7 @@ test("verified installations enable real Synced editor reads and saves while exp
   const current = await f.operator.query(get, { postId });
   expect(current.contract).toBe("canonical-document-v1"); expect(current.synced).toBeDefined();
   expect(current.document.blocks[0].name).toBe("core/synced");
-  const receipt = await f.operator.mutation(save, { postId, expectedRevision: current.document.revision, title: "Saved reusable page", blocks: current.document.blocks });
+  const receipt = await f.operator.mutation(save, { postId, expectedRevision: current.document.revision, title: "Saved reusable page", blocksJson: JSON.stringify(current.document.blocks) });
   expect(receipt.changed).toBe(true);
   const reopened = await f.operator.query(get, { postId });
   expect(reopened.document.title).toBe("Saved reusable page"); expect(reopened.synced).toBeDefined();

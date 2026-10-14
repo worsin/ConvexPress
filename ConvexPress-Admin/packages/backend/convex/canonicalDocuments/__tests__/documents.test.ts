@@ -104,6 +104,9 @@ for (const type of ["post","page"] as const) test(`canonical ${type} trash resto
 });
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
+/** Canonical writes take the tree as JSON text (`blocksJson`); fixtures keep trees until the call. */
+const wire = <T extends { blocks?: unknown; blocksJson?: string }>({ blocks, ...rest }: T) =>
+	({ ...rest, blocksJson: rest.blocksJson ?? JSON.stringify(blocks) });
 
 test("historical imports review saved and unsaved sources separately and never downgrade canonical authoring", async () => {
   const f=await fixture({ legacySource: true });
@@ -202,7 +205,7 @@ test("commerce resolver-invalid edits are refused before saving or previewing wi
     ["commerce/product-showcase", { source: "category" }],
   ] as const) {
     const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: [{ id: "products", name, version: 2, attrs }] };
-    for (const operation of [() => f.client.mutation(reference("save", "mutation"), args), () => f.client.query(reference("previewDraft"), args)]) {
+    for (const operation of [() => f.client.mutation(reference("save", "mutation"), wire(args)), () => f.client.query(reference("previewDraft"), wire(args))]) {
       await expect(operation()).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
       expect(await snapshot()).toEqual(before);
     }
@@ -224,7 +227,7 @@ test("announcement schedules refuse new saves, previews and publication while hi
   for (const endsAt of ["2040-06-01T08:00:00Z", "2040-06-01T09:00:00Z"]) {
     const blocks = structuredClone(args.blocks);
     blocks[0].attrs.schedule.endsAt = endsAt;
-    for (const operation of [() => f.client.mutation(reference("save", "mutation"), { ...args, blocks }), () => f.client.query(reference("previewDraft"), { ...args, blocks })]) {
+    for (const operation of [() => f.client.mutation(reference("save", "mutation"), wire({ ...args, blocksJson: JSON.stringify(blocks) })), () => f.client.query(reference("previewDraft"), wire({ ...args, blocksJson: JSON.stringify(blocks) }))]) {
       await expect(operation()).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
       expect(await snapshot()).toEqual(before);
     }
@@ -233,7 +236,7 @@ test("announcement schedules refuse new saves, previews and publication while hi
   expect(await snapshot()).toEqual(before);
   const repaired = structuredClone(args.blocks);
   repaired[0].attrs.schedule.endsAt = "2040-06-01T10:00:00Z";
-  const saved = await f.client.mutation(reference("save", "mutation"), { ...args, blocks: repaired });
+  const saved = await f.client.mutation(reference("save", "mutation"), wire({ ...args, blocksJson: JSON.stringify(repaired) }));
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const old = history.page.find((row: any) => row.blocksVersion === 2);
   expect(old).toBeDefined();
@@ -262,7 +265,7 @@ test("CTA family writes reject unusable actions without changing content or hist
   const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
   for (const [name, version, attrs] of cases) {
     const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: [{ id: "action", name, version, attrs }] };
-    for (const operation of [() => f.client.mutation(reference("save", "mutation"), args), () => f.client.query(reference("previewDraft"), args)]) {
+    for (const operation of [() => f.client.mutation(reference("save", "mutation"), wire(args)), () => f.client.query(reference("previewDraft"), wire(args))]) {
       // Field diagnostics stay in the compiler; the public endpoint returns its stable contract error.
       await expect(operation()).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
       expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
@@ -283,8 +286,8 @@ test("CTA authoring rejects save, preview and publication atomically while legac
   const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
   const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: opened.document.blocks };
   for (const operation of [
-    () => f.client.mutation(reference("save", "mutation"), args),
-    () => f.client.query(reference("previewDraft"), args),
+    () => f.client.mutation(reference("save", "mutation"), wire(args)),
+    () => f.client.query(reference("previewDraft"), wire(args)),
     ...(["publish", "private", "future"] as const).map(status => () => f.client.mutation(reference("setPublication", "mutation"), { postId: f.ids.post, expectedRevision: args.expectedRevision, status, ...(status === "future" ? { scheduledAt: Date.now() + 60000 } : {}) })),
   ]) {
     await expect(operation()).rejects.toThrow();
@@ -293,7 +296,7 @@ test("CTA authoring rejects save, preview and publication atomically while legac
   expect(opened.document.blocks[0].attrs.tabs[0].ctaUrl).toBe("javascript:alert(1)");
   const repaired = structuredClone(args.blocks);
   repaired[0].attrs.tabs[0].ctaUrl = "/page/example/";
-  const saved = await f.client.mutation(reference("save", "mutation"), { ...args, blocks: repaired });
+  const saved = await f.client.mutation(reference("save", "mutation"), wire({ ...args, blocksJson: JSON.stringify(repaired) }));
   expect(saved.revision).toBe(args.expectedRevision + 1);
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const old = history.page.find((row: any) => row.blocksVersion === 2);
@@ -315,7 +318,7 @@ test("saved block locks reject combined unlock/edit, removal and order changes w
 		{ id: "space", name: "core/spacer", version: 2, attrs: {} },
 	];
 	await initialize(f);
-	await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Protected content", blocks });
+	await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Protected content", blocksJson: JSON.stringify(blocks) });
 	const read = await f.client.query(reference("get"), { postId: f.ids.post });
 	const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
 	for (const candidate of [
@@ -323,13 +326,13 @@ test("saved block locks reject combined unlock/edit, removal and order changes w
 		[...read.document.blocks].reverse(),
 		[{ ...read.document.blocks[0], lock: {}, anchor: "changed" }, read.document.blocks[1]],
 	]) {
-		await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocks: candidate })).rejects.toThrow();
+		await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocksJson: JSON.stringify(candidate) })).rejects.toThrow();
 		expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
 	}
 	const unlocked = read.document.blocks.map((block: any) => ({ ...block, lock: {} }));
-	const first = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocks: unlocked });
+	const first = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocksJson: JSON.stringify(unlocked) });
 	const changed = [{ ...unlocked[0], anchor: "changed" }, unlocked[1]];
-	const second = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: read.document.title, blocks: changed });
+	const second = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: read.document.title, blocksJson: JSON.stringify(changed) });
 	expect(second.revision).toBe(first.revision + 1);
 	expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(changed);
 });
@@ -347,7 +350,7 @@ test("legacy utility variants migrate together, save and recover their exact ori
   const reopened=await f.client.query(reference("get"),{postId:f.ids.post});
   expect(reopened.document.blocks).toEqual(review.candidate.document.blocks);
   reopened.document.blocks[0].anchor="first-space";
-  const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:reopened.document.title,blocks:reopened.document.blocks});
+  const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:reopened.document.title,blocksJson: JSON.stringify(reopened.document.blocks)});
   expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(reopened.document.blocks);
   const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
   const original=history.page.find((row:any)=>row.action==="import-legacy");expect(original).toBeDefined();
@@ -385,7 +388,7 @@ test("Field Guide migration and historical import preserve authored data and edi
   changed[0].attrs.note = "A later edit";
   changed[0].attrs.showDetails = true;
   const saved = await f.client.mutation(reference("save", "mutation"), {
-    postId: f.ids.post, expectedRevision: receipt.revision, title: reopened.title, blocks: changed,
+    postId: f.ids.post, expectedRevision: receipt.revision, title: reopened.title, blocksJson: JSON.stringify(changed),
   });
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const original = history.page.find((row: any) => row.action === "import-legacy");
@@ -669,7 +672,7 @@ async function initialize(f: Awaited<ReturnType<typeof fixture>>) {
 		expectedRevision: current.document.revision,
 		expectedAuthoringDigest: current.document.authoringDigest,
 		title: current.document.title,
-		blocks: tree,
+		blocksJson: JSON.stringify(tree),
 	});
 }
 test("canonical signup blocks can be authored and published while disabled Forms plugin blocks remain unavailable", async () => {
@@ -679,7 +682,7 @@ test("canonical signup blocks can be authored and published while disabled Forms
     { id: "signup", name: "core/newsletter-signup", version: 2, attrs: { heading: "Field notes" } },
     { id: "cta", name: "core/cta-with-form", version: 2, attrs: { heading: "Stay in touch" } },
   ];
-  await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Signup fixture", blocks });
+  await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Signup fixture", blocksJson: JSON.stringify(blocks) });
   const editor = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(editor.policy.capabilities).toContain("form.submission");
   for (const name of ["core/newsletter-signup", "core/cta-with-form"]) expect(editor.policy.disabledBlocks).not.toContain(name);
@@ -702,7 +705,7 @@ test("registered Poll authoring, publication and revision recovery retain the or
   });
   const initial = await initialize(f);
   const blocks = [{ id: "poll", name: "core/poll", version: 1, attrs: { question: "Which morning?", options: [{ key: "walk", label: "A coastal walk" }, { key: "read", label: "A quiet book" }] } }];
-  let saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, title: "Morning poll", blocks });
+  let saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, title: "Morning poll", blocksJson: JSON.stringify(blocks) });
   const editor = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(editor.policy.capabilities).toContain("poll.submission");
   expect(editor.policy.disabledBlocks).not.toContain("core/poll");
@@ -715,7 +718,7 @@ test("registered Poll authoring, publication and revision recovery retain the or
   const vote = makeFunctionReference<any, any, any>("extensions/forms/polls:vote");
   const args = { postId: f.ids.post, blockId: "poll", definitionVersion: poll.definitionVersion, visitorToken: "ab".repeat(32), optionKey: "walk" };
   expect(await f.t.mutation(vote, args)).toMatchObject({ accepted: true });
-  saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: "Morning poll", blocks: [] });
+  saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: "Morning poll", blocksJson: JSON.stringify([]) });
   await expect(f.t.mutation(vote, args)).rejects.toThrow();
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const previous = history.page.find((item: any) => item.blocksVersion === 2);
@@ -741,7 +744,7 @@ test("actual canonical lifecycle saves/reopens normalized marked content and res
 		postId: f.ids.post,
 		expectedRevision: 1,
 		title: opened.document.title,
-		blocks: opened.document.blocks,
+		blocksJson: JSON.stringify(opened.document.blocks),
 	});
 	expect(unchanged.changed).toBe(false);
 	expect(unchanged.revision).toBe(1);
@@ -749,7 +752,7 @@ test("actual canonical lifecycle saves/reopens normalized marked content and res
 		postId: f.ids.post,
 		expectedRevision: 1,
 		title: "Changed title",
-		blocks: tree,
+		blocksJson: JSON.stringify(tree),
 	});
 	expect(second.revision).toBe(2);
 	expect(
@@ -758,7 +761,7 @@ test("actual canonical lifecycle saves/reopens normalized marked content and res
 				postId: f.ids.post,
 				expectedRevision: 1,
 				title: "Changed title",
-				blocks: tree,
+				blocksJson: JSON.stringify(tree),
 			}),
 		),
 	).toBe("CONFLICT");
@@ -819,7 +822,7 @@ test("initialization refuses authored legacy content and a title-only legacy rac
 	});
 	expect(
 		await code(() =>
-			f.client.mutation(reference("initialize", "mutation"), args),
+			f.client.mutation(reference("initialize", "mutation"), wire(args)),
 		),
 	).toBe("CONFLICT");
 	await f.t.run(async (ctx) => {
@@ -833,10 +836,10 @@ test("initialization refuses authored legacy content and a title-only legacy rac
 	expect(current.initialization.eligible).toBe(false);
 	expect(
 		await code(() =>
-			f.client.mutation(reference("initialize", "mutation"), {
+			f.client.mutation(reference("initialize", "mutation"), wire({
 				...args,
 				expectedAuthoringDigest: current.document.authoringDigest,
-			}),
+			})),
 		),
 	).toBe("CANONICAL_INITIALIZATION_UNAVAILABLE");
 	expect(
@@ -870,7 +873,7 @@ test("invalid tree, duplicate anchors and unavailable media refuse before snapsh
 					postId: f.ids.post,
 					expectedRevision: 1,
 					title: "Changed",
-					blocks,
+					blocksJson: JSON.stringify(blocks),
 				}),
 			),
 		).not.toBeNull();
@@ -984,14 +987,14 @@ test("actual canonical references resolve only public pages and react to current
 		expectedRevision: 0,
 		expectedAuthoringDigest: open.document.authoringDigest,
 		title: "Reference",
-		blocks: [
+		blocksJson: JSON.stringify([
 			{
 				id: "featured",
 				name: "core/featured-page",
 				version: 1,
 				attrs: { page: target },
 			},
-		],
+		]),
 	});
 	const first = await f.client.query(reference("get"), { postId: f.ids.post });
 	expect(first.data.dataByBlock.featured.data.page.id).toBe(target);
@@ -1015,11 +1018,11 @@ test("canonical lock changes require canonical writes and canonical reads preser
 	const f = await fixture();
 	await initialize(f);
 	const receipt = await f.client.mutation(reference("save", "mutation"), {
-		postId: f.ids.post, expectedRevision: 1, title: "Protected content", blocks: [{ ...tree[0], lock: { remove: true } }],
+		postId: f.ids.post, expectedRevision: 1, title: "Protected content", blocksJson: JSON.stringify([{ ...tree[0], lock: { remove: true } }]),
 	});
 	expect(receipt.revision).toBe(2);
 	expect(await code(() => f.client.mutation(reference("save", "mutation"), {
-		postId: f.ids.post, expectedRevision: 2, title: "Protected content", blocks: [],
+		postId: f.ids.post, expectedRevision: 2, title: "Protected content", blocksJson: JSON.stringify([]),
 	}))).toBe("BLOCK_REMOVE_LOCKED");
 	expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks[0].lock?.remove).toBe(true);
 	expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksRevision).toBe(2);
@@ -1077,7 +1080,7 @@ test("actual oversized raw settings refuse initialization before a stored revisi
 				expectedRevision: 0,
 				expectedAuthoringDigest: current.document.authoringDigest,
 				title: "Budget fixture",
-				blocks: tree,
+				blocksJson: JSON.stringify(tree),
 			}),
 		),
 	).toBe("CANONICAL_READ_BUDGET");
@@ -1113,14 +1116,14 @@ test("actual successful media save remains target-bound and unavailable media in
 		expectedRevision: 0,
 		expectedAuthoringDigest: current.document.authoringDigest,
 		title: "Media fixture",
-		blocks: [
+		blocksJson: JSON.stringify([
 			{
 				id: "image",
 				name: "core/image",
 				version: 2,
 				attrs: { mediaId: media },
 			},
-		],
+		]),
 	});
 	const opened = await f.client.query(reference("get"), { postId: f.ids.post });
 	expect(Object.keys(opened.resources.media)).toEqual([media]);
@@ -1176,7 +1179,7 @@ test("usage documents include canonical descendants once per document", async ()
 		expectedRevision: 0,
 		expectedAuthoringDigest: current.document.authoringDigest,
 		title: "Nested",
-		blocks: [
+		blocksJson: JSON.stringify([
 			{
 				id: "group",
 				name: "core/group",
@@ -1184,7 +1187,7 @@ test("usage documents include canonical descendants once per document", async ()
 				attrs: {},
 				children: [tree[0], { ...tree[0], id: "second", anchor: "second" }],
 			},
-		],
+		]),
 	});
 	const result = await f.client.query(
 		makeFunctionReference<any, any, any>("blocks/queries:usageDocuments"),
@@ -1222,14 +1225,14 @@ test("a valid tree cannot save a full authored row that the bounded reader could
 				expectedRevision: 0,
 				expectedAuthoringDigest: current.document.authoringDigest,
 				title: "Large fixture",
-				blocks: [
+				blocksJson: JSON.stringify([
 					{
 						id: "code",
 						name: "core/code",
 						version: 2,
 						attrs: { code: "x".repeat(480 * 1024) },
 					},
-				],
+				]),
 			}),
 		),
 	).toBe("CANONICAL_DOCUMENT_BUDGET");
@@ -1253,9 +1256,9 @@ test("normal empty draft with exact redundant autosave can initialize; distinct 
   await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { autosaveTitle: "Distinct unsaved title" }); });
   const distinct = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(distinct.initialization).toEqual({ eligible: false, reason: "existing-authored-content" });
-  await expect(f.client.mutation(reference("initialize", "mutation"), args)).rejects.toThrow();
+  await expect(f.client.mutation(reference("initialize", "mutation"), wire(args))).rejects.toThrow();
   await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { autosaveTitle: read.document.title }); });
-  const receipt = await f.client.mutation(reference("initialize", "mutation"), args);
+  const receipt = await f.client.mutation(reference("initialize", "mutation"), wire(args));
   expect(receipt.revision).toBe(1);
   const stored = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), revisions: await ctx.db.query("revisions").collect() }));
   expect(stored.post!.blocksVersion).toBe(2);
@@ -1439,7 +1442,7 @@ test("canonical publication is capability/CAS guarded and published content rema
   expect((await f.t.query(reference("getForRender"), { postId: f.ids.post })).state).toBe("ready");
   let current = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(current.document.status).toBe("publish");
-  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: published.revision, title: "Updated published title", blocks: current.document.blocks });
+  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: published.revision, title: "Updated published title", blocksJson: JSON.stringify(current.document.blocks) });
   current = await f.t.query(reference("getForRender"), { postId: f.ids.post });
   expect(current.document.title).toBe("Updated published title");
   await expect(f.client.mutation(reference("setPublication", "mutation"), publication)).rejects.toThrow();
@@ -1631,7 +1634,7 @@ test("historical import preserves original source, current access policy and can
   const canonical = after.page.find((row: any) => row.action === "restore-canonical");
   expect(canonical).toBeDefined();
   const restore = { postId: f.ids.post, revisionId: canonical.id, expectedRevision: recovered.revision };
-  await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:recovered.revision,title:"Concurrent canonical title",blocks:legacy.document.blocks});
+  await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:recovered.revision,title:"Concurrent canonical title",blocksJson: JSON.stringify(legacy.document.blocks)});
   expect(await code(() => f.client.mutation(reference("restore", "mutation"), restore))).toBe("CONFLICT");
   const fresh = await f.client.query(reference("get"), { postId: f.ids.post });
   const restored = await f.client.mutation(reference("restore", "mutation"), { ...restore, expectedRevision:fresh.document.revision });
@@ -1670,7 +1673,7 @@ test("registered canonical get resolves navigation from the current saved title 
   ...["core/breadcrumbs","core/anchor-nav","core/table-of-contents","core/site-info","core/child-pages"].map((name,index)=>({id:`nav${index}`,name,version:1,attrs:{}})),
  ];
  await f.t.run(async ctx=>{await ctx.db.insert("settings",{section:"general",values:{siteTitle:"Actual installation",tagline:"Public tagline",privateKey:"must-never-project"},updatedAt:1,updatedBy:f.ids.user});});
- const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:first.revision,title:"Prepared current title",blocks:navigation});
+ const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:first.revision,title:"Prepared current title",blocksJson: JSON.stringify(navigation)});
  const current=await f.client.query(reference("get"),{postId:f.ids.post});
  expect(current.document.revision).toBe(saved.revision);
  expect(current.data.dataByBlock.nav0.resolver).toBe("content.breadcrumbs");
@@ -1697,7 +1700,7 @@ test('canonical menu references and locations save, publish and recheck viewer v
  expect(options.page).toEqual([{id:menu,name:'Site navigation',slug:'site-navigation'}]);
  expect(await code(()=>f.as(f.ids.denied).query(reference('menuOptions'),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}}))).toBe('FORBIDDEN');
  const blocks=[{id:'selected',name:'core/menu',version:1,attrs:{source:'menu',menu}},{id:'location',name:'core/menu',version:1,attrs:{source:'location',location:'primary'}}];
- const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Menu integration',blocks});
+ const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Menu integration',blocksJson: JSON.stringify(blocks)});
  const current=await f.client.query(reference('get'),{postId:f.ids.post});
  expect(current.data.dataByBlock.selected.data.menu.id).toBe(menu);
  expect(current.data.dataByBlock.location.data.items.map((item:any)=>item.label)).toEqual(['Visit','Account']);
@@ -1732,7 +1735,7 @@ test('latest posts use authorized taxonomy choices and survive canonical save, p
  expect(JSON.stringify(choices)).not.toContain('PRIVATE_TERM_NOTES');
  expect(await code(()=>f.as(f.ids.denied).query(reference('termOptions'),opts))).toBe('FORBIDDEN');
  const blocks=[{id:'latest',name:'core/latest-posts',version:2,attrs:{heading:'Latest stories',categorySlug:'field',count:1,showAuthors:false}}];
- const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Latest integration',blocks});
+ const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Latest integration',blocksJson: JSON.stringify(blocks)});
  await f.client.mutation(reference('setPublication','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,status:'publish'});
  const result=await f.t.query(reference('getForRender'),{postId:f.ids.post});
  expect(result.state).toBe('ready');expect(result.data.dataByBlock.latest.resolver).toBe('content.latestPosts');
@@ -1753,7 +1756,7 @@ test('registered grids bind independent cursors to the current document and rech
   return ids;
  });
  const blocks=['one','two'].map(id=>({id,name:'core/post-grid',version:1,attrs:{query:{author:f.ids.user},limit:2,showExcerpt:false}}));
- const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Two grids',blocks});
+ const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Two grids',blocksJson: JSON.stringify(blocks)});
  await f.client.mutation(reference('setPublication','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,status:'publish'});
  const initial=await f.t.query(reference('getForRender'),{postId:f.ids.post});
  expect(initial.state).toBe('ready');
@@ -1808,7 +1811,7 @@ test('Upcoming Events survives canonical save and public reads with exact plugin
   return ctx.db.insert('extension_events',{title:'Real studio gathering',slug:'studio-gathering',description:'An authored event summary',startsAt,endsAt:startsAt+3600000,timeZone:'America/Denver',venue:'Workroom',venueAddress:'PRIVATE_ADDRESS',registrationUrl:'https://private-registration.example.invalid',status:'published',createdBy:f.ids.user,createdAt:1,updatedAt:1});
  });
  const blocks=[{id:'gatherings',name:'events/upcoming',version:1,attrs:{count:1,showDescription:false}}];
- const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Gatherings',blocks});
+ const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Gatherings',blocksJson: JSON.stringify(blocks)});
  await f.client.mutation(reference('setPublication','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,status:'publish'});
  const shown=await f.t.query(reference('getForRender'),{postId:f.ids.post});
  expect(shown.state).toBe('ready');expect(shown.data.dataByBlock.gatherings.data.items[0]).toMatchObject({id:event,title:'Real studio gathering',href:'/events/studio-gathering',description:null});
@@ -1846,7 +1849,7 @@ test('the registered Next Event query binds category, source status and the publ
   const event=await ctx.db.insert('extension_events',{...fields,title:'Category gathering',slug:'category-gathering',categoryId:category});return {category,event};
  });
  const first=await initialize(f);
- const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Our next gathering',blocks:[{id:'next',name:'events/next-event',version:1,attrs:{category:selected.category}}]});
+ const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:first.revision,title:'Our next gathering',blocksJson: JSON.stringify([{id:'next',name:'events/next-event',version:1,attrs:{category:selected.category}}])});
  await f.client.mutation(reference('setPublication','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,status:'publish'});
  const shown=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(shown.state).toBe('ready');
  expect(shown.data.dataByBlock.next.data).toMatchObject({categoryId:selected.category,event:{id:selected.event,title:'Category gathering'}});expect(JSON.stringify(shown)).not.toContain('NOT_IN_CARD');
@@ -1863,7 +1866,7 @@ test('registered Calendar documents preserve independent month pages and current
   const ids=[];for(let n=0;n<3;n++){const startsAt=window.startsAt+n*3600000,endsAt=startsAt+3600000;ids.push(await ctx.db.insert('extension_events',{title:`Calendar gathering ${n}`,slug:`calendar-gathering-${n}`,description:'Public calendar summary',startsAt,endsAt,calendarBucket:eventIntervalBucket(startsAt,endsAt),timeZone:'America/Denver',venue:'Studio',venueAddress:'CALENDAR_PRIVATE_SOURCE',status:'published',createdBy:f.ids.user,createdAt:1,updatedAt:1}));}return ids;
  });
  const initial=await initialize(f),blocks=['one','two'].map(id=>({id,name:'events/calendar',version:1,attrs:{limit:1,timeZone:'America/Denver'}}));
- const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initial.revision,title:'Gatherings calendar',blocks});
+ const saved=await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initial.revision,title:'Gatherings calendar',blocksJson: JSON.stringify(blocks)});
  await f.client.mutation(reference('setPublication','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,status:'publish'});
  const request={one:JSON.stringify({month,cursor:null}),two:JSON.stringify({month,cursor:null})};
  const shown=await f.t.query(reference('getForRender'),{postId:f.ids.post,request});expect(shown.state).toBe('ready');expect(shown.data.dataByBlock.one.data.items[0].id).toBe(events[0]);expect(JSON.stringify(shown)).not.toContain('CALENDAR_PRIVATE_SOURCE');
@@ -1905,7 +1908,7 @@ test('embedded form is saved, published and revoked with its real source form', 
   return ctx.db.insert('forms',{title:'An authored form',slug:'authored-form',status:'published',settings:'{"notificationRefs":["PRIVATE_FORM_CONFIG"]}',createdBy:f.ids.user,createdAt:1,updatedAt:1});
  });
  const blocks=[{id:'form',name:'core/form',version:1,attrs:{form}}];
- await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initialized.revision,title:'Form page',blocks});
+ await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initialized.revision,title:'Form page',blocksJson: JSON.stringify(blocks)});
  await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{status:'publish',publishedAt:1}));
  const shown=await f.t.query(reference('getForRender'),{postId:f.ids.post});
  expect(shown.state).toBe('ready');expect(shown.data.dataByBlock.form.data.form._id).toBe(form);
@@ -1960,7 +1963,7 @@ test("registered Contact save, publish, duplicate, submit and restore preserve s
   const plugin=await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","plugins")).unique();await ctx.db.patch("settings",plugin!._id,{values:{formsEnabled:true,membershipEnabled:false}});
  });
  const blocks=[{id:"contact",name:"core/contact-form",version:2,attrs:{heading:"Talk to us",recipientEmail:"private-studio@example.invalid",successMessage:"Your message arrived.",fields:[{name:"email",label:"Email",type:"email",required:true}]}}];
- let receipt=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:1,title:"Contact page",blocks});
+ let receipt=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:1,title:"Contact page",blocksJson: JSON.stringify(blocks)});
  const saved=await f.client.query(reference("get"),{postId:f.ids.post});expect(saved.policy.disabledBlocks).not.toContain("core/contact-form");
  expect(saved.document.blocks[0].attrs.recipientEmail).toBe("private-studio@example.invalid");expect(saved.data.dataByBlock.contact.data.form).toBeNull();
  const original=await f.t.run(ctx=>ctx.db.query("forms").withIndex("by_contact_source",q=>q.eq("contactPostId",f.ids.post).eq("contactBlockId","contact")).unique());expect(original).not.toBeNull();
@@ -1971,7 +1974,7 @@ test("registered Contact save, publish, duplicate, submit and restore preserve s
  const submissionArgs={formId:original!._id,values:[{fieldKey:`field_contact_${original!._id}_email`,value:"visitor@example.invalid"}],isComplete:true,startedAt:Date.now()-10000,honeypot:""};
  const submitted=await f.t.mutation(makeFunctionReference<any,any,any>("extensions/forms/mutations:submit"),submissionArgs);expect(submitted.isComplete).toBe(true);
  const confirmation=await f.t.query(makeFunctionReference<any,any,any>("extensions/forms/confirmations:resolveConfirmation"),{formId:original!._id,submissionId:submitted.submissionId,confirmationToken:submitted.confirmationToken});expect(confirmation.renderedMessage).toContain("Your message arrived.");
- receipt=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:"Contact page",blocks:[]});
+ receipt=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:"Contact page",blocksJson: JSON.stringify([])});
  await expect(f.t.mutation(makeFunctionReference<any,any,any>("extensions/forms/mutations:submit"),submissionArgs)).rejects.toThrow("not available");
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
  const previous=history.page.find((item:any)=>item.blocksVersion===2);
@@ -2015,14 +2018,14 @@ test("registered product block authoring, publication and revision restore retai
     return ctx.db.insert("commerce_products",{title:"Handmade mug",slug:"handmade-mug",status:"publish",productType:"simple",authorId:f.ids.user,categoryIds:[],galleryMediaIds:[],basePrice:{amount:2500,currencyCode:"USD"},salePrice:{amount:0,currencyCode:"USD"},trackInventory:false,allowBackorders:false,isVirtual:true,isDownloadable:false,createdAt:1,updatedAt:1,publishedAt:1});
   });
   const initial=await initialize(f),blocks=[{id:"products",name:"core/featured-products",version:2,attrs:{heading:"From the studio",productIds:[productId],count:1,showPrice:true}}];
-  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio objects",blocks});
+  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio objects",blocksJson: JSON.stringify(blocks)});
   const editor=await f.client.query(reference("get"),{postId:f.ids.post});
   expect(editor.policy.disabledBlocks).not.toContain("core/featured-products");expect(editor.data.dataByBlock.products.data.items[0].id).toBe(productId);
   expect(await f.t.query(reference("getForRender"),{postId:f.ids.post})).toBeNull();
   saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
   const published=await f.t.query(reference("getForRender"),{postId:f.ids.post});
   expect(published.state).toBe("ready");expect(published.data.dataByBlock.products.data.items[0].pricing.salePrice.amount).toBe(0);
-  saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio objects",blocks:[]});
+  saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio objects",blocksJson: JSON.stringify([])});
   const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
   const previous=history.page.find((entry:any)=>entry.blocksVersion===2);expect(previous).toBeDefined();
   await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:previous.id,expectedRevision:saved.revision});
@@ -2075,7 +2078,7 @@ test("registered Product Collection saves grouped references and restores their 
     return ctx.db.insert("commerce_products",{title:"Studio cup",slug:"studio-cup",status:"publish",productType:"simple",authorId:f.ids.user,categoryIds:[],galleryMediaIds:[],basePrice:{amount:2500,currencyCode:"USD"},trackInventory:false,allowBackorders:false,isVirtual:true,isDownloadable:false,createdAt:1,updatedAt:1,publishedAt:1});
   });
   const initial=await initialize(f),blocks=[{id:"collection",name:"blocks/product-collection",version:2,attrs:{heading:"For the everyday",productIds:[productId],groups:[{label:"Kitchen",productIds:[productId],products:[]}]}}];
-  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio collection",blocks});
+  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio collection",blocksJson: JSON.stringify(blocks)});
   const editor=await f.client.query(reference("get"),{postId:f.ids.post});
   expect(editor.policy.disabledBlocks).not.toContain("blocks/product-collection");
   expect(editor.data.dataByBlock.collection.data.groups[0].items[0].id).toBe(productId);
@@ -2083,7 +2086,7 @@ test("registered Product Collection saves grouped references and restores their 
   const published=await f.t.query(reference("getForRender"),{postId:f.ids.post});expect(published.state).toBe("ready");expect(published.data.dataByBlock.collection.data.items[0].title).toBe("Studio cup");
   const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
   const previous=history.page.find((entry:any)=>entry.blocksVersion===2);
-  saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio collection",blocks:[]});
+  saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio collection",blocksJson: JSON.stringify([])});
   await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:previous.id,expectedRevision:saved.revision});
   const restored=await f.t.query(reference("getForRender"),{postId:f.ids.post});expect(restored.document.blocks[0].attrs.groups[0].productIds).toEqual([productId]);
   await f.t.run(ctx=>ctx.db.patch(productId,{status:"draft"}));
@@ -2104,7 +2107,7 @@ test("registered native and public reads complete large category counts without 
    return id;
   });
   const initial=await initialize(f),blocks=[{id:"categories",name:"commerce/category-tiles",version:2,attrs:{categorySlugs:["field"],showCounts:true}}];
-  const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Large collections",blocks});
+  const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Large collections",blocksJson: JSON.stringify(blocks)});
   await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
   for(const [client,name] of [[f.client,"get"],[f.t,"getForRender"]] as const){
    let request:Record<string,string>={},pages=0,value:any;
@@ -2133,14 +2136,14 @@ test("Category Tiles is authorable, publishes selected shop categories and resto
   const editor = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(editor.policy.disabledBlocks).not.toContain("commerce/category-tiles");
   const blocks = [{ id: "categories", name: "commerce/category-tiles", version: 2, attrs: { heading: "Find your everyday", categorySlugs: ["field-essentials"], showCounts: true } }];
-  let saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, title: "Collection index", blocks });
+  let saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, title: "Collection index", blocksJson: JSON.stringify(blocks) });
   saved = await f.client.mutation(reference("setPublication", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, status: "publish" });
   const published = await f.t.query(reference("getForRender"), { postId: f.ids.post });
   expect(published.state).toBe("ready");
   expect(published.data.dataByBlock.categories.data.items.map((item: any) => [item.id, item.productCount])).toEqual([[category, 0]]);
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const revision = history.page.find((entry: any) => entry.blocksVersion === 2);
-  saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: "Collection index", blocks: [] });
+  saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: "Collection index", blocksJson: JSON.stringify([]) });
   await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: revision.id, expectedRevision: saved.revision });
   const restored = await f.t.query(reference("getForRender"), { postId: f.ids.post });
   expect(restored.document.blocks[0].attrs.categorySlugs).toEqual(["field-essentials"]);
@@ -2160,7 +2163,7 @@ test("public recently-viewed history is request-local, source-authorized and can
     return ids;
   });
   const initial=await initialize(f),blocks=[{id:"history",name:"blocks/product-collection",version:2,attrs:{mode:"recentlyViewed",count:4}},{id:"manual",name:"blocks/product-collection",version:2,attrs:{productIds:[products[0]]}}];
-  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Your discoveries",blocks});
+  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Your discoveries",blocksJson: JSON.stringify(blocks)});
   saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
   const history=[products[1],products[2],products[0],products[1]];
   const personalized=await f.t.query(reference("getForRender"),{postId:f.ids.post,recentlyViewedIds:history});
@@ -2249,12 +2252,12 @@ test("Product Hero saves, publishes and restores one authorized product without 
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("commerce/product-hero");
  const blocks=[{id:"hero",name:"commerce/product-hero",version:1,attrs:{product,title:"Kept close."}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"One good thing",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"One good thing",blocksJson: JSON.stringify(blocks)});
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const publicRead=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});
  const live=await publicRead();expect(live.data.dataByBlock.hero.data.items.map((p:any)=>p.id)).toEqual([product]);expect(live.data.dataByBlock.hero.data.items[0].cart).toEqual({kind:"add",productId:product});
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const revision=history.page.find((entry:any)=>entry.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"One good thing",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"One good thing",blocksJson: JSON.stringify([])});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].attrs.product).toBe(product);
  await f.t.run(ctx=>ctx.db.patch(product,{status:"draft"}));const withdrawn=await publicRead();expect(withdrawn.data.dataByBlock.hero.data.items).toEqual([]);expect(withdrawn.document.blocks[0].attrs.product).toBe(product);
 });
@@ -2269,12 +2272,12 @@ test("Product Showcase saves, publishes and restores one authorized product with
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("commerce/product-showcase");
  const blocks=[{id:"hero",name:"commerce/product-showcase",version:2,attrs:{source:"slugs",productSlugs:["missing","notebook"],heading:"Kept close."}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"One good thing",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"One good thing",blocksJson: JSON.stringify(blocks)});
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const publicRead=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});
  const live=await publicRead();expect(live.data.dataByBlock.hero.data.items.map((p:any)=>p.id)).toEqual([product]);expect(live.data.dataByBlock.hero.data.items[0].cart).toEqual({kind:"add",productId:product});
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const revision=history.page.find((entry:any)=>entry.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"One good thing",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"One good thing",blocksJson: JSON.stringify([])});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].attrs.productSlugs).toEqual(["missing","notebook"]);
  await f.t.run(ctx=>ctx.db.patch(product,{status:"draft"}));const withdrawn=await publicRead();expect(withdrawn.data.dataByBlock.hero.data.items).toEqual([]);expect(withdrawn.document.blocks[0].attrs.productSlugs).toEqual(["missing","notebook"]);
 });
@@ -2298,15 +2301,15 @@ test("membership plans save, paginate and restore through registered document en
   const plans=[];for(let i=0;i<8;i++)plans.push(await ctx.db.insert("membership_plans",{title:`Studio ${i}`,slug:`studio-${i}`,status:"active",grantMode:"manual",priority:i,createdAt:1,updatedAt:1}));return plans;
  });
  const initial=await initialize(f),blocks=[{id:"plans",name:"membership/plans",version:1,attrs:{limit:3}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio plans",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio plans",blocksJson: JSON.stringify(blocks)});
  const editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("membership/plans");expect(editor.data.dataByBlock.plans.data.items.map((p:any)=>p.id)).toEqual(ids.slice(0,3));
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const first=await f.t.query(reference("getForRender"),{postId:f.ids.post});const cursor=first.data.dataByBlock.plans.data.nextCursor;expect(cursor).toBeString();
  const second=await f.t.query(reference("getForRender"),{postId:f.ids.post,request:{plans:cursor}});expect(second.data.dataByBlock.plans.data.items.map((p:any)=>p.id)).toEqual(ids.slice(3,6));
- const selected=[{...blocks[0],attrs:{selection:"selected",plans:[ids[7],ids[0]],limit:3}}];saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio plans",blocks:selected});
+ const selected=[{...blocks[0],attrs:{selection:"selected",plans:[ids[7],ids[0]],limit:3}}];saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio plans",blocksJson: JSON.stringify(selected)});
  expect((await f.t.query(reference("getForRender"),{postId:f.ids.post})).data.dataByBlock.plans.data.items.map((p:any)=>p.id)).toEqual([ids[7],ids[0]]);
  await expect(f.t.query(reference("getForRender"),{postId:f.ids.post,request:{plans:cursor}})).rejects.toThrow();
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio plans",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio plans",blocksJson: JSON.stringify([])});
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const previous=history.page.find((entry:any)=>entry.blocksVersion===2);expect(previous).toBeDefined();
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:previous.id,expectedRevision:saved.revision});expect((await f.t.query(reference("getForRender"),{postId:f.ids.post})).document.blocks[0].attrs.plans).toEqual([ids[7],ids[0]]);
 });
@@ -2320,13 +2323,13 @@ test("membership teaser saves through the editor and public data carries the vie
    await ctx.db.insert("membership_grants",{userId:f.ids.denied,planId:plan,sourceType:"manual",status:"active",startsAt:1,endsAt:101000,createdAt:1,updatedAt:1});return plan;
   });
   const initial=await initialize(f),blocks=[{id:"membership",name:"membership/gated-teaser",version:1,attrs:{requiredPlan:planId,teaserText:"A public preview",upgradeLink:"/membership-options"}}];
-  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio membership",blocks});
+  let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Studio membership",blocksJson: JSON.stringify(blocks)});
   const editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("membership/gated-teaser");expect(editor.data.dataByBlock.membership.data.state).toBe("missing-plan");
   saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
   const publicView=await f.t.query(reference("getForRender"),{postId:f.ids.post});expect(publicView.state).toBe("ready");expect(publicView.data.dataByBlock.membership.data.state).toBe("signed-out");
   const member=await f.as(f.ids.denied).query(reference("getForRender"),{postId:f.ids.post});expect(member.data.dataByBlock.membership.data.state).toBe("granted");expect(member.accessLease.expiresAt).toBe(101000);
   setSystemTime(101000);expect((await f.as(f.ids.denied).query(reference("getForRender"),{postId:f.ids.post})).data.dataByBlock.membership.data.state).toBe("missing-plan");
-  saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio membership",blocks:[]});
+  saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Studio membership",blocksJson: JSON.stringify([])});
   const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const previous=history.page.find((entry:any)=>entry.blocksVersion===2);expect(previous).toBeDefined();
   await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:previous.id,expectedRevision:saved.revision});
   const restored=await f.t.query(reference("getForRender"),{postId:f.ids.post});expect(restored.document.blocks[0].attrs.requiredPlan).toBe(planId);
@@ -2339,11 +2342,11 @@ test("recipe block saves, publishes, restores and withdraws exact source content
   const setting=await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","plugins")).unique();await ctx.db.patch(setting!._id,{values:{recipesEnabled:true,membershipEnabled:false}});
   return ctx.db.insert("recipes",{title:"Sunday beans",slug:"sunday-beans",status:"publish",authorId:f.ids.user,categoryIds:[],ingredients:["Beans"],instructions:["Cook until tender."],aiExtractedFromScan:false,isFeatured:false,publishedAt:1,createdAt:1,updatedAt:1});
  });const initial=await initialize(f),blocks=[{id:"recipe",name:"gallery/recipe-card",version:1,attrs:{recipe:recipeId}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Sunday table",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Sunday table",blocksJson: JSON.stringify(blocks)});
  const editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("gallery/recipe-card");expect(editor.data.dataByBlock.recipe.data.recipe.id).toBe(recipeId);
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  expect((await f.t.query(reference("getForRender"),{postId:f.ids.post})).data.dataByBlock.recipe.data.recipe.ingredients).toEqual(["Beans"]);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Sunday table",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Sunday table",blocksJson: JSON.stringify([])});
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const previous=history.page.find((entry:any)=>entry.blocksVersion===2);expect(previous).toBeDefined();
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:previous.id,expectedRevision:saved.revision});
  const restored=await f.t.query(reference("getForRender"),{postId:f.ids.post});expect(restored.document.blocks[0].attrs.recipe).toBe(recipeId);expect(restored.data.dataByBlock.recipe.data.recipe.id).toBe(recipeId);
@@ -2367,7 +2370,7 @@ test('instructor picker requires document authority and pages only active site t
  expect(rows).toEqual([{id:f.ids.user,displayName:'Public instructor'}]);
  const blocks=[{id:'teacher',name:'lms/instructor',version:1,attrs:{instructor:f.ids.user}}];
  const current=await initialize(f);
- await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:current.revision,title:'Instructor study',blocks});
+ await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:current.revision,title:'Instructor study',blocksJson: JSON.stringify(blocks)});
  await f.t.run(ctx=>ctx.db.patch(f.ids.post,{status:'publish'}));
  const rendered=await f.t.query(reference('getForRender'),{postId:f.ids.post});
  expect(rendered.data.dataByBlock.teacher.data.instructor.name).toBe('Public instructor');
@@ -2387,7 +2390,7 @@ test('learner progress course picker, canonical save and anonymous versus authen
  const options=await f.client.query(reference('courseOptions'),args);expect(options.page).toEqual([{id:course,title:'Progress course',slug:'progress-course'}]);
  await expect(f.t.query(reference('courseOptions'),args)).rejects.toThrow();expect(await code(()=>f.as(f.ids.denied).query(reference('courseOptions'),args))).toBe('FORBIDDEN');
  const blocks=[{id:'learning',name:'lms/progress',version:1,attrs:{scope:'course',course}}];
- await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initial.revision,title:'Learning study',blocks});
+ await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initial.revision,title:'Learning study',blocksJson: JSON.stringify(blocks)});
  await f.t.run(ctx=>ctx.db.patch(f.ids.post,{status:'publish'}));
  const anonymous=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(anonymous.data.dataByBlock.learning.data).toEqual({state:'signedOut',items:[],cursor:null,nextCursor:null});
  const own=await f.client.query(reference('getForRender'),{postId:f.ids.post});expect(own.data.dataByBlock.learning.data.items[0].progress).toEqual({completed:0,total:0,percent:0});expect(JSON.stringify(own)).not.toContain('PRIVATE COURSE BODY');
@@ -2406,7 +2409,7 @@ test('curriculum course selection persists through canonical save and public ren
   return course;
  });
  const options=await f.client.query(reference('courseOptions'),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:6}});expect(options.page).toContainEqual({id:course,title:'Curriculum course',slug:'curriculum-course'});
- await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initial.revision,title:'Curriculum study',blocks:[{id:'outline',name:'lms/curriculum',version:1,attrs:{course,expanded:true}}]});
+ await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:initial.revision,title:'Curriculum study',blocksJson: JSON.stringify([{id:'outline',name:'lms/curriculum',version:1,attrs:{course,expanded:true}}])});
  await f.t.run(ctx=>ctx.db.patch(f.ids.post,{status:'publish'}));
  const rendered=await f.t.query(reference('getForRender'),{postId:f.ids.post}),data=rendered.data.dataByBlock.outline.data;
  expect(data.course.id).toBe(course);expect(data.groups[0].topic.title).toBe('Foundations');expect(data.groups[0].entries[0].title).toBe('First steps');expect(JSON.stringify(rendered)).not.toContain('PRIVATE');expect(JSON.stringify(rendered)).not.toContain('lesson.mp4');
@@ -2445,7 +2448,7 @@ test("help category picker is document-authorized and paginated; saved search ke
   expect(found).toEqual(categories);
   await f.client.mutation(reference("save", "mutation"), {
     postId: f.ids.post, expectedRevision: initial.revision, title: "Help library",
-    blocks: [{ id: "help", name: "support/kb-search", version: 1, attrs: { category: categories[0], placeholder: "Search the guides" } }],
+    blocksJson: JSON.stringify([{ id: "help", name: "support/kb-search", version: 1, attrs: { category: categories[0], placeholder: "Search the guides" } }]),
   });
   await f.t.run(ctx => ctx.db.patch(f.ids.post, { status: "publish" }));
   const rendered = await f.t.query(reference("getForRender"), { postId: f.ids.post });
@@ -2482,11 +2485,11 @@ test("album block saves, publishes, restores and withdraws its selected album th
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("gallery/album");
  const blocks=[{id:"album-block",name:"gallery/album",version:1,attrs:{album}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"A weekend",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"A weekend",blocksJson: JSON.stringify(blocks)});
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const publicRead=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});const live=await publicRead();expect(live.data.dataByBlock["album-block"].data.album.id).toBe(album);
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const revision=history.page.find((entry:any)=>entry.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"A weekend",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"A weekend",blocksJson: JSON.stringify([])});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].attrs.album).toBe(album);
  await f.t.run(ctx=>ctx.db.patch(album,{visibility:"private"}));const withdrawn=await publicRead();expect(withdrawn.data.dataByBlock["album-block"].data.album).toBeNull();expect(withdrawn.document.blocks[0].attrs.album).toBe(album);
 });
@@ -2502,12 +2505,12 @@ test("related content saves, publishes and restores through canonical endpoints 
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("core/related-content");
  const blocks=[{id:"related",name:"core/related-content",version:1,attrs:{type:"post",limit:3}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Related study",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Related study",blocksJson: JSON.stringify(blocks)});
  expect(await f.t.query(reference("getForRender"),{postId:f.ids.post})).toBeNull();
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const publicRead=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});const live=await publicRead();expect(live.data.dataByBlock.related.data.items[0].id).toBe(candidate);expect(JSON.stringify(live)).not.toContain("PRIVATE SOURCE BODY");
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const revision=history.page.find((entry:any)=>entry.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Related study",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Related study",blocksJson: JSON.stringify([])});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].name).toBe("core/related-content");
  await f.t.run(ctx=>ctx.db.patch(candidate,{visibility:"private"}));expect((await publicRead()).data.dataByBlock.related.data.items).toEqual([]);
 });
@@ -2520,11 +2523,11 @@ test("archive list saves, publishes and restores its grouping through canonical 
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("core/archive-list");
  const blocks=[{id:"dates",name:"core/archive-list",version:1,attrs:{groupBy:"year",limit:3}}];
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Archive study",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Archive study",blocksJson: JSON.stringify(blocks)});
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const publicRead=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});const live=await publicRead();expect(live.data.dataByBlock.dates.data.items).toEqual([{year:2026,month:null,href:"/archive?year=2026"}]);expect(JSON.stringify(live)).not.toContain("PRIVATE ARCHIVE BODY");
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});const revision=history.page.find((entry:any)=>entry.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Archive study",blocks:[]});
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Archive study",blocksJson: JSON.stringify([])});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].attrs.groupBy).toBe("year");
 });
 
@@ -2532,10 +2535,10 @@ test("archive list saves, publishes and restores its grouping through canonical 
 test("language switcher survives canonical save, publication and revision restoration",async()=>{
  const f=await fixture();await f.t.run(async ctx=>{const user=await ctx.db.get(f.ids.user);await ctx.db.patch(user!.roleId!,{capabilities:["page.update","page.publish","revision.restore"]});});
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("core/language-switcher");
- const blocks=[{id:"languages",name:"core/language-switcher",version:1,attrs:{}}];let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Language study",blocks});saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
+ const blocks=[{id:"languages",name:"core/language-switcher",version:1,attrs:{}}];let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Language study",blocksJson: JSON.stringify(blocks)});saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});
  const publicRead=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});expect((await publicRead()).data.dataByBlock.languages.data).toEqual({enabled:false,currentLocale:null,items:[]});
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}}),revision=history.page.find((entry:any)=>entry.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Language study",blocks:[]});await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].name).toBe("core/language-switcher");
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Language study",blocksJson: JSON.stringify([])});await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await publicRead()).document.blocks[0].name).toBe("core/language-switcher");
 });
 
 test("RSVP event choices enforce document authority, pagination and enabled future events",async()=>{
@@ -2555,10 +2558,10 @@ test("RSVP block saves, publishes, restores and withdraws its event through cano
   return ctx.db.insert("extension_events",{title:"Meet the makers",slug:"meet-the-makers",description:"",startsAt:Date.now()+86400000,endsAt:Date.now()+90000000,timeZone:"America/Denver",venue:"Studio",venueAddress:"",status:"published",rsvp:{mode:"guests",capacity:3,closesAt:null},createdBy:f.ids.user,createdAt:1,updatedAt:1});
  });const initial=await initialize(f),blocks=[{id:"rsvp",name:"core/event-rsvp",version:1,attrs:{event}}];
  const editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("core/event-rsvp");
- let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Join us",blocks});
+ let saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:initial.revision,title:"Join us",blocksJson: JSON.stringify(blocks)});
  saved=await f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,status:"publish"});const read=()=>f.t.query(reference("getForRender"),{postId:f.ids.post});expect((await read()).data.dataByBlock.rsvp.data.rsvp.eventId).toBe(event);
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}}),revision=history.page.find((row:any)=>row.blocksVersion===2);
- saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Join us",blocks:[]});await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await read()).document.blocks[0].attrs.event).toBe(event);
+ saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,title:"Join us",blocksJson: JSON.stringify([])});await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,revisionId:revision.id,expectedRevision:saved.revision});expect((await read()).document.blocks[0].attrs.event).toBe(event);
  await f.t.run(ctx=>ctx.db.patch(event,{status:"draft"}));expect((await read()).data.dataByBlock.rsvp.data.rsvp).toBeNull();
 });
 
@@ -2574,13 +2577,13 @@ test("authenticated preview filters gated roots but preserves raw authoring thro
     const plan = await ctx.db.insert("membership_plans", { title: "Private preview", slug: "private-preview", status: "active", grantMode: "manual", priority: 1, createdAt: 1, updatedAt: 1 });
     await ctx.db.insert("membership_restriction_rules", { resourceType: "block", resourceIdOrKey: "hidden-preview", ruleMode: "allow_only", planIds: [plan], loginRequired: true, teaserMode: "hide", createdAt: 1, updatedAt: 1 });
   });
-  await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, title: "Preview page", blocks });
+  await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, title: "Preview page", blocksJson: JSON.stringify(blocks) });
   const read = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(read.document.blocks).toHaveLength(2);expect(JSON.stringify(read.document.blocks)).toContain("KEEP_AUTHORED_SECRET");
   expect(read.displayBlocks.map((row: {id:string}) => row.id)).toEqual(["visible-preview"]);
   expect(read.displayLease.expiresAt - read.displayLease.evaluatedAt).toBe(60000);
   expect(read.data.dataByBlock).toEqual({});expect(read.resources.media).toEqual({});
-  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocks: read.document.blocks });
+  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocksJson: JSON.stringify(read.document.blocks) });
   expect(saved.changed).toBe(false);
   const reopened = await f.client.query(reference("get"), { postId: f.ids.post });expect(reopened.document.blocks).toEqual(read.document.blocks);expect(reopened.document.digest).toBe(read.document.digest);
   for (const client of [f.t]) await expect(client.query(reference("get"), { postId: f.ids.post })).rejects.toThrow();
@@ -2617,7 +2620,7 @@ test("gated authored media stays repairable without exposing a URL or bypassing 
   const read = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(read.document.blocks[0].attrs.mediaId).toBe("invalid-private-image");expect(read.displayBlocks).toEqual([]);expect(read.resources.media).toEqual({});
   const before = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
-  await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocks: read.document.blocks })).rejects.toThrow();
+  await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocksJson: JSON.stringify(read.document.blocks) })).rejects.toThrow();
   expect(await f.t.run(ctx => ctx.db.get("posts", f.ids.post))).toEqual(before);
 });
 
@@ -2627,15 +2630,15 @@ test("ordinary editor drafts preview without AI permission and never write conte
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { blocksVersion: 2, blocksRevision: 3, blocks: [] }));
   const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
   const args = { postId: f.ids.post, expectedRevision: 3, title: "Unsaved title", blocks: [{ id: "preview-heading", name: "core/heading", version: 2, attrs: {} }] };
-  const result = await f.client.query(reference("previewDraft"), args);
+  const result = await f.client.query(reference("previewDraft"), wire(args));
   expect(result.document.title).toBe("Unsaved title");
   expect(result.document.blocks[0].id).toBe("preview-heading");
   expect(result.document.revision).toBe(3);
   expect(result.displayLease.expiresAt).toBeGreaterThan(Date.now());
-  await expect(f.client.query(reference("previewDraft"), { ...args, expectedRevision: 2 })).rejects.toThrow();
-  await expect(f.as(f.ids.denied).query(reference("previewDraft"), args)).rejects.toThrow();
-  await expect(f.t.query(reference("previewDraft"), args)).rejects.toThrow();
-  await expect(f.client.query(reference("previewDraft"), { ...args, blocks: [{ ...args.blocks[0], attrs: { unexpected: true } }] })).rejects.toThrow();
+  await expect(f.client.query(reference("previewDraft"), wire({ ...args, expectedRevision: 2 }))).rejects.toThrow();
+  await expect(f.as(f.ids.denied).query(reference("previewDraft"), wire(args))).rejects.toThrow();
+  await expect(f.t.query(reference("previewDraft"), wire(args))).rejects.toThrow();
+  await expect(f.client.query(reference("previewDraft"), wire({ ...args, blocksJson: JSON.stringify([{ ...args.blocks[0], attrs: { unexpected: true } }]) }))).rejects.toThrow();
   expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
 });
 
@@ -2692,11 +2695,11 @@ test("canonical writes and recovery notify content listeners, while no-ops and c
     const updates = () => f.t.run(async ctx => (await ctx.db.query("events").take(30)).filter(event => event.code === `${type}.updated`));
     const first = await initialize(f);
     expect(await updates()).toHaveLength(1);
-    await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Disposable draft", blocks: tree });
+    await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Disposable draft", blocksJson: JSON.stringify(tree) });
     expect(await updates()).toHaveLength(1);
-    const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Searchable changed title", blocks: tree });
+    const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Searchable changed title", blocksJson: JSON.stringify(tree) });
     expect(await updates()).toHaveLength(2);
-    await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Stale title", blocks: tree })).rejects.toThrow();
+    await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Stale title", blocksJson: JSON.stringify(tree) })).rejects.toThrow();
     expect(await updates()).toHaveLength(2);
     const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
     const original = history.page.find((row: any) => row.action === "restore-canonical")!;
@@ -2768,7 +2771,7 @@ test("long article paragraphs migrate, save, reopen and recover without splittin
     if(!structured) expect(block.attrs.body).toEqual(originalBody);
     else expect(block.attrs.body.content[0].content.map((node:{text?:string})=>node.text??"").join("")).toBe(text+"https://example.org/source");
     block.attrs.body.content[0].content[0].text+="An editorial addition.";
-    const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:reopened.document.title,blocks:reopened.document.blocks});
+    const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:reopened.document.title,blocksJson: JSON.stringify(reopened.document.blocks)});
     const savedRead=await f.client.query(reference("get"),{postId:f.ids.post});
     expect(savedRead.document.blocks).toEqual(reopened.document.blocks);
     const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{numItems:20,cursor:null}});
@@ -2787,7 +2790,7 @@ test("revision restore and historical import honor saved locks before creating h
   const locked = before.document.blocks.map((block: any) => ({ ...block, lock: { edit: true, move: true, remove: true } }));
   // Change content before locking, so the older canonical revision is protected too.
   locked[0].anchor = "protected-revision";
-  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: before.document.revision, title: before.document.title, blocks: locked });
+  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: before.document.revision, title: before.document.title, blocksJson: JSON.stringify(locked) });
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const canonical = history.page.find((row: any) => row.action === "restore-canonical");
   const legacy = history.page.find((row: any) => row.action === "import-legacy");
@@ -2798,7 +2801,7 @@ test("revision restore and historical import honor saved locks before creating h
     expect(await f.t.run(ctx => ctx.db.get("posts", f.ids.post))).toEqual(stored);
     expect(await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } })).toEqual(history);
   }
-  const unlocked = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: before.document.title, blocks: locked.map((block: any) => ({ ...block, lock: {} })) });
+  const unlocked = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: before.document.title, blocksJson: JSON.stringify(locked.map((block: any) => ({ ...block, lock: {} }))) });
   const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: canonical.id, expectedRevision: unlocked.revision });
   expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(before.document.blocks);
   await importOriginal(f, { postId: f.ids.post, revisionId: legacy.id, expectedRevision: restored.revision });
@@ -2813,7 +2816,7 @@ test("audience visibility prunes public ancestors and resources while authorized
     { ...heading("members", "MEMBER_ONLY_COPY"), visibility: "signedIn" },
     { ...heading("guests", "GUEST_ONLY_COPY"), visibility: "signedOut" },
     { id: "member-section", name: "core/section", version: 1, attrs: {}, visibility: "signedIn", children: [heading("inherited", "INHERITED_MEMBER_COPY")] }];
-  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Audience controls", blocks });
+  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Audience controls", blocksJson: JSON.stringify(blocks) });
   const editor = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(editor.document.blocks.map((node: any) => node.id)).toEqual(blocks.map(node => node.id));
   expect(editor.displayBlocks.map((node: any) => node.id)).toEqual(blocks.map(node => node.id));
@@ -2914,11 +2917,11 @@ test('author bio selected and manual cards survive actual save, preview, restore
  let opened=await f.client.query(reference('get'),{postId:f.ids.post});
  expect(opened.policy.disabledBlocks).not.toContain('core/author-bio');
  const args={postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocks};
- const preview=await f.client.query(reference('previewDraft'),args);expect(preview.data.dataByBlock.selected.data.author.id).toBe(f.ids.denied);
- const saved=await f.client.mutation(reference('save','mutation'),args);
+ const preview=await f.client.query(reference('previewDraft'),wire(args));expect(preview.data.dataByBlock.selected.data.author.id).toBe(f.ids.denied);
+ const saved=await f.client.mutation(reference('save','mutation'),wire(args));
  opened=await f.client.query(reference('get'),{postId:f.ids.post});const first=opened.document.blocks;expect(first[0].attrs).toMatchObject(blocks[0].attrs);
  const changed=structuredClone(first);changed[0].attrs.name='Changed name';
- const edited=await f.client.mutation(reference('save','mutation'),{...args,blocks:changed,expectedRevision:saved.revision});
+ const edited=await f.client.mutation(reference('save','mutation'),wire({...args,blocksJson: JSON.stringify(changed),expectedRevision:saved.revision}));
  const history=await f.client.query(reference('pageRevisions'),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
  const prior=history.page.find((row:any)=>row.revisionNumber===edited.revision);expect(prior).toBeDefined();
  const restored=await f.client.mutation(reference('restore','mutation'),{postId:f.ids.post,expectedRevision:edited.revision,revisionId:prior.id});
@@ -2931,7 +2934,7 @@ test('current author follows the authorized host document and never silently cha
  await f.t.run(async ctx=>{await ctx.db.patch('users',f.ids.denied,{displayName:'Current post writer',slug:'current-writer'});});
  let opened=await f.client.query(reference('get'),{postId:f.ids.post});
  const blocks=[{id:'current',name:'core/author-bio',version:2,attrs:{useCurrentAuthor:true}},{id:'manual',name:'core/author-bio',version:2,attrs:{name:'Preserved manual author'}}];
- await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocks});
+ await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocksJson: JSON.stringify(blocks)});
  await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{authorId:f.ids.denied,status:'publish'}));
  let result=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(result.data.dataByBlock.current.data.author.id).toBe(f.ids.denied);expect(result.data.dataByBlock.manual.data.author).toBeNull();
  await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{authorId:f.ids.user}));result=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(result.data.dataByBlock.current.data.author.id).toBe(f.ids.user);
@@ -2951,14 +2954,14 @@ test("social-share URL write rules preserve historical recovery but reject inval
   const before=await snapshot(),args={postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocks:opened.document.blocks};
   for(const customUrl of ["/old-relative","javascript:alert(1)","https://user:secret@example.test","mailto:person@example.test"]){
     const blocks=structuredClone(args.blocks);blocks[0].attrs.customUrl=customUrl;
-    for(const operation of [()=>f.client.mutation(reference("save","mutation"),{...args,blocks}),()=>f.client.query(reference("previewDraft"),{...args,blocks})]){
+    for(const operation of [()=>f.client.mutation(reference("save","mutation"),wire({...args,blocksJson: JSON.stringify(blocks)})),()=>f.client.query(reference("previewDraft"),wire({...args,blocksJson: JSON.stringify(blocks)}))]){
       await expect(operation()).rejects.toMatchObject({data:{code:"INVALID_CANONICAL_DOCUMENT"}});expect(await snapshot()).toEqual(before);
     }
   }
   await expect(f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:args.expectedRevision,status:"publish"})).rejects.toMatchObject({data:{code:"INVALID_CANONICAL_DOCUMENT"}});
   expect(await snapshot()).toEqual(before);
   const blocks=structuredClone(args.blocks);blocks[0].attrs.customUrl="https://example.test/story?q=a&b=c#notes";
-  const saved=await f.client.mutation(reference("save","mutation"),{...args,blocks});
+  const saved=await f.client.mutation(reference("save","mutation"),wire({...args,blocksJson: JSON.stringify(blocks)}));
   const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
   const old=history.page.find((row:any)=>row.blocksVersion===2);expect(old).toBeDefined();
   await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,revisionId:old.id});
@@ -3055,7 +3058,7 @@ for(const type of ["post","page"] as const) test(`new ${type} is immediately can
  expect(row!.publishedAt).toBeUndefined();expect(row!.scheduledAt).toBeUndefined();
  const read=await f.client.query(reference("get"),{postId:receipt.postId});expect(read.document.blocks).toEqual([]);expect(read.document.revision).toBe(1);
  expect((await f.client.query(reference("pageRevisions"),{postId:receipt.postId,paginationOpts:{cursor:null,numItems:20}})).page).toEqual([]);
- const saved=await f.client.mutation(reference("save","mutation"),{postId:receipt.postId,expectedRevision:1,title:"First authored save",blocks:[{id:"body",name:"core/paragraph",version:2,attrs:{}}]});expect(saved.revision).toBe(2);
+ const saved=await f.client.mutation(reference("save","mutation"),{postId:receipt.postId,expectedRevision:1,title:"First authored save",blocksJson: JSON.stringify([{id:"body",name:"core/paragraph",version:2,attrs:{}}])});expect(saved.revision).toBe(2);
  const history=await f.client.query(reference("pageRevisions"),{postId:receipt.postId,paginationOpts:{cursor:null,numItems:20}});expect(history.page).toHaveLength(1);expect(history.page[0].blocksVersion).toBe(2);
  const again=await f.client.mutation(reference("create","mutation"),{type,title:"Fresh canonical draft"});const second=await f.t.run(ctx=>ctx.db.get("posts",again.postId));expect(second!.slug).toBe("fresh-canonical-draft-2");
  if(type==="page"){expect(row).toMatchObject({path:"/fresh-canonical-draft",depth:0,pageTemplate:"default"});expect(second!.path).toBe("/fresh-canonical-draft-2");}
@@ -3087,7 +3090,7 @@ test("Quick Draft creates editable canonical text with unique slugs and one pair
  expect(opened.document.blocks).toEqual([{id:"quick-draft-body",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"<b>literal HTML</b> & **literal Markdown**"},{type:"hardBreak"},{type:"text",text:"Second line"},{type:"hardBreak"},{type:"hardBreak"},{type:"text",text:"Last line"}]}]}}}]);
  expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toHaveLength(0);
  const listed=await f.client.query(makeFunctionReference<"query">("dashboard/queries:getQuickDrafts"),{});expect(listed!.find((p:any)=>p._id===postId).excerpt).toContain("<b>literal HTML</b>");
- const saved=await f.client.mutation(reference("save","mutation"),{postId,expectedRevision:1,title:"Edited quick draft",blocks:opened.document.blocks});expect(saved.revision).toBe(2);
+ const saved=await f.client.mutation(reference("save","mutation"),{postId,expectedRevision:1,title:"Edited quick draft",blocksJson: JSON.stringify(opened.document.blocks)});expect(saved.revision).toBe(2);
  expect((await f.client.query(reference("get"),{postId})).document.blocks).toEqual(opened.document.blocks);
  const second=await f.client.mutation(quick,{title:"Quick canonical",content:"  "});expect(await f.t.run(ctx=>ctx.db.get("posts",second))).toMatchObject({slug:"quick-canonical-2",blocksVersion:2,blocks:[]});
  const events=await f.t.run(ctx=>ctx.db.query("events").collect());
@@ -3550,7 +3553,7 @@ test("WordPress nested page import preserves route, publishing date and public c
 test("WordPress local edits and revoked owner authority are rechecked in the write transaction",async()=>{
  const f=await wordpressFixture("post"),id=await f.write();
  await f.t.run(async ctx=>{const {normalizeImportConfig}=await import("../../wordpressSync/validators");const config=normalizeImportConfig(undefined);config.behavior.preserveLocalEdits=true;await ctx.db.patch("wordpressSyncJobs",f.jobId,{importConfig:config});});
- await f.client.mutation(reference("save","mutation"),{postId:id,expectedRevision:1,title:"Local edit",blocks:tree});
+ await f.client.mutation(reference("save","mutation"),{postId:id,expectedRevision:1,title:"Local edit",blocksJson: JSON.stringify(tree)});
  const before=await f.state(),post=before.posts.find(p=>p._id===id)!;
  await expect(f.write({existingId:id,expectedRevision:post.blocksRevision,expectedUpdatedAt:post.updatedAt,sourceHash:"changed-source"})).rejects.toMatchObject({data:{code:"IMPORT_LOCAL_EDIT_CONFLICT"}});
  expect(await f.state()).toEqual(before);
@@ -3752,7 +3755,7 @@ test("canonical initialize and later save do not repopulate retired live fields"
  const f=await fixture();await initialize(f);
  let post=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
  for(const key of ["content","contentMode","pageSections"])expect(Object.hasOwn(post,key)).toBe(false);
- await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:post.blocksRevision,title:"Changed canonical title",blocks:post.blocks});
+ await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:post.blocksRevision,title:"Changed canonical title",blocksJson: JSON.stringify(post.blocks)});
  post=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
  for(const key of ["content","contentMode","pageSections"])expect(Object.hasOwn(post,key)).toBe(false);
 });
@@ -3767,7 +3770,7 @@ test("restoring canonical history never reintroduces archived legacy columns",as
   await ctx.db.patch("revisions",original._id,{...authoringSnapshot(before),snapshotVersion:2,content:"Original legacy source",pageSections:[{type:"text",body:"Original sections"}]});
   return (await ctx.db.get("revisions",original._id))!;
  });
- const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:before.blocksRevision,title:"Changed title",blocks:before.blocks});
+ const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:before.blocksRevision,title:"Changed title",blocksJson: JSON.stringify(before.blocks)});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,revisionId:archive._id});
  const after=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
  expect(after.title).toBe(before.title);expect(after.blocks).toEqual(before.blocks);

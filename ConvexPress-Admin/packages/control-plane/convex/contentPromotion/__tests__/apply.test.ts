@@ -219,7 +219,7 @@ async function canonicalTargetFixture({ withMedia = false, legacySource = false 
         return result;
       };
     }
-    current.remote.dryRun = async (_target, _token, manifest, request) => authed.mutation(makeFunctionReference<"mutation">("contentPromotion/operations:dryRun"), { manifest, mediaBindings: request.mediaBindings, dependencyBindings: request.dependencyBindings });
+    current.remote.dryRun = async (_target, _token, manifest, request) => authed.mutation(makeFunctionReference<"mutation">("contentPromotion/operations:dryRun"), { manifestJson: JSON.stringify(manifest), mediaBindings: request.mediaBindings, dependencyBindings: request.dependencyBindings });
     return {
       status: (_target, _token, receiptId) => authed.query(makeFunctionReference<"query">("contentPromotion/operations:receiptStatus"), { receiptId }),
       retire: (_target, _token, receiptId, expectedDigest) => authed.mutation(makeFunctionReference<"mutation">("contentPromotion/operations:retireExpiredReview"), { receiptId, expectedDigest }),

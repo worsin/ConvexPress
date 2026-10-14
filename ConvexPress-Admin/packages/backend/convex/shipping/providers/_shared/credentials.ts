@@ -15,10 +15,14 @@
  */
 
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 
 import type { ActionCtx } from "../../../_generated/server";
 import { internal } from "../../../_generated/api";
 import { decryptSecret } from "../../../api/crypto_helpers";
+import { parseExternalJson } from "../../../helpers/externalJson";
+
+const storedCredentialsSchema = z.record(z.string(), z.unknown());
 
 const SHIPPING_ENCRYPTION_KEY = process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;
 
@@ -50,5 +54,19 @@ export async function getDecryptedProviderPayload(
     SHIPPING_ENCRYPTION_KEY,
   );
 
-  return JSON.parse(decrypted) as Record<string, string | undefined>;
+  // Saved credentials are a JSON object of strings (saveProviderSecret); a
+  // value of any other type is not a credential and is left out, as the
+  // legacy reader in shipping/actions.ts does.
+  const parsed = parseExternalJson(decrypted, storedCredentialsSchema);
+  if (!parsed.ok) {
+    throw new ConvexError({
+      code: "CONFIG_ERROR",
+      message: `${provider.toUpperCase()} saved credentials could not be read (${parsed.problem}). Save them again.`,
+    });
+  }
+  const credentials: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(parsed.value)) {
+    if (typeof value === "string") credentials[key] = value;
+  }
+  return credentials;
 }

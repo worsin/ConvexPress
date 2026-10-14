@@ -136,6 +136,7 @@ export const lmsTables = {
     catalogIndexVersion: v.optional(v.literal(1)),
     title: v.string(),
     slug: v.string(),
+    // v.any(): Tiptap JSON; writes now use tiptapDocValidator (lms/tiptapDoc.ts), but imported rows may nest deeper or carry non-scalar attrs.
     descriptionDoc: v.optional(v.any()), // Tiptap JSON
     excerpt: v.optional(v.string()),
     status: lmsCourseStatusValidator,
@@ -167,6 +168,7 @@ export const lmsTables = {
 
     certificateId: v.optional(v.id("lms_certificates")),
     completionRedirectUrl: v.optional(v.string()),
+    // v.any(): Tiptap JSON; writes now use tiptapDocValidator (lms/tiptapDoc.ts), but imported rows may nest deeper or carry non-scalar attrs.
     materialsDoc: v.optional(v.any()),
 
     // Denormalized counts (kept fresh on tree change)
@@ -216,7 +218,9 @@ export const lmsTables = {
     topicDripDate: v.optional(v.number()),
 
     // Lesson-owned
+    // v.any(): Tiptap JSON from authoring and imports; recursive, and stored rows are unaudited for a depth bound.
     bodyDoc: v.optional(v.any()), // Tiptap JSON
+    // v.any(): Tiptap JSON from authoring and imports; recursive, and stored rows are unaudited for a depth bound.
     materialsDoc: v.optional(v.any()),
     videoUrl: v.optional(v.string()),
     videoProvider: v.optional(v.string()),
@@ -249,7 +253,9 @@ export const lmsTables = {
 
   lms_lessonVersions: defineTable({
     nodeId: v.id("lms_nodes"),
+    // v.any(): a snapshot of a lesson's Tiptap JSON; recursive, and stored rows are unaudited for a depth bound.
     bodyDoc: v.any(),
+    // v.any(): a snapshot of the lesson row as it was; the row shape changed over time, so old snapshots differ.
     snapshotJson: v.optional(v.any()),
     editedBy: v.id("users"),
     createdAt: v.number(),
@@ -329,6 +335,7 @@ export const lmsTables = {
   // ── Certificates ────────────────────────────────────────────────────
   lms_certificates: defineTable({
     title: v.string(),
+    // v.any(): Tiptap/HTML layout; writes now use tiptapDocValidator, but older rows may hold other layouts.
     templateDoc: v.any(), // Tiptap/HTML layout with merge tokens
     orientation: v.union(v.literal("landscape"), v.literal("portrait")),
     backgroundMediaId: v.optional(v.id("media")),
@@ -365,7 +372,9 @@ export const lmsTables = {
     model: v.string(),
     modelVersion: v.optional(v.string()),
     prompt: v.string(),
+    // v.any(): model-produced course brief kept as returned; its shape belongs to the model output.
     briefJson: v.optional(v.any()),
+    // v.any(): research sources kept as the search provider returned them.
     sourcesJson: v.optional(v.any()),
     tokens: v.optional(v.number()),
     label: lmsAiLabelValidator,

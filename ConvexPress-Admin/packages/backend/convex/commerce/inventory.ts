@@ -9,6 +9,7 @@ import { internal } from "../_generated/api";
 import { mutation, query, internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
+import { parseOptionalJsonObjectArgument } from "../helpers/jsonArgs";
 import { requireCommerceEnabled } from "./helpers";
 import { activePriceAmount } from "./activePrice";
 import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
@@ -941,7 +942,8 @@ export const upsertLocationLevel = mutation({
     allowBackorders: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
     externalInventoryItemId: v.optional(v.string()),
-    metadata: v.optional(v.any()),
+    /** Open-ended integrator metadata as a JSON object, JSON-encoded. */
+    metadataJson: v.optional(v.string()),
   },
   returns: v.id("commerce_inventory_levels"),
   handler: async (ctx, args) => {
@@ -966,7 +968,7 @@ export const upsertLocationLevel = mutation({
       allowBackorders: args.allowBackorders,
       isActive: args.isActive ?? true,
       externalInventoryItemId: args.externalInventoryItemId,
-      metadata: args.metadata,
+      metadata: parseOptionalJsonObjectArgument(args.metadataJson, "metadataJson"),
       updatedAt: now,
     };
 

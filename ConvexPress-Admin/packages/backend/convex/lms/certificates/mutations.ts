@@ -16,12 +16,13 @@ import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { DEFAULT_CERTIFICATE_TEMPLATE_TEXT } from "./rendering";
+import { tiptapDocValidator } from "../tiptapDoc";
 
 export const createTemplate = mutation({
   args: {
     title: v.string(),
     orientation: v.optional(v.union(v.literal("landscape"), v.literal("portrait"))),
-    templateDoc: v.optional(v.any()),
+    templateDoc: v.optional(tiptapDocValidator),
   },
   returns: v.id("lms_certificates"),
   handler: async (ctx, args) => {
@@ -45,7 +46,7 @@ export const updateTemplate = mutation({
     certificateId: v.id("lms_certificates"),
     title: v.optional(v.string()),
     orientation: v.optional(v.union(v.literal("landscape"), v.literal("portrait"))),
-    templateDoc: v.optional(v.any()),
+    templateDoc: v.optional(tiptapDocValidator),
     isActive: v.optional(v.boolean()),
   },
   returns: v.id("lms_certificates"),

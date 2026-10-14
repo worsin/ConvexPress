@@ -44,7 +44,7 @@ export const snapshot = query({
 
 export const publish = mutation({
   args: {
-    values: v.any(), expectedRevision: v.string(), confirmLive: v.optional(v.boolean()),
+    values: appearanceTemplateSettingsValidator, expectedRevision: v.string(), confirmLive: v.optional(v.boolean()),
     source: v.optional(v.object({ websiteKey: v.string(), instanceKey: v.string(), environmentKind: v.literal("staging"), revision: v.string() })),
   },
   returns: templateSnapshotValidator,
@@ -85,7 +85,7 @@ export const getDraft = query({
   },
 });
 export const saveDraft = mutation({
-  args: { packId: v.string(), sourceRevision: v.string(), expectedDraftRevision: v.union(v.null(), v.string()), values: v.any(), variants: v.record(v.string(), v.string()) },
+  args: { packId: v.string(), sourceRevision: v.string(), expectedDraftRevision: v.union(v.null(), v.string()), values: packValuesValidator, variants: v.record(v.string(), v.string()) },
   returns: v.object({ revision: v.string() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "manage_options");

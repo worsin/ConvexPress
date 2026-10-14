@@ -76,7 +76,7 @@ describe("settings mutations", () => {
       const t = createHarness(), admin = await seedAdmin(t);
       const save = (values: Record<string, unknown>) => operation === "update"
         ? admin.mutation(api.settings.mutations.updateSection, { section: "ai", values })
-        : admin.mutation(api.settings.mutations.importAll, { data: { settings: { ai: values } } });
+        : admin.mutation(api.settings.mutations.importAll, { dataJson: JSON.stringify({ settings: { ai: values } }) });
       const read = () => t.run(async ctx => (await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "ai")).unique())!.values as Record<string, unknown>);
       await save({ provider: "openrouter", apiKey: "synthetic-router-key" });
       const first = await read();
@@ -116,7 +116,7 @@ describe("settings mutations", () => {
       const admin = await seedAdmin(t);
       const save = (values: Record<string, unknown>) => operation === "update"
         ? admin.mutation(api.settings.mutations.updateSection, { section: "general", values })
-        : admin.mutation(api.settings.mutations.importAll, { data: { settings: { general: values } } });
+        : admin.mutation(api.settings.mutations.importAll, { dataJson: JSON.stringify({ settings: { general: values } }) });
       await save({ ...getDefaults("general"), siteTitle: "Saved site title", tagline: "Keep our tagline", siteUrl: "https://fixture.example.invalid", homeUrl: "https://fixture.example.invalid" });
       await save({ dateFormat: "Y-m-d" });
       const read = () => t.run(async (ctx) => (await ctx.db.query("settings").withIndex("by_section", (q) => q.eq("section", "general")).unique())!.values as Record<string, unknown>);
@@ -147,7 +147,7 @@ describe("settings mutations", () => {
       await admin.run((ctx) => {
         const wrapped = { ...ctx, scheduler: { runAfter: async (_delay: number, reference: any, args: any) => { scheduled.push({ reference, args }); return "fixture-schedule"; } } };
         if (operation === "email repair") return (repairSystem as any)._handler(wrapped, {});
-        if (operation === "email import") return (importAll as any)._handler(wrapped, { data: { settings: { email: { enabled: false } } } });
+        if (operation === "email import") return (importAll as any)._handler(wrapped, { dataJson: JSON.stringify({ settings: { email: { enabled: false } } }) });
         return (updateSection as any)._handler(wrapped, { section: "email", values: { enabled: false } });
       });
       for (const job of scheduled) {
@@ -166,17 +166,17 @@ describe("settings mutations", () => {
       const admin = await seedAdmin(t);
       const save = (values: Record<string, unknown>) => operation === "update"
         ? admin.mutation(api.settings.mutations.updateSection, { section: "commerce.payments", values })
-        : admin.mutation(api.settings.mutations.importAll, { data: { settings: { "commerce.payments": values } } });
+        : admin.mutation(api.settings.mutations.importAll, { dataJson: JSON.stringify({ settings: { "commerce.payments": values } }) });
       const read = () => t.run(async (ctx) => {
         const row = await ctx.db.query("settings").withIndex("by_section", (q) => q.eq("section", "commerce.payments")).unique();
         return row!.values as Record<string, unknown>;
       });
-      await save({ stripeSecretKey: "fixture-first-secret", paypalClientSecret: "fixture-paypal-secret", paypalMode: "production", customField: { prose: "Keep this value" } });
+      await save({ stripeSecretKey: "fixture-first-secret", paypalClientSecret: "fixture-paypal-secret", paypalMode: "production", methodOrder: ["paypal", "stripe"] });
       const before = await read();
       await save({ stripePublishableKey: "pk_fixture_updated" });
       const partial = await read();
       expect(partial.paypalMode).toBe("production");
-      expect(partial.customField).toEqual(before.customField);
+      expect(partial.methodOrder).toEqual(before.methodOrder);
       expect(partial.stripeSecretKey).toBe(before.stripeSecretKey);
       expect(partial.paypalClientSecret).toBe(before.paypalClientSecret);
       expect(await decryptSettingSecret(partial.stripeSecretKey as string)).toBe("fixture-first-secret");
@@ -203,6 +203,25 @@ describe("settings mutations", () => {
       expect(reset.paypalClientSecret).toBe("");
     });
   }
+
+  test("values must be the named section's fields: other sections' fields and mistyped values are field errors", async () => {
+    const t = createHarness();
+    const admin = await seedAdmin(t);
+    const before = await t.run((ctx) => ctx.db.query("settings").collect());
+
+    // `siteTitle` is a general setting, so it passes the args validator, but not a commerce.payments one.
+    await expect(admin.mutation(api.settings.mutations.updateSection, { section: "commerce.payments", values: { siteTitle: "Wrong section" } }))
+      .rejects.toMatchObject({ data: { code: "VALIDATION_ERROR", errors: [{ field: "siteTitle", message: '"siteTitle" is not a commerce.payments setting.' }] } });
+    // A field no section declares is refused by the args validator itself.
+    await expect(admin.mutation(api.settings.mutations.updateSection, { section: "commerce.payments", values: { customField: { prose: "Not a setting" } } }))
+      .rejects.toThrow();
+    // Import files are checked the same way, and must be JSON.
+    await expect(admin.mutation(api.settings.mutations.importAll, { dataJson: JSON.stringify({ settings: { "commerce.payments": { stripeMode: "test" } } }) }))
+      .rejects.toMatchObject({ data: { code: "VALIDATION_ERROR", errors: [{ field: "stripeMode" }] } });
+    await expect(admin.mutation(api.settings.mutations.importAll, { dataJson: "{not json" }))
+      .rejects.toMatchObject({ data: { code: "VALIDATION_ERROR" } });
+    expect(await t.run((ctx) => ctx.db.query("settings").collect())).toEqual(before);
+  });
 
   test("strips query document metadata before persisting settings values", async () => {
     const t = createHarness();

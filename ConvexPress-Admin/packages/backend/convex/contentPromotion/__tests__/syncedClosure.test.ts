@@ -6,11 +6,11 @@ const unused=async()=>{throw Error('Unexpected ordinary dependency');};
 async function setup(){
  const f=await fixture();
  await f.t.run(async ctx=>{const role=await ctx.db.get('roles',f.ids.role);await ctx.db.patch('roles',f.ids.role,{capabilities:[...role!.capabilities,'manage_options']});});
- const source=await f.operator.mutation(create,{title:'Published version',blocks:text});await f.release(source.id,1,1);
+ const source=await f.operator.mutation(create,{title:'Published version',blocksJson: JSON.stringify(text)});await f.release(source.id,1,1);
  return{...f,source,documents:[{key:'page:example',blocks:reference(source.id)}]};
 }
 test('database adapter captures published history and omits unpublished drafts and runtime identity',async()=>{
- const f=await setup();await f.operator.mutation(save,{id:f.source.id,expectedGeneration:2,title:'Private draft must stay here',blocks:text});
+ const f=await setup();await f.operator.mutation(save,{id:f.source.id,expectedGeneration:2,title:'Private draft must stay here',blocksJson: JSON.stringify(text)});
  const result=await f.operator.run(ctx=>captureSyncedPromotionClosure(ctx,f.documents,unused));
  expect(result.sources).toHaveLength(1);expect(result.sources[0].generation).toBe(3);expect(result.sources[0].revisions).toHaveLength(1);
  expect(result.sources[0].revisions[0].title).toBe('Published version');

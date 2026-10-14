@@ -6,7 +6,6 @@ import { assistantScope } from "./scope";
 import { resolveThread } from "./history";
 import { ensureSessionDoc, appendMessageToSession } from "./mutations";
 import { assistantBlockShapeValidator, productIdsInBlocks, storedBlocks, type AssistantBlock } from "./blocks";
-import { assistantBlockValidator } from "../../schema/commerceAssistant";
 import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
 // Convex actions have a ten-minute maximum lifetime. An interrupted execution
@@ -105,7 +104,7 @@ export const claim = internalMutation({
 
 export const complete = internalMutation({
   args: {
-    requestId: v.string(), blocks: v.array(assistantBlockValidator), text: v.optional(v.string()),
+    requestId: v.string(), blocks: v.array(assistantBlockShapeValidator), text: v.optional(v.string()),
     toolCalls: v.optional(v.array(v.any())), model: v.optional(v.string()), latencyMs: v.optional(v.number()),
     tokensIn: v.optional(v.number()), tokensOut: v.optional(v.number()), error: v.optional(v.string()),
   },

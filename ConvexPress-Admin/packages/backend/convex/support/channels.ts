@@ -12,6 +12,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { supportChannelConfigValidator, type SupportChannelConfig } from "./inboundSecurity";
 
 import { supportDocs } from "../schema/support.docs.generated";
 export const list = query({
@@ -49,7 +50,7 @@ export const getByCode = query({
   },
 });
 
-export const create: RegisteredMutation<"public", {code:string;kind:"email"|"slack"|"discord"|"twilio_sms"|"form"|"chat"|"api";label:string;config?:unknown;webhookUrl?:string},Id<"support_channels">> = mutation({
+export const create: RegisteredMutation<"public", {code:string;kind:"email"|"slack"|"discord"|"twilio_sms"|"form"|"chat"|"api";label:string;config?:SupportChannelConfig;webhookUrl?:string},Id<"support_channels">> = mutation({
   returns: v.id("support_channels"),
   args: {
     code: v.string(),
@@ -63,7 +64,7 @@ export const create: RegisteredMutation<"public", {code:string;kind:"email"|"sla
       v.literal("api"),
     ),
     label: v.string(),
-    config: v.optional(v.any()),
+    config: v.optional(supportChannelConfigValidator),
     webhookUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -98,7 +99,7 @@ export const update = mutation({
     id: v.id("support_channels"),
     label: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
-    config: v.optional(v.any()),
+    config: v.optional(supportChannelConfigValidator),
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {

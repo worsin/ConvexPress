@@ -5,7 +5,7 @@ import type { Doc } from "../_generated/dataModel";
 import { encryptSecret } from "../api/crypto_helpers";
 import { requireShippingAdmin } from "./helpers";
 import { shippingProviderValidator } from "../schema/shipping";
-import { saveProviderSecretArgs, upsertConnectionMetadataArgs } from "./validators";
+import { saveProviderSecretArgs, upsertConnectionMetadataArgs, zoneMethodPricingRulesValidator, zoneMethodServiceFiltersValidator } from "./validators";
 import { slugifyZoneName } from "./helpers/zoneMatching";
 import { ensureUniqueSlug } from "./zones/mutations";
 
@@ -118,7 +118,7 @@ export const saveProviderSecret = mutation({
     }
 
     const encryptedPayload = await encryptSecret(
-      JSON.stringify(args.credentials ?? {}),
+      JSON.stringify(args.credentials),
       SHIPPING_ENCRYPTION_KEY,
     );
 
@@ -232,8 +232,8 @@ export const createZoneMethod = mutation({
       v.literal("local_pickup"),
     ),
     provider: v.optional(shippingProviderValidator),
-    serviceFilters: v.optional(v.any()),
-    pricingRules: v.optional(v.any()),
+    serviceFilters: v.optional(zoneMethodServiceFiltersValidator),
+    pricingRules: v.optional(zoneMethodPricingRulesValidator),
     enabled: v.optional(v.boolean()),
     sortOrder: v.optional(v.number()),
   },
@@ -271,8 +271,8 @@ export const updateZoneMethod = mutation({
       ),
     ),
     provider: v.optional(shippingProviderValidator),
-    serviceFilters: v.optional(v.any()),
-    pricingRules: v.optional(v.any()),
+    serviceFilters: v.optional(zoneMethodServiceFiltersValidator),
+    pricingRules: v.optional(zoneMethodPricingRulesValidator),
     enabled: v.optional(v.boolean()),
     sortOrder: v.optional(v.number()),
   },

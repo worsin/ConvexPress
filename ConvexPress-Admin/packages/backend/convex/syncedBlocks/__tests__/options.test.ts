@@ -16,7 +16,7 @@ async function code(run: () => Promise<unknown>) {
 
 async function setup() {
   const f = await fixture();
-  const { id } = await f.operator.mutation(create, { title: "Reusable footer", blocks: text });
+  const { id } = await f.operator.mutation(create, { title: "Reusable footer", blocksJson: JSON.stringify(text) });
   const postId = await f.t.run(async ctx => {
     await ctx.db.patch("roles", f.ids.role, { capabilities: ["post.create", "post.read", "post.update", "post.publish", "post.unpublish", "page.update"] });
     await ctx.db.insert("settings", { section: "plugins", values: Object.fromEntries(Object.values(PLUGIN_SETTINGS_KEY).map(key => [key, true])), updatedBy: f.ids.user, updatedAt: 1 });
@@ -52,7 +52,7 @@ test("all resource readers retain post eligibility and return the same choices f
 
 test("every picker rejects stale generation, customers, anonymous calls, and revoked editing authority", async () => {
   const f = await setup();
-  await f.operator.mutation(save, { id: f.id, expectedGeneration: 1, title: "New draft", blocks: text });
+  await f.operator.mutation(save, { id: f.id, expectedGeneration: 1, title: "New draft", blocksJson: JSON.stringify(text) });
   for (const name of names) {
     const request = { syncedBlockId: f.id, expectedGeneration: 1, paginationOpts, ...extra(name) };
     expect(await code(() => f.operator.query(sourceQuery(name), request))).toBe("SYNCED_CONFLICT");
@@ -117,7 +117,7 @@ test("a revision damaged after the editor read cannot pass an identical-save int
     const version = await ctx.db.query("syncedBlockRevisions").withIndex("by_source_revision", q => q.eq("syncedBlockId", f.id).eq("revision", 1)).unique();
     await ctx.db.patch("syncedBlockRevisions", version!._id, { title: "Damaged body" });
   });
-  expect(await code(() => f.operator.mutation(save, { id: f.id, expectedGeneration: 1, title: "Reusable footer", blocks: text }))).toBe("SYNCED_REVISION");
+  expect(await code(() => f.operator.mutation(save, { id: f.id, expectedGeneration: 1, title: "Reusable footer", blocksJson: JSON.stringify(text) }))).toBe("SYNCED_REVISION");
   const head = await f.operator.query(ref<"query">("syncedBlocks/queries:head"), { id: f.id });
   expect(head.generation).toBe(1);expect(head.revision).toBe(1);
 });

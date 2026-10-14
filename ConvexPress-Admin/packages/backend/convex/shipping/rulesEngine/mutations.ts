@@ -5,6 +5,7 @@ import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
 import { validateRuleAST } from "./validator";
+import { ruleAstValidator } from "./astValidator";
 import { METHOD_TYPES, listAllMethodRows, methodTableFor } from "../methods/tables";
 
 const RULE_SCHEMA_VERSION = 1;
@@ -13,7 +14,7 @@ export const createRule = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
-    ruleAST: v.any(),
+    ruleAST: ruleAstValidator,
   },
   returns: v.id("commerce_shipping_rules"),
   handler: async (ctx, args) => {
@@ -50,7 +51,7 @@ export const updateRule = mutation({
     patch: v.object({
       name: v.optional(v.string()),
       description: v.optional(v.string()),
-      ruleAST: v.optional(v.any()),
+      ruleAST: v.optional(ruleAstValidator),
     }),
   },
   returns: v.id("commerce_shipping_rules"),

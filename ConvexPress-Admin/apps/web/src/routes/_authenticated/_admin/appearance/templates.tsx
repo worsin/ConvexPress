@@ -24,6 +24,7 @@ import { getPluginDefinition } from "@/lib/plugins/registry";
 import { COVERAGE_AREAS, SURFACE_CATALOG } from "@/lib/templates/catalog";
 import { TEMPLATE_PACKS, type TemplatePackSummary } from "@/lib/templates/packs";
 import { activateTemplate } from "@/lib/templates/templateActivation";
+import { templateValues } from "@/lib/templates/draftModel";
 import type { TemplateSection } from "@/lib/templates/templatePublishing";
 import { cn, getErrorMessage } from "@/lib/utils";
 
@@ -111,9 +112,15 @@ function TemplatesPage() {
     async (packId: string) => {
       setSaving(packId);
       try {
+        const activated = activateTemplate(stored ?? { active: "core", overrides: {}, variants: {}, settings: {} }, packId);
         await updateSettings({
           section: "appearance.template",
-          values: activateTemplate(stored ?? { active: "core", overrides: {}, variants: {}, settings: {} }, packId) as unknown as Record<string, unknown>,
+          values: {
+            active: activated.active,
+            overrides: activated.overrides,
+            variants: activated.variants,
+            settings: Object.fromEntries(Object.entries(activated.settings).map(([id, packValues]) => [id, templateValues(packValues)])),
+          },
         });
         toast.success(`${TEMPLATE_PACKS.find((pack) => pack.id === packId)?.name ?? packId} is now the active template.`);
       } catch (error) {

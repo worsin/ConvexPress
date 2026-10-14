@@ -16,7 +16,7 @@ function fixture() {
       const row=rows.find(r=>r.id===args.postId);
       if(row.revision!==args.expectedRevision) throw new Error('CONFLICT');
       if(name==='canonicalDocuments:updateMetadata') row.slug=args.slug;
-      if(name==='canonicalDocuments:save') {row.title=args.title;row.blocks=args.blocks;}
+      if(name==='canonicalDocuments:save') {row.title=args.title;row.blocks=JSON.parse(args.blocksJson);}
       row.revision++;return {postId:row.id,revision:row.revision};
     },
   };

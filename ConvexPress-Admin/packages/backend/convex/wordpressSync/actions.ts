@@ -17,6 +17,7 @@ import {
   testWPUserPasswordDigestEndpoint,
 } from "./helpers/wpClient";
 import { decryptSecret } from "../api/crypto_helpers";
+import { importConfigInputValidator } from "./validators";
 import { WPAdapter } from "./helpers/adapters/wpAdapter";
 import { WooAdapter } from "./helpers/adapters/wooAdapter";
 
@@ -344,7 +345,7 @@ export const getWPContentCounts = action({
 export const startSync = action({
   args: {
     siteId: v.id("wordpressSites"),
-    importConfig: v.optional(v.any()),
+    importConfig: v.optional(importConfigInputValidator),
   },
   returns: v.id("wordpressSyncJobs"),
   handler: async (ctx, { siteId, importConfig }) => {

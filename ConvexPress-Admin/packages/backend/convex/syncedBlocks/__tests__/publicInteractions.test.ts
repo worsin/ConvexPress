@@ -12,7 +12,7 @@ async function setup() {
   const f = await fixture();
   const attrs = parsePollDefinition({ question: "Which workshop?", options: [{ key: "wood", label: "Woodworking" }, { key: "clay", label: "Ceramics" }] });
   const blocks = [{ id: "poll", name: "core/poll", version: 1, attrs }];
-  const { id } = await f.operator.mutation(create, { title: "Workshop poll", blocks });
+  const { id } = await f.operator.mutation(create, { title: "Workshop poll", blocksJson: JSON.stringify(blocks) });
   await f.release(id, 1, 1);
   const placements = [{ ...reference(id)[0]!, id: "first" }, { ...reference(id, 1)[0]!, id: "second" }];
   const ids = await f.t.run(async ctx => {
@@ -38,13 +38,13 @@ test("registered polls isolate reused placements and recheck latest, pinned, rep
   expect(await f.read()).toMatchObject({ total: 1, votedKey: "wood" });
   expect(await f.read({ blockId: second })).toMatchObject({ total: 1, votedKey: "clay" });
   const changed = { ...f.attrs, question: "A different workshop?" };
-  await f.operator.mutation(save, { id: f.sourceId, expectedGeneration: 2, title: "New poll", blocks: [{ ...f.blocks[0]!, attrs: changed }] });
+  await f.operator.mutation(save, { id: f.sourceId, expectedGeneration: 2, title: "New poll", blocksJson: JSON.stringify([{ ...f.blocks[0]!, attrs: changed }]) });
   expect(await f.read()).toMatchObject({ total: 1 });
   await f.release(f.sourceId, 3, 2);
   expect(await f.read()).toMatchObject({ total: 0, definitionVersion: pollDefinitionVersion(changed) });
   expect(await f.read({ blockId: second })).toMatchObject({ total: 1 });
   await expect(f.submit()).rejects.toThrow();
-  const replacement = await f.operator.mutation(create, { title: "Replacement", blocks: f.blocks });
+  const replacement = await f.operator.mutation(create, { title: "Replacement", blocksJson: JSON.stringify(f.blocks) });
   await f.release(replacement.id, 1, 1);
   await f.t.run(ctx => ctx.db.patch("posts", f.postIds.post, { blocks: [{ ...reference(replacement.id)[0]!, id: "first" }, f.placements[1]!] }));
   expect(await f.read()).toBeNull();await expect(f.submit()).rejects.toThrow();
@@ -75,7 +75,7 @@ test("reused submissions honor current containing-page access, wrapper policy an
 
 test("nested reusable parents enforce restrictions and foreign installation ownership with one shared read budget", async () => {
   const f = await setup();
-  const outer = await f.operator.mutation(create, { title: "Nested", blocks: [{ id: "group", name: "core/group", version: 1, attrs: {}, children: reference(f.sourceId) }] });
+  const outer = await f.operator.mutation(create, { title: "Nested", blocksJson: JSON.stringify([{ id: "group", name: "core/group", version: 1, attrs: {}, children: reference(f.sourceId) }]) });
   await f.release(outer.id, 1, 1);
   const nested = reference(outer.id);
   const blockId = await f.t.run(async ctx => {

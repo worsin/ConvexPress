@@ -230,7 +230,7 @@ function ImportSettings() {
         settingsToImport[diff.section] = importSettings[diff.section];
       }
 
-      await importAll({ data: { settings: settingsToImport } });
+      await importAll({ dataJson: JSON.stringify({ settings: settingsToImport }) });
 
       toast.success(
         `Imported ${selectedSections.length} section${selectedSections.length > 1 ? "s" : ""} successfully.`,

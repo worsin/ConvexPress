@@ -104,6 +104,7 @@ export const shippingTables = {
     supportsTracking: v.boolean(),
     supportsManifests: v.boolean(),
     supportsReturns: v.boolean(),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawCapabilities: v.optional(v.any()),
     lastSyncAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -123,6 +124,7 @@ export const shippingTables = {
     isActive: v.boolean(),
     supportsDomestic: v.boolean(),
     supportsInternational: v.boolean(),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawMetadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -164,6 +166,7 @@ export const shippingTables = {
       ),
     ),
     refundedAt: v.optional(v.number()),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawMetadata: v.optional(v.any()),
     /** PRD D1 §2 — reprint/print counters + audit trail. */
     printCount: v.optional(v.number()),
@@ -222,6 +225,7 @@ export const shippingTables = {
     carrierStatus: v.optional(v.string()),
     description: v.optional(v.string()),
     location: v.optional(v.string()),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawMetadata: v.optional(v.any()),
     receivedVia: v.union(v.literal("webhook"), v.literal("poll")),
     receivedAt: v.number(),
@@ -382,6 +386,7 @@ export const shippingTables = {
         incrementalWeight: v.optional(v.number()),
       }),
     ),
+    // v.any(): exact shape is per-class weight tiers (shipping/methods/configValidators.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     classOverrides: v.optional(v.any()),
     enabled: v.boolean(),
     sortOrder: v.number(),
@@ -436,6 +441,7 @@ export const shippingTables = {
         incrementalCount: v.optional(v.number()),
       }),
     ),
+    // v.any(): exact shape is per-class count tiers (shipping/methods/configValidators.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     classOverrides: v.optional(v.any()),
     enabled: v.boolean(),
     sortOrder: v.number(),
@@ -547,6 +553,7 @@ export const shippingTables = {
     rows: v.array(
       v.object({
         priority: v.number(),
+        // v.any(): exact shape is tableRateConditionValidator (a rule AST or {}), but rows written before PR 008 are unaudited; tighten after a migration.
         conditionAST: v.any(),
         costFormula: v.object({
           mode: v.union(
@@ -589,6 +596,7 @@ export const shippingTables = {
     zeroQuoteReasons: v.optional(v.array(v.string())),
     requestContext: v.optional(
       v.object({
+        // v.any(): exact shape is the checkout shipping address, but rows written before PR 008 are unaudited; tighten after a migration.
         shippingAddress: v.optional(v.any()),
         itemCount: v.optional(v.number()),
         totalWeightOz: v.optional(v.number()),
@@ -629,6 +637,7 @@ export const shippingTables = {
   commerce_shipping_rules: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
+    // v.any(): exact shape is ruleAstValidator (shipping/rulesEngine/astValidator.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     ruleAST: v.any(), // RuleAST type; validated at save time.
     schemaVersion: v.number(),
     createdAt: v.number(),
@@ -684,7 +693,9 @@ export const shippingTables = {
       v.literal("unsupported_country"),
       v.literal("skipped"),
     ),
+    // v.any(): exact shape is the address submitted for validation, but rows written before PR 008 are unaudited; tighten after a migration.
     inputAddress: v.any(),
+    // v.any(): the validation provider's normalized address, kept as received.
     normalizedAddress: v.optional(v.any()),
     isResidential: v.optional(v.boolean()),
     deliveryPoint: v.optional(v.string()),
@@ -692,8 +703,10 @@ export const shippingTables = {
     geocode: v.optional(
       v.object({ lat: v.number(), lng: v.number(), accuracy: v.string() }),
     ),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawResponse: v.optional(v.any()),
     // PRD A5 §5.1 — per-provider attempt trace (why each step fired or was skipped).
+    // v.any(): provider-specific diagnostics kept as received.
     validationDiagnostics: v.optional(v.any()),
     validatedAt: v.number(),
     expiresAt: v.number(),
@@ -757,6 +770,7 @@ export const shippingTables = {
       ),
     ),
     externalProviderLocationId: v.optional(v.string()),
+    // v.any(): provider-specific settings (taken as fulfillmentProviderConfigJson); each fulfillment provider defines its own.
     fulfillmentProviderConfig: v.optional(v.any()),
     preferredProviderAccountIds: v.optional(
       v.array(v.id("shipping_provider_accounts")),
@@ -808,6 +822,7 @@ export const shippingTables = {
 
   commerce_shipping_profiles: defineTable({
     name: v.string(),
+    // v.any(): reserved: nothing writes or reads it, so it has no shape yet.
     shipFromAddress: v.any(),
     defaultPackageCode: v.optional(v.string()),
     weightUnit: v.string(),
@@ -904,9 +919,16 @@ export const shippingTables = {
     ),
     provider: v.optional(shippingProviderValidator),
     accountId: v.optional(v.id("shipping_provider_accounts")),
+    // v.any(): exact shape is zoneMethodServiceFiltersValidator (shipping/validators.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     serviceFilters: v.optional(v.any()),
+    // v.any(): exact shape is zoneMethodPricingRulesValidator (shipping/validators.ts), but rows written before PR 008 are unaudited; tighten after a migration.
     pricingRules: v.optional(v.any()),
-    presentationRules: v.optional(v.any()),
+    // Read by shipping/rates/pipeline.ts presentationRulesOf. Nothing has ever
+    // written this column, so the exact shape holds for every stored row.
+    presentationRules: v.optional(v.object({
+      labelOverride: v.optional(v.string()),
+      carrierNameOverride: v.optional(v.string()),
+    })),
     enabled: v.boolean(),
     sortOrder: v.number(),
     createdAt: v.number(),
@@ -919,6 +941,7 @@ export const shippingTables = {
     checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
     requestedAt: v.number(),
     requestedBy: v.optional(v.string()),
+    // v.any(): exact shape is the checkout shipping address, but rows written before PR 008 are unaudited; tighten after a migration.
     shippingAddress: v.optional(v.any()),
     providerResults: v.array(
       v.object({
@@ -955,6 +978,7 @@ export const shippingTables = {
     isCheapest: v.boolean(),
     isFastest: v.boolean(),
     isBestValue: v.boolean(),
+    // v.any(): raw external payload kept as received; its shape belongs to the provider.
     rawQuote: v.optional(v.any()),
     origin: v.optional(shippingQuoteOriginValidator),
     packages: v.optional(v.array(shippingQuotePackageValidator)),

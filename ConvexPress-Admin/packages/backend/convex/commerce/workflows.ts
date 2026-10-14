@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
+import { parseOptionalJsonArgument } from "../helpers/jsonArgs";
 
 import { commerceDocs } from "../schema/commerce.docs.generated";
 const workflowStatus = v.union(
@@ -107,7 +108,8 @@ export const begin = mutation({
     idempotencyKey: v.string(),
     entityType: v.optional(v.string()),
     entityId: v.optional(v.string()),
-    input: v.optional(v.any()),
+    /** The run's input, any JSON value, JSON-encoded: each workflow defines its own. */
+    inputJson: v.optional(v.string()),
     lockedUntil: v.optional(v.number()),
   },
   returns: v.object({
@@ -119,24 +121,27 @@ export const begin = mutation({
   }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
-    return await beginRun(ctx, args);
+    const { inputJson, ...run } = args;
+    return await beginRun(ctx, { ...run, input: parseOptionalJsonArgument(inputJson, "inputJson") });
   },
 });
 
 export const complete = mutation({
   args: {
     runId: v.id("commerce_workflow_runs"),
-    result: v.optional(v.any()),
+    /** The run's result, any JSON value, JSON-encoded (`begin` replays it as `resultJson`). */
+    resultJson: v.optional(v.string()),
   },
   returns: v.id("commerce_workflow_runs"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const run = await ctx.db.get(args.runId);
     if (!run) throw new ConvexError({ code: "NOT_FOUND", message: "Workflow run not found." });
+    const result = parseOptionalJsonArgument(args.resultJson, "resultJson");
     const now = Date.now();
     await ctx.db.patch("commerce_workflow_runs", args.runId, {
       status: "completed",
-      result: args.result,
+      result,
       completedAt: now,
       updatedAt: now,
     });

@@ -41,7 +41,7 @@ function Library({ scope }: { scope: Scope }) {
         {creating && <form className="space-y-3 rounded-md border border-border p-3" onSubmit={async event => {
           event.preventDefault();if (createPending || createError || !newTitle.trim()) return;
           setCreatePending(true);
-          try { const result = await create({ title: newTitle.trim(), blocks: [] });setSelection(result.id);setCreating(false);setNewTitle("");setLocked(false); }
+          try { const result = await create({ title: newTitle.trim(), blocksJson: "[]" });setSelection(result.id);setCreating(false);setNewTitle("");setLocked(false); }
           catch { setCreateError("Creation could not be confirmed. Reload the library and check for this title before creating another source."); }
           finally { setCreatePending(false); }
         }}><label className="block space-y-2 text-sm font-medium">Reusable content title<input value={newTitle} maxLength={512} disabled={createPending || !!createError} onChange={event => setNewTitle(event.target.value)} className="block w-full rounded-md border border-input bg-background px-3 py-2" /></label>{createError && <p role="alert" className="text-sm text-destructive">{createError}</p>}<div className="flex flex-wrap gap-2"><Button size="sm" disabled={createPending || !!createError || !newTitle.trim()} type="submit">{createPending ? "Creating…" : "Create draft"}</Button><Button size="sm" variant="outline" type="button" disabled={createPending} onClick={() => { setCreating(false);setNewTitle("");setLocked(false); }}>Cancel</Button></div></form>}

@@ -51,7 +51,9 @@ import type { CanonicalDocumentDto } from "@backend/canonical-blocks-foundation/
 
 type PrivateDraftIdentity = { postId: Id<"posts">; expectedScope: { websiteKey: string; instanceKey: string } };
 const privateDraftRead = makeFunctionReference<"query", PrivateDraftIdentity, unknown>("canonicalDocuments/drafts:get");
-const privateDraftSave = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number; baseRevision: number; draft: CanonicalDraft }, unknown>("canonicalDocuments/drafts:save");
+/** The site takes a block tree as JSON text (`blocksJson`); the editor keeps working on the tree. */
+type TransportDraft = Omit<CanonicalDraft, "blocks"> & { blocksJson: string };
+const privateDraftSave = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number; baseRevision: number; draft: TransportDraft }, unknown>("canonicalDocuments/drafts:save");
 const privateDraftDiscard = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number }, unknown>("canonicalDocuments/drafts:discard");
 
 export function NativeCanonicalEditor({
@@ -169,9 +171,9 @@ function ConnectedEditor({
 					const result = await convex.query(privateDraftRead, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey } });
 					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
 				},
-				save: async args => {
+				save: async ({ draft: { blocks, ...draft }, ...args }) => {
 					guard();
-					const result = await convex.mutation(privateDraftSave, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey }, ...args });
+					const result = await convex.mutation(privateDraftSave, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey }, ...args, draft: { ...draft, blocksJson: JSON.stringify(blocks) } });
 					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
 				},
 				discard: async args => {
@@ -180,12 +182,13 @@ function ConnectedEditor({
 					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
 				},
 			},
-			previewDraft: async (args) => {
+			previewDraft: async ({ blocks, ...args }) => {
 				guard();
 				const value = await freshCanonicalRead(postId, (fresh) =>
 					convex.query(api.canonicalDocuments.previewDraft, {
 						...fresh,
 						...args,
+						blocksJson: JSON.stringify(blocks),
 					}),
 				);
 				guard();
@@ -208,13 +211,14 @@ function ConnectedEditor({
 				guard();
 				return value;
 			},
-			previewAi: async (args) => {
+			previewAi: async ({ blocks, ...args }) => {
 				guard();
 				const value = await convex.query(
 					api.canonicalDocuments.aiContext.preview,
 					{
 						postId,
 						...args,
+						blocksJson: JSON.stringify(blocks),
 						expectedScope: {
 							websiteKey: runtime.target.websiteKey!,
 							instanceKey: runtime.target.instanceKey,
@@ -225,13 +229,14 @@ function ConnectedEditor({
 				guard();
 				return value;
 			},
-			applyAi: async (args) => {
+			applyAi: async ({ blocks, ...args }) => {
 				guard();
 				const value = await convex.mutation(
 					api.canonicalDocuments.aiContext.apply,
 					{
 						postId,
 						...args,
+						blocksJson: JSON.stringify(blocks),
 						expectedScope: {
 							websiteKey: runtime.target.websiteKey!,
 							instanceKey: runtime.target.instanceKey,
@@ -272,14 +277,14 @@ function ConnectedEditor({
 				guard();
 				return value;
 			},
-			initialize: async (args) => {
+			initialize: async ({ blocks, ...args }) => {
 				guard();
 				const value = await convex.mutation(api.canonicalDocuments.initialize, {
 					postId,
 					...args,
 					// Workspace validates the exact saved schema; the server reloads
 					// immutable definitions. No client definition grants are submitted.
-					blocks: args.blocks,
+					blocksJson: JSON.stringify(blocks),
 				});
 				guard();
 				return value;
@@ -301,12 +306,12 @@ function ConnectedEditor({
 				guard();
 				return value;
 			},
-			save: async (args) => {
+			save: async ({ blocks, ...args }) => {
 				guard();
 				const value = await convex.mutation(api.canonicalDocuments.save, {
 					postId,
 					...args,
-					blocks: args.blocks,
+					blocksJson: JSON.stringify(blocks),
 				});
 				guard();
 				return value;

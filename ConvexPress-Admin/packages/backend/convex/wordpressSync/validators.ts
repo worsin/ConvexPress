@@ -215,6 +215,43 @@ export interface ImportConfig {
   filters: ImportFilters;
 }
 
+/**
+ * An import config as callers submit it: any part may be left out and is
+ * filled from createDefaultImportConfig() by normalizeImportConfig.
+ */
+export const importConfigInputValidator = v.object({
+  scope: v.optional(v.object({
+    wpContent: v.optional(v.boolean()),
+    elementor: v.optional(v.boolean()),
+    media: v.optional(v.boolean()),
+    menus: v.optional(v.boolean()),
+    comments: v.optional(v.boolean()),
+    wooCatalog: v.optional(v.boolean()),
+    wooCustomers: v.optional(v.boolean()),
+    wooOrders: v.optional(v.boolean()),
+    wooCoupons: v.optional(v.boolean()),
+    wooReviews: v.optional(v.boolean()),
+    cleanup: v.optional(v.boolean()),
+  })),
+  behavior: v.optional(v.object({
+    dryRun: v.optional(v.boolean()),
+    updateExisting: v.optional(v.boolean()),
+    preserveLocalEdits: v.optional(v.boolean()),
+    importDrafts: v.optional(v.boolean()),
+    importHistoricalOrders: v.optional(v.boolean()),
+    importRefunds: v.optional(v.boolean()),
+    importReviews: v.optional(v.boolean()),
+    importCoupons: v.optional(v.boolean()),
+    tombstoneMode: v.optional(v.union(v.literal("never"), v.literal("mark_stale"), v.literal("soft_delete"), v.literal("hard_delete"))),
+    destructiveDelete: v.optional(v.boolean()),
+  })),
+  filters: v.optional(v.object({
+    dateRangeStart: v.optional(v.number()),
+    dateRangeEnd: v.optional(v.number()),
+    entityLimit: v.optional(v.number()),
+  })),
+});
+
 export function createDefaultImportConfig(): ImportConfig {
   return {
     scope: {

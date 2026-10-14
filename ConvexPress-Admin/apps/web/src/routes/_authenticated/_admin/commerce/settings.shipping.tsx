@@ -18,6 +18,11 @@ export const Route = createFileRoute(
   component: CommerceShippingSettingsPage,
 });
 
+const PREFERRED_PROVIDERS = ["shipstation", "ups", "usps", "fedex", "dhl"] as const;
+type PreferredProvider = (typeof PREFERRED_PROVIDERS)[number];
+const asPreferredProvider = (value: unknown): PreferredProvider =>
+  PREFERRED_PROVIDERS.find((provider) => provider === value) ?? "shipstation";
+
 function CommerceShippingSettingsPage() {
   const location = useLocation();
   const settings = useQuery(api.settings.queries.getBySection, {
@@ -25,7 +30,7 @@ function CommerceShippingSettingsPage() {
   }) as any;
   const updateSection = useMutation(api.settings.mutations.updateSection);
 
-  const [preferredProvider, setPreferredProvider] = useState("shipstation");
+  const [preferredProvider, setPreferredProvider] = useState<PreferredProvider>("shipstation");
   const [liveRatesEnabled, setLiveRatesEnabled] = useState(true);
   const [fallbackToManualRates, setFallbackToManualRates] = useState(false);
   const [cheapestBadgeLabel, setCheapestBadgeLabel] = useState("Cheapest");
@@ -46,7 +51,7 @@ function CommerceShippingSettingsPage() {
 
   useEffect(() => {
     if (!settings || initialized) return;
-    setPreferredProvider(settings.preferredProvider ?? "shipstation");
+    setPreferredProvider(asPreferredProvider(settings.preferredProvider));
     setLiveRatesEnabled(settings.liveRatesEnabled ?? true);
     setFallbackToManualRates(settings.fallbackToManualRates ?? false);
     setCheapestBadgeLabel(settings.cheapestBadgeLabel ?? "Cheapest");
@@ -69,7 +74,7 @@ function CommerceShippingSettingsPage() {
     setIsSaving(true);
     try {
       await updateSection({
-        section: "integrations.shipping" as any,
+        section: "integrations.shipping",
         values: {
           preferredProvider,
           liveRatesEnabled,
@@ -146,7 +151,7 @@ function CommerceShippingSettingsPage() {
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={preferredProvider}
-                onChange={(event) => setPreferredProvider(event.target.value)}
+                onChange={(event) => setPreferredProvider(asPreferredProvider(event.target.value))}
               >
                 <option value="shipstation">ShipStation</option>
                 <option value="ups">UPS</option>

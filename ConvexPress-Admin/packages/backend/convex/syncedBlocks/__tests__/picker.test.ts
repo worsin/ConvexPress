@@ -6,10 +6,10 @@ const sources = ref<"query">("syncedBlocks/picker:sources"), revisions = ref<"qu
 const expectedScope = { websiteKey: "synced", instanceKey: "staging" }, paginationOpts = { numItems: 2, cursor: null };
 async function setup() {
   const f = await fixture();
-  const source = await f.operator.mutation(create, { title: "Published footer", blocks: text });
+  const source = await f.operator.mutation(create, { title: "Published footer", blocksJson: JSON.stringify(text) });
   await f.release(source.id, 1, 1);
-  await f.operator.mutation(save, { id: source.id, expectedGeneration: 2, title: "Private draft title", blocks: text });
-  const owner = await f.operator.mutation(create, { title: "Owner", blocks: text });
+  await f.operator.mutation(save, { id: source.id, expectedGeneration: 2, title: "Private draft title", blocksJson: JSON.stringify(text) });
+  const owner = await f.operator.mutation(create, { title: "Owner", blocksJson: JSON.stringify(text) });
   const page = await f.t.run(async ctx => {
     await ctx.db.patch("roles", f.ids.role, { capabilities: ["post.create", "post.read", "post.update", "post.publish", "post.unpublish", "page.update"] });
     const id = await ctx.db.insert("posts", { type: "page", title: "Page", slug: "page", path: "/page",  status: "draft", visibility: "public", authorId: f.ids.user, commentStatus: "closed", blocksVersion: 2, blocks: text, createdAt: 1, updatedAt: 1 });
@@ -34,7 +34,7 @@ test("page and source pickers expose published metadata only and accept both rev
 });
 test("publication changes invalidate open choices, draft changes do not, and withdrawal hides all pins", async () => {
   const f = await setup();
-  await f.operator.mutation(save, { id: f.source, expectedGeneration: 3, title: "Another private draft", blocks: text });
+  await f.operator.mutation(save, { id: f.source, expectedGeneration: 3, title: "Another private draft", blocksJson: JSON.stringify(text) });
   expect((await f.operator.query(select, f.selected)).revision).toBe(1);
   await f.release(f.source, 4, 3);
   await expect(f.operator.query(select, f.selected)).rejects.toThrow();
@@ -79,7 +79,7 @@ test("damaged publications and self-links cannot be selected; paging remains bou
   const base = { ...f.base, owner: { ...f.base.owner, expectedGeneration: 2 } };
   expect((await f.operator.query(sources, { ...base, paginationOpts })).page.map((r: {id:string}) => r.id)).toEqual([f.source]);
   await expect(f.operator.query(select, { ...f.selected, ...base, sourceId: f.owner })).rejects.toThrow();
-  for (let n = 0; n < 5; n++) await f.operator.mutation(save, { id: f.source, expectedGeneration: n + 3, title: `Secret ${n}`, blocks: text });
+  for (let n = 0; n < 5; n++) await f.operator.mutation(save, { id: f.source, expectedGeneration: n + 3, title: `Secret ${n}`, blocksJson: JSON.stringify(text) });
   const seen: number[] = []; let cursor: string | null = null, pages = 0;
   do {
     const result = await f.operator.query(revisions, { ...base, sourceId: f.source, publishedRevision: 1, paginationOpts: { numItems: 2, cursor } });

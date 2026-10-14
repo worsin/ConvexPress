@@ -142,7 +142,7 @@ async function fixture() {
 		authed.mutation(
 			makeFunctionReference<"mutation">("contentPromotion/operations:dryRun"),
 			{
-				manifest,
+				manifestJson: JSON.stringify(manifest),
 				mediaBindings: request.mediaBindings,
 				dependencyBindings: request.dependencyBindings,
 			},

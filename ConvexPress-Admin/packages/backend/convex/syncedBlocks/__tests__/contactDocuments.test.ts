@@ -16,7 +16,7 @@ async function setup() {
     await ctx.db.patch("roles", role._id, { level: 80, capabilities: [...role.capabilities, "form.create", "form.update"] });
     await ctx.db.insert("settings", { section: "plugins", values: { formsEnabled: true, membershipEnabled: false }, updatedAt: 1, updatedBy: f.ids.user });
   });
-  const source = await f.operator.mutation(create, { title: "Contact source", blocks: contact() });
+  const source = await f.operator.mutation(create, { title: "Contact source", blocksJson: JSON.stringify(contact()) });
   await f.release(source.id, 1, 1);
   const blocks = validateCanonicalTree([{ ...reference(source.id)[0], id: "latest" }, { ...reference(source.id, 1)[0], id: "pinned" }]);
   const postId = await f.t.run(ctx => ctx.db.insert("posts", { type: "page", title: "Studio", slug: "studio", status: "publish", visibility: "public", authorId: f.ids.user, commentStatus: "closed", blocksVersion: 2, blocks, createdAt: 1, updatedAt: 1 }));
@@ -54,7 +54,7 @@ test("latest source revisions reconcile existing fields and retain answers while
     return ctx.db.insert("fieldValues", { entityType: "form_submission", entityId: entry, fieldKey: removed.key, fieldName: removed.name, value: "Keep this message", updatedBy: "fixture", updatedAt: 1 });
   });
   const savedAnswer = await f.t.run(ctx => ctx.db.get("fieldValues", answer));
-  await f.operator.mutation(save, { id: f.source.id, expectedGeneration: 2, title: "Contact source", blocks: contact([{ ...email, label: "Your email" }]) });
+  await f.operator.mutation(save, { id: f.source.id, expectedGeneration: 2, title: "Contact source", blocksJson: JSON.stringify(contact([{ ...email, label: "Your email" }])) });
   await f.release(f.source.id, 3, 2);
   expect(await f.t.run(ctx => contactSourceAllowed(ctx, latest))).toBe(false);
   expect(await f.t.run(ctx => contactSourceAllowed(ctx, pinned))).toBe(true);
@@ -102,14 +102,14 @@ test("withdrawn sources retain form history and deny use; scheduled publication 
 
 test("source publication rejects invalid contact definitions before exposing them to dependent pages", async () => {
   const f = await setup();
-  await f.operator.mutation(save, { id: f.source.id, expectedGeneration: 2, title: "Broken contact", blocks: contact([email, email]) });
+  await f.operator.mutation(save, { id: f.source.id, expectedGeneration: 2, title: "Broken contact", blocksJson: JSON.stringify(contact([email, email])) });
   await expect(f.operator.query(review, { id: f.source.id, expectedGeneration: 3, revision: 2 })).rejects.toMatchObject({ data: { code: "CONTACT_FORM_CONFIGURATION", blockId: "contact", field: "fields.1.name" } });
   expect((await f.operator.query(get, { id: f.source.id })).publishedRevision).toBe(1);
 });
 
 test("nested reusable groups reconcile contacts without changing their authored source identity", async () => {
   const f = await setup();
-  const outer = await f.operator.mutation(create, { title: "Studio footer", blocks: [{ id: "footer-group", name: "core/group", version: 1, attrs: {}, children: reference(f.source.id) }] });
+  const outer = await f.operator.mutation(create, { title: "Studio footer", blocksJson: JSON.stringify([{ id: "footer-group", name: "core/group", version: 1, attrs: {}, children: reference(f.source.id) }]) });
   await f.release(outer.id, 1, 1);
   const blocks = validateCanonicalTree(reference(outer.id));
   await f.operator.run(async ctx => {
@@ -130,7 +130,7 @@ test("nested reusable groups reconcile contacts without changing their authored 
 test("publication reviews validate contact definitions in older nested sources too", async () => {
   const f = await setup();
   const old = await f.t.run(ctx => publishedFixture(ctx, f.ids.user, contact([email, email])));
-  const outer = await f.operator.mutation(create, { title: "Older nested contact", blocks: reference(old) });
+  const outer = await f.operator.mutation(create, { title: "Older nested contact", blocksJson: JSON.stringify(reference(old)) });
   await expect(f.operator.query(review, { id: outer.id, expectedGeneration: 1, revision: 1 })).rejects.toThrow("unique name");
   expect((await f.operator.query(get, { id: outer.id })).publishedRevision).toBeNull();
 });

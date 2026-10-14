@@ -3,8 +3,8 @@
  *
  * Each method type has its own table (`commerce_shipping_method_*`). The
  * mutations share a uniform shape: create, update, remove, plus toggleEnabled.
- * Method config validators come from the schema definition; we accept v.any()
- * for the config payload here and let the schema do the validation.
+ * Method config and patch shapes come from the schema definition (see
+ * configValidators.ts); business rules are checked by validateMethodConfig.
  */
 
 import { ConvexError, v } from "convex/values";
@@ -16,6 +16,7 @@ import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
 import { insertDynamicWithMediaReferences, patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
 import { listMethodRowsForZone, methodTableFor, normalizeMethodId, type MethodTable, type MethodType } from "./tables";
+import { anyMethodConfigValidator, anyMethodPatchValidator, requireMethodConfig, requireMethodPatch } from "./configValidators";
 
 const methodTypeValidator = v.union(
   v.literal("flat_rate"),
@@ -31,14 +32,6 @@ const methodTypeValidator = v.union(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** Method config and patch payloads are not shape-checked by the args validator; they must at least be plain objects. */
-function requireConfigRecord(value: unknown): Record<string, unknown> {
-  if (!isRecord(value)) {
-    throw new ConvexError({ code: "VALIDATION_ERROR", message: "Method config must be an object." });
-  }
-  return value;
 }
 
 /** Ids from another table never address a method of this type. */
@@ -146,13 +139,13 @@ async function validateMethodConfig(
 export const createMethod = mutation({
   args: {
     methodType: methodTypeValidator,
-    config: v.any(),
+    config: anyMethodConfigValidator,
   },
   returns: v.string(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.methods.manage");
     const table = methodTableFor(args.methodType);
-    const config = requireConfigRecord(args.config);
+    const config = requireMethodConfig(args.methodType, args.config);
     await validateMethodConfig(ctx, args.methodType, config);
     const now = Date.now();
     // PRD B1 §4 — audit stamps on flat rate. Other method types take them too
@@ -182,7 +175,7 @@ export const updateMethod = mutation({
   args: {
     methodType: methodTypeValidator,
     methodId: v.string(),
-    patch: v.any(),
+    patch: anyMethodPatchValidator,
   },
   returns: v.string(),
   handler: async (ctx, args) => {
@@ -192,7 +185,10 @@ export const updateMethod = mutation({
     if (!existing) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Method not found." });
     }
-    const patch = requireConfigRecord(args.patch);
+    const patch: Record<string, unknown> = { ...requireMethodPatch(args.methodType, args.patch) };
+    // Audit stamps are the server's: the editor sends a loaded row back with them, but they are never written from a patch.
+    delete patch.createdBy;
+    delete patch.updatedBy;
     // Validate merged config against business rules.
     const merged: Record<string, unknown> = { ...existing, ...patch };
     await validateMethodConfig(ctx, args.methodType, merged, id);

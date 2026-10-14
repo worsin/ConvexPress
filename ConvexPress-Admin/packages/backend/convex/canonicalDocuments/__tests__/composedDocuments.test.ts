@@ -56,7 +56,7 @@ async function fixture() {
   const read = () => author.query(get, { postId: ids.post });
   const initialize = async (tree: unknown = blocks()) => {
     const initial = await read();
-    return author.mutation(ref("canonicalDocuments:initialize"), { postId: ids.post, expectedRevision: initial.document.revision, expectedAuthoringDigest: initial.document.authoringDigest, title: "Studio", blocks: tree });
+    return author.mutation(ref("canonicalDocuments:initialize"), { postId: ids.post, expectedRevision: initial.document.revision, expectedAuthoringDigest: initial.document.authoringDigest, title: "Studio", blocksJson: JSON.stringify(tree) });
   };
   const revisions = () => t.run(ctx => ctx.db.query("revisions").withIndex("by_parent_number", q => q.eq("parentId", ids.post)).take(20));
   return { t, ids, author, created, blocks, read, initialize, revisions };
@@ -73,30 +73,30 @@ test("registered custom document initialize/save/reopen/restore pins immutable v
   expect(canonicalPreviewDocument(original).document.digest).toBe(first.digest);
   await f.author.mutation(ref("blockDefinitions/drafts:save"), { id: f.created.id, expectedGeneration: 1, definitionJson: JSON.stringify(definition(2)) });
   expect((await f.read()).document.composedDefinitions).toEqual(original.document.composedDefinitions);
-  const second = await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Studio two", blocks: f.blocks(2) });
+  const second = await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Studio two", blocksJson: JSON.stringify(f.blocks(2)) });
   expect(second.revision).toBe(2); expect(second.digest).not.toBe(first.digest);
   expect((await f.read()).document.composedDefinitions.definitions[0].version).toBe(2);
   const versionOne = (await f.revisions()).find(row => row.blocksRevision === 1)!;
   expect(versionOne.composedDefinitions).toEqual(original.document.composedDefinitions);
   const restored = await f.author.mutation(restore, { postId: f.ids.post, expectedRevision: 2, revisionId: versionOne._id });
   expect(restored.revision).toBe(3); expect(restored.digest).toBe(first.digest);
-  const removed = await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 3, title: "Library page", blocks: [{ id: "text", name: "core/paragraph", version: 2, attrs: {} }] });
+  const removed = await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 3, title: "Library page", blocksJson: JSON.stringify([{ id: "text", name: "core/paragraph", version: 2, attrs: {} }]) });
   expect(removed.revision).toBe(4);
   expect((await f.read()).document.composedDefinitions).toBeUndefined();
   expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.composedDefinitions).toBeUndefined();
   const returned = await f.author.mutation(restore, { postId: f.ids.post, expectedRevision: 4, revisionId: versionOne._id });
   expect(returned.revision).toBe(5); expect((await f.read()).document.composedDefinitions).toEqual(original.document.composedDefinitions);
-  await expect(f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Stale", blocks: f.blocks() })).rejects.toThrow("CONFLICT");
+  await expect(f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Stale", blocksJson: JSON.stringify(f.blocks()) })).rejects.toThrow("CONFLICT");
 });
 
 test("custom save refusals preserve document/history and recheck identity, schema and media on no-op saves", async () => {
   const f = await fixture(); await f.initialize();
   const before = await f.read(), history = await f.revisions();
-  const write = (blocks: unknown = f.blocks()) => f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Studio", blocks });
+  const write = (blocks: unknown = f.blocks()) => f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Studio", blocksJson: JSON.stringify(blocks) });
   const noOp = await write(); expect(noOp.changed).toBe(false); expect(noOp.revision).toBe(1);
   await expect(write(f.blocks(17))).rejects.toThrow("unavailable");
   await expect(write([{ ...f.blocks()[0], attrs: { title: "Invalid", unexpected: true } }])).rejects.toThrow();
-  await expect(f.t.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Anonymous", blocks: f.blocks() })).rejects.toThrow();
+  await expect(f.t.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Anonymous", blocksJson: JSON.stringify(f.blocks()) })).rejects.toThrow();
   await f.t.run(ctx => ctx.db.patch("media", f.ids.media, { status: "trashed" }));
   await expect(write()).rejects.toThrow("unavailable");
   await f.t.run(ctx => ctx.db.patch("media", f.ids.media, { status: "active" }));
@@ -108,7 +108,7 @@ test("custom save refusals preserve document/history and recheck identity, schem
 
 test("forged current and revision definition snapshots cannot execute through registered reads or restores", async () => {
   const f = await fixture(); await f.initialize();
-  await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Changed", blocks: f.blocks() });
+  await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Changed", blocksJson: JSON.stringify(f.blocks()) });
   const valid = await f.read(), revision = (await f.revisions()).find(row => row.blocksRevision === 1)!;
   const forged = structuredClone(valid.document.composedDefinitions);
   const replacement = definition(); replacement.spec.title = "Forged schema";
@@ -129,13 +129,13 @@ test("custom draft parents retain nested contact-form identity and cannot bypass
   await f.initialize(blocks);
   const forms = () => f.t.run(ctx => ctx.db.query("forms").withIndex("by_contact_source", q => q.eq("contactPostId", f.ids.post)).take(5));
   const first = (await forms())[0]!; expect(first.contactBlockId).toBe("contact");
-  await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Studio", blocks });
+  await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Studio", blocksJson: JSON.stringify(blocks) });
   expect((await forms())[0]!._id).toBe(first._id);
   await expect(f.author.mutation(ref("canonicalDocuments:setPublication"), { postId: f.ids.post, expectedRevision: 1, status: "publish" })).rejects.toThrow();
   expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.status).toBe("draft");
   expect(await f.t.query(ref("canonicalDocuments:getForRender"), { postId: f.ids.post })).toBeNull();
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { status: "publish" }));
-  await expect(f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Unreviewed", blocks })).rejects.toThrow("DEFINITION_NOT_ACTIVE");
+  await expect(f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Unreviewed", blocksJson: JSON.stringify(blocks) })).rejects.toThrow("DEFINITION_NOT_ACTIVE");
   expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.title).toBe("Studio");
 });
 
@@ -150,7 +150,7 @@ test("definition defaults and document revisions retain media edges after the cu
     const edges = () => f.t.run(ctx => ctx.db.query("media_reference_edges").withIndex("by_media_generation", q => q.eq("mediaId", f.ids.media)).take(20));
     expect((await edges()).some(edge => edge.ownerTable === "posts" && edge.ownerId === f.ids.post)).toBe(true);
     expect((await edges()).some(edge => edge.ownerTable === "blockDefinitionVersions")).toBe(true);
-    await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Empty", blocks: [] });
+    await f.author.mutation(save, { postId: f.ids.post, expectedRevision: 1, title: "Empty", blocksJson: JSON.stringify([]) });
     const retained = await edges();
     expect(retained.some(edge => edge.ownerTable === "posts")).toBe(false);
     expect(retained.some(edge => edge.ownerTable === "revisions")).toBe(true);
@@ -182,7 +182,7 @@ test("approved custom pages publish with nested forms, retain old versions after
   await f.author.mutation(ref("blockDefinitions/drafts:save"), { id: f.created.id, expectedGeneration: 2, definitionJson: JSON.stringify(definition(2)) });
   expect((await render()).document.digest).toBe(publicPage.document.digest);
   const before = await f.revisions();
-  await expect(f.author.mutation(save, { postId: f.ids.post, expectedRevision: 2, title: "Unapproved v2", blocks: f.blocks(2) })).rejects.toThrow("DEFINITION_NOT_ACTIVE");
+  await expect(f.author.mutation(save, { postId: f.ids.post, expectedRevision: 2, title: "Unapproved v2", blocksJson: JSON.stringify(f.blocks(2)) })).rejects.toThrow("DEFINITION_NOT_ACTIVE");
   expect(await f.revisions()).toEqual(before); expect((await render()).document.digest).toBe(publicPage.document.digest);
   await f.author.mutation(approve, { id: f.created.id, version: 1, expectedGeneration: 3, expectedDigest: f.created.digest, enabled: false });
   await expect(render()).rejects.toThrow("DEFINITION_NOT_ACTIVE");
@@ -346,12 +346,12 @@ test("registered mixed custom/reusable save, reopen and restore retain pinned so
   });
   const reference = {id:"reusable",name:"core/synced",version:1,attrs:{syncedBlock:source,revisionPolicy:"pinned",revision:1}};
   const tree = [{...f.blocks()[0],children:[reference]}];
-  await f.author.mutation(save,{postId:f.ids.post,expectedRevision:1,title:"Studio",blocks:tree});
+  await f.author.mutation(save,{postId:f.ids.post,expectedRevision:1,title:"Studio",blocksJson: JSON.stringify(tree)});
   const first=await f.read();
   expect(first.document.blocks[0].children[0].attrs.revision).toBe(1);
   expect(first.document.composedDefinitions.definitions[0].version).toBe(1);
   expect(first.synced.revisions).toHaveLength(1);
-  const second=await f.author.mutation(save,{postId:f.ids.post,expectedRevision:2,title:"Mixed edited",blocks:tree});
+  const second=await f.author.mutation(save,{postId:f.ids.post,expectedRevision:2,title:"Mixed edited",blocksJson: JSON.stringify(tree)});
   expect(second.revision).toBe(3);
   const revision=(await f.revisions()).find(row=>row.blocksRevision===2)!;
   await f.author.mutation(restore,{postId:f.ids.post,expectedRevision:3,revisionId:revision._id});
