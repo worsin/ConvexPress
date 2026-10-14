@@ -1,5 +1,6 @@
 /**
- * Subscription: the current plan, status, and next renewal
+ * Subscription: the current plan, status, and the next charge (amount with
+ * discounts, and date)
  * (commerceSubscriptions.portal.getMyActiveContracts).
  */
 
@@ -11,26 +12,25 @@ import { useSettings } from "@/contexts/SettingsContext";
 import type { DashboardWidgetModule, DashboardWidgetProps } from "../../contracts";
 import { WidgetEmpty, WidgetSkeleton } from "../../grid/WidgetCard";
 import { useDashboardShell } from "../../shell/DashboardShellContext";
-import { Pill, ViewAllLink, formatMoney, formatShortDate, statusTone } from "../_shared";
+import { formatMoney, type CustomerContract } from "@/components/subscriptions/portalTypes";
+import { Pill, ViewAllLink, formatShortDate, statusTone } from "../_shared";
 
-interface Contract {
-  _id: string;
-  status: string;
-  currencyCode?: string;
-  recurringAmount?: number;
-  nextBillingAt?: number;
-  nextChargeAt?: number;
-  currentPeriodEndAt?: number;
-  trialEndsAt?: number;
-  offer?: { title: string; recurringAmount?: number; currencyCode?: string } | null;
-  product?: { title?: string } | null;
-}
+const STATUS_LABELS: Record<CustomerContract["status"], string> = {
+  draft: "Draft",
+  trialing: "Trial",
+  active: "Active",
+  past_due: "Past due",
+  paused: "Paused",
+  pending_cancel: "Ending",
+  cancelled: "Cancelled",
+  expired: "Ended",
+};
 
 function SubscriptionWidget({ size }: DashboardWidgetProps) {
   const { to } = useDashboardShell();
   const settings = useSettings();
   const enabled = settings?.plugins?.commerceSubscriptionsEnabled === true;
-  const contracts: Contract[] | undefined = useQuery(api.commerceSubscriptions.portal.getMyActiveContracts, enabled ? {} : "skip");
+  const contracts = useQuery(api.commerceSubscriptions.portal.getMyActiveContracts, enabled ? {} : "skip");
   if (!enabled) return <WidgetEmpty icon="repeat" title="Subscriptions are off" />;
   if (contracts === undefined) return <WidgetSkeleton rows={3} />;
   const current = contracts.find((c) => c.status === "active" || c.status === "trialing") ?? contracts[0];
@@ -47,23 +47,29 @@ function SubscriptionWidget({ size }: DashboardWidgetProps) {
       />
     );
   }
-  const amount = current.recurringAmount ?? current.offer?.recurringAmount;
-  const currency = current.currencyCode ?? current.offer?.currencyCode;
-  const renews = current.nextBillingAt ?? current.nextChargeAt ?? current.currentPeriodEndAt;
+  const charging = current.status === "active" || current.status === "trialing";
   return (
     <div className="flex h-full flex-col justify-between gap-2">
       <div>
         <p className="truncate text-sm font-semibold text-foreground">{current.offer?.title ?? current.product?.title ?? "Subscription"}</p>
         <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <Pill tone={statusTone(current.status)}>{current.status}</Pill>
-          {amount !== undefined && <span>{formatMoney(amount, currency)} / cycle</span>}
+          <Pill tone={statusTone(current.status)}>{STATUS_LABELS[current.status]}</Pill>
+          {charging && current.nextChargeAt ? (
+            <span>
+              {formatMoney(current.nextChargeAmount, current.currencyCode)} on {formatShortDate(current.nextChargeAt)}
+            </span>
+          ) : null}
         </p>
       </div>
       {size !== "sm" && (
         <dl className="grid grid-cols-2 gap-2 text-[11px]">
           <div>
-            <dt className="text-muted-foreground">{current.status === "trialing" ? "Trial ends" : "Renews"}</dt>
-            <dd className="text-foreground">{formatShortDate(current.status === "trialing" ? current.trialEndsAt : renews)}</dd>
+            <dt className="text-muted-foreground">
+              {current.status === "trialing" ? "Trial ends" : current.status === "pending_cancel" ? "Access until" : "Renews"}
+            </dt>
+            <dd className="text-foreground">
+              {formatShortDate(current.status === "trialing" ? current.trialEndsAt : (current.nextChargeAt ?? current.currentPeriodEndAt))}
+            </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Subscriptions</dt>

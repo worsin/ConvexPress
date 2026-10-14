@@ -17,10 +17,17 @@ import {
   XCircle,
   FileText,
   Shield,
+  Tag,
 } from "lucide-react";
 
 import { PaymentMethodPanel } from "@/components/subscriptions/PaymentMethodPanel";
-import type { CustomerContractDetail, CustomerLifecycleAction } from "@/components/subscriptions/portalTypes";
+import {
+  discountText,
+  nextChargeText,
+  planPriceText,
+  type CustomerContractDetail,
+  type CustomerLifecycleAction,
+} from "@/components/subscriptions/portalTypes";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export type DashboardSubscriptionAction = CustomerLifecycleAction;
@@ -193,10 +200,8 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Recurring Amount</p>
-              <p className="text-sm font-medium text-foreground">
-                {formatMoney(sub.recurringAmount, sub.currencyCode)}
-              </p>
+              <p className="text-xs text-muted-foreground">Plan</p>
+              <p className="text-sm font-medium text-foreground">{planPriceText(sub)}</p>
             </div>
           </div>
 
@@ -205,10 +210,8 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Next Billing</p>
-              <p className="text-sm font-medium text-foreground">
-                {formatDate(sub.nextChargeAt)}
-              </p>
+              <p className="text-xs text-muted-foreground">{sub.status === "trialing" ? "First charge" : "Next charge"}</p>
+              <p className="text-sm font-medium text-foreground">{nextChargeText(sub)}</p>
             </div>
           </div>
 
@@ -239,6 +242,16 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
             </div>
           )}
         </div>
+        {sub.discounts.length > 0 ? (
+          <ul className="space-y-1 border-t border-border px-5 py-3">
+            {sub.discounts.map((discount) => (
+              <li key={discount.code} className="flex items-center gap-2 text-xs text-foreground">
+                <Tag className="h-3.5 w-3.5 text-primary" />
+                {discountText(discount, sub.currencyCode)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       {/* Card on file and any payment problem */}

@@ -9,7 +9,7 @@
 import { ChangePlanFlow } from "@/components/subscriptions/ChangePlanFlow";
 import { CustomerPortalCard } from "@/components/subscriptions/CustomerPortalCard";
 import { InvoiceHistoryTable } from "@/components/subscriptions/InvoiceHistoryTable";
-import { formatMoney } from "@/lib/commerce/format";
+import { nextChargeText, planPriceText } from "@/components/subscriptions/portalTypes";
 import { cn } from "@/lib/utils";
 import type { DashboardSubscriptionsSurfaceData } from "@/templates/packs/core/surfaces/dashboard.subscriptions";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -45,15 +45,13 @@ export default function DepotDashboardSubscriptions({ data }: SurfaceProps<Dashb
               <tr>
                 <Th>Plan</Th>
                 <Th>Status</Th>
-                <Th className="text-right">Amount</Th>
-                <Th className="text-right">Next billing</Th>
+                <Th className="text-right">Plan</Th>
+                <Th className="text-right">Next charge</Th>
                 <Th className="text-right">Current period</Th>
               </tr>
             </thead>
             <tbody>
               {contracts.map((contract) => {
-                const amount = contract.recurringAmount ?? contract.offer?.recurringAmount;
-                const currency = contract.currencyCode ?? contract.offer?.currencyCode ?? "USD";
                 return (
                   <tr key={contract._id} className="border-t border-border">
                     <Td className="min-w-48">
@@ -64,10 +62,10 @@ export default function DepotDashboardSubscriptions({ data }: SurfaceProps<Dashb
                       <StatusBadge status={contract.status} />
                     </Td>
                     <Td align="right" className="whitespace-nowrap font-semibold text-foreground">
-                      {typeof amount === "number" ? formatMoney(amount, currency) : "—"}
+                      {planPriceText(contract)}
                     </Td>
                     <Td align="right" className="whitespace-nowrap text-muted-foreground">
-                      {dateOrDash(contract.nextBillingAt ?? contract.nextChargeAt)}
+                      {nextChargeText(contract)}
                     </Td>
                     <Td align="right" className="whitespace-nowrap text-muted-foreground">
                       {dateOrDash(contract.currentPeriodStartAt)} – {dateOrDash(contract.currentPeriodEndAt)}

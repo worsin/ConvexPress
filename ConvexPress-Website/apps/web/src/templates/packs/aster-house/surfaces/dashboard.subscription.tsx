@@ -6,6 +6,7 @@
  */
 import { useState } from "react";
 
+import { discountText, nextChargeText, planPriceText } from "@/components/subscriptions/portalTypes";
 import { formatMoney } from "@/lib/commerce/format";
 import { PaymentMethodPanel } from "@/components/subscriptions/PaymentMethodPanel";
 import { CONFIRMATIONS, type DashboardSubscriptionAction, type DashboardSubscriptionSurfaceData } from "@/templates/packs/core/surfaces/dashboard.subscription";
@@ -50,11 +51,18 @@ export default function AsterDashboardSubscription({ data }: SurfaceProps<Dashbo
       {/* Billing details */}
       <Section title="Billing details">
         <StatGrid className="lg:grid-cols-4">
-          <Stat label="Recurring amount" value={typeof sub.recurringAmount === "number" ? formatMoney(sub.recurringAmount, currency) : "—"} display />
-          <Stat label="Next billing" value={dashDate(sub.nextChargeAt)} />
+          <Stat label="Plan" value={planPriceText(sub)} display />
+          <Stat label={sub.status === "trialing" ? "First charge" : "Next charge"} value={nextChargeText(sub)} />
           <Stat label="Current period" value={`${dashDate(sub.currentPeriodStartAt)} – ${dashDate(sub.currentPeriodEndAt)}`} />
           {sub.trialEndsAt ? <Stat label="Trial ends" value={dashDate(sub.trialEndsAt)} /> : null}
         </StatGrid>
+        {sub.discounts.length > 0 ? (
+          <ul className="mt-4 space-y-1 text-sm text-foreground">
+            {sub.discounts.map((discount) => (
+              <li key={discount.code}>{discountText(discount, currency)}</li>
+            ))}
+          </ul>
+        ) : null}
       </Section>
 
       {/* Status notices */}

@@ -39,7 +39,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
-import { initializeRedemption, validateCoupon } from "../helpers/coupons";
+import { contractDiscounts, initializeRedemption, upcomingChargeAmount, validateCoupon } from "../helpers/coupons";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { computeProration } from "../helpers/proration";
 import { readMergedSettingsSection } from "../settings/read";
@@ -322,6 +322,17 @@ const customerContractValidator = v.object({
 	currentPeriodEndAt: v.optional(v.number()),
 	nextBillingAt: v.optional(v.number()),
 	nextChargeAt: v.optional(v.number()),
+	/** What the next charge takes, with the contract's discounts (minor units). */
+	nextChargeAmount: v.number(),
+	/** Coupons still discounting renewals. */
+	discounts: v.array(
+		v.object({
+			code: v.string(),
+			discountType: v.union(v.literal("percent"), v.literal("fixed")),
+			amount: v.number(),
+			remainingCharges: v.union(v.number(), v.null()),
+		}),
+	),
 	trialEndsAt: v.optional(v.number()),
 	cancelAtPeriodEnd: v.optional(v.boolean()),
 	pausedAt: v.optional(v.number()),
@@ -482,6 +493,16 @@ async function buildCustomerContract(
 	}
 
 	const terms = await resolveLifecycleTerms(ctx, contract);
+	const nextChargeAt =
+		contract.status === "active" || contract.status === "trialing"
+			? (contract.nextBillingAt ?? contract.currentPeriodEndAt)
+			: undefined;
+	// A plan change due by the next charge is applied before that charge is invoiced.
+	const changeFirst =
+		scheduledOffer !== null &&
+		contract.scheduledOfferChange !== undefined &&
+		nextChargeAt !== undefined &&
+		contract.scheduledOfferChange.effectiveAt <= nextChargeAt;
 	return {
 		_id: contract._id,
 		status: contract.status,
@@ -492,10 +513,12 @@ async function buildCustomerContract(
 		currentPeriodStartAt: contract.currentPeriodStartAt,
 		currentPeriodEndAt: contract.currentPeriodEndAt,
 		nextBillingAt: contract.nextBillingAt,
-		nextChargeAt:
-			contract.status === "active" || contract.status === "trialing"
-				? (contract.nextBillingAt ?? contract.currentPeriodEndAt)
-				: undefined,
+		nextChargeAt,
+		nextChargeAmount: await upcomingChargeAmount(ctx, {
+			_id: contract._id,
+			recurringAmount: changeFirst && scheduledOffer ? scheduledOffer.recurringAmount : contract.recurringAmount,
+		}),
+		discounts: await contractDiscounts(ctx, contract._id),
 		trialEndsAt: contract.trialEndsAt,
 		cancelAtPeriodEnd: contract.cancelAtPeriodEnd,
 		pausedAt: contract.pausedAt,
@@ -1550,6 +1573,14 @@ export const applyCouponToMyContract = mutation({
  *
  * Ownership verified via a query call — actions cannot read the DB directly.
  */
+const INVOICE_STATUS_WORDS: Record<Doc<"commerce_subscription_invoices">["status"], string> = {
+	draft: "Draft",
+	open: "Due",
+	paid: "Paid",
+	failed: "Payment failed",
+	void: "Voided",
+};
+
 export const getInvoicePdf = action({
 	args: {
 		invoiceId: v.id("commerce_subscription_invoices"),
@@ -1592,7 +1623,7 @@ export const getInvoicePdf = action({
 		lines.push("================================");
 		lines.push("");
 		if (customerEmail) lines.push(`Billed to:      ${customerEmail}`);
-		lines.push(`Status:         ${invoice.status}`);
+		lines.push(`Status:         ${INVOICE_STATUS_WORDS[invoice.status]}`);
 		lines.push(`Issued:         ${day(invoice.createdAt)}`);
 		if (invoice.paidAt) lines.push(`Paid:           ${day(invoice.paidAt)}`);
 		if (invoice.periodStartAt !== undefined && invoice.periodEndAt !== undefined) {
@@ -1612,6 +1643,10 @@ export const getInvoicePdf = action({
 		lines.push(`  Subtotal:     ${formatMoney(invoice.subtotalAmount, currencyCode)}`);
 		lines.push(`  Tax:          ${formatMoney(invoice.taxAmount, currencyCode)}`);
 		lines.push(`  Total:        ${formatMoney(invoice.totalAmount, currencyCode)} ${currencyCode}`);
+		const refunded = (invoice.refunds ?? [])
+			.filter((refund) => refund.status === "succeeded")
+			.reduce((sum, refund) => sum + refund.amount, 0);
+		if (refunded > 0) lines.push(`  Refunded:     ${formatMoney(refunded, currencyCode)}`);
 
 		return {
 			ok: true,

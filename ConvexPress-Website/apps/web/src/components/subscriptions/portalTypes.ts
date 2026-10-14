@@ -26,6 +26,51 @@ export function formatDate(timestamp: number | undefined): string {
   return new Date(timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** "per month", "every 3 months". */
+export function formatCadence(interval: string | undefined, count: number | undefined): string {
+  const unit = interval ?? "period";
+  const n = count && count > 1 ? count : 1;
+  return n === 1 ? `per ${unit}` : `every ${n} ${unit}s`;
+}
+
+export type ContractDiscount = CustomerContract["discounts"][number];
+
+/** "SAVE10: 10% off your next 3 charges" / "… every charge" / "$25.00 off your next charge". */
+export function discountText(discount: ContractDiscount, currencyCode: string): string {
+  const off = discount.discountType === "percent" ? `${discount.amount}% off` : `${formatMoney(discount.amount, currencyCode)} off`;
+  const span =
+    discount.remainingCharges === null
+      ? "every charge"
+      : discount.remainingCharges === 1
+        ? "your next charge"
+        : `your next ${discount.remainingCharges} charges`;
+  return `${discount.code}: ${off} ${span}`;
+}
+
+/** "$299.00 per month" — the plan's price. */
+export function planPriceText(contract: Pick<CustomerContract, "recurringAmount" | "currencyCode" | "billingInterval" | "billingIntervalCount">): string {
+  return `${formatMoney(contract.recurringAmount, contract.currencyCode)} ${formatCadence(contract.billingInterval, contract.billingIntervalCount)}`;
+}
+
+/** "$269.10 on Nov 14, 2026" — what the next charge takes (with discounts) and when; "--" when none is due. */
+export function nextChargeText(contract: Pick<CustomerContract, "nextChargeAt" | "nextChargeAmount" | "currencyCode">): string {
+  return contract.nextChargeAt ? `${formatMoney(contract.nextChargeAmount, contract.currencyCode)} on ${formatDate(contract.nextChargeAt)}` : "--";
+}
+
+export const INVOICE_STATUS_LABEL: Record<CustomerInvoice["status"], string> = {
+  draft: "Draft",
+  open: "Due",
+  paid: "Paid",
+  failed: "Payment failed",
+  void: "Voided",
+};
+
+/** "Active", "Grace period until Oct 21, 2026", … for a linked membership. */
+export function grantStatusText(grant: CustomerContract["membershipGrants"][number]): string {
+  if (grant.status === "grace" && grant.graceEndsAt) return `Grace period until ${formatDate(grant.graceEndsAt)}`;
+  return grant.status.charAt(0).toUpperCase() + grant.status.slice(1).replace(/_/g, " ");
+}
+
 export function formatCardBrand(brand: string): string {
   const names: Record<string, string> = {
     amex: "American Express",
