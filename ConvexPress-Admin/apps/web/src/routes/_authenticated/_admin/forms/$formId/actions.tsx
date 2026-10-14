@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { ConditionalLogicBuilder } from "@/components/custom-fields/ConditionalLogicBuilder";
@@ -102,6 +103,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   const canManage = useCan("form.manage_actions");
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
+  useBreadcrumbTitle(formId, form?.title);
   const setup = useQuery(api.extensions.forms.actions.actionEditorSetup, canManage ? { formId } : "skip");
   const rows = useQuery(api.extensions.forms.actions.listActions, canManage ? { formId } : "skip");
   const actionTypes = useQuery(api.extensions.forms.actions.availableActionTypes, canManage ? {} : "skip");

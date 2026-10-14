@@ -5,6 +5,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import { ArrowLeft, LoaderIcon, Save } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { Capability } from "@backend/convex/types/capabilities";
@@ -91,6 +92,7 @@ function FormSettingsRoute() {
 function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   const canUpdate = useCan(formCap("form.update"));
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
+  useBreadcrumbTitle(formId, form?.title);
   const updateForm = useMutation(api.extensions.forms.mutations.update);
   const [baseSettings, setBaseSettings] = useState<FormSettings>({});
   const [draft, setDraft] = useState<SettingsDraft>({

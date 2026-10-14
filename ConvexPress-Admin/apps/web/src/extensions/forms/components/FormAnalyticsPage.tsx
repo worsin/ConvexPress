@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useCan } from "@/hooks/useCan";
@@ -102,6 +103,8 @@ function pct(n: number): string {
 export function FormAnalyticsPage({ formId }: { formId: Id<"forms"> }) {
   const [range, setRange] = useState(defaultRange);
 
+  const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
+  useBreadcrumbTitle(formId, form?.title);
   const funnel = useQuery(api.extensions.forms.analytics.getFunnel, {
     formId,
     from: range.from,
