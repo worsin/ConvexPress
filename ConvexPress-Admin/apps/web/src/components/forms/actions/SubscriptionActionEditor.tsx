@@ -33,8 +33,8 @@ export function offerSummary(offer: SetupOffer): string {
 
 function offerWarning(offer: SetupOffer | undefined): string | null {
   if (!offer) return null;
-  if (offer.status === "draft") return `${offer.title} is a draft: nobody can buy it until it's active in the catalog.`;
-  if (!offer.availableInDirectForms) return `${offer.title} isn't offered in forms. Turn on "Available in forms" on the plan in the catalog.`;
+  if (offer.status === "draft") return `${offer.title} is a draft: nobody can buy it until its status is Active (Subscriptions → Offers).`;
+  if (!offer.availableInDirectForms) return `${offer.title} can't be bought through forms. Turn on "Signup forms" on the offer (Subscriptions → Offers).`;
   return null;
 }
 
@@ -143,7 +143,7 @@ export function SubscriptionActionEditor({ formId, setup, config, problems, onCh
       <Note tone="warn">
         There are no plans to sell yet. Create one under{" "}
         <Link to="/commerce/subscriptions/offers" className="font-medium underline">
-          Subscriptions → Plans
+          Subscriptions → Offers
         </Link>
         , then come back to connect it to this form.
       </Note>
