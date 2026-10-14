@@ -10,7 +10,7 @@ const form={_id:'form-resume',title:'Saved thought',slug:'resume',settings:'{}',
 const initial={submissionId:'draft-one',formSlug:'resume',status:'partial',currentStep:0,expiresAt:Date.now()+100000,values:{note:'Preserve this answer'}};
 let draft=initial,fail=false,release;const listeners=new Set();
 const notify=()=>{for(const fn of listeners)fn();};
-mock.module('@/lib/auth/clerk',()=>({useAuth:()=>({isLoaded:true,isSignedIn:false})}));
+mock.module('@/lib/auth/clerk',()=>({useAuth:()=>({isLoaded:true,isSignedIn:false}),useUser:()=>({isLoaded:true,user:null}),useClerk:()=>({signOut:async()=>{}}),useSignIn:()=>({isLoaded:false}),useSignUp:()=>({isLoaded:false}),clerkErrorCode:()=>undefined,clerkErrorMessage:(_e,fallback)=>fallback}));
 mock.module('@/lib/html-sanitizer',()=>({default:{sanitize:v=>v}}));
 mock.module('@tanstack/react-router',()=>({...router,createFileRoute:()=>options=>({options,useParams:()=>({slug:'resume',token:'proof'})}),Link:props=>createElement('a',props)}));
 mock.module('@convex-dev/react-query',()=>({convexQuery:(_ref,args)=>({resume:'token' in args})}));

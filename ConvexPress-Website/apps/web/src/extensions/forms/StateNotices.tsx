@@ -9,6 +9,8 @@ export interface PublicFormAvailability {
   code?: string;
   message?: string;
   loginRequired?: boolean;
+  /** Only the final submit needs an account (asked for inside the form). */
+  accountRequiredToSubmit?: boolean;
   entryLimitReached?: boolean;
 }
 
@@ -20,6 +22,7 @@ export interface PublicFormSettings {
   entryLimit?: number | null;
   requireLogin?: boolean | null;
   loginRequired?: boolean | null;
+  requireAccountToSubmit?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -53,6 +56,15 @@ export function publicFormRequiresLogin(
     settings.requireLogin === true ||
     settings.loginRequired === true
   );
+}
+
+/** The form asks for an account at the end, before submitting (and paying). */
+export function publicFormRequiresAccountToSubmit(
+  settings: PublicFormSettings,
+  availability?: PublicFormAvailability,
+): boolean {
+  if (publicFormRequiresLogin(settings, availability)) return false;
+  return availability?.accountRequiredToSubmit === true || settings.requireAccountToSubmit === true;
 }
 
 export function getFormClosedState(

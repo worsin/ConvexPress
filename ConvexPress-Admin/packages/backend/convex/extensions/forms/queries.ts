@@ -27,7 +27,9 @@ import {
   parseFormSettings,
   evaluateFormTimeAvailability,
   formEntryLimit,
+  formRequiresAccountToSubmit,
   formRequiresLogin,
+  publicFormSettingsJson,
 } from "./builderCore";
 import { loadSecuritySettings } from "./spam";
 import { isGeneratedResumeToken, computeResumeExpiry } from "./tokens";
@@ -306,6 +308,8 @@ export const getBySlug = query({
       code: v.optional(v.string()),
       message: v.optional(v.string()),
       loginRequired: v.boolean(),
+      /** Only the final submit needs an account; the website asks for it in the form. */
+      accountRequiredToSubmit: v.boolean(),
       entryLimitReached: v.boolean(),
     }),
     security: v.object({
@@ -373,12 +377,13 @@ export const getBySlug = query({
       title: form.title,
       slug: form.slug,
       description: form.description,
-      settings: form.settings,
+      settings: publicFormSettingsJson(settings),
       availability: {
         open: closed === null,
         code: closed?.code,
         message: closed?.message,
         loginRequired: formRequiresLogin(settings),
+        accountRequiredToSubmit: formRequiresAccountToSubmit(settings),
         entryLimitReached,
       },
       security: {

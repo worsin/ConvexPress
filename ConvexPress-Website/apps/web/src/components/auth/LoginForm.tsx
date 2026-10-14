@@ -5,6 +5,10 @@
  * phone code as first factors; TOTP, SMS and backup codes as second factors;
  * forced password reset. Which identifier is asked for (email, username,
  * phone) and whether a password box appears come from capabilities.
+ *
+ * Embedded (`onSignedIn`): inside another flow, such as a form that asks for
+ * an account before payment. Finishing calls `onSignedIn` instead of
+ * navigating, and "Create one" switches mode through `onSwitchToRegister`.
  */
 
 import { useState } from "react";
@@ -28,6 +32,12 @@ import { CodeInput } from "./CodeInput";
 interface LoginFormProps {
   returnTo?: string;
   className?: string;
+  /** Embedded: called once the session is active (no navigation). */
+  onSignedIn?: () => void;
+  /** Embedded: switch the host to sign-up instead of linking to /register. */
+  onSwitchToRegister?: () => void;
+  /** An identifier to start from (e.g. the email a form already asked). */
+  initialIdentifier?: string;
 }
 
 type Step =
@@ -37,7 +47,7 @@ type Step =
   | { kind: "second_code"; strategy: "totp" | "phone_code" | "email_code" | "backup_code"; factor: FactorLike | null; alternatives: string[] }
   | { kind: "new_password" };
 
-export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps) {
+export function LoginForm({ returnTo = "/dashboard", className, onSignedIn, onSwitchToRegister, initialIdentifier }: LoginFormProps) {
   const capabilities = useAuthCapabilities();
   const { signIn, setActive, isLoaded } = useSignIn();
   const recordFailedLogin = useMutation(api.authTracking.mutations.recordFailedLogin);
@@ -47,7 +57,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
     capabilities.attributes.password.enabled && capabilities.signIn.firstFactors.includes("password");
   const preferOtp = capabilities.signIn.preferredStrategy === "otp" || !passwordAvailable;
 
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(initialIdentifier ?? "");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -125,7 +135,8 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
       case "complete":
         if (!setActive) throw new Error("Sign-in is not ready yet.");
         await setActive({ session: next.sessionId });
-        go(returnTo);
+        if (onSignedIn) onSignedIn();
+        else go(returnTo);
         return;
       case "password":
         setStep({ kind: "password" });
@@ -422,7 +433,13 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
 
       <div className="text-center">
         <span className="text-xs text-muted-foreground">Don't have an account? </span>
-        <AuthLink to="/register">Create one</AuthLink>
+        {onSwitchToRegister ? (
+          <button type="button" onClick={onSwitchToRegister} className="text-xs font-medium text-primary underline-offset-4 hover:underline">
+            Create one
+          </button>
+        ) : (
+          <AuthLink to="/register">Create one</AuthLink>
+        )}
       </div>
     </form>
   );

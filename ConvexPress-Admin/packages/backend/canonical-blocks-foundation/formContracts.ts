@@ -18,6 +18,7 @@ export const publicFormSettingsSchema = z.object({
   entryLimit: z.number().int().positive().nullable().optional(),
   requireLogin: z.boolean().nullable().optional(),
   loginRequired: z.boolean().nullable().optional(),
+  requireAccountToSubmit: z.boolean().nullable().optional(),
   orderForm: z.object({
     enabled: z.boolean().optional(), showSummary: z.boolean().optional(),
     summaryTitle: z.string().max(512).optional(), paymentTitle: z.string().max(512).optional(),

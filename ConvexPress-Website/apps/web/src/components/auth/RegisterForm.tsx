@@ -6,6 +6,11 @@
  * `useSignUpFlow` tells us the next step: complete, verify email (code or
  * link), verify phone, collect missing fields (also how an OAuth transfer
  * lands here), consent, or a restricted sign-up mode.
+ *
+ * Embedded (`onSignedIn`): used inside another flow, such as a form that asks
+ * for an account before payment. The email code is entered in place instead
+ * of on /verify-email, "Sign in" switches mode through `onSwitchToSignIn`, and
+ * finishing calls `onSignedIn` instead of navigating.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -29,23 +34,43 @@ interface RegisterFormProps {
   invitation?: InvitationData;
   returnTo?: string;
   className?: string;
+  /** Embedded: called once the new account's session is active (no navigation). */
+  onSignedIn?: () => void;
+  /** Embedded: switch the host to sign-in instead of linking to /login. */
+  onSwitchToSignIn?: () => void;
+  /** Values to start from (e.g. what a form already asked). */
+  initialValues?: Partial<Pick<SignUpFieldValues, "emailAddress" | "firstName" | "lastName">>;
+  submitLabel?: string;
 }
 
 type Step =
   | { kind: "form" }
   | { kind: "collect"; fields: SignUpFieldName[]; consent: boolean }
+  | { kind: "verify_email"; strategy: "email_code" | "email_link" }
   | { kind: "verify_phone" }
   | { kind: "restricted" };
 
-export function RegisterForm({ invitation, returnTo = "/dashboard", className }: RegisterFormProps) {
+export function RegisterForm({
+  invitation,
+  returnTo = "/dashboard",
+  className,
+  onSignedIn,
+  onSwitchToSignIn,
+  initialValues,
+  submitLabel,
+}: RegisterFormProps) {
   const capabilities = useAuthCapabilities();
   const flow = useSignUpFlow();
+  const embedded = onSignedIn !== undefined;
   const [values, setValues] = useState<SignUpFieldValues>(() => ({
     ...emptySignUpValues(),
-    emailAddress: invitation?.email ?? "",
+    firstName: initialValues?.firstName ?? "",
+    lastName: initialValues?.lastName ?? "",
+    emailAddress: invitation?.email ?? initialValues?.emailAddress ?? "",
   }));
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [phoneCode, setPhoneCode] = useState("");
+  const [emailCode, setEmailCode] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<Step>({ kind: "form" });
@@ -78,9 +103,14 @@ export function RegisterForm({ invitation, returnTo = "/dashboard", className }:
       case "complete":
         clearPendingVerificationContext();
         await flow.complete(next.sessionId);
-        go(returnTo);
+        if (onSignedIn) onSignedIn();
+        else go(returnTo);
         return;
       case "verify_email": {
+        if (embedded) {
+          setStep({ kind: "verify_email", strategy: next.strategy });
+          return;
+        }
         writePendingVerificationContext({
           email: values.emailAddress.trim() || invitation?.email,
           returnTo,
@@ -195,6 +225,35 @@ export function RegisterForm({ invitation, returnTo = "/dashboard", className }:
     }
   };
 
+  const submitEmailCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!emailCode.trim()) return setError("Enter the code we emailed you.");
+    setIsSubmitting(true);
+    try {
+      await handleNext(await flow.attemptEmailCode(emailCode));
+    } catch (cause) {
+      setError(flow.errorMessage(cause, "That code did not work. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /** Email link: the link was opened (here or elsewhere); see whether sign-up finished. */
+  const checkEmailLink = async () => {
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const next = await flow.refresh();
+      if (next.kind === "verify_email") setError("The link has not been opened yet. Open the email we sent, then try again.");
+      else await handleNext(next);
+    } catch (cause) {
+      setError(flow.errorMessage(cause, "We could not check the link."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const submitPhoneCode = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
@@ -220,6 +279,50 @@ export function RegisterForm({ invitation, returnTo = "/dashboard", className }:
         </p>
         <AuthLink to="/login">Sign in instead</AuthLink>
       </div>
+    );
+  }
+
+  if (step.kind === "verify_email") {
+    const email = values.emailAddress.trim() || invitation?.email;
+    return (
+      <form
+        data-slot="register-verify-email"
+        className={cn("flex flex-col gap-4", className)}
+        onSubmit={step.strategy === "email_code" ? submitEmailCode : (event) => { event.preventDefault(); void checkEmailLink(); }}
+        noValidate
+      >
+        {error && <AuthError message={error} />}
+        <p className="text-sm text-foreground">
+          {step.strategy === "email_code"
+            ? `We emailed a 6-digit code to ${email ?? "your address"}. Enter it to finish creating your account.`
+            : `We emailed a sign-in link to ${email ?? "your address"}. Open it, then come back here.`}
+        </p>
+        {step.strategy === "email_code" ? <CodeInput id="register-email-code" value={emailCode} onChange={setEmailCode} /> : null}
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Checking..." : step.strategy === "email_code" ? "Verify email" : "I've opened the link"}
+        </Button>
+        <div className="flex flex-wrap justify-between gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isSubmitting}
+            onClick={async () => {
+              setError("");
+              try {
+                await flow.resend();
+              } catch (cause) {
+                setError(flow.errorMessage(cause, "We could not resend the email."));
+              }
+            }}
+          >
+            Send it again
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={isSubmitting} onClick={() => setStep({ kind: "form" })}>
+            Use a different email
+          </Button>
+        </div>
+      </form>
     );
   }
 
@@ -291,12 +394,18 @@ export function RegisterForm({ invitation, returnTo = "/dashboard", className }:
       {capabilities.signUp.captchaEnabled && <div id="clerk-captcha" />}
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !flow.isLoaded}>
-        {isSubmitting ? "Creating account..." : "Create Account"}
+        {isSubmitting ? "Creating account..." : (submitLabel ?? "Create Account")}
       </Button>
 
       <div className="text-center">
         <span className="text-xs text-muted-foreground">Already have an account? </span>
-        <AuthLink to="/login">Sign in</AuthLink>
+        {onSwitchToSignIn ? (
+          <button type="button" onClick={onSwitchToSignIn} className="text-xs font-medium text-primary underline-offset-4 hover:underline">
+            Sign in
+          </button>
+        ) : (
+          <AuthLink to="/login">Sign in</AuthLink>
+        )}
       </div>
     </form>
   );

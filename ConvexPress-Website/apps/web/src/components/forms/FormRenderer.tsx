@@ -559,22 +559,34 @@ export function SubmittedConfirmation({
 
 // ─── Error parsing ────────────────────────────────────────────────────────────
 
+function isSubmitFieldError(value: unknown): value is SubmitFieldError {
+  if (typeof value !== "object" || value === null) return false;
+  return (
+    typeof Reflect.get(value, "fieldKey") === "string" &&
+    typeof Reflect.get(value, "label") === "string" &&
+    typeof Reflect.get(value, "error") === "string"
+  );
+}
+
 export function parseSubmitError(err: unknown): {
   message: string;
+  /** The server's error code (e.g. ACCOUNT_REQUIRED), when it sent one. */
+  code?: string;
   serverFieldErrors?: SubmitFieldError[];
 } {
   // ConvexError carries structured data on `err.data`.
-  const convexError = err as {
-    data?: { message?: string; errors?: SubmitFieldError[] };
-  };
-  const data = convexError?.data;
-  if (data) {
-    const serverFieldErrors = Array.isArray(data.errors) ? data.errors : undefined;
+  const data: unknown = typeof err === "object" && err !== null ? Reflect.get(err, "data") : undefined;
+  if (typeof data === "object" && data !== null) {
+    const message: unknown = Reflect.get(data, "message");
+    const code: unknown = Reflect.get(data, "code");
+    const errors: unknown = Reflect.get(data, "errors");
     return {
       message:
-        data.message ??
-        "We couldn't submit the form. Please review your answers and try again.",
-      serverFieldErrors,
+        typeof message === "string"
+          ? message
+          : "We couldn't submit the form. Please review your answers and try again.",
+      code: typeof code === "string" ? code : undefined,
+      serverFieldErrors: Array.isArray(errors) ? errors.filter(isSubmitFieldError) : undefined,
     };
   }
   if (err instanceof Error && err.message) return { message: err.message };
