@@ -16,6 +16,7 @@ import {
 
 import { cn, getErrorMessage } from "@/lib/utils";
 import { idFromString } from "@/lib/ids";
+import type { PricingOffer } from "@/lib/pricingCardRenderer";
 
 /**
  * Two-step upgrade/downgrade flow for a single contract.
@@ -32,15 +33,7 @@ import { idFromString } from "@/lib/ids";
  * Dialog uses our Base UI wrapper — never @radix-ui.
  */
 
-type Offer = {
-  _id: string;
-  title: string;
-  slug?: string;
-  description?: string;
-  recurringAmount: number;
-  currencyCode: string;
-  features?: Array<{ text: string; highlighted?: boolean }>;
-};
+type Offer = Pick<PricingOffer, "_id" | "title" | "slug" | "publicSummary" | "recurringAmount" | "currencyCode" | "features">;
 
 type PreviewResult = {
   daysRemaining: number;
@@ -264,9 +257,9 @@ export function ChangePlanFlow({
                       <p className="truncate text-sm font-medium text-foreground">
                         {offer.title}
                       </p>
-                      {offer.description && (
+                      {offer.publicSummary && (
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                          {offer.description}
+                          {offer.publicSummary}
                         </p>
                       )}
                     </div>

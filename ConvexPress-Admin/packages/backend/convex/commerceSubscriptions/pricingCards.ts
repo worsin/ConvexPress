@@ -60,6 +60,7 @@ const defaultPricingCardConfigValidator = v.object({
   headline: v.optional(v.string()),
   subheadline: v.optional(v.string()),
   templateKey: v.string(),
+  signupFormId: v.optional(v.id("forms")),
   updatedAt: v.number(),
   updatedBy: v.null(),
 });
@@ -135,6 +136,8 @@ export const updatePricingCardConfig = mutation({
     headline: v.optional(v.string()),
     subheadline: v.optional(v.string()),
     templateKey: v.optional(v.string()),
+    /** The signup form cards link into; null clears it, absent keeps it. */
+    signupFormId: v.optional(v.union(v.id("forms"), v.null())),
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
@@ -197,8 +200,27 @@ export const updatePricingCardConfig = mutation({
       });
     }
 
+    if (args.signupFormId) {
+      const form = await ctx.db.get(args.signupFormId);
+      const subscription = form
+        ? (
+            await ctx.db
+              .query("form_actions")
+              .withIndex("by_form_enabled", (q) => q.eq("formId", form._id).eq("enabled", true))
+              .collect()
+          ).find((action) => action.type === "subscription")
+        : undefined;
+      if (!form || form.status !== "published" || !subscription) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "The signup form must be published and have a subscription action.",
+        });
+      }
+    }
+
     const now = Date.now();
     const existing = await getSingletonRow(ctx);
+    const signupFormId = args.signupFormId === undefined ? existing?.signupFormId : (args.signupFormId ?? undefined);
 
     if (!existing) {
       await ctx.db.insert("commerce_subscription_pricing_card_config", {
@@ -208,6 +230,7 @@ export const updatePricingCardConfig = mutation({
         headline: args.headline,
         subheadline: args.subheadline,
         templateKey,
+        signupFormId,
         updatedAt: now,
         updatedBy: currentUser._id,
       });
@@ -218,6 +241,7 @@ export const updatePricingCardConfig = mutation({
         headline: args.headline,
         subheadline: args.subheadline,
         templateKey,
+        signupFormId,
         updatedAt: now,
         updatedBy: currentUser._id,
       });

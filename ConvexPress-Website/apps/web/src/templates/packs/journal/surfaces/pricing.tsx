@@ -7,12 +7,12 @@
  * offer-level trial overriding the template's, features merged with plan
  * benefits without duplicates, and the signup link per offer.
  */
-import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 
 import type { PricingOffer } from "@/lib/pricingCardRenderer";
 import { cn } from "@/lib/utils";
 import type { PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
+import { OfferSignupLink } from "@/components/subscriptions/OfferSignupLink";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, EmptyState, Eyebrow, SectionHeading, SmallCaps, buttonClasses } from "../parts";
@@ -78,7 +78,7 @@ function PlanColumn({ offer, featured }: { offer: PricingOffer; featured: boolea
       <div className="flex flex-col gap-3">
         {featured ? <Eyebrow>Recommended</Eyebrow> : <SmallCaps as="p">Plan</SmallCaps>}
         <h2 className="font-display text-3xl leading-[1.08] tracking-tight text-foreground">{offer.title}</h2>
-        {offer.description ? <p className="text-sm leading-6 text-muted-foreground">{offer.description}</p> : null}
+        {offer.publicSummary ? <p className="text-sm leading-6 text-muted-foreground">{offer.publicSummary}</p> : null}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -101,9 +101,9 @@ function PlanColumn({ offer, featured }: { offer: PricingOffer; featured: boolea
       ) : null}
 
       <div className="mt-auto">
-        <Link to="/signup/$offerId" params={{ offerId: offer._id }} className={buttonClasses(featured ? "primary" : "ghost", "w-full")}>
+        <OfferSignupLink offer={offer} className={buttonClasses(featured ? "primary" : "ghost", "w-full")}>
           {trialDays > 0 ? "Start free trial" : "Subscribe"}
-        </Link>
+        </OfferSignupLink>
       </div>
     </article>
   );

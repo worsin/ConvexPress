@@ -9,22 +9,14 @@ import { ChangePlanFlow } from "@/components/subscriptions/ChangePlanFlow";
 import { CustomerPortalCard } from "@/components/subscriptions/CustomerPortalCard";
 import { InvoiceHistoryTable } from "@/components/subscriptions/InvoiceHistoryTable";
 import type { CustomerContract } from "@/components/subscriptions/portalTypes";
+import type { PricingOffer } from "@/lib/pricingCardRenderer";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 /** A contract as the account page shows it (`portal.getMyActiveContracts`). */
 export type DashboardSubscriptionContract = CustomerContract;
 
-export interface DashboardSubscriptionOffer {
-  _id: string;
-  title: string;
-  slug?: string;
-  description?: string;
-  recurringAmount: number;
-  currencyCode: string;
-  features?: Array<{ text: string; highlighted?: boolean }>;
-  productId?: string;
-  status: string;
-}
+/** An offer a customer can change to (`offers.listOffersForPricing`: active, public fields only). */
+export type DashboardSubscriptionOffer = PricingOffer;
 
 export interface DashboardSubscriptionsSurfaceData {
   /** Enriched active contracts; undefined while loading. */
@@ -84,7 +76,6 @@ export default function CoreDashboardSubscriptions({ data }: SurfaceProps<Dashbo
               // excluding the current offer.
               const candidates = (offers ?? []).filter(
                 (offer) =>
-                  offer.status === "active" &&
                   (!contract.product?._id ||
                     !offer.productId ||
                     offer.productId === contract.product._id),

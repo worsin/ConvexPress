@@ -48,6 +48,7 @@ function PricingCardsPage() {
   const config = useQuery(api.commerceSubscriptions.pricingCards.getPricingCardConfig, {});
   const offers = useQuery(api.commerceSubscriptions.offers.listOffers, {});
   const updateConfig = useMutation(api.commerceSubscriptions.pricingCards.updatePricingCardConfig);
+  const signupForms = useQuery(api.commerceSubscriptions.adminCatalog.listSignupForms, {});
 
   const [orderedOfferIds, setOrderedOfferIds] = useState<
     Array<Id<"commerce_subscription_offers">>
@@ -57,6 +58,7 @@ function PricingCardsPage() {
   >(null);
   const [headline, setHeadline] = useState("");
   const [subheadline, setSubheadline] = useState("");
+  const [signupFormId, setSignupFormId] = useState<Id<"forms"> | "">("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -65,6 +67,7 @@ function PricingCardsPage() {
     setFeaturedOfferId(config.featuredOfferId ?? null);
     setHeadline(config.headline ?? "");
     setSubheadline(config.subheadline ?? "");
+    setSignupFormId(config.signupFormId ?? "");
   }, [config]);
 
   const pluginDisabled = config === null;
@@ -120,6 +123,7 @@ function PricingCardsPage() {
         headline: headline.trim() || undefined,
         subheadline: subheadline.trim() || undefined,
         templateKey: "default",
+        signupFormId: signupFormId === "" ? null : signupFormId,
       });
       toast.success("Pricing page saved");
     } catch (error) {
@@ -193,6 +197,51 @@ function PricingCardsPage() {
                   />
                 </div>
               </div>
+            </section>
+
+            {/* Where the buttons lead */}
+            <section className="space-y-3 rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Buttons lead to</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Send buyers into your signup form with their plan already chosen, or to the simple checkout page.
+                </p>
+              </div>
+              <select
+                value={signupFormId}
+                aria-label="Where pricing buttons lead"
+                onChange={(e) => {
+                  const chosen = (signupForms ?? []).find((form) => form._id === e.target.value);
+                  setSignupFormId(chosen ? chosen._id : "");
+                }}
+                className={inputClass}
+              >
+                <option value="">Simple checkout page (account, card, done)</option>
+                {(signupForms ?? []).map((form) => (
+                  <option key={form._id} value={form._id}>
+                    Signup form: {form.title}
+                  </option>
+                ))}
+              </select>
+              {(() => {
+                const chosen = (signupForms ?? []).find((form) => form._id === signupFormId);
+                if (!chosen) return null;
+                if (chosen.planMode === "fixed") {
+                  return <p className="text-xs text-muted-foreground">This form sells one plan; only that plan's button opens it. Other plans use the simple checkout page.</p>;
+                }
+                return chosen.planParam ? (
+                  <p className="text-xs text-muted-foreground">
+                    Each button opens /forms/{chosen.slug} with “{chosen.planFieldLabel ?? "the plan field"}” already set (?{chosen.planParam}=…).
+                  </p>
+                ) : (
+                  <p className="text-xs text-destructive">
+                    “{chosen.planFieldLabel ?? "The plan field"}” is set not to be filled from links, so buyers will choose their plan again in the form.
+                  </p>
+                );
+              })()}
+              {signupForms && signupForms.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No published form has a subscription action yet.</p>
+              ) : null}
             </section>
 
             {/* Ordered offers */}

@@ -31,6 +31,7 @@ import {
   formRequiresLogin,
   publicFormSettingsJson,
 } from "./builderCore";
+import { actionPlan, withPlanPrefill } from "./planLinks";
 import { loadSecuritySettings } from "./spam";
 import { isGeneratedResumeToken, computeResumeExpiry } from "./tokens";
 export { DEFAULT_RESUME_TTL_MS, computeResumeExpiry } from "./tokens";
@@ -354,6 +355,19 @@ export const getBySlug = query({
           .collect()
       : [];
     const settings = parseFormSettings(form.settings);
+    // The field a subscription action reads the plan from can be preselected
+    // from a link (pricing pages link into the form; see planLinks.ts).
+    const subscriptionActions = (
+      await ctx.db
+        .query("form_actions")
+        .withIndex("by_form_enabled", (q) => q.eq("formId", form._id).eq("enabled", true))
+        .collect()
+    ).filter((action) => action.type === "subscription");
+    const planFieldKeys = new Set<string>();
+    for (const action of subscriptionActions) {
+      const plan = actionPlan(action.config);
+      if (plan?.mode === "fromField") planFieldKeys.add(plan.fieldKey);
+    }
     const security = await loadSecuritySettings(ctx);
     const timeAvailability = evaluateFormTimeAvailability(settings, Date.now());
     const entryLimit = formEntryLimit(settings);
@@ -403,7 +417,7 @@ export const getBySlug = query({
         instructions: f.instructions,
         required: f.required,
         defaultValue: f.defaultValue,
-        settings: f.settings,
+        settings: planFieldKeys.has(f.key) ? withPlanPrefill(f.settings) : f.settings,
         conditionalLogic: f.conditionalLogic,
         parentFieldId: f.parentFieldId,
         menuOrder: f.menuOrder,

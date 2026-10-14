@@ -10,6 +10,8 @@
  *                                           contracts and retry schedule
  *   - listCouponRows / getCouponEditor      coupons with redemptions and the
  *                                           offers they apply to
+ *   - listSignupForms                       published forms with a subscription
+ *                                           action, which pricing cards can link into
  *
  * Everything requires `manage_options`. Writes stay in offers.ts,
  * mutations.ts (templates) and coupons.ts.
@@ -25,6 +27,7 @@ import {
 } from "../schema/commerceSubscriptions";
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { actionPlan, planParam } from "../extensions/forms/planLinks";
 import { DEFAULT_DUNNING_POLICY, dunningPolicyFor } from "./lifecycle";
 
 type ContractStatus = Doc<"commerce_subscriptions">["status"];
@@ -407,3 +410,63 @@ export const getCouponEditor = query({
 		return { ...(await couponRow(ctx, coupon)), offerIds: coupon.offerIds ?? [], recentRedemptions };
 	},
 });
+
+// ─── Signup forms ───────────────────────────────────────────────────────────
+
+/** Published forms with a subscription action, and whether a link can preselect the plan. */
+export const listSignupForms = query({
+	args: {},
+	returns: v.array(
+		v.object({
+			_id: v.id("forms"),
+			title: v.string(),
+			slug: v.string(),
+			planMode: v.union(v.literal("fixed"), v.literal("fromField")),
+			planFieldLabel: v.optional(v.string()),
+			/** The URL parameter that preselects the plan, when the plan field allows it. */
+			planParam: v.optional(v.string()),
+		}),
+	),
+	handler: async (ctx) => {
+		if (!(await adminGate(ctx))) return [];
+		const forms = await ctx.db
+			.query("forms")
+			.withIndex("by_status", (q) => q.eq("status", "published"))
+			.collect();
+		const rows = [];
+		for (const form of forms) {
+			const actions = await ctx.db
+				.query("form_actions")
+				.withIndex("by_form_enabled", (q) => q.eq("formId", form._id).eq("enabled", true))
+				.collect();
+			const plan = actions
+				.filter((action) => action.type === "subscription")
+				.map((action) => actionPlan(action.config))
+				.find((candidate) => candidate !== null);
+			if (!plan) continue;
+			if (plan.mode === "fixed") {
+				rows.push({ _id: form._id, title: form.title, slug: form.slug, planMode: plan.mode });
+				continue;
+			}
+			const groupId = form.fieldGroupId;
+			const field = groupId
+				? (
+						await ctx.db
+							.query("fieldDefinitions")
+							.withIndex("by_group", (q) => q.eq("groupId", groupId))
+							.collect()
+					).find((definition) => definition.key === plan.fieldKey)
+				: undefined;
+			rows.push({
+				_id: form._id,
+				title: form.title,
+				slug: form.slug,
+				planMode: plan.mode,
+				planFieldLabel: field?.label,
+				planParam: field ? (planParam(field.settings) ?? undefined) : undefined,
+			});
+		}
+		return rows;
+	},
+});
+

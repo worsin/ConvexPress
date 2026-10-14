@@ -47,7 +47,7 @@ export default function AsterDashboardSubscriptions({ data }: SurfaceProps<Dashb
           <div className="flex flex-col gap-6">
             {contracts.map((contract) => {
               // Candidate offers for plan change: same product, active, excluding the current offer.
-              const candidates = (offers ?? []).filter((offer) => offer.status === "active" && (!contract.product?._id || !offer.productId || offer.productId === contract.product._id));
+              const candidates = (offers ?? []).filter((offer) => (!contract.product?._id || !offer.productId || offer.productId === contract.product._id));
               return <CustomerPortalCard key={contract._id} contract={contract} planChangeSlot={candidates.length > 0 ? <ChangePlanFlow contractId={contract._id} currentOfferId={contract.offer?._id ?? null} availableOffers={candidates} /> : null} />;
             })}
           </div>

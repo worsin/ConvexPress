@@ -559,6 +559,11 @@ export const commerceSubscriptionTables = {
     subheadline: v.optional(v.string()),
     featuredOfferId: v.optional(v.id("commerce_subscription_offers")),
     templateKey: v.string(),
+    /**
+     * The signup form pricing cards send buyers into (a form with a
+     * `subscription` action). Unset: cards open the plain signup page.
+     */
+    signupFormId: v.optional(v.id("forms")),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }).index("by_singleton", ["singletonKey"]),

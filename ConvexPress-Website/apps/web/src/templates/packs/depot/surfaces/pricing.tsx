@@ -5,12 +5,12 @@
  * table with one column per offer and one row per feature or plan benefit.
  * Each card links to the same signup route as Core.
  */
-import { Link } from "@tanstack/react-router";
 import { Check, Minus } from "lucide-react";
 
 import type { PricingOffer } from "@/lib/pricingCardRenderer";
 import { cn } from "@/lib/utils";
 import type { PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
+import { OfferSignupLink } from "@/components/subscriptions/OfferSignupLink";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Card, Container, EmptyState, Label, SectionHeading, Td, Th, buttonClasses } from "../parts";
@@ -150,9 +150,9 @@ export default function DepotPricing({ data }: SurfaceProps<PricingSurfaceData>)
                     </Th>
                     {sorted.map((offer) => (
                       <Td key={offer._id} className="text-center">
-                        <Link to="/signup/$offerId" params={{ offerId: offer._id }} className={buttonClasses(featuredId === offer._id ? "primary" : "secondary", "sm")}>
+                        <OfferSignupLink offer={offer} className={buttonClasses(featuredId === offer._id ? "primary" : "secondary", "sm")}>
                           {trialDaysOf(offer) > 0 ? "Start free trial" : "Subscribe"}
-                        </Link>
+                        </OfferSignupLink>
                       </Td>
                     ))}
                   </tr>
@@ -174,7 +174,7 @@ function OfferCard({ offer, featured }: { offer: PricingOffer; featured: boolean
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="text-lg font-semibold text-foreground">{offer.title}</h2>
-          {offer.description ? <p className="text-[13px] leading-5 text-muted-foreground">{offer.description}</p> : null}
+          {offer.publicSummary ? <p className="text-[13px] leading-5 text-muted-foreground">{offer.publicSummary}</p> : null}
         </div>
         {featured && <Badge tone="sale">Most popular</Badge>}
       </div>
@@ -197,9 +197,9 @@ function OfferCard({ offer, featured }: { offer: PricingOffer; featured: boolean
           ))}
         </ul>
       )}
-      <Link to="/signup/$offerId" params={{ offerId: offer._id }} className={buttonClasses(featured ? "primary" : "secondary", "md", "mt-auto w-full")}>
+      <OfferSignupLink offer={offer} className={buttonClasses(featured ? "primary" : "secondary", "md", "mt-auto w-full")}>
         {trialDays > 0 ? "Start free trial" : "Subscribe"}
-      </Link>
+      </OfferSignupLink>
     </Card>
   );
 }
