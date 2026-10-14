@@ -8,67 +8,59 @@
  *
  * Exports:
  *   Queries:
- *     - getMyActiveContracts   Enriched list (offer, product, currentInvoice,
- *                              nextChargeAt, membership grants) for ME.
+ *     - getMyActiveContracts   My contracts with offer, scheduled change, latest
+ *                              invoice, card on file, billing issue and the
+ *                              actions available (no provider identifiers).
  *     - previewPlanChange      Proration preview for an upgrade/downgrade.
  *     - listMyInvoices         My invoices across all contracts.
  *
  *   Mutations:
- *     - requestPauseContract      Thin wrapper over mutations.pause.
- *     - requestResumeContract     Thin wrapper over mutations.resume.
- *     - requestCancelContract     Thin wrapper over mutations.scheduleCancel
- *                                 or mutations.cancelNow.
- *     - requestPlanChange         Move a contract to a new offer; prorates
- *                                 upgrades inline, schedules downgrades at
- *                                 cycle end.
+ *     - requestPauseContract      Pause (good standing, pausable plans only).
+ *     - requestResumeContract     Resume a paused contract.
+ *     - requestCancelContract     Schedule cancellation at period end, or
+ *                                 cancel now (the option for past_due).
+ *     - requestKeepContract       Undo a scheduled cancellation.
+ *     - requestPlanChange         Upgrade (prorated) or schedule a downgrade.
  *     - applyCouponToMyContract   Validate + seed a redemption row on ME.
  *
  *   Actions:
  *     - getInvoicePdf   Return a generated PDF invoice document.
+ *     (Card changes: `paymentMethods.ts`.)
  *
- * The existing admin-side pause / resume / scheduleCancel / cancelNow already
- * accept non-admin callers and verify `user._id === subscription.userId`, so
- * the portal wrappers simply delegate. They exist as thin wrappers (not
- * re-exports) so the website calls a stable `portal.*` API surface that is
- * distinct from the admin API surface.
- *
- * Both surfaces hold an owner to good-standing transitions: pause only an
- * active/trialing contract, resume only a paused (or scheduled-to-cancel)
- * one, and a resume after the paid period ended bills immediately. A
- * customer can never walk a past_due, cancelled or expired contract back to
- * `active` without paying.
+ * Every export enforces "current user owns this contract". The actions a
+ * customer may take are computed once (`contractActions`), returned to the
+ * page and enforced by the mutations, and every status change goes through
+ * `lifecycle.transitionSubscription`. A customer can never walk a past_due,
+ * cancelled or expired contract back to `active` without paying.
  */
 
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { action, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { action, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { computeProration } from "../helpers/proration";
-import { decideBridgeCall } from "./bridgeDecisions";
-import { isOfferOpenToCustomers, requireCommerceSubscriptionsEnabled } from "./helpers";
-import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+import { readMergedSettingsSection } from "../settings/read";
+import {
+	commerceSubscriptionEntitlementStatusValidator,
+	commerceSubscriptionInvoiceStatusValidator,
+	commerceSubscriptionStatusValidator,
+} from "../schema/commerceSubscriptions";
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { membershipDocs } from "../schema/membership.docs.generated";
-
+import { isOfferOpenToCustomers, requireCommerceSubscriptionsEnabled } from "./helpers";
+import {
+	createCorrelationId,
+	isEnded,
+	resolveLifecycleTerms,
+	transitionSubscription,
+	writeHistory,
+	type SubscriptionDoc,
+} from "./lifecycle";
 
 // ─── Local helpers ──────────────────────────────────────────────────────────
-
-type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
-
-type HistoryEntry = {
-	subscriptionId: Id<"commerce_subscriptions">;
-	eventType: string;
-	message?: string;
-	actorUserId?: Id<"users">;
-	fromStatus?: SubscriptionStatus;
-	toStatus?: SubscriptionStatus;
-	reason?: string;
-	data?: Record<string, unknown>;
-	correlationId?: string;
-};
 
 const prorationResultValidator = v.object({
 	daysRemaining: v.number(),
@@ -77,14 +69,6 @@ const prorationResultValidator = v.object({
 	proratedNewAmount: v.number(),
 	netCharge: v.number(),
 });
-
-function addDays(timestamp: number, days: number): number {
-	return timestamp + days * 24 * 60 * 60 * 1000;
-}
-
-function createCorrelationId(): string {
-	return `pt_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function formatMoney(amount: number, currencyCode = "USD"): string {
 	return new Intl.NumberFormat("en-US", {
@@ -153,158 +137,6 @@ function buildSimplePdf(lines: string[]): string {
 	}
 	pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 	return pdf;
-}
-
-async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
-	await ctx.db.insert("commerce_subscription_history", {
-		subscriptionId: args.subscriptionId,
-		eventType: args.eventType,
-		message: args.message ?? args.eventType,
-		actorUserId: args.actorUserId,
-		metadata: {
-			fromStatus: args.fromStatus,
-			toStatus: args.toStatus,
-			reason: args.reason,
-			data: args.data,
-			correlationId: args.correlationId,
-		},
-		createdAt: Date.now(),
-	});
-}
-
-/**
- * Bridge + entitlement status sync, inlined from `internals.syncEntitlementsForStatus`.
- *
- * The internals version is a module-local helper (not exported as an internal
- * mutation), so we can't reach it via `ctx.scheduler` or `ctx.runMutation`.
- * Portal mutations are already running in a mutation context, so we just
- * inline the same logic: patch entitlement statuses + propagate to membership
- * grants via `decideBridgeCall`.
- *
- * Signature matches the internal helper so any future consolidation just needs
- * to swap the import. `gracePeriodDays` defaults to 3 to match the internal
- * default when product config is unknown.
- */
-async function syncEntitlementsForContract(
-	ctx: MutationCtx,
-	subscriptionId: Id<"commerce_subscriptions">,
-	gracePeriodDays = 3,
-) {
-	const subscription = await ctx.db.get(subscriptionId);
-	if (!subscription) return;
-	const now = Date.now();
-
-	const entitlements = await ctx.db
-		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q) =>
-			q.eq("subscriptionId", subscription._id),
-		)
-		.collect();
-
-	for (const entitlement of entitlements) {
-		if (
-			subscription.status === "active" ||
-			subscription.status === "trialing"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "active",
-				endsAt: undefined,
-				updatedAt: now,
-			});
-		} else if (
-			subscription.status === "past_due" ||
-			subscription.status === "paused"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "grace",
-				graceEndsAt: addDays(now, gracePeriodDays),
-				updatedAt: now,
-			});
-		} else if (
-			subscription.status === "cancelled" ||
-			subscription.status === "expired"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "revoked",
-				endsAt: now,
-				updatedAt: now,
-			});
-		}
-	}
-
-	// Bridge propagation — gated by plugin flags + acceptSubscriptionGrants.
-	const membershipOn = await isPluginEnabled(ctx, "membership");
-	if (!membershipOn) return;
-	try {
-		const settingsRow = await ctx.db
-			.query("settings")
-			.withIndex("by_section", (q) =>
-				q.eq("section", "membership.general"),
-			)
-			.unique();
-		const values = (settingsRow?.values ?? {}) as Record<string, unknown>;
-		if (values.acceptSubscriptionGrants === false) return;
-	} catch {
-		// Settings read failure falls through to enabled (matches internal).
-	}
-
-	const refreshed = await ctx.db.get(subscriptionId);
-	if (!refreshed) return;
-	const refreshedEntitlements = await ctx.db
-		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q) =>
-			q.eq("subscriptionId", refreshed._id),
-		)
-		.collect();
-
-	for (const entitlement of refreshedEntitlements) {
-		const decision = decideBridgeCall({
-			subscription: refreshed,
-			entitlement,
-			gracePeriodDays,
-		});
-		if (decision.action === "noop") continue;
-		try {
-			if (decision.action === "grant") {
-				await ctx.runMutation(
-					internal.membership.internals.grantFromSubscription,
-					decision.args,
-				);
-			} else if (decision.action === "moveToGrace") {
-				await ctx.runMutation(
-					internal.membership.internals.moveGrantToGrace,
-					decision.args,
-				);
-			} else if (decision.action === "revoke") {
-				await ctx.runMutation(
-					internal.membership.internals.revokeFromSubscription,
-					decision.args,
-				);
-			}
-		} catch (err) {
-			// Audit the failure but do NOT re-throw — per the internal helper,
-			// one entitlement's bridge failure must not block the rest or the
-			// transition itself.
-			const code = entitlement.entitlementCode ?? "(no-code)";
-			try {
-				await writeHistory(ctx, {
-					subscriptionId: refreshed._id,
-					eventType: "subscription.bridge_failed",
-					message: `Membership bridge call failed for entitlement ${code}`,
-					fromStatus: refreshed.status,
-					toStatus: refreshed.status,
-					reason: "bridge_error",
-					data: {
-						entitlementCode: code,
-						action: decision.action,
-						error: err instanceof Error ? err.message : String(err),
-					},
-				});
-			} catch {
-				// History write failure is non-fatal.
-			}
-		}
-	}
 }
 
 /**
@@ -431,226 +263,478 @@ export const getPublicOffer = query({
 });
 
 /**
- * Rich list of the current user's active-ish contracts, with every piece of
- * data the portal UI needs to render without fan-out queries:
- *
- *   - contract (raw doc)
- *   - offer (current offer resolved via active subscription_item)
- *   - product (if contract.productId)
- *   - currentInvoice (most recent invoice for the contract, or null)
- *   - nextChargeAt (derived from contract.nextBillingAt)
- *   - membershipGrants (any `membership_grants` rows sourced from this
- *                       contract via the Wave 3 bridge)
- *   - entitlements (all active/grace entitlements for the contract)
- *
- * "Active-ish" = any status that's not `cancelled` or `expired`. The UI can
- * further filter if it only wants truly active plans.
- *
- * Returns `[]` for unauthenticated users rather than throwing — the typical
- * caller is an SSR loader that should degrade gracefully.
+ * What the customer may do with a contract right now. Computed here so the
+ * website shows exactly the actions the mutations below accept.
+ */
+const contractActionsValidator = v.object({
+	pause: v.boolean(),
+	resume: v.boolean(),
+	scheduleCancel: v.boolean(),
+	cancelNow: v.boolean(),
+	keep: v.boolean(),
+	changePlan: v.boolean(),
+	updatePaymentMethod: v.boolean(),
+	applyCoupon: v.boolean(),
+});
+type ContractActions = Infer<typeof contractActionsValidator>;
+
+function contractActions(contract: SubscriptionDoc, pausable: boolean, now: number): ContractActions {
+	const status = contract.status;
+	const inGoodStanding = status === "active" || status === "trialing";
+	const periodRunning = contract.currentPeriodEndAt !== undefined && contract.currentPeriodEndAt > now;
+	return {
+		pause: inGoodStanding && pausable,
+		resume: status === "paused",
+		scheduleCancel: inGoodStanding || status === "paused",
+		cancelNow: status === "past_due",
+		keep: status === "pending_cancel" && periodRunning,
+		changePlan: inGoodStanding,
+		updatePaymentMethod: !isEnded(status) && !contract.manualBilling,
+		applyCoupon: !isEnded(status),
+	};
+}
+
+const paymentMethodSummaryValidator = v.object({
+	brand: v.string(),
+	last4: v.string(),
+	expMonth: v.number(),
+	expYear: v.number(),
+});
+
+/** A past_due contract's recovery state: when access ends and the next retry. */
+const billingIssueValidator = v.object({
+	failedAttempts: v.number(),
+	lastFailureReason: v.optional(v.string()),
+	nextRetryAt: v.optional(v.number()),
+	accessEndsAt: v.optional(v.number()),
+	amountDue: v.number(),
+	currencyCode: v.string(),
+});
+
+const customerContractValidator = v.object({
+	_id: v.id("commerce_subscriptions"),
+	status: commerceSubscriptionStatusValidator,
+	currencyCode: v.string(),
+	recurringAmount: v.number(),
+	billingInterval: commerceSubscriptionsDocs.commerce_subscriptions.fields.billingInterval,
+	billingIntervalCount: v.optional(v.number()),
+	currentPeriodStartAt: v.optional(v.number()),
+	currentPeriodEndAt: v.optional(v.number()),
+	nextBillingAt: v.optional(v.number()),
+	nextChargeAt: v.optional(v.number()),
+	trialEndsAt: v.optional(v.number()),
+	cancelAtPeriodEnd: v.optional(v.boolean()),
+	pausedAt: v.optional(v.number()),
+	createdAt: v.number(),
+	offer: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("commerce_subscription_offers"),
+			title: v.string(),
+			slug: v.string(),
+			recurringAmount: v.number(),
+			currencyCode: v.string(),
+			features: commerceSubscriptionsDocs.commerce_subscription_offers.fields.features,
+		}),
+	),
+	scheduledOffer: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("commerce_subscription_offers"),
+			title: v.string(),
+			recurringAmount: v.number(),
+			effectiveAt: v.number(),
+		}),
+	),
+	product: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("commerce_products"),
+			title: v.string(),
+			slug: v.string(),
+		}),
+	),
+	currentInvoice: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("commerce_subscription_invoices"),
+			invoiceNumber: v.optional(v.string()),
+			status: commerceSubscriptionInvoiceStatusValidator,
+			totalAmount: v.number(),
+			currencyCode: v.string(),
+			dueAt: v.optional(v.number()),
+			paidAt: v.optional(v.number()),
+			createdAt: v.number(),
+		}),
+	),
+	paymentMethod: v.union(v.null(), paymentMethodSummaryValidator),
+	billingIssue: v.union(v.null(), billingIssueValidator),
+	actions: contractActionsValidator,
+	membershipGrants: v.array(
+		v.object({
+			_id: v.id("membership_grants"),
+			planId: v.id("membership_plans"),
+			plan: v.union(
+				v.null(),
+				v.object({
+					_id: v.id("membership_plans"),
+					name: v.string(),
+					slug: v.string(),
+				}),
+			),
+			status: membershipDocs.membership_grants.fields.status,
+			startsAt: v.number(),
+			endsAt: v.optional(v.number()),
+			graceEndsAt: v.optional(v.number()),
+		}),
+	),
+	entitlements: v.array(
+		v.object({
+			_id: v.id("commerce_subscription_entitlements"),
+			entitlementCode: v.string(),
+			status: commerceSubscriptionEntitlementStatusValidator,
+			graceEndsAt: v.optional(v.number()),
+		}),
+	),
+});
+type CustomerContract = Infer<typeof customerContractValidator>;
+
+async function billingIssueFor(
+	ctx: QueryCtx,
+	contract: SubscriptionDoc,
+	invoices: Array<Doc<"commerce_subscription_invoices">>,
+	entitlements: Array<Doc<"commerce_subscription_entitlements">>,
+): Promise<CustomerContract["billingIssue"]> {
+	if (contract.status !== "past_due") return null;
+	const unpaid = invoices
+		.filter((invoice) => invoice.status === "failed" && invoice.prorationEventId === undefined)
+		.sort((a, b) => b.createdAt - a.createdAt)[0];
+	if (!unpaid) return null;
+	const attempts = await ctx.db
+		.query("commerce_subscription_dunning_attempts")
+		.withIndex("by_invoice", (q) => q.eq("invoiceId", unpaid._id))
+		.collect();
+	const failed = attempts.filter((attempt) => attempt.status === "failed").sort((a, b) => b.updatedAt - a.updatedAt);
+	const next = attempts.find((attempt) => attempt.status === "scheduled");
+	const graceEnds = entitlements
+		.map((entitlement) => entitlement.graceEndsAt)
+		.filter((value): value is number => value !== undefined);
+	return {
+		failedAttempts: failed.length,
+		lastFailureReason: failed[0]?.errorMessage,
+		nextRetryAt: next?.scheduledAt,
+		accessEndsAt: graceEnds.length > 0 ? Math.max(...graceEnds) : undefined,
+		amountDue: unpaid.totalAmount,
+		currencyCode: unpaid.currencyCode,
+	};
+}
+
+/** One contract as the account page shows it. */
+async function buildCustomerContract(
+	ctx: QueryCtx,
+	contract: SubscriptionDoc,
+	grantsByUser: Array<Doc<"membership_grants">>,
+	now: number,
+): Promise<CustomerContract> {
+	const items = await ctx.db
+		.query("commerce_subscription_items")
+		.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
+		.collect();
+	const activeItem =
+		items.find((item) => item.status === "active") ?? items.find((item) => item.status === "pending_cancel");
+	const offer = activeItem?.sourceOfferId ? await ctx.db.get(activeItem.sourceOfferId) : null;
+	const scheduledOffer = contract.scheduledOfferChange
+		? await ctx.db.get(contract.scheduledOfferChange.toOfferId)
+		: null;
+	const product = contract.productId ? await ctx.db.get(contract.productId) : null;
+
+	const invoices = await ctx.db
+		.query("commerce_subscription_invoices")
+		.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
+		.collect();
+	const currentInvoice = invoices.slice().sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+
+	const entitlements = (
+		await ctx.db
+			.query("commerce_subscription_entitlements")
+			.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
+			.collect()
+	).filter((entitlement) => entitlement.status === "active" || entitlement.status === "grace");
+
+	const membershipGrants = grantsByUser.filter(
+		(grant) => grant.sourceType === "subscription" && grant.sourceRef === contract._id,
+	);
+	const grantRows: CustomerContract["membershipGrants"] = [];
+	for (const grant of membershipGrants) {
+		const plan = await ctx.db.get(grant.planId);
+		grantRows.push({
+			_id: grant._id,
+			planId: grant.planId,
+			plan: plan ? { _id: plan._id, name: plan.title, slug: plan.slug } : null,
+			status: grant.status,
+			startsAt: grant.startsAt,
+			endsAt: grant.endsAt,
+			graceEndsAt: grant.graceEndsAt,
+		});
+	}
+
+	const terms = await resolveLifecycleTerms(ctx, contract);
+	return {
+		_id: contract._id,
+		status: contract.status,
+		currencyCode: contract.currencyCode,
+		recurringAmount: contract.recurringAmount,
+		billingInterval: contract.billingInterval,
+		billingIntervalCount: contract.billingIntervalCount,
+		currentPeriodStartAt: contract.currentPeriodStartAt,
+		currentPeriodEndAt: contract.currentPeriodEndAt,
+		nextBillingAt: contract.nextBillingAt,
+		nextChargeAt:
+			contract.status === "active" || contract.status === "trialing"
+				? (contract.nextBillingAt ?? contract.currentPeriodEndAt)
+				: undefined,
+		trialEndsAt: contract.trialEndsAt,
+		cancelAtPeriodEnd: contract.cancelAtPeriodEnd,
+		pausedAt: contract.pausedAt,
+		createdAt: contract.createdAt,
+		offer: offer
+			? {
+					_id: offer._id,
+					title: offer.title,
+					slug: offer.slug,
+					recurringAmount: offer.recurringAmount,
+					currencyCode: offer.currencyCode,
+					features: offer.features,
+				}
+			: null,
+		scheduledOffer:
+			scheduledOffer && contract.scheduledOfferChange
+				? {
+						_id: scheduledOffer._id,
+						title: scheduledOffer.title,
+						recurringAmount: scheduledOffer.recurringAmount,
+						effectiveAt: contract.scheduledOfferChange.effectiveAt,
+					}
+				: null,
+		product: product ? { _id: product._id, title: product.title, slug: product.slug } : null,
+		currentInvoice: currentInvoice
+			? {
+					_id: currentInvoice._id,
+					invoiceNumber: currentInvoice.invoiceNumber,
+					status: currentInvoice.status,
+					totalAmount: currentInvoice.totalAmount,
+					currencyCode: currentInvoice.currencyCode,
+					dueAt: currentInvoice.dueAt,
+					paidAt: currentInvoice.paidAt,
+					createdAt: currentInvoice.createdAt,
+				}
+			: null,
+		paymentMethod: contract.paymentMethodSummary ?? null,
+		billingIssue: await billingIssueFor(ctx, contract, invoices, entitlements),
+		actions: contractActions(contract, terms.pausable, now),
+		membershipGrants: grantRows,
+		entitlements: entitlements.map((entitlement) => ({
+			_id: entitlement._id,
+			entitlementCode: entitlement.entitlementCode,
+			status: entitlement.status,
+			graceEndsAt: entitlement.graceEndsAt,
+		})),
+	};
+}
+
+/**
+ * My subscriptions, newest first, with what the account page needs: the
+ * current offer and any scheduled change, the latest invoice, the card on file
+ * (brand and last four only), a past_due contract's recovery state, and the
+ * actions available. Provider identifiers never leave the backend.
  */
 export const getMyActiveContracts = query({
 	args: {},
-	returns: v.array(
-		commerceSubscriptionsDocs.commerce_subscriptions.extend({
-			offer: v.union(
-				v.null(),
-				v.object({
-					_id: v.id("commerce_subscription_offers"),
-					title: v.string(),
-					slug: v.string(),
-					recurringAmount: v.number(),
-					currencyCode: v.string(),
-					features: commerceSubscriptionsDocs.commerce_subscription_offers.fields.features,
-				}),
-			),
-			product: v.union(
-				v.null(),
-				v.object({
-					_id: v.id("commerce_products"),
-					title: v.string(),
-					slug: v.string(),
-				}),
-			),
-			currentInvoice: v.union(
-				v.null(),
-				v.object({
-					_id: v.id("commerce_subscription_invoices"),
-					status: commerceSubscriptionsDocs.commerce_subscription_invoices.fields.status,
-					totalAmount: v.number(),
-					currencyCode: v.string(),
-					dueAt: v.optional(v.number()),
-					paidAt: v.optional(v.number()),
-					createdAt: v.number(),
-				}),
-			),
-			nextChargeAt: v.optional(v.number()),
-			membershipGrants: v.array(
-				v.object({
-					_id: v.id("membership_grants"),
-					planId: v.id("membership_plans"),
-					plan: v.union(
-						v.null(),
-						v.object({
-							_id: v.id("membership_plans"),
-							name: v.string(),
-							slug: v.string(),
-						}),
-					),
-					status: membershipDocs.membership_grants.fields.status,
-					startsAt: v.number(),
-					endsAt: v.optional(v.number()),
-					graceEndsAt: v.optional(v.number()),
-				}),
-			),
-			entitlements: v.array(commerceSubscriptionsDocs.commerce_subscription_entitlements),
-		}),
-	),
-	handler: async (ctx) => {
+	returns: v.array(customerContractValidator),
+	handler: async (ctx): Promise<CustomerContract[]> => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		await requireCommerceSubscriptionsEnabled(ctx);
 
 		const user = await getCurrentUser(ctx);
 		if (!user) return [];
+		const now = Date.now();
 
-		const contracts = await ctx.db
-			.query("commerce_subscriptions")
+		const contracts = (
+			await ctx.db
+				.query("commerce_subscriptions")
+				.withIndex("by_user", (q) => q.eq("userId", user._id))
+				.collect()
+		)
+			.filter((contract) => !isEnded(contract.status))
+			.sort((a, b) => b.createdAt - a.createdAt);
+
+		const grantsByUser = await ctx.db
+			.query("membership_grants")
 			.withIndex("by_user", (q) => q.eq("userId", user._id))
 			.collect();
 
-		const activeIsh = contracts.filter(
-			(sub) => sub.status !== "cancelled" && sub.status !== "expired",
-		);
+		const results: CustomerContract[] = [];
+		for (const contract of contracts) {
+			results.push(await buildCustomerContract(ctx, contract, grantsByUser, now));
+		}
+		return results;
+	},
+});
 
-		// Pre-resolve enrichment data for each contract in parallel.
-		return Promise.all(
-			activeIsh.map(async (contract) => {
-				// Active item → current offer
-				const items = await ctx.db
-					.query("commerce_subscription_items")
-					.withIndex("by_subscription", (q) =>
-						q.eq("subscriptionId", contract._id),
-					)
-					.collect();
-				const activeItem =
-					items.find((it) => it.status === "active") ??
-					items.find((it) => it.status === "pending_cancel") ??
-					items[0];
-				const offer =
-					activeItem?.sourceOfferId != null
-						? await ctx.db.get(activeItem.sourceOfferId)
-						: null;
+const customerInvoiceValidator = v.object({
+	_id: v.id("commerce_subscription_invoices"),
+	invoiceNumber: v.optional(v.string()),
+	status: commerceSubscriptionInvoiceStatusValidator,
+	kind: v.union(v.literal("signup"), v.literal("renewal"), v.literal("plan_change")),
+	currencyCode: v.string(),
+	subtotalAmount: v.number(),
+	taxAmount: v.number(),
+	totalAmount: v.number(),
+	periodStartAt: v.optional(v.number()),
+	periodEndAt: v.optional(v.number()),
+	dueAt: v.optional(v.number()),
+	paidAt: v.optional(v.number()),
+	createdAt: v.number(),
+	subscription: v.object({
+		_id: v.id("commerce_subscriptions"),
+		status: commerceSubscriptionStatusValidator,
+	}),
+});
+type CustomerInvoice = Infer<typeof customerInvoiceValidator>;
 
-				// Product (at contract level)
-				const product = contract.productId
-					? await ctx.db.get(contract.productId)
-					: null;
+function customerInvoice(invoice: Doc<"commerce_subscription_invoices">, contract: SubscriptionDoc): CustomerInvoice {
+	return {
+		_id: invoice._id,
+		invoiceNumber: invoice.invoiceNumber,
+		status: invoice.status,
+		kind: invoice.kind ?? (invoice.prorationEventId ? "plan_change" : "renewal"),
+		currencyCode: invoice.currencyCode,
+		subtotalAmount: invoice.subtotalAmount,
+		taxAmount: invoice.taxAmount,
+		totalAmount: invoice.totalAmount,
+		periodStartAt: invoice.periodStartAt,
+		periodEndAt: invoice.periodEndAt,
+		dueAt: invoice.dueAt,
+		paidAt: invoice.paidAt,
+		createdAt: invoice.createdAt,
+		subscription: { _id: contract._id, status: contract.status },
+	};
+}
 
-				// Most recent invoice
-				const allInvoices = await ctx.db
-					.query("commerce_subscription_invoices")
-					.withIndex("by_subscription", (q) =>
-						q.eq("subscriptionId", contract._id),
-					)
-					.collect();
-				const currentInvoice =
-					allInvoices
-						.slice()
-						.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+/** A history row as the customer sees it: what happened, in plain words. */
+const timelineEntryValidator = v.object({
+	_id: v.id("commerce_subscription_history"),
+	eventType: v.string(),
+	message: v.string(),
+	createdAt: v.number(),
+});
+type TimelineEntry = Infer<typeof timelineEntryValidator>;
 
-				// Membership grants sourced from this contract. The bridge stores the
-				// contract id in sourceRef as a plain string.
-				const grantsByUser = await ctx.db
-					.query("membership_grants")
-					.withIndex("by_user", (q) => q.eq("userId", user._id))
-					.collect();
-				const membershipGrants = grantsByUser.filter(
-					(g) =>
-						g.sourceType === "subscription" &&
-						typeof g.sourceRef === "string" &&
-						g.sourceRef === contract._id,
-				);
+const STATUS_WORDS: Readonly<Record<SubscriptionDoc["status"], string>> = {
+	draft: "Created",
+	trialing: "Trial started",
+	active: "Active",
+	past_due: "Payment past due",
+	paused: "Paused",
+	pending_cancel: "Cancellation scheduled for the end of the period",
+	cancelled: "Cancelled",
+	expired: "Ended",
+};
 
-				// Entitlements (active + grace — anything currently unlocking stuff)
-				const allEntitlements = await ctx.db
-					.query("commerce_subscription_entitlements")
-					.withIndex("by_subscription", (q) =>
-						q.eq("subscriptionId", contract._id),
-					)
-					.collect();
-				const entitlements = allEntitlements.filter(
-					(e) => e.status === "active" || e.status === "grace",
-				);
+function metadataString(metadata: unknown, key: string): string | undefined {
+	if (typeof metadata !== "object" || metadata === null) return undefined;
+	const value: unknown = Reflect.get(metadata, key);
+	return typeof value === "string" ? value : undefined;
+}
 
-				// Attach plan summaries for each grant so the UI can render without
-				// another query. Membership plans live in `membership_plans`.
-				const grantPlanIds = Array.from(
-					new Set(membershipGrants.map((g) => g.planId)),
-				);
-				const plans = await Promise.all(
-					grantPlanIds.map(async (planId) => {
-						const plan = await ctx.db.get(planId);
-						return plan
-							? {
-									_id: plan._id,
-									name: plan.title,
-									slug: plan.slug,
-								}
-							: null;
-					}),
-				);
-				const planMap = new Map<
-					Id<"membership_plans">,
-					{ _id: Id<"membership_plans">; name: string; slug: string }
-				>();
-				for (const plan of plans) {
-					if (plan) planMap.set(plan._id, plan);
-				}
+function isSubscriptionStatus(value: string | undefined): value is SubscriptionDoc["status"] {
+	return value !== undefined && Object.prototype.hasOwnProperty.call(STATUS_WORDS, value);
+}
 
-				return {
-					...contract,
-					offer: offer
-						? {
-								_id: offer._id,
-								title: offer.title,
-								slug: offer.slug,
-								recurringAmount: offer.recurringAmount,
-								currencyCode: offer.currencyCode,
-								features: offer.features,
-							}
-						: null,
-					product: product
-						? {
-								_id: product._id,
-								title: product.title,
-								slug: product.slug,
-							}
-						: null,
-					currentInvoice: currentInvoice
-						? {
-								_id: currentInvoice._id,
-								status: currentInvoice.status,
-								totalAmount: currentInvoice.totalAmount,
-								currencyCode: currentInvoice.currencyCode,
-								dueAt: currentInvoice.dueAt,
-								paidAt: currentInvoice.paidAt,
-								createdAt: currentInvoice.createdAt,
-							}
-						: null,
-					nextChargeAt: contract.nextBillingAt ?? contract.currentPeriodEndAt,
-					membershipGrants: membershipGrants.map((g) => ({
-						_id: g._id,
-						planId: g.planId,
-						plan: planMap.get(g.planId) ?? null,
-						status: g.status,
-						startsAt: g.startsAt,
-						endsAt: g.endsAt,
-						graceEndsAt: g.graceEndsAt,
-					})),
-					entitlements,
-				};
-			}),
-		);
+/**
+ * Customer-facing wording for the history rows a customer should see. Internal
+ * rows (bridge failures, billing closure, coupon bookkeeping) are left out.
+ */
+function timelineEntry(row: Doc<"commerce_subscription_history">): TimelineEntry | null {
+	const entry = (eventType: string, message: string): TimelineEntry => ({
+		_id: row._id,
+		eventType,
+		message,
+		createdAt: row.createdAt,
+	});
+	switch (row.eventType) {
+		case "subscription.created_from_intent":
+			return entry("started", "Subscription started");
+		case "subscription.renewed":
+			return entry("renewed", "Payment received; subscription renewed");
+		case "subscription.payment_failed":
+			return entry("payment_failed", "A payment did not go through");
+		case "subscription.payment_method_updated":
+			return entry("card_updated", "Card on file updated");
+		case "subscription.upgraded_via_proration":
+			return entry("plan_changed", "Plan upgraded");
+		case "subscription.scheduled_offer_change_applied":
+			return entry("plan_changed", "Plan changed at renewal");
+		case "subscription.downgrade_scheduled":
+			return entry("plan_change_scheduled", "Plan change scheduled for the end of the period");
+		case "subscription.coupon_applied":
+			return entry("coupon_applied", "Coupon applied");
+		case "subscription.entitlement_expired":
+			return entry("access_paused", "Access paused: the grace period ended");
+		case "subscription.status_changed": {
+			const toStatus = metadataString(row.metadata, "toStatus");
+			return isSubscriptionStatus(toStatus) ? entry(`status_${toStatus}`, STATUS_WORDS[toStatus]) : null;
+		}
+		default:
+			return null;
+	}
+}
+
+/**
+ * One of my contracts for its detail page: the account-page summary plus its
+ * invoices and a plain-words timeline. Null when it is not mine (or unknown).
+ */
+export const getMyContract = query({
+	args: { contractId: v.id("commerce_subscriptions") },
+	returns: v.union(
+		v.null(),
+		customerContractValidator.extend({
+			invoices: v.array(customerInvoiceValidator),
+			history: v.array(timelineEntryValidator),
+		}),
+	),
+	handler: async (ctx, args) => {
+		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+		await requireCommerceSubscriptionsEnabled(ctx);
+		const user = await getCurrentUser(ctx);
+		if (!user) return null;
+		const contract = await ctx.db.get(args.contractId);
+		if (!contract || contract.userId !== user._id) return null;
+
+		const grantsByUser = await ctx.db
+			.query("membership_grants")
+			.withIndex("by_user", (q) => q.eq("userId", user._id))
+			.collect();
+		const summary = await buildCustomerContract(ctx, contract, grantsByUser, Date.now());
+		const invoices = (
+			await ctx.db
+				.query("commerce_subscription_invoices")
+				.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
+				.collect()
+		)
+			.sort((a, b) => b.createdAt - a.createdAt)
+			.map((invoice) => customerInvoice(invoice, contract));
+		const history = (
+			await ctx.db
+				.query("commerce_subscription_history")
+				.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
+				.order("desc")
+				.take(100)
+		)
+			.map(timelineEntry)
+			.filter((row): row is TimelineEntry => row !== null)
+			.slice(0, 25);
+		return { ...summary, invoices, history };
 	},
 });
 
@@ -754,101 +838,61 @@ export const previewPlanChange = query({
 });
 
 /**
- * List the current user's invoices across all their contracts. Joins each
- * invoice with a compact subscription summary so the UI can group by contract.
- *
- * Returns `[]` for unauthenticated users.
+ * My invoices across all my contracts, newest first: what each charged, for
+ * which period, and whether it is paid. Provider identifiers are not returned.
  */
 export const listMyInvoices = query({
 	args: {
 		limit: v.optional(v.number()),
 	},
-	returns: v.array(
-		commerceSubscriptionsDocs.commerce_subscription_invoices.extend({
-			subscription: v.object({
-				_id: v.id("commerce_subscriptions"),
-				status: commerceSubscriptionsDocs.commerce_subscriptions.fields.status,
-				productId: v.optional(v.id("commerce_products")),
-			}),
-		}),
-	),
+	returns: v.array(customerInvoiceValidator),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		await requireCommerceSubscriptionsEnabled(ctx);
 
 		const user = await getCurrentUser(ctx);
 		if (!user) return [];
-
 		const limit = args.limit ?? 100;
 
-		// Gather all contracts owned by this user first — then collect invoices
-		// per contract. This is the safe path because the invoices table indexes
-		// by subscription, not by user.
 		const contracts = await ctx.db
 			.query("commerce_subscriptions")
 			.withIndex("by_user", (q) => q.eq("userId", user._id))
 			.collect();
 
-		if (contracts.length === 0) return [];
-
-		const allInvoices: Array<
-			Doc<"commerce_subscription_invoices"> & {
-				subscription: {
-					_id: Id<"commerce_subscriptions">;
-					status: SubscriptionStatus;
-					productId?: Id<"commerce_products">;
-				};
-			}
-		> = [];
+		const rows: CustomerInvoice[] = [];
 		for (const contract of contracts) {
-			const invs = await ctx.db
+			const invoices = await ctx.db
 				.query("commerce_subscription_invoices")
-				.withIndex("by_subscription", (q) =>
-					q.eq("subscriptionId", contract._id),
-				)
+				.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
 				.collect();
-			for (const inv of invs) {
-				allInvoices.push({
-					...inv,
-					subscription: {
-						_id: contract._id,
-						status: contract.status,
-						productId: contract.productId,
-					},
-				});
-			}
+			for (const invoice of invoices) rows.push(customerInvoice(invoice, contract));
 		}
-
-		allInvoices.sort((a, b) => b.createdAt - a.createdAt);
-		return allInvoices.slice(0, limit);
+		rows.sort((a, b) => b.createdAt - a.createdAt);
+		return rows.slice(0, limit);
 	},
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MUTATIONS — PAUSE / RESUME / CANCEL (thin wrappers)
+// MUTATIONS — PAUSE / RESUME / CANCEL / KEEP
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// These are intentionally thin pass-throughs over the admin-side mutations
-// in `mutations.ts`, which already enforce "admin OR owner". We wrap rather
-// than re-export so:
-//
-//   1. The website binds to a stable `portal.*` namespace distinct from
-//      `mutations.*` — admin endpoints can evolve without breaking customer
-//      UX (e.g., if admin pause later requires a reason code).
-//
-//   2. History records show `eventType: "subscription.portal_pause"` vs.
-//      admin's `subscription.pause`, which makes audit trails clearer.
-//
-//   3. Each wrapper re-checks ownership on top of the underlying mutation's
-//      check — defence in depth. The admin path calls requireCommerceSubscriptionsEnabled;
-//      we duplicate that plus plugin gate here so a later refactor cannot
-//      accidentally loosen portal auth.
+// The customer's own lifecycle actions. Each is checked against the same
+// `contractActions` the account page renders from, then moved through the
+// shared lifecycle (`lifecycle.transitionSubscription`), so entitlements,
+// billing closure, history and lifecycle events behave exactly as they do for
+// admin and billing transitions. History rows carry `subscription.portal_*`
+// event types so audit trails show the customer acted.
 
-/**
- * Customer-initiated pause. Writes a `subscription.portal_pause` history row
- * before delegating to the admin-side pause logic via the underlying status
- * transition.
- */
+function requireAction(allowed: boolean, contract: SubscriptionDoc, action: string): void {
+	if (allowed) return;
+	throw new ConvexError({
+		code: "INVALID_STATE",
+		message: `You cannot ${action} a subscription that is ${contract.status.replace("_", " ")}.`,
+		currentStatus: contract.status,
+	});
+}
+
+/** Pause a contract in good standing, when its plan allows pausing. */
 export const requestPauseContract = mutation({
 	args: {
 		contractId: v.id("commerce_subscriptions"),
@@ -861,37 +905,26 @@ export const requestPauseContract = mutation({
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
-
 		const { user, contract } = await requireOwnedContract(ctx, args.contractId);
+		if (contract.status === "paused") return { ok: true, alreadyPaused: true };
 
-		if (contract.status === "paused") {
-			return { ok: true, alreadyPaused: true };
+		const terms = await resolveLifecycleTerms(ctx, contract);
+		if (!terms.pausable && (contract.status === "active" || contract.status === "trialing")) {
+			throw new ConvexError({ code: "NOT_PAUSABLE", message: "This plan cannot be paused." });
 		}
-		// Only a contract in good standing can be paused by its owner. Pausing a
-		// past_due, cancelled or expired contract and then resuming it would
-		// restore entitlements without paying.
-		if (contract.status !== "active" && contract.status !== "trialing") {
-			throw new ConvexError({
-				code: "INVALID_STATE",
-				message: `Cannot pause a ${contract.status} subscription.`,
-				currentStatus: contract.status,
-			});
-		}
+		requireAction(contractActions(contract, terms.pausable, Date.now()).pause, contract, "pause");
 
 		const correlationId = createCorrelationId();
-
-		// Delegate the actual status transition to the admin path by calling its
-		// helper directly. We can't invoke public mutations from a mutation, so
-		// we replicate the transition inline. This mirrors `mutations.pause` but
-		// tags the history eventType with "portal_" prefix.
-		await ctx.db.patch("commerce_subscriptions", args.contractId, {
-			status: "paused",
-			pausedAt: Date.now(),
-			updatedAt: Date.now(),
+		await transitionSubscription(ctx, {
+			subscription: contract,
+			toStatus: "paused",
+			reason: args.reason ?? "customer_request",
+			actorUserId: user._id,
+			correlationId,
+			patch: { pausedAt: Date.now() },
 		});
-
 		await writeHistory(ctx, {
-			subscriptionId: args.contractId,
+			subscriptionId: contract._id,
 			eventType: "subscription.portal_pause",
 			actorUserId: user._id,
 			fromStatus: contract.status,
@@ -899,17 +932,14 @@ export const requestPauseContract = mutation({
 			reason: args.reason,
 			correlationId,
 		});
-
-		// Propagate status to entitlements + membership bridge.
-		await syncEntitlementsForContract(ctx, args.contractId);
-
 		return { ok: true, status: "paused" as const };
 	},
 });
 
 /**
- * Customer-initiated resume from pause. Recomputes nextBillingAt if the
- * existing cycle end is already in the past.
+ * Resume a paused contract. A paid period that ended while paused is not
+ * granted again for free: the renewal falls due now and the renewal sweep
+ * charges it before a new period starts.
  */
 export const requestResumeContract = mutation({
 	args: {
@@ -923,56 +953,45 @@ export const requestResumeContract = mutation({
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
-
 		const { user, contract } = await requireOwnedContract(ctx, args.contractId);
-
-		if (contract.status !== "paused") {
-			throw new ConvexError({
-				code: "INVALID_STATE",
-				message: `Cannot resume from status "${contract.status}".`,
-				currentStatus: contract.status,
-			});
-		}
-
 		const now = Date.now();
-		// A paid period that ended while paused is not re-granted for free: the
-		// renewal falls due now and the renewal sweep charges it before a new
-		// period starts.
+		const terms = await resolveLifecycleTerms(ctx, contract);
+		requireAction(contractActions(contract, terms.pausable, now).resume, contract, "resume");
+
 		const nextBillingAt =
-			contract.currentPeriodEndAt !== undefined && contract.currentPeriodEndAt > now
-				? contract.currentPeriodEndAt
-				: now;
-
-		await ctx.db.patch("commerce_subscriptions", args.contractId, {
-			status: "active",
-			pausedAt: undefined,
-			cancelAtPeriodEnd: false,
-			cancelScheduledAt: undefined,
-			nextBillingAt,
-			currentPeriodEndAt: nextBillingAt,
-			updatedAt: now,
-		});
-
+			contract.currentPeriodEndAt !== undefined && contract.currentPeriodEndAt > now ? contract.currentPeriodEndAt : now;
 		const correlationId = createCorrelationId();
+		await transitionSubscription(ctx, {
+			subscription: contract,
+			toStatus: "active",
+			reason: "customer_resume",
+			actorUserId: user._id,
+			correlationId,
+			patch: {
+				pausedAt: undefined,
+				cancelAtPeriodEnd: false,
+				cancelScheduledAt: undefined,
+				nextBillingAt,
+				currentPeriodEndAt: nextBillingAt,
+			},
+		});
 		await writeHistory(ctx, {
-			subscriptionId: args.contractId,
+			subscriptionId: contract._id,
 			eventType: "subscription.portal_resume",
 			actorUserId: user._id,
 			fromStatus: contract.status,
 			toStatus: "active",
 			correlationId,
 		});
-
-		await syncEntitlementsForContract(ctx, args.contractId);
-
 		return { ok: true, status: "active" as const, nextBillingAt };
 	},
 });
 
 /**
- * Customer-initiated cancellation. Defaults to `scheduled` (cancel at period
- * end) unless `immediate: true`. Immediate cancel is a deliberate
- * escape-hatch — most UIs should only expose schedule-at-end.
+ * Cancel. By default the cancellation is scheduled for the end of the paid
+ * period (access continues until then). `immediate: true` ends the contract
+ * now; it is the only option for a past_due contract, whose unpaid invoice is
+ * voided and retries stopped so nothing further is charged.
  */
 export const requestCancelContract = mutation({
 	args: {
@@ -997,25 +1016,25 @@ export const requestCancelContract = mutation({
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
-
 		const { user, contract } = await requireOwnedContract(ctx, args.contractId);
-
+		if (contract.status === "cancelled") return { ok: true, alreadyCancelled: true };
 		const now = Date.now();
+		const terms = await resolveLifecycleTerms(ctx, contract);
+		const actions = contractActions(contract, terms.pausable, now);
 		const correlationId = createCorrelationId();
 
-		if (contract.status === "cancelled") {
-			return { ok: true, alreadyCancelled: true };
-		}
-
 		if (args.immediate === true) {
-			await ctx.db.patch("commerce_subscriptions", args.contractId, {
-				status: "cancelled",
-				cancelledAt: now,
-				cancelAtPeriodEnd: false,
-				updatedAt: now,
+			requireAction(actions.cancelNow || actions.scheduleCancel || contract.status === "pending_cancel", contract, "cancel");
+			await transitionSubscription(ctx, {
+				subscription: contract,
+				toStatus: "cancelled",
+				reason: args.reason ?? "customer_cancel_now",
+				actorUserId: user._id,
+				correlationId,
+				patch: { cancelAtPeriodEnd: false },
 			});
 			await writeHistory(ctx, {
-				subscriptionId: args.contractId,
+				subscriptionId: contract._id,
 				eventType: "subscription.portal_cancel_now",
 				actorUserId: user._id,
 				fromStatus: contract.status,
@@ -1023,35 +1042,24 @@ export const requestCancelContract = mutation({
 				reason: args.reason,
 				correlationId,
 			});
-
-			await syncEntitlementsForContract(ctx, args.contractId);
-
 			return { ok: true, status: "cancelled" as const, immediate: true };
 		}
 
-		// Schedule at period end. Only a contract in good standing (or paused)
-		// can be scheduled: a scheduled cancellation can be resumed, so allowing
-		// it from past_due/expired would be a path back to `active` unpaid.
-		if (
-			contract.status !== "active" &&
-			contract.status !== "trialing" &&
-			contract.status !== "paused" &&
-			contract.status !== "pending_cancel"
-		) {
-			throw new ConvexError({
-				code: "INVALID_STATE",
-				message: `Cannot schedule cancellation of a ${contract.status} subscription. Cancel it immediately instead.`,
-				currentStatus: contract.status,
-			});
+		if (contract.status === "pending_cancel") {
+			return { ok: true, status: "pending_cancel" as const, immediate: false, effectiveAt: contract.currentPeriodEndAt };
 		}
-		await ctx.db.patch("commerce_subscriptions", args.contractId, {
-			status: "pending_cancel",
-			cancelAtPeriodEnd: true,
-			cancelScheduledAt: now,
-			updatedAt: now,
+		requireAction(actions.scheduleCancel, contract, "schedule the cancellation of");
+		await transitionSubscription(ctx, {
+			subscription: contract,
+			toStatus: "pending_cancel",
+			reason: args.reason ?? "customer_cancel_scheduled",
+			actorUserId: user._id,
+			correlationId,
+			patch: { cancelAtPeriodEnd: true, cancelScheduledAt: now },
+			eventData: { effectiveAt: contract.currentPeriodEndAt },
 		});
 		await writeHistory(ctx, {
-			subscriptionId: args.contractId,
+			subscriptionId: contract._id,
 			eventType: "subscription.portal_cancel_scheduled",
 			actorUserId: user._id,
 			fromStatus: contract.status,
@@ -1059,14 +1067,168 @@ export const requestCancelContract = mutation({
 			reason: args.reason,
 			correlationId,
 		});
+		return { ok: true, status: "pending_cancel" as const, immediate: false, effectiveAt: contract.currentPeriodEndAt };
+	},
+});
 
+/**
+ * Keep a subscription whose cancellation is scheduled: it returns to active
+ * and renews as normal at the end of the current period.
+ */
+export const requestKeepContract = mutation({
+	args: {
+		contractId: v.id("commerce_subscriptions"),
+	},
+	returns: v.object({ ok: v.boolean(), status: v.literal("active"), nextBillingAt: v.optional(v.number()) }),
+	handler: async (ctx, args) => {
+		await requirePluginEnabled(ctx, "commerceSubscriptions");
+		await requireCommerceSubscriptionsEnabled(ctx);
+		const { user, contract } = await requireOwnedContract(ctx, args.contractId);
+		const terms = await resolveLifecycleTerms(ctx, contract);
+		requireAction(contractActions(contract, terms.pausable, Date.now()).keep, contract, "keep");
+
+		const correlationId = createCorrelationId();
+		const updated = await transitionSubscription(ctx, {
+			subscription: contract,
+			toStatus: "active",
+			reason: "customer_kept_subscription",
+			actorUserId: user._id,
+			correlationId,
+			patch: { cancelAtPeriodEnd: false, cancelScheduledAt: undefined },
+		});
+		await writeHistory(ctx, {
+			subscriptionId: contract._id,
+			eventType: "subscription.portal_keep",
+			actorUserId: user._id,
+			fromStatus: contract.status,
+			toStatus: "active",
+			correlationId,
+		});
+		return { ok: true, status: "active" as const, nextBillingAt: updated.nextBillingAt };
+	},
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYMENT METHOD — SUPPORT FOR paymentMethods.ts (actions)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * The contract a signed-in customer is changing the card on, with what the
+ * payment-method actions need. Throws for anyone but the owner, or a contract
+ * whose card cannot be changed.
+ */
+export const getContractForPaymentMethodUpdate = internalQuery({
+	args: { contractId: v.id("commerce_subscriptions") },
+	returns: v.object({
+		contractId: v.id("commerce_subscriptions"),
+		stripeCustomerId: v.optional(v.string()),
+		email: v.optional(v.string()),
+		publishableKey: v.optional(v.string()),
+	}),
+	handler: async (ctx, args) => {
+		await requirePluginEnabled(ctx, "commerceSubscriptions");
+		const { user, contract } = await requireOwnedContract(ctx, args.contractId);
+		const terms = await resolveLifecycleTerms(ctx, contract);
+		requireAction(contractActions(contract, terms.pausable, Date.now()).updatePaymentMethod, contract, "update the card on");
+		const payments = await readMergedSettingsSection(ctx, "commerce.payments");
+		const account = await ctx.db.get(user._id);
 		return {
-			ok: true,
-			status: "pending_cancel" as const,
-			immediate: false,
-			effectiveAt: contract.currentPeriodEndAt,
+			contractId: contract._id,
+			stripeCustomerId: contract.stripeCustomerId,
+			email: account?.email,
+			publishableKey: typeof payments.stripePublishableKey === "string" ? payments.stripePublishableKey : undefined,
 		};
 	},
+});
+
+/**
+ * Record a card Stripe has verified for the contract (from
+ * `paymentMethods.confirmPaymentMethodUpdate` or the `setup_intent.succeeded`
+ * webhook; both retrieve the SetupIntent from Stripe first). Idempotent per
+ * SetupIntent. A past_due contract's next retry is brought forward to now and
+ * the dunning sweep is run, so the new card is tried straight away.
+ */
+export const recordContractPaymentMethod = internalMutation({
+	args: {
+		contractId: v.id("commerce_subscriptions"),
+		stripeCustomerId: v.string(),
+		paymentMethodId: v.string(),
+		summary: v.optional(paymentMethodSummaryValidator),
+		setupIntentId: v.optional(v.string()),
+	},
+	returns: v.object({ updated: v.boolean(), retryScheduled: v.boolean() }),
+	handler: async (ctx, args) => {
+		await requirePluginEnabled(ctx, "commerceSubscriptions");
+		const contract = await ctx.db.get(args.contractId);
+		if (!contract || isEnded(contract.status)) return { updated: false, retryScheduled: false };
+		if (contract.stripeCustomerId && contract.stripeCustomerId !== args.stripeCustomerId) {
+			throw new ConvexError({ code: "FORBIDDEN", message: "That card belongs to another customer." });
+		}
+		const now = Date.now();
+		const unchanged = contract.defaultPaymentMethodId === args.paymentMethodId;
+		await ctx.db.patch("commerce_subscriptions", contract._id, {
+			defaultPaymentMethodId: args.paymentMethodId,
+			stripeCustomerId: args.stripeCustomerId,
+			paymentProvider: "stripe",
+			...(args.summary ? { paymentMethodSummary: args.summary } : {}),
+			updatedAt: now,
+		});
+		if (unchanged) return { updated: false, retryScheduled: false };
+
+		await writeHistory(ctx, {
+			subscriptionId: contract._id,
+			eventType: "subscription.payment_method_updated",
+			actorUserId: contract.userId,
+			data: { setupIntentId: args.setupIntentId, brand: args.summary?.brand, last4: args.summary?.last4 },
+		});
+
+		if (contract.status !== "past_due") return { updated: true, retryScheduled: false };
+		const pending = await ctx.db
+			.query("commerce_subscription_dunning_attempts")
+			.withIndex("by_subscription", (q) => q.eq("subscriptionId", contract._id))
+			.collect();
+		const next = pending.find((attempt) => attempt.status === "scheduled");
+		if (!next) return { updated: true, retryScheduled: false };
+		if (next.scheduledAt > now) {
+			await ctx.db.patch("commerce_subscription_dunning_attempts", next._id, { scheduledAt: now, updatedAt: now });
+		}
+		await ctx.scheduler.runAfter(0, internal.commerceSubscriptions.dunning.runDunningSweep, {});
+		return { updated: true, retryScheduled: true };
+	},
+});
+
+/** Record the card summary (brand, last four, expiry) shown on the account page. */
+export const recordPaymentMethodSummary = internalMutation({
+	args: {
+		contractId: v.id("commerce_subscriptions"),
+		paymentMethodId: v.string(),
+		summary: paymentMethodSummaryValidator,
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const contract = await ctx.db.get(args.contractId);
+		// Only for the card still on file: a newer card may have replaced it.
+		if (!contract || contract.defaultPaymentMethodId !== args.paymentMethodId) return null;
+		await ctx.db.patch("commerce_subscriptions", contract._id, { paymentMethodSummary: args.summary });
+		return null;
+	},
+});
+
+/** The card on file for a contract, for the summary refresh. */
+export const getContractPaymentMethod = internalQuery({
+	args: { contractId: v.id("commerce_subscriptions") },
+	returns: v.union(v.null(), v.object({ paymentMethodId: v.string() })),
+	handler: async (ctx, args) => {
+		const contract = await ctx.db.get(args.contractId);
+		return contract?.defaultPaymentMethodId ? { paymentMethodId: contract.defaultPaymentMethodId } : null;
+	},
+});
+
+/** Resolve a contract reference from Stripe metadata (the webhook path). */
+export const resolveContractRef = internalQuery({
+	args: { contractRef: v.string() },
+	returns: v.union(v.null(), v.id("commerce_subscriptions")),
+	handler: async (ctx, args) => ctx.db.normalizeId("commerce_subscriptions", args.contractRef),
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1102,7 +1264,7 @@ export const requestPlanChange = mutation({
 		}),
 		v.object({
 			ok: v.boolean(),
-			mode: v.literal("immediate"),
+			mode: v.union(v.literal("immediate"), v.literal("pending")),
 			invoiceId: v.union(v.null(), v.id("commerce_subscription_invoices")),
 			netCharge: v.number(),
 			proration: prorationResultValidator,
@@ -1114,14 +1276,10 @@ export const requestPlanChange = mutation({
 
 		const { user, contract } = await requireOwnedContract(ctx, args.contractId);
 
-		// Block plan change for terminal statuses.
-		if (contract.status === "cancelled" || contract.status === "expired") {
-			throw new ConvexError({
-				code: "INVALID_STATE",
-				message: `Cannot change plan on a ${contract.status} subscription.`,
-				currentStatus: contract.status,
-			});
-		}
+		// Plans change only in good standing: a past_due contract pays first, a
+		// paused one resumes first, a scheduled cancellation is kept first.
+		const terms = await resolveLifecycleTerms(ctx, contract);
+		requireAction(contractActions(contract, terms.pausable, Date.now()).changePlan, contract, "change the plan of");
 
 		const toOffer = await ctx.db.get(args.toOfferId);
 		if (!toOffer) {
@@ -1192,7 +1350,8 @@ export const requestPlanChange = mutation({
 			newOfferPrice: toOffer.recurringAmount ?? 0,
 		});
 
-		const isUpgrade = proration.netCharge > 0;
+		// Charges are whole minor units; less than half a unit is no upgrade charge.
+		const isUpgrade = Math.round(proration.netCharge) > 0;
 
 		if (!isUpgrade) {
 			// ── Downgrade / neutral: delegate to applyDowngradeProration ─────────
@@ -1234,14 +1393,12 @@ export const requestPlanChange = mutation({
 			});
 		}
 
-		// Sync entitlements after the upgrade (new offer may have different codes).
-		await syncEntitlementsForContract(ctx, args.contractId);
-
+		// The charge runs after this mutation; the plan changes when it succeeds.
 		return {
 			ok: true,
-			mode: "immediate" as const,
+			mode: upgradeResult.pending ? ("pending" as const) : ("immediate" as const),
 			invoiceId: upgradeResult.invoiceId,
-			netCharge: proration.netCharge,
+			netCharge: Math.round(proration.netCharge),
 			proration,
 		};
 	},
@@ -1419,44 +1576,36 @@ export const getInvoicePdf = action({
 			});
 		}
 
-		const { invoice, items, subscription, offerTitle } = result;
+		const { invoice, items, offerTitle, siteTitle, customerEmail } = result;
 		const currencyCode = invoice.currencyCode ?? "USD";
+		const day = (timestamp: number) =>
+			new Date(timestamp).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
 		const lines: string[] = [];
-		lines.push("ConvexPress Subscription Invoice");
+		lines.push(`${siteTitle} - Invoice ${invoice.invoiceNumber ?? ""}`.trim());
 		lines.push("================================");
 		lines.push("");
-		lines.push(`Invoice:        ${invoice.invoiceNumber ?? invoice._id}`);
+		if (customerEmail) lines.push(`Billed to:      ${customerEmail}`);
 		lines.push(`Status:         ${invoice.status}`);
-		lines.push(`Currency:       ${currencyCode}`);
-		if (invoice.dueAt) {
-			lines.push(`Due:            ${new Date(invoice.dueAt).toLocaleDateString("en-US")}`);
+		lines.push(`Issued:         ${day(invoice.createdAt)}`);
+		if (invoice.paidAt) lines.push(`Paid:           ${day(invoice.paidAt)}`);
+		if (invoice.periodStartAt !== undefined && invoice.periodEndAt !== undefined) {
+			lines.push(`Period:         ${day(invoice.periodStartAt)} to ${day(invoice.periodEndAt)}`);
 		}
-		if (invoice.paidAt) {
-			lines.push(`Paid:           ${new Date(invoice.paidAt).toLocaleDateString("en-US")}`);
-		}
-		lines.push(`Created:        ${new Date(invoice.createdAt).toLocaleDateString("en-US")}`);
+		if (offerTitle) lines.push(`Plan:           ${offerTitle}`);
 		lines.push("");
-		lines.push(`Subscription:   ${subscription?._id ?? "-"}`);
-		if (offerTitle) {
-			lines.push(`Plan:           ${offerTitle}`);
-		}
-		lines.push("");
-		lines.push("Line Items");
-		lines.push("----------");
+		lines.push("Items");
+		lines.push("-----");
 		for (const item of items) {
-			const qty = item.quantity;
 			lines.push(`  ${item.description}`);
 			lines.push(
-				`    qty=${qty}  unit=${formatMoney(item.unitAmount, currencyCode)}  total=${formatMoney(item.lineTotalAmount, currencyCode)}  (${item.lineType ?? "line"})`,
+				`    ${item.quantity} x ${formatMoney(item.unitAmount, currencyCode)} = ${formatMoney(item.lineTotalAmount, currencyCode)}`,
 			);
 		}
 		lines.push("");
-		lines.push("Totals");
-		lines.push("------");
 		lines.push(`  Subtotal:     ${formatMoney(invoice.subtotalAmount, currencyCode)}`);
 		lines.push(`  Tax:          ${formatMoney(invoice.taxAmount, currencyCode)}`);
-		lines.push(`  Total:        ${formatMoney(invoice.totalAmount, currencyCode)}`);
+		lines.push(`  Total:        ${formatMoney(invoice.totalAmount, currencyCode)} ${currencyCode}`);
 
 		return {
 			ok: true,

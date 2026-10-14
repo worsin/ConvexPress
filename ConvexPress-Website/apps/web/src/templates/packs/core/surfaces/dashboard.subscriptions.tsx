@@ -8,60 +8,11 @@ import { RefreshCw } from "lucide-react";
 import { ChangePlanFlow } from "@/components/subscriptions/ChangePlanFlow";
 import { CustomerPortalCard } from "@/components/subscriptions/CustomerPortalCard";
 import { InvoiceHistoryTable } from "@/components/subscriptions/InvoiceHistoryTable";
+import type { CustomerContract } from "@/components/subscriptions/portalTypes";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
-export interface DashboardSubscriptionContract {
-  _id: string;
-  status: string;
-  currencyCode?: string;
-  recurringAmount?: number;
-  nextBillingAt?: number;
-  nextChargeAt?: number;
-  currentPeriodStartAt?: number;
-  currentPeriodEndAt?: number;
-  createdAt: number;
-  trialEndsAt?: number;
-  offer?: {
-    _id: string;
-    title: string;
-    slug?: string;
-    recurringAmount?: number;
-    currencyCode?: string;
-    features?: Array<{
-      text: string;
-      highlighted?: boolean;
-      icon?: string;
-    }>;
-  } | null;
-  product?: {
-    _id: string;
-    title?: string;
-    slug?: string;
-  } | null;
-  currentInvoice?: {
-    _id: string;
-    status: string;
-    totalAmount: number;
-    currencyCode: string;
-    dueAt?: number;
-    paidAt?: number;
-    createdAt: number;
-  } | null;
-  membershipGrants?: Array<{
-    _id: string;
-    planId: string;
-    plan?: { _id: string; name?: string; slug?: string } | null;
-    status: string;
-    startsAt: number;
-    endsAt?: number;
-    graceEndsAt?: number;
-  }>;
-  entitlements?: Array<{
-    _id: string;
-    entitlementCode: string;
-    status: string;
-  }>;
-}
+/** A contract as the account page shows it (`portal.getMyActiveContracts`). */
+export type DashboardSubscriptionContract = CustomerContract;
 
 export interface DashboardSubscriptionOffer {
   _id: string;

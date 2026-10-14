@@ -362,6 +362,16 @@ export const commerceSubscriptionTables = {
     pausedAt: v.optional(v.number()),
     gracePeriodEndsAt: v.optional(v.number()),
     defaultPaymentMethodId: v.optional(v.string()),
+    // What the account page shows for the card on file: brand, last four and
+    // expiry only, read from Stripe when the card is recorded.
+    paymentMethodSummary: v.optional(
+      v.object({
+        brand: v.string(),
+        last4: v.string(),
+        expMonth: v.number(),
+        expYear: v.number(),
+      }),
+    ),
     stripeCustomerId: v.optional(v.string()),
     paymentProvider: v.optional(v.string()),
     paymentTransactionId: v.optional(v.string()),
@@ -448,6 +458,9 @@ export const commerceSubscriptionTables = {
     paymentTransactionId: v.optional(v.string()),
     savedPaymentMethodId: v.optional(v.string()),
     manualBilling: v.optional(v.boolean()),
+    // What the invoice is for. Rows written before this field are renewals,
+    // or plan changes when `prorationEventId` is set.
+    kind: v.optional(v.union(v.literal("signup"), v.literal("renewal"), v.literal("plan_change"))),
     // The billing period a renewal invoice pays for. Paying it advances the
     // contract to `periodEndAt` once; a late payment for a period the contract
     // has already moved past settles the invoice and nothing else.

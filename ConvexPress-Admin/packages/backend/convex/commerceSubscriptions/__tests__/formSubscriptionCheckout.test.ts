@@ -35,6 +35,8 @@ const modules = {
   "./convex/commerceSubscriptions/queries.ts": () => import("../queries"),
   "./convex/commerceSubscriptions/stripeCharge.ts": () => import("../stripeCharge"),
   "./convex/commerceSubscriptions/publicCharge.ts": () => import("../publicCharge"),
+  "./convex/commerceSubscriptions/portal.ts": () => import("../portal"),
+  "./convex/commerceSubscriptions/paymentMethods.ts": () => import("../paymentMethods"),
   "./convex/purchases/internals.ts": () => import("../../purchases/internals"),
   "./convex/membership/internals.ts": () => import("../../membership/internals"),
   "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
@@ -70,6 +72,9 @@ type CreateParams = { amount?: number; currency?: string; customer?: string; met
 type CreateOptions = { idempotencyKey?: string };
 interface FakeableIntents {
   create(params: CreateParams, options?: CreateOptions): Promise<unknown>;
+  retrieve(id: string): Promise<unknown>;
+}
+interface FakeablePaymentMethods {
   retrieve(id: string): Promise<unknown>;
 }
 interface FakeableCustomers {
@@ -146,6 +151,12 @@ beforeEach(() => {
   spyOn(setupIntents, "retrieve").mockImplementation(fakeRetrieve);
   spyOn(customers, "list").mockImplementation(async () => ({ data: [] }));
   spyOn(customers, "create").mockImplementation(async () => ({ id: CUSTOMER }));
+  const paymentMethodsApi: FakeablePaymentMethods = Object.getPrototypeOf(stripe.paymentMethods);
+  spyOn(paymentMethodsApi, "retrieve").mockImplementation(async (id: string) => ({
+    id,
+    object: "payment_method",
+    card: { brand: "visa", last4: "4242", exp_month: 12, exp_year: 2030 },
+  }));
 });
 
 afterEach(() => {
@@ -163,6 +174,9 @@ afterEach(() => {
     const fn = customers[name];
     if ("mockRestore" in fn && typeof fn.mockRestore === "function") fn.mockRestore();
   }
+  const paymentMethodsApi: FakeablePaymentMethods = Object.getPrototypeOf(stripe.paymentMethods);
+  const retrieve = paymentMethodsApi.retrieve;
+  if ("mockRestore" in retrieve && typeof retrieve.mockRestore === "function") retrieve.mockRestore();
 });
 
 // ─── Fixture ────────────────────────────────────────────────────────────────
@@ -449,6 +463,16 @@ describe("form checkout: server-verified activation", () => {
     expect(await f.owner.query(api.extensions.forms.actions.getCheckoutStatus, { submissionId: started.submissionId }))
       .toEqual({ state: "completed", paid: true });
 
+    // The signup charge is the contract's first invoice: paid, numbered, for
+    // the first period, and listed in the customer's billing history.
+    const invoices = await f.owner.query(api.commerceSubscriptions.portal.listMyInvoices, {});
+    expect(invoices).toHaveLength(1);
+    expect(invoices[0]).toMatchObject({
+      kind: "signup", status: "paid", totalAmount: 1500, currencyCode: "USD",
+      periodEndAt: state.subscriptions[0]?.currentPeriodEndAt,
+    });
+    expect(invoices[0]?.invoiceNumber).toMatch(/^INV-\d{6}$/);
+
     // A replayed confirmation and the late webhook change nothing.
     const replay = await f.owner.action(api.commerceSubscriptions.publicCharge.confirmFirstCharge, confirmArgs(started));
     expect(replay).toMatchObject({ status: "active", subscriptionId: confirmed.subscriptionId });
@@ -456,6 +480,7 @@ describe("form checkout: server-verified activation", () => {
     const after = await snapshot(f);
     expect(after.subscriptions.map((row) => row._id)).toEqual([confirmed.subscriptionId]);
     expect(after.completedEvents).toHaveLength(1);
+    expect(await f.owner.query(api.commerceSubscriptions.portal.listMyInvoices, {})).toHaveLength(1);
   });
 
   test("when the webhook activates first, confirming returns the same contract and completes nothing twice", async () => {

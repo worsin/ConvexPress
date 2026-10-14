@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { idFromString } from "@/lib/ids";
 
 /**
@@ -201,20 +201,17 @@ export function ChangePlanFlow({
         contractId: idFromString<"commerce_subscriptions">(contractId),
         toOfferId: idFromString<"commerce_subscription_offers">(selectedOfferId),
       });
-      if (result?.mode === "immediate") {
-        toast.success("Plan upgraded — new invoice created");
-      } else if (result?.mode === "scheduled") {
-        toast.success("Plan change scheduled for end of current period");
+      if (result.mode === "pending") {
+        toast.success("Upgrade requested. Your plan changes as soon as the payment for the rest of this period goes through.");
+      } else if (result.mode === "immediate") {
+        toast.success("Plan upgraded");
       } else {
-        toast.success("Plan change requested");
+        toast.success("Plan change scheduled for the end of the current period");
       }
       setOpen(false);
       setSelectedOfferId(null);
     } catch (error) {
-      toast.error(
-        (error as { data?: { message?: string } })?.data?.message ??
-          "Plan change failed",
-      );
+      toast.error(getErrorMessage(error, "Plan change failed"));
     } finally {
       setBusy(false);
     }

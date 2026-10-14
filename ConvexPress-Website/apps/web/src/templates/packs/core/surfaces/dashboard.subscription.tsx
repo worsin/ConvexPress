@@ -1,7 +1,8 @@
 /**
- * Core · dashboard.subscription — one subscription: billing details, status
- * notices, pause / resume / schedule-cancel (with an inline confirmation for
- * cancellation), entitlements, invoices and history.
+ * Core · dashboard.subscription — one subscription: billing details, the card
+ * on file (replaceable on-site), status notices, the lifecycle actions the
+ * server allows (with confirmations for cancelling), included access, invoices
+ * and a plain-words timeline. Data: `commerceSubscriptions.portal.getMyContract`.
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -12,19 +13,22 @@ import {
   RefreshCw,
   Pause,
   Play,
+  RotateCcw,
   XCircle,
   FileText,
   Shield,
 } from "lucide-react";
 
+import { PaymentMethodPanel } from "@/components/subscriptions/PaymentMethodPanel";
+import type { CustomerContractDetail, CustomerLifecycleAction } from "@/components/subscriptions/portalTypes";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
-export type DashboardSubscriptionAction = "pause" | "resume" | "schedule_cancel";
+export type DashboardSubscriptionAction = CustomerLifecycleAction;
 
 export interface DashboardSubscriptionSurfaceData {
   subscriptionId: string;
-  /** The subscription (commerceSubscriptions.queries.getById); undefined while loading, null when unknown. */
-  subscription: any;
+  /** The subscription (portal.getMyContract); undefined while loading, null when unknown or not yours. */
+  subscription: CustomerContractDetail | null | undefined;
   /** True while an action runs. */
   busy: boolean;
   hrefs: {
@@ -35,6 +39,12 @@ export interface DashboardSubscriptionSurfaceData {
     run: (action: DashboardSubscriptionAction) => Promise<boolean>;
   };
 }
+
+/** Confirmation copy for the actions that end or schedule the end of access. */
+export const CONFIRMATIONS: Partial<Record<DashboardSubscriptionAction, string>> = {
+  schedule_cancel: "Your subscription will cancel at the end of the current period. Are you sure?",
+  cancel_now: "Your access ends now and the unpaid invoice is cancelled. Are you sure?",
+};
 
 // ─── Formatters ────────────────────────────────────────────────────────────
 
@@ -143,10 +153,8 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
   }
 
   const sub = subscription;
-  const { status } = sub;
-  const canPause = status === "active" || status === "trialing";
-  const canResume = status === "paused" || status === "pending_cancel";
-  const canScheduleCancel = status === "active" || status === "trialing";
+  const allowed = sub.actions;
+  const title = sub.offer?.title ?? sub.product?.title ?? "Subscription";
 
   return (
     <div className="space-y-6">
@@ -163,7 +171,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-sm font-medium text-foreground">
-            {sub.product?.title ?? "Subscription"}
+            {title}
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Created {formatDate(sub.createdAt)}
@@ -187,9 +195,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
             <div>
               <p className="text-xs text-muted-foreground">Recurring Amount</p>
               <p className="text-sm font-medium text-foreground">
-                {typeof sub.recurringAmount === "number"
-                  ? formatMoney(sub.recurringAmount, sub.currencyCode ?? "USD")
-                  : "--"}
+                {formatMoney(sub.recurringAmount, sub.currencyCode)}
               </p>
             </div>
           </div>
@@ -201,7 +207,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
             <div>
               <p className="text-xs text-muted-foreground">Next Billing</p>
               <p className="text-sm font-medium text-foreground">
-                {formatDate(sub.nextBillingAt)}
+                {formatDate(sub.nextChargeAt)}
               </p>
             </div>
           </div>
@@ -235,12 +241,25 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
         </div>
       </div>
 
+      {/* Card on file and any payment problem */}
+      <PaymentMethodPanel
+        contractId={sub._id}
+        paymentMethod={sub.paymentMethod}
+        billingIssue={sub.billingIssue}
+        canUpdate={allowed.updatePaymentMethod}
+      />
+
       {/* Status notices */}
       {sub.status === "pending_cancel" && (
         <div className="rounded-xl border border-border bg-muted px-5 py-4 text-sm text-muted-foreground">
-          This subscription is set to cancel at the end of the current billing
-          period ({formatDate(sub.currentPeriodEndAt)}). You can resume to
-          keep it active.
+          This subscription ends at the close of the current billing period
+          ({formatDate(sub.currentPeriodEndAt)}). You can keep it until then.
+        </div>
+      )}
+      {sub.scheduledOffer && (
+        <div className="rounded-xl border border-border bg-muted/40 px-5 py-4 text-sm text-foreground">
+          Changes to {sub.scheduledOffer.title} ({formatMoney(sub.scheduledOffer.recurringAmount, sub.currencyCode)}) on{" "}
+          {formatDate(sub.scheduledOffer.effectiveAt)}.
         </div>
       )}
 
@@ -248,9 +267,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
       {confirmAction && (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-5 py-4">
           <p className="text-sm text-destructive">
-            {confirmAction === "schedule_cancel"
-              ? "Your subscription will cancel at the end of the current period. Are you sure?"
-              : `Are you sure you want to ${confirmAction} this subscription?`}
+            {CONFIRMATIONS[confirmAction] ?? "Are you sure?"}
           </p>
           <div className="mt-3 flex gap-3">
             <button
@@ -273,9 +290,9 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
       )}
 
       {/* Actions */}
-      {(canPause || canResume || canScheduleCancel) && (
-        <div className="flex gap-3">
-          {canPause && (
+      {(allowed.pause || allowed.resume || allowed.keep || allowed.scheduleCancel || allowed.cancelNow) && (
+        <div className="flex flex-wrap gap-3">
+          {allowed.pause && (
             <button
               type="button"
               onClick={() => void handleAction("pause")}
@@ -286,7 +303,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
               Pause Subscription
             </button>
           )}
-          {canResume && (
+          {allowed.resume && (
             <button
               type="button"
               onClick={() => void handleAction("resume")}
@@ -297,7 +314,18 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
               Resume Subscription
             </button>
           )}
-          {canScheduleCancel && !confirmAction && (
+          {allowed.keep && (
+            <button
+              type="button"
+              onClick={() => void handleAction("keep")}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Keep Subscription
+            </button>
+          )}
+          {allowed.scheduleCancel && !confirmAction && (
             <button
               type="button"
               onClick={() => setConfirmAction("schedule_cancel")}
@@ -308,11 +336,22 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
               Cancel Subscription
             </button>
           )}
+          {allowed.cancelNow && !confirmAction && (
+            <button
+              type="button"
+              onClick={() => setConfirmAction("cancel_now")}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-xl border border-destructive/40 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+            >
+              <XCircle className="h-4 w-4" />
+              Cancel Now
+            </button>
+          )}
         </div>
       )}
 
       {/* Entitlements */}
-      {sub.entitlements && sub.entitlements.length > 0 && (
+      {sub.entitlements.length > 0 && (
         <div className="rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex items-center gap-2 border-b border-border px-5 py-3">
             <Shield className="h-4 w-4 text-muted-foreground" />
@@ -321,7 +360,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
             </h2>
           </div>
           <div className="divide-y divide-border">
-            {sub.entitlements.map((ent: any) => (
+            {sub.entitlements.map((ent) => (
               <div
                 key={ent._id}
                 className="flex items-center justify-between px-5 py-3"
@@ -337,7 +376,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
       )}
 
       {/* Invoices */}
-      {sub.invoices && sub.invoices.length > 0 && (
+      {sub.invoices.length > 0 && (
         <div className="rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex items-center gap-2 border-b border-border px-5 py-3">
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -346,27 +385,24 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
             </h2>
           </div>
           <div className="divide-y divide-border">
-            {sub.invoices.map((invoice: any) => (
+            {sub.invoices.map((invoice) => (
               <div
                 key={invoice._id}
                 className="flex items-center justify-between px-5 py-3"
               >
                 <div>
                   <p className="text-xs font-medium text-foreground">
-                    {formatDate(invoice.createdAt)}
+                    {invoice.invoiceNumber ?? formatDate(invoice.createdAt)}
                   </p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    {invoice.invoiceNumber ?? invoice._id}
+                    {invoice.periodStartAt !== undefined && invoice.periodEndAt !== undefined
+                      ? `${formatDate(invoice.periodStartAt)} – ${formatDate(invoice.periodEndAt)}`
+                      : formatDate(invoice.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-foreground">
-                    {typeof invoice.totalAmount === "number"
-                      ? formatMoney(
-                          invoice.totalAmount,
-                          invoice.currencyCode ?? sub.currencyCode ?? "USD",
-                        )
-                      : "--"}
+                    {formatMoney(invoice.totalAmount, invoice.currencyCode)}
                   </span>
                   <InvoiceStatusBadge status={invoice.status} />
                 </div>
@@ -377,7 +413,7 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
       )}
 
       {/* History */}
-      {sub.history && sub.history.length > 0 && (
+      {sub.history.length > 0 && (
         <div className="rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -385,21 +421,10 @@ export default function CoreDashboardSubscription({ data }: SurfaceProps<Dashboa
             </h2>
           </div>
           <div className="divide-y divide-border">
-            {sub.history.slice(0, 10).map((event: any) => (
-              <div key={event._id} className="px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-foreground">
-                    {event.eventType?.replace(/\./g, " ").replace(/_/g, " ")}
-                  </p>
-                  <span className="text-[10px] text-muted-foreground">
-                    {formatDateTime(event.createdAt)}
-                  </span>
-                </div>
-                {event.message && event.message !== event.eventType && (
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    {event.message}
-                  </p>
-                )}
+            {sub.history.slice(0, 10).map((event) => (
+              <div key={event._id} className="flex items-center justify-between px-5 py-3">
+                <p className="text-xs font-medium text-foreground">{event.message}</p>
+                <span className="text-[10px] text-muted-foreground">{formatDateTime(event.createdAt)}</span>
               </div>
             ))}
           </div>

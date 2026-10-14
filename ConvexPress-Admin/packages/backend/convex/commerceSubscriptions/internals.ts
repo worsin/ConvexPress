@@ -171,6 +171,7 @@ async function insertRenewalInvoice(
 		paymentProvider: subscription.paymentProvider,
 		savedPaymentMethodId: subscription.defaultPaymentMethodId,
 		manualBilling: subscription.manualBilling,
+		kind: "renewal",
 		periodStartAt,
 		periodEndAt,
 		dueAt: now,
@@ -1287,6 +1288,8 @@ export const getMyInvoiceForPdf = internalQuery({
      status: v.union(v.literal("draft"), v.literal("active"), v.literal("cancelled"), v.literal("expired"), v.literal("paused"), v.literal("trialing"), v.literal("past_due"), v.literal("pending_cancel")),
    }),
    offerTitle: v.optional(v.string()),
+   siteTitle: v.string(),
+   customerEmail: v.optional(v.string()),
  })),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
@@ -1329,6 +1332,9 @@ export const getMyInvoiceForPdf = internalQuery({
 			}
 		}
 
+		const general = await readMergedSettingsSection(ctx, "general");
+		const siteTitle = typeof general.siteTitle === "string" && general.siteTitle.trim().length > 0 ? general.siteTitle.trim() : "Invoice";
+
 		return {
 			invoice,
 			items,
@@ -1337,6 +1343,8 @@ export const getMyInvoiceForPdf = internalQuery({
 				status: subscription.status,
 			},
 			offerTitle,
+			siteTitle,
+			customerEmail: user.email,
 		};
 	},
 });

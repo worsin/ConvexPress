@@ -6,7 +6,7 @@
  * functions through convex-test, including the Stripe webhook HTTP route with
  * genuinely signed events.
  */
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { convexTest } from "convex-test";
 import Stripe from "stripe";
 import { api, internal } from "../../_generated/api";
@@ -32,6 +32,7 @@ const modules = {
   "./convex/settings/httpInternals.ts": () => import("../../settings/httpInternals"),
   "./convex/commerceSubscriptions/checkout.ts": () => import("../checkout"),
   "./convex/commerceSubscriptions/internals.ts": () => import("../internals"),
+  "./convex/commerceSubscriptions/paymentMethods.ts": () => import("../paymentMethods"),
   "./convex/commerceSubscriptions/stripeCharge.ts": () => import("../stripeCharge"),
   "./convex/commerceSubscriptions/publicCharge.ts": () => import("../publicCharge"),
   "./convex/commerceSubscriptions/portal.ts": () => import("../portal"),
@@ -168,6 +169,25 @@ function publicArgsOf(value: unknown): string | null {
   const exported: unknown = value.exportArgs();
   return typeof exported === "string" ? exported : null;
 }
+
+// Activation reads the card's display summary from Stripe in the background
+// (paymentMethods.refreshPaymentMethodSummary); answer it locally.
+interface FakeablePaymentMethods {
+  retrieve(id: string): Promise<unknown>;
+}
+beforeEach(() => {
+  const paymentMethodsApi: FakeablePaymentMethods = Object.getPrototypeOf(new Stripe("sk_test_summary").paymentMethods);
+  spyOn(paymentMethodsApi, "retrieve").mockImplementation(async (id: string) => ({
+    id,
+    object: "payment_method",
+    card: { brand: "visa", last4: "4242", exp_month: 12, exp_year: 2030 },
+  }));
+});
+afterEach(() => {
+  const paymentMethodsApi: FakeablePaymentMethods = Object.getPrototypeOf(new Stripe("sk_test_summary").paymentMethods);
+  const fn = paymentMethodsApi.retrieve;
+  if ("mockRestore" in fn && typeof fn.mockRestore === "function") fn.mockRestore();
+});
 
 describe("payment trust boundary: subscription activation", () => {
   test("no public function accepts a payment outcome, and paid activation is internal", () => {
@@ -418,12 +438,12 @@ describe("payment trust boundary: customer lifecycle", () => {
     const lapsed = Date.now() - 86_400_000;
     for (const status of ["past_due", "cancelled", "expired"] as const) {
       const id = await contract(f, status, lapsed);
-      await expect(f.owner.mutation(api.commerceSubscriptions.portal.requestPauseContract, { contractId: id })).rejects.toThrow(`Cannot pause a ${status}`);
+      await expect(f.owner.mutation(api.commerceSubscriptions.portal.requestPauseContract, { contractId: id })).rejects.toThrow(`You cannot pause a subscription that is ${status.replace("_", " ")}`);
       await expect(f.owner.mutation(api.commerceSubscriptions.mutations.pause, { subscriptionId: id })).rejects.toThrow("You cannot pause");
       await expect(f.owner.mutation(api.commerceSubscriptions.mutations.resume, { subscriptionId: id })).rejects.toThrow("You cannot resume");
       await expect(f.owner.mutation(api.commerceSubscriptions.mutations.scheduleCancel, { subscriptionId: id })).rejects.toThrow("You cannot schedule cancellation");
       if (status !== "cancelled") {
-        await expect(f.owner.mutation(api.commerceSubscriptions.portal.requestCancelContract, { contractId: id })).rejects.toThrow("Cannot schedule cancellation");
+        await expect(f.owner.mutation(api.commerceSubscriptions.portal.requestCancelContract, { contractId: id })).rejects.toThrow("You cannot schedule the cancellation");
       }
       expect(await statusOf(f, id)).toBe(status);
     }
