@@ -572,9 +572,8 @@ export const create = mutation({
 		sourceCheckoutIntentId: v.optional(
 			v.id("commerce_subscription_checkout_intents"),
 		),
-		sourceFormSubmissionId: v.optional(
-			v.id("commerce_subscription_form_submissions"),
-		),
+		/** The Forms-extension submission this contract came from, if any. */
+		sourceFormSubmissionId: v.optional(v.id("form_submissions")),
 		templateId: v.optional(v.id("commerce_subscription_templates")),
 		quantity: v.optional(v.number()),
 		setupFeeAmount: v.optional(v.number()),
@@ -1181,59 +1180,6 @@ export const revokeEntitlement = mutation({
 			updatedAt: now,
 		});
 
-		return { success: true };
-	},
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ORDER FORM MUTATIONS (Wave 10.3)
-// ═══════════════════════════════════════════════════════════════════════════
-
-export const createOrderForm = mutation({
-	args: {
-		title: v.string(),
-		slug: v.string(),
-	},
-	returns: v.object({ orderFormId: v.id("commerce_subscription_order_forms") }),
-	handler: async (ctx, args) => {
-		await requireCommerceSubscriptionsEnabled(ctx);
-		await requireCan(ctx, "manage_options");
-		const now = Date.now();
-		const orderFormId = await ctx.db.insert(
-			"commerce_subscription_order_forms",
-			{
-				title: args.title,
-				slug: args.slug,
-				status: "draft",
-				selectionMode: "single_offer",
-				offerIds: [],
-				accountMode: "require_login",
-				paymentMode: "pay_now",
-				createdAt: now,
-				updatedAt: now,
-			},
-		);
-		return { orderFormId };
-	},
-});
-
-export const updateOrderForm = mutation({
-	args: {
-		orderFormId: v.id("commerce_subscription_order_forms"),
-		title: v.optional(v.string()),
-		status: v.optional(
-			v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
-		),
-	},
-	returns: v.object({ success: v.boolean() }),
-	handler: async (ctx, args) => {
-		await requireCommerceSubscriptionsEnabled(ctx);
-		await requireCan(ctx, "manage_options");
-		const { orderFormId, ...rest } = args;
-		const patch: Record<string, unknown> = { updatedAt: Date.now() };
-		if (rest.title !== undefined) patch.title = rest.title;
-		if (rest.status !== undefined) patch.status = rest.status;
-		await ctx.db.patch("commerce_subscription_order_forms", orderFormId, patch);
 		return { success: true };
 	},
 });

@@ -295,11 +295,6 @@ async function insertCheckoutIntent(
 			email: customerEmail,
 			orderId: undefined,
 			orderItemIds: undefined,
-			// `formId` / `formSubmissionId` on this table reference subscription
-			// order forms; a Forms-extension checkout records its generic form
-			// linkage in metadata instead.
-			formId: undefined,
-			formSubmissionId: undefined,
 			selectedOfferIds: [args.offerId],
 			pricingSnapshot: {
 				offerId: args.offerId,

@@ -239,10 +239,8 @@ import { Route as AuthenticatedAdminLmsCoursesCourseIdIndexRouteImport } from '.
 import { Route as AuthenticatedAdminFormsFormIdEntriesIndexRouteImport } from './routes/_authenticated/_admin/forms/$formId/entries/index'
 import { Route as AuthenticatedAdminFormsFormIdAnalyticsIndexRouteImport } from './routes/_authenticated/_admin/forms/$formId/analytics/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/index'
-import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOffersIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/invoices/index'
-import { Route as AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/form-submissions/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsCouponsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/coupons/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsContractsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/contracts/index'
 import { Route as AuthenticatedAdminToolsRedirectsRedirectIdEditRouteImport } from './routes/_authenticated/_admin/tools/redirects/$redirectId/edit'
@@ -260,11 +258,8 @@ import { Route as AuthenticatedAdminLmsCoursesCourseIdEnrolleesRouteImport } fro
 import { Route as AuthenticatedAdminLmsCoursesCourseIdBuilderRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/builder'
 import { Route as AuthenticatedAdminFormsFormIdEntriesEntryIdRouteImport } from './routes/_authenticated/_admin/forms/$formId/entries/$entryId'
 import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/new'
-import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/new'
-import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOffersNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/new'
 import { Route as AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId'
-import { Route as AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId'
 import { Route as AuthenticatedAdminCommerceSubscriptionsCouponsNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/coupons/new'
 import { Route as AuthenticatedAdminCommerceSubscriptionsContractsContractIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/contracts/$contractId'
 import { Route as AuthenticatedAdminCommerceSettingsTaxClassesRouteImport } from './routes/_authenticated/_admin/commerce/settings.tax.classes'
@@ -1704,12 +1699,6 @@ const AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute =
     path: '/templates/',
     getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
-const AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute =
-  AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport.update({
-    id: '/order-forms/',
-    path: '/order-forms/',
-    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
-  } as any)
 const AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsOffersIndexRouteImport.update({
     id: '/offers/',
@@ -1722,14 +1711,6 @@ const AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute =
     path: '/invoices/',
     getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
-const AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute =
-  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRouteImport.update(
-    {
-      id: '/form-submissions/',
-      path: '/form-submissions/',
-      getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
-    } as any,
-  )
 const AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsCouponsIndexRouteImport.update({
     id: '/coupons/',
@@ -1832,18 +1813,6 @@ const AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute =
     path: '/templates/new',
     getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
-const AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute =
-  AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport.update({
-    id: '/order-forms/new',
-    path: '/order-forms/new',
-    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
-  } as any)
-const AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute =
-  AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport.update({
-    id: '/order-forms/$formId',
-    path: '/order-forms/$formId',
-    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
-  } as any)
 const AuthenticatedAdminCommerceSubscriptionsOffersNewRoute =
   AuthenticatedAdminCommerceSubscriptionsOffersNewRouteImport.update({
     id: '/offers/new',
@@ -1856,14 +1825,6 @@ const AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute =
     path: '/invoices/$invoiceId',
     getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
-const AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute =
-  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRouteImport.update(
-    {
-      id: '/form-submissions/$submissionId',
-      path: '/form-submissions/$submissionId',
-      getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
-    } as any,
-  )
 const AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute =
   AuthenticatedAdminCommerceSubscriptionsCouponsNewRouteImport.update({
     id: '/coupons/new',
@@ -2205,11 +2166,8 @@ export interface FileRoutesByFullPath {
   '/commerce/settings/tax/classes': typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
   '/commerce/subscriptions/contracts/$contractId': typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
   '/commerce/subscriptions/coupons/new': typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
-  '/commerce/subscriptions/form-submissions/$submissionId': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
   '/commerce/subscriptions/invoices/$invoiceId': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
   '/commerce/subscriptions/offers/new': typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
-  '/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
-  '/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   '/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
   '/forms/$formId/entries/$entryId': typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRoute
   '/lms/courses/$courseId/builder': typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
@@ -2227,10 +2185,8 @@ export interface FileRoutesByFullPath {
   '/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
   '/commerce/subscriptions/contracts/': typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
   '/commerce/subscriptions/coupons/': typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
-  '/commerce/subscriptions/form-submissions/': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
   '/commerce/subscriptions/invoices/': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
   '/commerce/subscriptions/offers/': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
-  '/commerce/subscriptions/order-forms/': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   '/commerce/subscriptions/templates/': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   '/forms/$formId/analytics/': typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRoute
   '/forms/$formId/entries/': typeof AuthenticatedAdminFormsFormIdEntriesIndexRoute
@@ -2458,11 +2414,8 @@ export interface FileRoutesByTo {
   '/commerce/settings/tax/classes': typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
   '/commerce/subscriptions/contracts/$contractId': typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
   '/commerce/subscriptions/coupons/new': typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
-  '/commerce/subscriptions/form-submissions/$submissionId': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
   '/commerce/subscriptions/invoices/$invoiceId': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
   '/commerce/subscriptions/offers/new': typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
-  '/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
-  '/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   '/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
   '/forms/$formId/entries/$entryId': typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRoute
   '/lms/courses/$courseId/builder': typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
@@ -2480,10 +2433,8 @@ export interface FileRoutesByTo {
   '/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
   '/commerce/subscriptions/contracts': typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
   '/commerce/subscriptions/coupons': typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
-  '/commerce/subscriptions/form-submissions': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
   '/commerce/subscriptions/invoices': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
   '/commerce/subscriptions/offers': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
-  '/commerce/subscriptions/order-forms': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   '/commerce/subscriptions/templates': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   '/forms/$formId/analytics': typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRoute
   '/forms/$formId/entries': typeof AuthenticatedAdminFormsFormIdEntriesIndexRoute
@@ -2734,11 +2685,8 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/settings/tax/classes': typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
   '/_authenticated/_admin/commerce/subscriptions/contracts/$contractId': typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
   '/_authenticated/_admin/commerce/subscriptions/coupons/new': typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
-  '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
   '/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
   '/_authenticated/_admin/commerce/subscriptions/offers/new': typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
-  '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
-  '/_authenticated/_admin/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   '/_authenticated/_admin/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
   '/_authenticated/_admin/forms/$formId/entries/$entryId': typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRoute
   '/_authenticated/_admin/lms/courses/$courseId/builder': typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
@@ -2756,10 +2704,8 @@ export interface FileRoutesById {
   '/_authenticated/_admin/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
   '/_authenticated/_admin/commerce/subscriptions/contracts/': typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/coupons/': typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
-  '/_authenticated/_admin/commerce/subscriptions/form-submissions/': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/invoices/': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/offers/': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
-  '/_authenticated/_admin/commerce/subscriptions/order-forms/': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/templates/': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   '/_authenticated/_admin/forms/$formId/analytics/': typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRoute
   '/_authenticated/_admin/forms/$formId/entries/': typeof AuthenticatedAdminFormsFormIdEntriesIndexRoute
@@ -3009,11 +2955,8 @@ export interface FileRouteTypes {
     | '/commerce/settings/tax/classes'
     | '/commerce/subscriptions/contracts/$contractId'
     | '/commerce/subscriptions/coupons/new'
-    | '/commerce/subscriptions/form-submissions/$submissionId'
     | '/commerce/subscriptions/invoices/$invoiceId'
     | '/commerce/subscriptions/offers/new'
-    | '/commerce/subscriptions/order-forms/$formId'
-    | '/commerce/subscriptions/order-forms/new'
     | '/commerce/subscriptions/templates/new'
     | '/forms/$formId/entries/$entryId'
     | '/lms/courses/$courseId/builder'
@@ -3031,10 +2974,8 @@ export interface FileRouteTypes {
     | '/tools/redirects/$redirectId/edit'
     | '/commerce/subscriptions/contracts/'
     | '/commerce/subscriptions/coupons/'
-    | '/commerce/subscriptions/form-submissions/'
     | '/commerce/subscriptions/invoices/'
     | '/commerce/subscriptions/offers/'
-    | '/commerce/subscriptions/order-forms/'
     | '/commerce/subscriptions/templates/'
     | '/forms/$formId/analytics/'
     | '/forms/$formId/entries/'
@@ -3262,11 +3203,8 @@ export interface FileRouteTypes {
     | '/commerce/settings/tax/classes'
     | '/commerce/subscriptions/contracts/$contractId'
     | '/commerce/subscriptions/coupons/new'
-    | '/commerce/subscriptions/form-submissions/$submissionId'
     | '/commerce/subscriptions/invoices/$invoiceId'
     | '/commerce/subscriptions/offers/new'
-    | '/commerce/subscriptions/order-forms/$formId'
-    | '/commerce/subscriptions/order-forms/new'
     | '/commerce/subscriptions/templates/new'
     | '/forms/$formId/entries/$entryId'
     | '/lms/courses/$courseId/builder'
@@ -3284,10 +3222,8 @@ export interface FileRouteTypes {
     | '/tools/redirects/$redirectId/edit'
     | '/commerce/subscriptions/contracts'
     | '/commerce/subscriptions/coupons'
-    | '/commerce/subscriptions/form-submissions'
     | '/commerce/subscriptions/invoices'
     | '/commerce/subscriptions/offers'
-    | '/commerce/subscriptions/order-forms'
     | '/commerce/subscriptions/templates'
     | '/forms/$formId/analytics'
     | '/forms/$formId/entries'
@@ -3537,11 +3473,8 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/settings/tax/classes'
     | '/_authenticated/_admin/commerce/subscriptions/contracts/$contractId'
     | '/_authenticated/_admin/commerce/subscriptions/coupons/new'
-    | '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId'
     | '/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId'
     | '/_authenticated/_admin/commerce/subscriptions/offers/new'
-    | '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
-    | '/_authenticated/_admin/commerce/subscriptions/order-forms/new'
     | '/_authenticated/_admin/commerce/subscriptions/templates/new'
     | '/_authenticated/_admin/forms/$formId/entries/$entryId'
     | '/_authenticated/_admin/lms/courses/$courseId/builder'
@@ -3559,10 +3492,8 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/tools/redirects/$redirectId/edit'
     | '/_authenticated/_admin/commerce/subscriptions/contracts/'
     | '/_authenticated/_admin/commerce/subscriptions/coupons/'
-    | '/_authenticated/_admin/commerce/subscriptions/form-submissions/'
     | '/_authenticated/_admin/commerce/subscriptions/invoices/'
     | '/_authenticated/_admin/commerce/subscriptions/offers/'
-    | '/_authenticated/_admin/commerce/subscriptions/order-forms/'
     | '/_authenticated/_admin/commerce/subscriptions/templates/'
     | '/_authenticated/_admin/forms/$formId/analytics/'
     | '/_authenticated/_admin/forms/$formId/entries/'
@@ -5195,13 +5126,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
-    '/_authenticated/_admin/commerce/subscriptions/order-forms/': {
-      id: '/_authenticated/_admin/commerce/subscriptions/order-forms/'
-      path: '/order-forms'
-      fullPath: '/commerce/subscriptions/order-forms/'
-      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
-    }
     '/_authenticated/_admin/commerce/subscriptions/offers/': {
       id: '/_authenticated/_admin/commerce/subscriptions/offers/'
       path: '/offers'
@@ -5214,13 +5138,6 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/commerce/subscriptions/invoices/'
       preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
-    }
-    '/_authenticated/_admin/commerce/subscriptions/form-submissions/': {
-      id: '/_authenticated/_admin/commerce/subscriptions/form-submissions/'
-      path: '/form-submissions'
-      fullPath: '/commerce/subscriptions/form-submissions/'
-      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
     '/_authenticated/_admin/commerce/subscriptions/coupons/': {
@@ -5342,20 +5259,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
-    '/_authenticated/_admin/commerce/subscriptions/order-forms/new': {
-      id: '/_authenticated/_admin/commerce/subscriptions/order-forms/new'
-      path: '/order-forms/new'
-      fullPath: '/commerce/subscriptions/order-forms/new'
-      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport
-      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
-    }
-    '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId': {
-      id: '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
-      path: '/order-forms/$formId'
-      fullPath: '/commerce/subscriptions/order-forms/$formId'
-      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
-    }
     '/_authenticated/_admin/commerce/subscriptions/offers/new': {
       id: '/_authenticated/_admin/commerce/subscriptions/offers/new'
       path: '/offers/new'
@@ -5368,13 +5271,6 @@ declare module '@tanstack/react-router' {
       path: '/invoices/$invoiceId'
       fullPath: '/commerce/subscriptions/invoices/$invoiceId'
       preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRouteImport
-      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
-    }
-    '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId': {
-      id: '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId'
-      path: '/form-submissions/$submissionId'
-      fullPath: '/commerce/subscriptions/form-submissions/$submissionId'
-      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
     '/_authenticated/_admin/commerce/subscriptions/coupons/new': {
@@ -5721,18 +5617,13 @@ interface AuthenticatedAdminCommerceSubscriptionsRouteChildren {
   AuthenticatedAdminCommerceSubscriptionsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
   AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
-  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
   AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
   AuthenticatedAdminCommerceSubscriptionsOffersNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
-  AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
-  AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
   AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
   AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
-  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
   AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
   AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
-  AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
   AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
@@ -5751,30 +5642,20 @@ const AuthenticatedAdminCommerceSubscriptionsRouteChildren: AuthenticatedAdminCo
       AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute,
     AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute:
       AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute,
-    AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute:
-      AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute,
     AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute:
       AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute,
     AuthenticatedAdminCommerceSubscriptionsOffersNewRoute:
       AuthenticatedAdminCommerceSubscriptionsOffersNewRoute,
-    AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute:
-      AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute,
-    AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute:
-      AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute,
     AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute:
       AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute,
     AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute:
       AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute,
     AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute:
       AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute,
-    AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute:
-      AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute,
     AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute:
       AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute,
     AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute:
       AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute,
-    AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute:
-      AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute,
     AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute:
       AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute,
     AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute:

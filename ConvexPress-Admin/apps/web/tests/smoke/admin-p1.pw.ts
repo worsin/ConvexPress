@@ -64,10 +64,6 @@ test("commerce-subscriptions-dunning [P1]", async ({ authedPage }) => {
 	await smokeRoute(authedPage, "/commerce/subscriptions/dunning", { expectSelector: "#admin-content" });
 });
 
-test("commerce-subscriptions-form-submissions [P1]", async ({ authedPage }) => {
-	await smokeRoute(authedPage, "/commerce/subscriptions/form-submissions", { expectSelector: "#admin-content" });
-});
-
 test("commerce-subscriptions-invoices [P1]", async ({ authedPage }) => {
 	await smokeRoute(authedPage, "/commerce/subscriptions/invoices", { expectSelector: "#admin-content" });
 });
@@ -78,14 +74,6 @@ test("commerce-subscriptions-offers [P1]", async ({ authedPage }) => {
 
 test("commerce-subscriptions-offers-new [P1]", async ({ authedPage }) => {
 	await smokeRoute(authedPage, "/commerce/subscriptions/offers/new", { expectSelector: "#admin-content" });
-});
-
-test("commerce-subscriptions-order-forms [P1]", async ({ authedPage }) => {
-	await smokeRoute(authedPage, "/commerce/subscriptions/order-forms", { expectSelector: "#admin-content" });
-});
-
-test("commerce-subscriptions-order-forms-new [P1]", async ({ authedPage }) => {
-	await smokeRoute(authedPage, "/commerce/subscriptions/order-forms/new", { expectSelector: "#admin-content" });
 });
 
 test("commerce-subscriptions-pricing-cards [P1]", async ({ authedPage }) => {
