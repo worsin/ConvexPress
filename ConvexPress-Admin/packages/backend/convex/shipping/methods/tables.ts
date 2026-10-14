@@ -5,7 +5,7 @@
  * and every one of those tables carries `by_zone` / `by_zone_sort` indexes, so
  * zone-scoped reads can be written once over the whole union of tables.
  */
-import type { Doc, Id } from "../../_generated/dataModel";
+import type { Doc, Id, TableNames } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 
 export const METHOD_TYPES = [
@@ -37,7 +37,7 @@ export const METHOD_TABLES = {
   local_pickup: "commerce_shipping_method_local_pickup",
   local_delivery: "commerce_shipping_method_local_delivery",
   table_rate: "commerce_shipping_method_table_rate",
-} as const satisfies Record<MethodType, string>;
+} as const satisfies Record<MethodType, TableNames>;
 
 export type MethodTable = (typeof METHOD_TABLES)[MethodType];
 export type MethodDoc = Doc<MethodTable>;

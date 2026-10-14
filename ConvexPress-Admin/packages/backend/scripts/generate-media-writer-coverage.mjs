@@ -14,7 +14,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const convex = path.join(root, "convex");
 const inventory = fs.readFileSync(path.join(convex, "media/referenceInventory.generated.ts"), "utf8");
 const owners = new Set();
-for (const match of inventory.matchAll(/export const (?:typedMediaReferences|opaqueMediaReferences) = ([\s\S]*?) as const;/g)) {
+for (const match of inventory.matchAll(/export const (?:typedMediaReferences|opaqueMediaReferences) = ([\s\S]*?) as const satisfies [^;\n]*;/g)) {
   for (const table of Object.keys(JSON.parse(match[1]))) owners.add(table);
 }
 if (owners.size === 0) throw new Error("Media owner inventory was not readable.");

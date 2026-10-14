@@ -1,6 +1,6 @@
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc, Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { RequestReadLedger } from "../helpers/requestReadLedger";
 import { resolvePrice } from "../canonicalDocuments/foundation/commercePricing";
@@ -52,7 +52,7 @@ export async function syncProductSaleIndex(ctx: WriteContext, productId: Id<"com
         await patchWithMediaReferences(ctx, "commerce_products", productId, { saleIndexVersion: 1 }, undefined, budget);
 }
 /** The caller has already written the source. Reassignment refreshes both parents. */
-export async function reconcileProductSaleWrite(ctx: WriteContext, table: string, id: string, previous: Record<string, unknown> | null, next: Record<string, unknown> | null, budget?: RequestReadLedger): Promise<void> {
+export async function reconcileProductSaleWrite(ctx: WriteContext, table: TableNames, id: string, previous: Record<string, unknown> | null, next: Record<string, unknown> | null, budget?: RequestReadLedger): Promise<void> {
     if (table === "commerce_products")
         return syncProductSaleIndex(ctx, id as Id<"commerce_products">, budget);
     if (table !== "commerce_product_variants")

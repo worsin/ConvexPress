@@ -1,12 +1,22 @@
 import { ConvexError, getDocumentSize, v } from "convex/values";
 import type { GenericDocument } from "convex/server";
-import type { Id } from "../_generated/dataModel";
-import { typedMediaReferences } from "./referenceInventory.generated";
+import type { Id, TableNames } from "../_generated/dataModel";
+import { mediaReferenceOwners, typedMediaReferences } from "./referenceInventory.generated";
 import { opaqueMediaContainers, MEDIA_REFERENCE_PAGE, MEDIA_REFERENCE_TOTAL } from "./referencePolicy";
-export const referenceValidator = v.object({ table: v.string(), documentId: v.string(), field: v.string(), path: v.string(), mediaId: v.id("media"), opaque: v.boolean() });
-export type ScannedReference = { table: string; documentId: string; field: string; path: string; mediaId: Id<"media">; opaque: boolean };
-export const inventory: Readonly<Record<string, readonly { path: readonly string[]; optional: boolean }[]>> = typedMediaReferences;
-export const referenceTables = [...new Set([...Object.keys(inventory), ...Object.keys(opaqueMediaContainers)])].filter(table => table !== "mediaSizes" && table !== "mediaMeta").sort();
+/** A table whose documents may reference media: a typed or opaque owner, never
+ * the media item's own dependents (mediaSizes, mediaMeta). */
+export type MediaReferenceTable = (typeof mediaReferenceOwners)[number];
+export const referenceTables: readonly MediaReferenceTable[] = mediaReferenceOwners;
+const referenceTableSet: ReadonlySet<string> = new Set(referenceTables);
+/** Boundary check for a table name read back from storage or a function argument. */
+export function isMediaReferenceTable(table: string): table is MediaReferenceTable {
+  return referenceTableSet.has(table);
+}
+export const mediaReferenceTableValidator = v.union(...referenceTables.map(table => v.literal(table)));
+export const referenceValidator = v.object({ table: mediaReferenceTableValidator, documentId: v.string(), field: v.string(), path: v.string(), mediaId: v.id("media"), opaque: v.boolean() });
+export type ScannedReference = { table: MediaReferenceTable; documentId: string; field: string; path: string; mediaId: Id<"media">; opaque: boolean };
+export type MediaReferenceDescriptor = { readonly path: readonly string[]; readonly optional: boolean };
+export const inventory: Readonly<Partial<Record<TableNames, readonly MediaReferenceDescriptor[]>>> = typedMediaReferences;
 export function referenceFailure(message = "Media references exceed the safe transaction budget; nothing was deleted."): never {
   throw new ConvexError({ code: "MEDIA_REFERENCE_BUDGET", message });
 }
@@ -17,7 +27,7 @@ export function completeReferencePage(page: { page: readonly GenericDocument[]; 
   if (!page.isDone || page.pageStatus != null || page.page.length > MEDIA_REFERENCE_PAGE.numItems || bytes > MEDIA_REFERENCE_PAGE.maximumBytesRead) referenceFailure();
   return { rows: page.page.length, bytes };
 }
-export function scanReferences(table: string, doc: Readonly<Record<string, unknown>> & { _id: string }, mediaIds: readonly string[], normalize?: (value: string) => string | null): ScannedReference[] {
+export function scanReferences(table: MediaReferenceTable, doc: Readonly<Record<string, unknown>> & { _id: string }, mediaIds: readonly string[], normalize?: (value: string) => string | null): ScannedReference[] {
   const ids = new Set(mediaIds), refs: ScannedReference[] = [];
   const add = (id: string, path: string[], field: string, opaque: boolean) => {
     refs.push({ table, documentId: doc._id, field, path: path.join("."), mediaId: id as Id<"media">, opaque });

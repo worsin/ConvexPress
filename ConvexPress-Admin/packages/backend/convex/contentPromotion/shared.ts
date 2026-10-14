@@ -36,7 +36,7 @@ import {
 } from "@convexpress/site-contract/content-promotion";
 import { ConvexError } from "convex/values";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Id, Doc, TableNames } from "../_generated/dataModel";
 import {
 	validateBlocks,
 	validateBlocksAgainstCatalog,
@@ -66,7 +66,7 @@ export const TABLES = {
   kbCategory:"kb_categories",
 	presentation: "settings",
 	postMeta: "postMeta",
-} as const;
+} as const satisfies Record<PromotionKind, TableNames>;
 export type PromotionTable = (typeof TABLES)[PromotionKind];
 export type Row = { _id: string; [key: string]: unknown };
 export type ReadCtx = Pick<QueryCtx, "db" | "storage">;

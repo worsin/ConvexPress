@@ -6,9 +6,10 @@
 import { ConvexError } from "convex/values";
 import { AUTHORING_FIELDS } from "./authoringSnapshot";
 import { assertCanonicalBlockLocks, CanonicalTreeError } from "../canonicalDocuments/foundation/generated/instance_runtime.mjs";
+import type { TableNames } from "../_generated/dataModel";
 
 export type AuthoringWrite = {
-  table: string;
+  table: TableNames;
   operation: "insert" | "patch" | "replace";
   id?: string;
   previous?: Record<string, unknown> | null;
@@ -18,11 +19,11 @@ declare const canonicalPermit: unique symbol;
 export type CanonicalAuthoringWritePermit = { readonly [canonicalPermit]: true };
 const protectedFields = new Set<string>([...AUTHORING_FIELDS, "autosaveTitle", "autosaveContent", "autosavedAt"]);
 const publicationFields = new Set(["visibility", "password", "scheduledAt", "publishedAt"]);
-const permits = new WeakMap<object, { table: string; operation: string; id?: string; value: object; encodedValue: string; previous: string; preserveLegacyAutoDraft: boolean }>();
+const permits = new WeakMap<object, { table: TableNames; operation: string; id?: string; value: object; encodedValue: string; previous: string; preserveLegacyAutoDraft: boolean }>();
 function refusal(code = "CANONICAL_AUTHORING_REQUIRED"): never {
   throw new ConvexError({ code, message: code === "UNSUPPORTED_AUTHORING_VERSION" ? "This authoring format is unsupported. It cannot be converted by a legacy writer." : code === "CANONICAL_PUBLICATION_UNAVAILABLE" ? "Canonical publication is not available at this implementation checkpoint." : "This document requires the canonical authoring service. Reload it in the supported editor." });
 }
-function owns(table: string) { return table === "posts" || table === "revisions"; }
+function owns(table: TableNames) { return table === "posts" || table === "revisions"; }
 function version(value: Record<string, unknown> | null | undefined): 1 | 2 {
   const raw = value?.blocksVersion;
   if (raw === undefined || raw === 1) {
@@ -33,7 +34,7 @@ function version(value: Record<string, unknown> | null | undefined): 1 | 2 {
   return refusal("UNSUPPORTED_AUTHORING_VERSION");
 }
 export function assertLegacyAuthoring(value: Record<string, unknown>): void { if (version(value) !== 1) refusal(); }
-export function authoringWriteNeedsPrevious(table: string, operation: AuthoringWrite["operation"], value: Record<string, unknown>): boolean {
+export function authoringWriteNeedsPrevious(table: TableNames, operation: AuthoringWrite["operation"], value: Record<string, unknown>): boolean {
   return owns(table) && operation !== "insert" && (operation === "replace" || Object.keys(value).some(key => protectedFields.has(key) || publicationFields.has(key) || key === "status"));
 }
 // Tagged encoding preserves missing/undefined/null and sorted object semantics;

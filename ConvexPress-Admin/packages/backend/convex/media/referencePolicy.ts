@@ -2,11 +2,12 @@
  * Strings containing an ID are in-use even when their encoding cannot be safely cleared.
  * External URLs, encrypted payloads and arbitrary third-party encodings are not decoded.
  */
+import type { TableNames } from "../_generated/dataModel";
 import { opaqueMediaReferences } from "./referenceInventory.generated";
-export const opaqueMediaContainers: Readonly<Record<string, readonly string[]>> = opaqueMediaReferences;
+export const opaqueMediaContainers: Readonly<Partial<Record<TableNames, readonly string[]>>> = opaqueMediaReferences;
 // Only reviewed clearing semantics. New typed references are detected automatically,
 // but force remains refused until their field invariants have an explicit adapter.
-export const clearableMediaFields: Readonly<Record<string, readonly string[]>> = {
+export const clearableMediaFields: Readonly<Partial<Record<TableNames, readonly string[]>>> = {
   users: ["avatarMediaId"], posts: ["featuredImageId", "hero.imageId", "topics.*.imageId"],
   commerce_products: ["featuredMediaId", "galleryMediaIds.*"],
   commerce_product_variants: ["featuredMediaId", "galleryMediaIds.*"],

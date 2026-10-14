@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { WithoutSystemFields } from "convex/server";
 
 import { mutation, query, type QueryCtx } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc, Id, TableNames } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { requireCommerceEnabled } from "./helpers";
@@ -29,9 +29,9 @@ function pushSample<T>(target: T[], value: T, limit: number) {
 /** A row that may point at a product variant (`productId`/`variantId` columns). */
 type ReferenceRow = { _id: string; productId?: ProductId; variantId?: VariantId };
 
-type MissingVariantRef = { table: string; rowId: string; productId?: ProductId; variantId: VariantId };
+type MissingVariantRef = { table: TableNames; rowId: string; productId?: ProductId; variantId: VariantId };
 type CrossProductVariantRef = {
-  table: string;
+  table: TableNames;
   rowId: string;
   productId: ProductId;
   variantId: VariantId;
@@ -73,7 +73,7 @@ async function auditReferenceRows(
   args: {
     rows: ReferenceRow[];
     sampleLimit: number;
-    tableName: string;
+    tableName: TableNames;
   },
 ): Promise<ReferenceAudit> {
   const missingVariantRefs: MissingVariantRef[] = [];

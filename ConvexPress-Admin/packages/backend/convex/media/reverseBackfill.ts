@@ -2,7 +2,7 @@ import { MEDIA_IMPORT_PREFIX, MEDIA_INDEX_EPOCH_NAME } from "@convexpress/site-c
 import { ConvexError, getDocumentSize, v } from "convex/values";
 import type { RegisteredMutation, RegisteredQuery } from "convex/server";
 import { mutation, query } from "../_generated/server";
-import type { Doc, TableNames } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { referenceTables } from "./referenceScan";
 import { currentReferenceGeneration, reconcileOwnerReferences, requireReferenceIndexReady } from "./reverseIndex";
@@ -54,7 +54,7 @@ export const step: RegisteredMutation<"public", StepArgs, Promise<Progress>> = m
     if (args.expectedSequence < state.sequence || state.status === "ready") return progress(state);
     const table = referenceTables[state.ownerIndex];
     if (!table) throw new ConvexError({ code: "MEDIA_INDEX_CURSOR", message: "Index progress is invalid." });
-    const page = await ctx.db.query(table as TableNames).paginate({ cursor: state.cursor, endCursor: state.endCursor, numItems: 8, maximumRowsRead: 16, maximumBytesRead: 256 * 1024 });
+    const page = await ctx.db.query(table).paginate({ cursor: state.cursor, endCursor: state.endCursor, numItems: 8, maximumRowsRead: 16, maximumBytesRead: 256 * 1024 });
     const update = { sequence: state.sequence + 1, pages: state.pages + 1, updatedAt: Date.now() };
     if (page.pageStatus != null) {
       if (!page.splitCursor || page.splitCursor === state.cursor || page.splitCursor === state.endCursor || state.pendingRanges.length >= 32) {
