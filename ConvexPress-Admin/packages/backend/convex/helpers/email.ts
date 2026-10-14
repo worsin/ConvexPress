@@ -227,9 +227,30 @@ export function injectGlobalVariables(
     site_url: settings.siteUrl ?? "",
     current_year: String(now.getFullYear()),
     unsubscribe_url: settings.unsubscribeUrl ?? EMAIL_DEFAULTS.unsubscribe_url,
-    recipient_name: recipientName ?? "",
+    ...(recipientName ? { recipient_name: recipientName } : {}),
     ...variables,
   };
+}
+
+/**
+ * Every variable the template declares gets a value: the caller's, else its
+ * declared default, else empty, so a customer never reads "{portal_url}".
+ * A link default given as a path ("/dashboard/...") is made absolute.
+ */
+export function withDeclaredDefaults(
+  variables: Record<string, string>,
+  declared: ReadonlyArray<{ name: string; defaultValue?: string }>,
+  siteUrl: string,
+): Record<string, string> {
+  const out: Record<string, string> = { ...variables };
+  for (const variable of declared) {
+    if (out[variable.name] !== undefined) continue;
+    const fallback = variable.defaultValue ?? "";
+    out[variable.name] =
+      variable.name.endsWith("_url") && fallback.startsWith("/") ? absoluteSiteUrl(siteUrl, fallback) : fallback;
+  }
+  out.recipient_name ??= "";
+  return out;
 }
 
 /**
@@ -675,15 +696,19 @@ export async function queueEmailForEvent(
     return null;
   }
 
-  // 8. Inject global variables and render template
-  const allVariables = injectGlobalVariables(
-    options.variables,
-    {
-      siteName: settings.siteName,
-      siteUrl: settings.siteUrl,
-      unsubscribeUrl: settings.unsubscribeUrl,
-    },
-    options.recipientName,
+  // 8. Inject global variables, fill declared defaults, and render template
+  const allVariables = withDeclaredDefaults(
+    injectGlobalVariables(
+      options.variables,
+      {
+        siteName: settings.siteName,
+        siteUrl: settings.siteUrl,
+        unsubscribeUrl: settings.unsubscribeUrl,
+      },
+      options.recipientName,
+    ),
+    template.availableVariables,
+    settings.siteUrl,
   );
 
   const renderedSubject = renderTemplate(
