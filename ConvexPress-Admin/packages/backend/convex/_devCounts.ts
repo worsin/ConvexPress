@@ -8,7 +8,7 @@ import { internal } from "./_generated/api";
 import type { Doc, TableNames } from "./_generated/dataModel";
 import schema from "./schema";
 import { commerceOrderStatusValidator, commerceProductStatusValidator } from "./schema/commerce";
-import { normalizeImportConfig, syncPhaseValidator, type ImportConfig } from "./wordpressSync/validators";
+import { importConfigInputValidator, normalizeImportConfig, syncPhaseValidator, type ImportConfig } from "./wordpressSync/validators";
 
 function isTableName(name: string): name is TableNames {
   return Object.prototype.hasOwnProperty.call(schema.tables, name);
@@ -765,7 +765,7 @@ export const resetPhaseAndResume = internalMutation({
 export const triggerSyncDirect = internalMutation({
   args: {
     siteId: v.id("wordpressSites"),
-    importConfig: v.optional(v.any()),
+    importConfig: v.optional(importConfigInputValidator),
   },
   returns: v.object({ jobId: v.id("wordpressSyncJobs") }),
   handler: async (ctx, { siteId, importConfig }) => {
