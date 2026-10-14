@@ -26,6 +26,7 @@ import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../me
 import { readMergedSettingsSection } from "../settings/read";
 
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
+import { activationResultValidator, type ActivationResult } from "./validators";
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS (duplicated for internal module isolation)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1508,10 +1509,13 @@ function requireCheckoutIntentRef(
 }
 
 /**
- * Activate a checkout intent from a signature-verified Stripe
- * `payment_intent.succeeded` event (metadata.kind `subscription_first_charge`).
- * Passes the PaymentIntent's own status, amount, currency and metadata to the
- * internal activation, which checks them against the server-computed intent.
+ * Activate a checkout intent from a Stripe PaymentIntent (metadata.kind
+ * `subscription_first_charge`) the server has verified: a signature-verified
+ * `payment_intent.succeeded` webhook event, or a PaymentIntent
+ * `publicCharge.confirmFirstCharge` retrieved from Stripe. Both callers use
+ * this one path. Passes the PaymentIntent's own status, amount, currency and
+ * metadata to the internal activation, which checks them against the
+ * server-computed intent; an activated intent returns its existing contract.
  */
 export const activateCheckoutIntentFromStripe = internalMutation({
 	args: {
@@ -1523,8 +1527,8 @@ export const activateCheckoutIntentFromStripe = internalMutation({
 		paymentMethodId: v.optional(v.string()),
 		stripeCustomerId: v.optional(v.string()),
 	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
+	returns: activationResultValidator,
+	handler: async (ctx, args): Promise<ActivationResult> => {
 		const intentId = requireCheckoutIntentRef(ctx, args.checkoutIntentRef);
 		if (args.paymentIntentStatus !== "succeeded") {
 			throw new ConvexError({
@@ -1532,7 +1536,7 @@ export const activateCheckoutIntentFromStripe = internalMutation({
 				message: `PaymentIntent ${args.paymentIntentId} is "${args.paymentIntentStatus}", not succeeded.`,
 			});
 		}
-		await ctx.runMutation(internal.commerceSubscriptions.checkout.activateFromIntent, {
+		return await ctx.runMutation(internal.commerceSubscriptions.checkout.activateFromIntent, {
 			intentId,
 			settlement: {
 				kind: "payment_intent",
@@ -1545,13 +1549,14 @@ export const activateCheckoutIntentFromStripe = internalMutation({
 				stripeCustomerId: args.stripeCustomerId,
 			},
 		});
-		return null;
 	},
 });
 
 /**
- * Activate a paid-recurring, zero-initial checkout from a signature-verified
- * Stripe `setup_intent.succeeded` event (metadata.kind `subscription_setup`).
+ * Activate a paid-recurring, zero-initial checkout from a verified Stripe
+ * SetupIntent (metadata.kind `subscription_setup`): a signature-verified
+ * `setup_intent.succeeded` event, or a SetupIntent `confirmFirstCharge`
+ * retrieved from Stripe (both via `stripeCharge.saveSetupIntentResult`).
  * This covers trials and $0 initial invoices where there is no first charge,
  * but a reusable payment method is still required for renewal. The internal
  * activation refuses a SetupIntent for an intent that charges now.
@@ -1563,10 +1568,10 @@ export const activateCheckoutIntentFromStripeSetup = internalMutation({
 		paymentMethodId: v.string(),
 		stripeCustomerId: v.string(),
 	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
+	returns: activationResultValidator,
+	handler: async (ctx, args): Promise<ActivationResult> => {
 		const intentId = requireCheckoutIntentRef(ctx, args.checkoutIntentRef);
-		await ctx.runMutation(internal.commerceSubscriptions.checkout.activateFromIntent, {
+		return await ctx.runMutation(internal.commerceSubscriptions.checkout.activateFromIntent, {
 			intentId,
 			settlement: {
 				kind: "setup_intent",
@@ -1577,7 +1582,6 @@ export const activateCheckoutIntentFromStripeSetup = internalMutation({
 				stripeCustomerId: args.stripeCustomerId,
 			},
 		});
-		return null;
 	},
 });
 

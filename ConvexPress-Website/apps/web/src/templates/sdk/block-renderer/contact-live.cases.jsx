@@ -33,7 +33,9 @@ test("Contact public host uses the installed client, saved labels, telephone con
   expect(button.disabled).toBe(true);expect(document.body.textContent).toContain("Submitting");expect(calls).toHaveLength(1);
   expect(calls[0].name).toBe("extensions/forms/mutations:submit");expect(calls[0].args.contactPassword).toBe("fixture-source-password");expect(calls[0].args.values).toContainEqual({ fieldKey: email.key, value: "visitor@example.invalid" });
   await act(async () => complete({ submissionId: "submission-id", isComplete: true, confirmationToken: "fixture-confirmation-proof" }));
-  expect(calls[1].name).toBe("extensions/forms/confirmations:resolveConfirmation");expect(calls[1].args.confirmationToken).toBe("fixture-confirmation-proof");expect(calls[1].args.contactPassword).toBe("fixture-source-password");
+  // The wizard first asks whether the form starts a checkout (this one does not), through the same client.
+  expect(calls[1].name).toBe("extensions/forms/actions:getCheckoutStatus");expect(calls[1].args.submissionId).toBe("submission-id");
+  expect(calls[2].name).toBe("extensions/forms/confirmations:resolveConfirmation");expect(calls[2].args.confirmationToken).toBe("fixture-confirmation-proof");expect(calls[2].args.contactPassword).toBe("fixture-source-password");
   expect(document.body.textContent).toContain("Your note arrived.");expect(document.activeElement?.getAttribute("data-slot")).toBe("form-success");
  });
 });

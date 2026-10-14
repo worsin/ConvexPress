@@ -504,11 +504,15 @@ describe("payment trust boundary: Forms zero-amount path", () => {
     const submissions = await f.t.run((ctx) => ctx.db.query("form_submissions").collect());
     expect(submissions.map((row) => row.userId)).toEqual([f.ids.owner, undefined]);
 
-    // The runner creates the intent without an identity, with the email typed into the form.
-    const startIntent = (submissionId: Id<"form_submissions">) =>
-      f.t.mutation(api.commerceSubscriptions.checkout.createCheckoutIntent, {
-        offerId: f.ids.free, customerEmail: "other@example.invalid", formId, formSubmissionId: submissionId,
+    // The runner creates the intent without an identity, with the email typed into the form;
+    // the server binds it to the submission's recorded submitter.
+    const startIntent = async (submissionId: Id<"form_submissions">) => {
+      const created = await f.t.mutation(internal.commerceSubscriptions.checkout.createCheckoutIntentForSubmission, {
+        submissionId, offerId: f.ids.free, customerEmail: "other@example.invalid", accountPolicy: "create_on_website",
       });
+      if (!created.ok) throw new Error(`no intent: ${created.reason}`);
+      return created.intent;
+    };
     const anonymousIntent = await startIntent(anonymous.submissionId);
     expect(
       await f.t.mutation(internal.commerceSubscriptions.checkout.activateFreeIntentForSubmission, {

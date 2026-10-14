@@ -5,20 +5,33 @@
  * Actions & Feeds registry. The action DRIVES the existing commerceSubscriptions
  * flow — it does NOT reimplement billing:
  *
- *   createCheckoutIntent              → server recomputes the price + persists an intent
+ *   createCheckoutIntentForSubmission → server recomputes the price + persists an
+ *                                       intent bound to the submission's signed-in
+ *                                       submitter (account policy enforced here)
  *   beginSubscriptionFirstCharge      → Stripe Customer + PaymentIntent (paid + live)
  *   activateFreeIntentForSubmission   → contract + entitlements (ZERO-amount path only
  *                                       here; membership grant auto-delegates inside it)
  *
  * NON-NEGOTIABLE INVARIANTS:
  *   - Never double-charge · never double-activate · server-authoritative price
- *     only · no card data server-side · PAID activation is WEBHOOK-owned.
+ *     only · no card data server-side · PAID activation only after the server
+ *     verified the payment with Stripe.
  *
  * The PAID path is the spiky core: `run()` STARTS the charge and returns a
  * NON-terminal `awaitingPayment` outcome. The runner records the run as
- * `awaiting_payment` (no retry, no `form.action_failed`). The signature-verified
- * Stripe webhook activates the intent later through the internal
- * `checkout.activateFromIntent` — the action NEVER activates a paid intent.
+ * `awaiting_payment` (no retry, no `form.action_failed`). The intent is
+ * activated later through the internal `checkout.activateFromIntent`, by
+ * whichever verified path arrives first: the signature-verified Stripe webhook,
+ * or `publicCharge.confirmFirstCharge` (the Website calls it after Stripe
+ * Elements succeeds; it retrieves the PaymentIntent/SetupIntent from Stripe).
+ * That activation completes this run and emits `form.action_completed`
+ * (`checkoutRuns.ts`). The action NEVER activates a paid intent.
+ *
+ * Account policy (`accountPolicy`), enforced server-side when the intent is
+ * created: `require_existing` needs a signed-in submitter; `create_on_website`
+ * also accepts a signed-out submission, whose paid checkout is activated only
+ * for the VERIFIED owner of the email typed into the form. A signed-in
+ * submitter is always the intent's account.
  *
  * The ZERO-amount path activates through `checkout.activateFreeIntentForSubmission`.
  * The runner has no caller identity, so the subscription belongs to the
@@ -36,9 +49,9 @@
  *     subscription system's to own; the per-run reuse here is the additive guard.
  *   - Layer 3 (free): activation's intent-status guard is idempotent.
  *
- * Anonymous account creation for the paid path is CLIENT-side Clerk on the
- * Website: it completes signup before the card confirms, so the webhook finds
- * the verified account (`USER_NOT_FOUND` makes the webhook retry until it does).
+ * A guest (`create_on_website`) completes signup on the Website with the email
+ * typed into the form; until that account is verified, activation reports
+ * `USER_NOT_FOUND` (the webhook retries, `confirmFirstCharge` answers pending).
  *
  * `emitSubscriptionStarted` is an internalMutation wrapper because a Convex
  * action ctx cannot call `emitEvent` (needs MutationCtx) — mirrors the
@@ -248,6 +261,13 @@ export const emitSubscriptionStarted = internalMutation({
 
 // ─── Shared orchestration (used by subscription + payment) ───────────────────
 
+/**
+ * The run error recorded when a checkout needs a signed-in submitter. Stable:
+ * `actions.getCheckoutStatus` recognises it to tell the Website to sign in.
+ */
+export const SIGN_IN_REQUIRED_ERROR =
+  "Sign in before submitting this form to start this subscription.";
+
 /** Map a permanent ConvexError code → a non-retryable failure result. */
 const PERMANENT_CODES = new Set([
   "OFFER_ARCHIVED",
@@ -304,13 +324,11 @@ async function runSubscriptionAction(
     };
   }
 
-  // Account policy: require_existing means a logged-in user must own the
-  // checkout. The action runs server-side without an end-user identity, so
-  // ownership is enforced by activation: the free path binds to the signed-in
-  // submitter recorded on the submission, and the paid webhook activation needs
-  // a verified account (USER_NOT_FOUND otherwise). For the paid path the Website
-  // client handles sign-in (create_on_website) before confirming the card. We
-  // surface the policy in the result so the renderer can branch.
+  // Account policy is enforced when the intent is created
+  // (`createCheckoutIntentForSubmission`): the intent belongs to the signed-in
+  // submitter the server recorded on the submission, and `require_existing`
+  // refuses a signed-out submission before any charge starts. The policy is
+  // also surfaced in the result so the renderer can branch.
 
   // ── Idempotency layer 2: reuse an intentId stored on a prior run ──────────
   // A re-emit / retry of an awaiting_payment run must reuse the SAME intent so
@@ -341,21 +359,20 @@ async function runSubscriptionAction(
         error: "The configured subscription offer does not exist.",
       };
     }
-    let intent: FunctionReturnType<
-      typeof api.commerceSubscriptions.checkout.createCheckoutIntent
+    let created: FunctionReturnType<
+      typeof internal.commerceSubscriptions.checkout.createCheckoutIntentForSubmission
     >;
     try {
-      intent = await ctx.ctx.runMutation(
-        api.commerceSubscriptions.checkout.createCheckoutIntent,
+      // The form linkage and the owning account come from the submission.
+      created = await ctx.ctx.runMutation(
+        internal.commerceSubscriptions.checkout.createCheckoutIntentForSubmission,
         {
+          submissionId: ctx.submissionId,
           offerId: resolvedOfferId,
           customerEmail,
           couponCode,
           returnUrl,
-          // Stamp form linkage when present (both args are optional on
-          // createCheckoutIntent).
-          formId: ctx.formId,
-          formSubmissionId: ctx.submissionId,
+          accountPolicy: config.accountPolicy,
         },
       );
     } catch (err) {
@@ -366,6 +383,10 @@ async function runSubscriptionAction(
       // Unknown → let the framework retry (transient).
       throw err;
     }
+    if (!created.ok) {
+      return { ok: false, retryable: false, error: SIGN_IN_REQUIRED_ERROR };
+    }
+    const intent = created.intent;
 
     intentId = intent.intentId;
     amount = intent.amount;
@@ -429,12 +450,7 @@ async function runSubscriptionAction(
         { intentId: checkoutIntentId, submissionId: ctx.submissionId },
       );
       if (!activation.ok) {
-        return {
-          ok: false,
-          retryable: false,
-          error:
-            "Sign in before submitting this form to start a free subscription.",
-        };
+        return { ok: false, retryable: false, error: SIGN_IN_REQUIRED_ERROR };
       }
       return {
         ok: true,
@@ -461,7 +477,8 @@ async function runSubscriptionAction(
   }
 
   // ── Paid path: start the charge, return NON-terminal awaiting_payment ─────
-  // The action NEVER activates a paid intent. The Stripe webhook does.
+  // The action NEVER activates a paid intent: the server-verified activation
+  // (webhook or confirmFirstCharge) does, and completes this run.
   let clientSecret: string | null | undefined;
   let mode: "payment" | "setup" | undefined;
   try {
@@ -497,7 +514,8 @@ async function runSubscriptionAction(
 
   // Return the NON-terminal outcome so the runner records awaiting_payment
   // (no retry, no failed event). The Website mounts Stripe Elements from this
-  // descriptor; the webhook activates the intent after the card confirms.
+  // descriptor and, once the card confirms, asks `confirmFirstCharge` to
+  // activate; the webhook activates too if it arrives first.
   return {
     ok: false,
     retryable: false,

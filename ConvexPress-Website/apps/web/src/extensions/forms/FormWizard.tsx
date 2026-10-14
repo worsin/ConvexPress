@@ -8,6 +8,9 @@
  *   - ~1s debounced autosave via `submit({ isComplete:false, resumeToken,
  *     currentStep })` against the on-disk ARRAY `submit` contract,
  *   - final submit (isComplete:true) with server-error → step mapping,
+ *   - the on-site subscription checkout step when the form's `subscription`
+ *     action needs a card (`payment/FormSubscriptionCheckout`), including the
+ *     Stripe `return_url` after a redirect-based payment method,
  *   - first-view + first-interaction funnel pings (Analytics System §12).
  *
  * Resume-token resiliency (PLAN §0.B): the Submission System mints the bearer
@@ -71,6 +74,16 @@ import {
   captchaIsRequired,
 } from "./security";
 import { FormStripePaymentForm } from "./payment/FormStripePaymentForm";
+import {
+  FormSubscriptionCheckout,
+  type CheckoutSubmission,
+  type SubscriptionCheckoutFinish,
+} from "./payment/FormSubscriptionCheckout";
+import {
+  parseSubscriptionReturn,
+  type SubscriptionReturn,
+} from "./payment/subscriptionCheckout";
+import { sanitizeRedirectUrl } from "@/lib/security/redirect";
 
 const DEFAULT_AUTOSAVE_DELAY_MS = 1000;
 
@@ -408,6 +421,12 @@ export function FormWizard({
   const [orderPayment, setOrderPayment] = useState<OrderPaymentState | null>(
     null,
   );
+  // The submission whose subscription checkout is in progress on this page.
+  const [subscriptionCheckout, setSubscriptionCheckout] =
+    useState<CheckoutSubmission | null>(null);
+  // Set when Stripe returned to this page after a redirect-based method.
+  const [subscriptionReturn, setSubscriptionReturn] =
+    useState<SubscriptionReturn | null>(null);
   const [honeypotValue, setHoneypotValue] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState<string | null>(null);
@@ -498,6 +517,13 @@ export function FormWizard({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A Stripe return for THIS form's subscription checkout resumes the
+  // checkout step (browser-only, so it runs after hydration).
+  useEffect(() => {
+    const returned = parseSubscriptionReturn(window.location.search);
+    if (returned && returned.formId === String(form._id)) setSubscriptionReturn(returned);
+  }, [form._id]);
 
   // ── Autosave ────────────────────────────────────────────────────────────────
   /** Build the on-disk ARRAY payload from ALL currently-visible fields across
@@ -614,6 +640,78 @@ export function FormWizard({
     [opts.allowBackNav, clampedIndex],
   );
 
+  // ── Confirmation System handoff ───────────────────────────────────────────
+  /**
+   * Resolve the form's confirmation for a completed submission. A redirect or
+   * page confirmation navigates (returns true); a message is staged for the
+   * confirmation view (returns false).
+   */
+  const followConfirmation = useCallback(
+    async (target: CheckoutSubmission): Promise<boolean> => {
+      try {
+        const ref = await convex.query(
+          api.extensions.forms.confirmations.resolveConfirmation,
+          {
+            formId: form._id,
+            submissionId: target.submissionId,
+            confirmationToken: target.confirmationToken,
+            contactPassword,
+          },
+        );
+        if (ref.type === "redirect" && ref.redirectUrl) {
+          window.location.assign(ref.redirectUrl);
+          return true;
+        }
+        if (ref.type === "page" && ref.pagePath) {
+          window.location.assign(ref.pagePath);
+          return true;
+        }
+        if (ref.type === "message" && typeof ref.renderedMessage === "string") {
+          setRenderedMessage(ref.renderedMessage);
+        }
+      } catch {
+        setRenderedMessage("");
+      }
+      return false;
+    },
+    [convex, form._id, contactPassword],
+  );
+
+  /**
+   * The subscription checkout finished (activated, or the form needed no
+   * payment after all): follow the form's confirmation; when it is a message,
+   * the action's configured post-payment URL (same-site or an allowed host)
+   * takes precedence over showing it.
+   */
+  const finishSubscriptionCheckout = useCallback(
+    async (finish: SubscriptionCheckoutFinish) => {
+      if (finish.submission && (await followConfirmation(finish.submission))) return;
+      const destination = finish.afterPaymentUrl
+        ? sanitizeRedirectUrl(finish.afterPaymentUrl, {
+            baseOrigin: window.location.origin,
+            fallbackPath: "",
+          })
+        : "";
+      if (destination) {
+        window.location.assign(destination);
+        return;
+      }
+      setSubscriptionCheckout(null);
+      setSubscriptionReturn(null);
+      setSubmittedResult({
+        submissionId: finish.submission ? String(finish.submission.submissionId) : "",
+        isComplete: true,
+      });
+    },
+    [followConfirmation],
+  );
+  const onSubscriptionCheckoutFinished = useCallback(
+    (finish: SubscriptionCheckoutFinish) => {
+      void finishSubscriptionCheckout(finish);
+    },
+    [finishSubscriptionCheckout],
+  );
+
   // ── Final submit ────────────────────────────────────────────────────────────
   const onFinalSubmit = useCallback(async () => {
     const ok = rendererRef.current?.validate() ?? true;
@@ -703,25 +801,38 @@ export function FormWizard({
         return;
       }
 
+      // A form whose `subscription`/`payment` action starts a checkout moves to
+      // the on-site checkout step; the confirmation follows activation.
+      let startsCheckout = false;
       try {
-        const ref = await convex.query(
-          api.extensions.forms.confirmations.resolveConfirmation,
-          { formId: form._id, submissionId: res.submissionId, confirmationToken: res.confirmationToken, contactPassword },
+        const checkout = await convex.query(
+          api.extensions.forms.actions.getCheckoutStatus,
+          { submissionId: res.submissionId },
         );
-
-        if (ref?.type === "redirect" && ref.redirectUrl) {
-          window.location.assign(ref.redirectUrl as string);
-          return;
-        }
-        if (ref?.type === "page" && ref.pagePath) {
-          window.location.assign(ref.pagePath as string);
-          return;
-        }
-        if (ref?.type === "message" && typeof ref.renderedMessage === "string") {
-          setRenderedMessage(ref.renderedMessage);
-        }
+        startsCheckout =
+          checkout.state === "preparing" ||
+          checkout.state === "awaiting_payment" ||
+          checkout.state === "completed" ||
+          checkout.state === "failed";
       } catch {
-        setRenderedMessage("");
+        startsCheckout = false;
+      }
+      if (startsCheckout) {
+        setSubscriptionCheckout({
+          submissionId: res.submissionId,
+          confirmationToken: res.confirmationToken,
+        });
+        onSubmitted?.(res);
+        return;
+      }
+
+      if (
+        await followConfirmation({
+          submissionId: res.submissionId,
+          confirmationToken: res.confirmationToken,
+        })
+      ) {
+        return;
       }
 
       setSubmittedResult(res);
@@ -761,6 +872,7 @@ export function FormWizard({
     contactPassword,
     buildPayload,
     beginOrderPayment,
+    followConfirmation,
     orderFormSettings.enabled,
     orderPricing,
     onSubmitted,
@@ -784,6 +896,18 @@ export function FormWizard({
         onError={(message) =>
           setOrderPayment((prev) => (prev ? { ...prev, error: message } : prev))
         }
+      />
+    );
+  }
+
+  if (subscriptionCheckout || subscriptionReturn) {
+    return (
+      <FormSubscriptionCheckout
+        formId={form._id}
+        formTitle={form.title}
+        submission={subscriptionCheckout ?? undefined}
+        returned={subscriptionReturn ?? undefined}
+        onFinished={onSubscriptionCheckoutFinished}
       />
     );
   }

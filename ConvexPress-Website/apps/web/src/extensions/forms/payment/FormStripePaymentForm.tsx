@@ -2,16 +2,24 @@
  * Form Commerce — in-form Stripe Elements surface (Website).
  *
  * Mirror of `components/subscriptions/StripePaymentForm.tsx`. Mounted by the
- * Form payment hook when a form's `subscription`/`payment` action returns a
- * non-terminal `awaiting_payment` outcome (the descriptor is read from the
- * action run via `extensions.forms.actions.getPendingPayment`).
+ * form wizard when a form's order payment or `subscription`/`payment` action
+ * needs a card (the subscription descriptor is read from the action run via
+ * `extensions.forms.actions.getPendingPayment`).
  *
  * PCI boundary: this component receives ONLY the single-use `clientSecret` +
  * the PUBLISHABLE key. It creates NO PaymentIntent, holds NO secret key, and
- * cannot activate anything — paid activation is server-only (the internal
- * `checkout.activateFromIntent`, reached from the signature-verified Stripe
- * webhook after the card confirms). The customer is then redirected to
- * `returnUrl`.
+ * cannot activate anything. Everything stays on this site: the PaymentElement
+ * is embedded here, and Stripe only leaves the page for payment methods that
+ * themselves require a redirect (it then returns to `returnUrl`, on this site).
+ *
+ * Two confirmation modes:
+ *   - Without `onConfirmed` (order forms): Stripe always returns to
+ *     `returnUrl`.
+ *   - With `onConfirmed` (subscriptions): `redirect: "if_required"` keeps card
+ *     payments in-page and hands the confirmed PaymentIntent/SetupIntent to
+ *     the caller, which asks the server to verify it with Stripe and activate
+ *     (`publicCharge.confirmFirstCharge`). Redirect-based methods still come
+ *     back to `returnUrl`, where the same server verification runs.
  */
 
 import { useEffect, useState } from "react";
@@ -25,12 +33,22 @@ import {
 } from "@stripe/react-stripe-js";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
 
+/** The Stripe object Elements confirmed without leaving the page. */
+export interface ConfirmedStripeObject {
+  kind: "payment_intent" | "setup_intent";
+  id: string;
+  status: string;
+}
+
 interface Props {
   publishableKey: string;
   clientSecret: string;
   mode: "payment" | "setup";
   returnUrl: string;
   onError: (message: string) => void;
+  /** Opt in to in-page confirmation; see the module comment. */
+  onConfirmed?: (confirmed: ConfirmedStripeObject) => void;
+  submitLabel?: string;
 }
 
 export function FormStripePaymentForm(props: Props) {
@@ -49,6 +67,8 @@ export function FormStripePaymentForm(props: Props) {
         mode={props.mode}
         returnUrl={props.returnUrl}
         onError={props.onError}
+        onConfirmed={props.onConfirmed}
+        submitLabel={props.submitLabel}
       />
     </Elements>
   );
@@ -58,6 +78,8 @@ function PaymentFormInner(props: {
   mode: "payment" | "setup";
   returnUrl: string;
   onError: (m: string) => void;
+  onConfirmed?: (confirmed: ConfirmedStripeObject) => void;
+  submitLabel?: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -74,6 +96,38 @@ function PaymentFormInner(props: {
     const returnUrl = localReturnPath.startsWith("/")
       ? `${window.location.origin}${localReturnPath}`
       : `${window.location.origin}${window.location.pathname}`;
+
+    const onConfirmed = props.onConfirmed;
+    if (onConfirmed) {
+      // In-page confirmation: Stripe redirects only for redirect-based methods.
+      if (props.mode === "setup") {
+        const result = await stripe.confirmSetup({
+          elements,
+          confirmParams: { return_url: returnUrl },
+          redirect: "if_required",
+        });
+        if (result.error) {
+          props.onError(result.error.message ?? "Your card could not be saved.");
+          setSubmitting(false);
+          return;
+        }
+        onConfirmed({ kind: "setup_intent", id: result.setupIntent.id, status: result.setupIntent.status });
+        return;
+      }
+      const result = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: returnUrl },
+        redirect: "if_required",
+      });
+      if (result.error) {
+        props.onError(result.error.message ?? "Payment failed");
+        setSubmitting(false);
+        return;
+      }
+      onConfirmed({ kind: "payment_intent", id: result.paymentIntent.id, status: result.paymentIntent.status });
+      return;
+    }
+
     const result =
       props.mode === "setup"
         ? await stripe.confirmSetup({
@@ -88,8 +142,8 @@ function PaymentFormInner(props: {
       props.onError(result.error.message ?? "Payment failed");
       setSubmitting(false);
     }
-    // On success Stripe redirects to returnUrl. The webhook activates the
-    // checkout intent into a subscription server-side. No client activation.
+    // On success Stripe redirects to returnUrl. The server activates the order
+    // after verifying the payment. No client activation.
   }
 
   return (
@@ -100,7 +154,7 @@ function PaymentFormInner(props: {
         disabled={!stripe || submitting}
         className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
-        {submitting ? "Processing…" : "Complete payment"}
+        {submitting ? "Processing…" : (props.submitLabel ?? "Complete payment")}
       </button>
     </form>
   );

@@ -11,10 +11,17 @@
  *   2. Activation — creates the subscription contract + subscription_item +
  *      initial entitlements, records history and seeds a coupon redemption.
  *      Paid intents are activated only by `activateFromIntent` (internal),
- *      after the server has verified the Stripe payment. Zero-amount intents
- *      are activated by their signed-in owner through `activateFreeIntent`.
+ *      after the server has verified the Stripe payment (signature-verified
+ *      webhook, or `publicCharge.confirmFirstCharge` retrieving the
+ *      PaymentIntent/SetupIntent from Stripe). Zero-amount intents are
+ *      activated by their signed-in owner through `activateFreeIntent`.
  *      Admin-side `mutations.create` is a separate admin-only provisioning
  *      flow.
+ *
+ *   Forms: a form's `subscription` action creates its intent through
+ *   `createCheckoutIntentForSubmission`, which binds the intent to the
+ *   signed-in submitter the server recorded on the submission. Activating an
+ *   intent started by a form completes the form's waiting action run.
  */
 
 import { ConvexError, v, type Infer } from "convex/values";
@@ -36,8 +43,10 @@ import {
 	requireCommerceSubscriptionsEnabled,
 } from "./helpers";
 import { normalizeFormReturnUrl } from "../extensions/forms/redirects";
-import { commerceSubscriptionStatusValidator } from "../schema/commerceSubscriptions";
+import { commerceSubscriptionCheckoutIntentStatusValidator } from "../schema/commerceSubscriptions";
+import { completeCheckoutRuns } from "../extensions/forms/checkoutRuns";
 import { snapshotNumber, snapshotString } from "./snapshot";
+import { activationResultValidator, type ActivationResult } from "./validators";
 
 // ─── Helpers (duplicated with intentional care; see mutations.ts) ───────────
 
@@ -141,14 +150,236 @@ async function isLiveSubscriptionChargingEnabled(
 
 // ─── createCheckoutIntent ───────────────────────────────────────────────────
 
+const checkoutIntentCreatedValidator = v.object({
+	intentId: v.id("commerce_subscription_checkout_intents"),
+	amount: v.number(),
+	recurringAmount: v.number(),
+	currency: v.string(),
+	trialDays: v.number(),
+	paymentProcessorData: v.object({ provider: v.string(), ready: v.boolean(), message: v.string() }),
+});
+type CheckoutIntentCreated = Infer<typeof checkoutIntentCreatedValidator>;
+
+/** What a buyer chose; everything priced is recomputed on the server. */
+type CheckoutIntentInput = {
+	offerId: Id<"commerce_subscription_offers">;
+	customerEmail?: string;
+	couponCode?: string;
+	returnUrl?: string;
+};
+
+/**
+ * The Forms submission a checkout was started from. Server-derived only: the
+ * public `createCheckoutIntent` never takes it from a client.
+ */
+type CheckoutFormSource = {
+	formId: Id<"forms">;
+	formSubmissionId: Id<"form_submissions">;
+};
+
+/**
+ * Validate the offer + optional coupon and persist a `payment_pending` intent
+ * owned by `owner` (null for a signed-out checkout, which must carry an email).
+ */
+async function insertCheckoutIntent(
+	ctx: MutationCtx,
+	args: CheckoutIntentInput,
+	owner: Doc<"users"> | null,
+	formSource: CheckoutFormSource | null,
+): Promise<CheckoutIntentCreated> {
+	const returnUrl = normalizeFormReturnUrl(args.returnUrl);
+
+	const now = Date.now();
+
+	// Load the offer; reject if missing or archived.
+	const offer = await ctx.db.get(args.offerId);
+	if (!offer) {
+		throw new ConvexError({
+			code: "NOT_FOUND",
+			message: "Offer not found.",
+		});
+	}
+	if (offer.status === "archived") {
+		throw new ConvexError({
+			code: "OFFER_ARCHIVED",
+			message: "This offer is no longer available.",
+		});
+	}
+	if (!isOfferOpenForDirectSignup(offer)) {
+		throw new ConvexError({
+			code: "OFFER_UNAVAILABLE",
+			message: "This offer is not available for signup.",
+		});
+	}
+
+	// Load the template to resolve trial/grace defaults.
+	const template = await ctx.db.get(offer.templateId);
+	const {
+		trialDays,
+		recurringAmount,
+		setupFeeAmount,
+		currencyCode,
+		initialAmount,
+	} = computeIntentPricing(offer, template);
+
+	const userId = owner?._id;
+
+	// Resolve the customer email: prefer the owner's account email; else fall
+	// back to the supplied one. At least one is required.
+	const customerEmail = owner?.email ?? args.customerEmail;
+	if (!customerEmail) {
+		throw new ConvexError({
+			code: "VALIDATION_ERROR",
+			message:
+				"customerEmail is required when creating a checkout intent for an anonymous user.",
+		});
+	}
+
+	// Validate the coupon code up-front if provided. We don't persist the
+	// coupon id here — we just record the code so activation can re-validate
+	// before redemption (coupon state might change between steps).
+	let couponCodeNormalized: string | undefined;
+	if (args.couponCode && args.couponCode.trim().length > 0) {
+		const code = args.couponCode.trim();
+		// validateCoupon expects a userId for per-customer-limit checks. If
+		// anonymous, we check the non-customer-limit gates only (offer, expiry,
+		// status). The per-customer limit check is re-run at activation time
+		// once the real user is resolved.
+		if (userId) {
+			const validation = await validateCoupon(
+				ctx,
+				code,
+				null,
+				userId,
+				args.offerId,
+			);
+			if (!validation.valid) {
+				throw new ConvexError({
+					code: "COUPON_INVALID",
+					message: `Coupon cannot be applied: ${validation.reason}.`,
+					reason: validation.reason,
+				});
+			}
+		} else {
+			// Anonymous: check the non-customer-limit gates only.
+			const coupon = await ctx.db
+				.query("commerce_subscription_coupons")
+				.withIndex("by_code", (q) => q.eq("code", code))
+				.unique();
+			if (!coupon) {
+				throw new ConvexError({
+					code: "COUPON_INVALID",
+					message: "Coupon code not found.",
+					reason: "not_found",
+				});
+			}
+			if (coupon.status !== "active") {
+				throw new ConvexError({
+					code: "COUPON_INVALID",
+					message: "Coupon is not active.",
+					reason: "not_active",
+				});
+			}
+			if (typeof coupon.expiresAt === "number" && now > coupon.expiresAt) {
+				throw new ConvexError({
+					code: "COUPON_INVALID",
+					message: "Coupon has expired.",
+					reason: "expired",
+				});
+			}
+			const offerScope = coupon.offerIds ?? [];
+			if (offerScope.length > 0 && !offerScope.includes(args.offerId)) {
+				throw new ConvexError({
+					code: "COUPON_INVALID",
+					message: "Coupon is not valid for this offer.",
+					reason: "not_valid_for_offer",
+				});
+			}
+		}
+		couponCodeNormalized = code;
+	}
+
+	const liveChargingEnabled = await isLiveSubscriptionChargingEnabled(ctx);
+	const paymentReady =
+		initialAmount <= 0 || liveChargingEnabled
+			? true
+			: false;
+
+	const intentId = await ctx.db.insert(
+		"commerce_subscription_checkout_intents",
+		{
+			sourceChannel: "direct_form",
+			status: "payment_pending",
+			userId: userId,
+			customerId: undefined,
+			email: customerEmail,
+			orderId: undefined,
+			orderItemIds: undefined,
+			// `formId` / `formSubmissionId` on this table reference subscription
+			// order forms; a Forms-extension checkout records its generic form
+			// linkage in metadata instead.
+			formId: undefined,
+			formSubmissionId: undefined,
+			selectedOfferIds: [args.offerId],
+			pricingSnapshot: {
+				offerId: args.offerId,
+				offerSlug: offer.slug,
+				offerTitle: offer.title,
+				recurringAmount,
+				setupFeeAmount,
+				currencyCode,
+				trialDays,
+				couponCode: couponCodeNormalized,
+				returnUrl,
+			},
+			initialAmount,
+			recurringAmount,
+			setupFeeAmount,
+			currencyCode,
+			paymentProvider: undefined,
+			paymentTransactionId: undefined,
+			savedPaymentMethodId: undefined,
+			subscriptionId: undefined,
+			idempotencyKey: undefined,
+			// Expire the intent in 1 hour if not activated.
+			expiresAt: addDays(now, 0) + 60 * 60 * 1000,
+			metadata: {
+				couponCode: couponCodeNormalized,
+				returnUrl,
+				sourceFormId: formSource?.formId,
+				sourceFormSubmissionId: formSource?.formSubmissionId,
+			},
+			createdAt: now,
+			updatedAt: now,
+		},
+	);
+
+	return {
+		intentId,
+		amount: initialAmount,
+		recurringAmount,
+		currency: currencyCode,
+		trialDays,
+		paymentProcessorData: {
+			provider: initialAmount <= 0 ? "free" : "stripe",
+			ready: paymentReady,
+			message: paymentReady
+				? initialAmount <= 0
+					? "Zero-dollar checkout is activated by its signed-in owner with activateFreeIntent."
+					: "Live subscription charging is enabled; complete Stripe payment before activation."
+				: "Paid subscription checkout is disabled until live subscription charging is configured.",
+		},
+	};
+}
+
 /**
  * Validate an offer + optional coupon and persist a checkout intent.
  *
  * May be called by logged-in OR logged-out users. If logged out, `customerEmail`
  * must be supplied so the signup flow can later look up / create the user
  * record. The intent is NOT automatically activated: a paid intent is
- * activated by the payment webhook after Stripe settles, a zero-amount intent
- * by its signed-in owner through `activateFreeIntent`.
+ * activated after Stripe settles (webhook or `confirmFirstCharge`), a
+ * zero-amount intent by its signed-in owner through `activateFreeIntent`.
  *
  * Throws:
  *   - `NOT_FOUND`         — offer id does not exist
@@ -165,209 +396,80 @@ export const createCheckoutIntent = mutation({
 		customerEmail: v.optional(v.string()),
 		couponCode: v.optional(v.string()),
 		returnUrl: v.optional(v.string()),
-		// Additive (Form Commerce & Subscription Action): optional linkage so a
-		// form-driven checkout stamps the originating form + submission onto the
-		// intent row (the columns already exist on the table). Both default to
-		// undefined for the existing direct-signup callers — fully back-compatible.
-		formId: v.optional(v.id("forms")),
-		formSubmissionId: v.optional(v.id("form_submissions")),
 	},
-	returns: v.object({
-   intentId: v.id("commerce_subscription_checkout_intents"),
-   amount: v.number(),
-   recurringAmount: v.number(),
-   currency: v.string(),
-   trialDays: v.number(),
-   paymentProcessorData: v.object({ provider: v.string(), ready: v.boolean(), message: v.string() }),
- }),
+	returns: checkoutIntentCreatedValidator,
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
-		const returnUrl = normalizeFormReturnUrl(args.returnUrl);
+		// The acting user may be null for a logged-out signup.
+		return await insertCheckoutIntent(ctx, args, await getCurrentUser(ctx), null);
+	},
+});
 
-		const now = Date.now();
+/**
+ * The Forms `subscription`/`payment` action's checkout start. The action runner
+ * has no caller identity, so the owner is the signed-in submitter the server
+ * recorded on the submission at submit time, and the form linkage comes from
+ * the submission itself.
+ *
+ * Account policy:
+ *   - `require_existing`  — a signed-in, active submitter is required; the
+ *                           intent is bound to that account.
+ *   - `create_on_website` — a signed-in submitter is bound the same way; a
+ *                           signed-out submission becomes a guest intent for
+ *                           the email typed into the form, which activation
+ *                           grants only to the VERIFIED owner of that email.
+ *   A submission recorded with an account that is no longer active never
+ *   starts a checkout.
+ */
+export const createCheckoutIntentForSubmission = internalMutation({
+	args: {
+		submissionId: v.id("form_submissions"),
+		offerId: v.id("commerce_subscription_offers"),
+		customerEmail: v.optional(v.string()),
+		couponCode: v.optional(v.string()),
+		returnUrl: v.optional(v.string()),
+		accountPolicy: v.union(
+			v.literal("require_existing"),
+			v.literal("create_on_website"),
+		),
+	},
+	returns: v.union(
+		v.object({ ok: v.literal(true), intent: checkoutIntentCreatedValidator }),
+		v.object({ ok: v.literal(false), reason: v.literal("sign_in_required") }),
+	),
+	handler: async (ctx, args) => {
+		await requirePluginEnabled(ctx, "commerceSubscriptions");
+		await requireCommerceSubscriptionsEnabled(ctx);
 
-		// Load the offer; reject if missing or archived.
-		const offer = await ctx.db.get(args.offerId);
-		if (!offer) {
+		const submission = await ctx.db.get(args.submissionId);
+		if (!submission || submission.status !== "complete") {
 			throw new ConvexError({
 				code: "NOT_FOUND",
-				message: "Offer not found.",
+				message: "Completed form submission not found.",
 			});
 		}
-		if (offer.status === "archived") {
-			throw new ConvexError({
-				code: "OFFER_ARCHIVED",
-				message: "This offer is no longer available.",
-			});
+		const submitter = submission.userId ? await ctx.db.get(submission.userId) : null;
+		const activeSubmitter = submitter && submitter.status === "active" ? submitter : null;
+		if (submission.userId && !activeSubmitter) {
+			return { ok: false as const, reason: "sign_in_required" as const };
 		}
-		if (!isOfferOpenForDirectSignup(offer)) {
-			throw new ConvexError({
-				code: "OFFER_UNAVAILABLE",
-				message: "This offer is not available for signup.",
-			});
+		if (args.accountPolicy === "require_existing" && !activeSubmitter) {
+			return { ok: false as const, reason: "sign_in_required" as const };
 		}
 
-		// Load the template to resolve trial/grace defaults.
-		const template = await ctx.db.get(offer.templateId);
-		const {
-			trialDays,
-			recurringAmount,
-			setupFeeAmount,
-			currencyCode,
-			initialAmount,
-		} = computeIntentPricing(offer, template);
-
-		// Identify the acting user (may be null for logged-out signup).
-		const currentUser = await getCurrentUser(ctx);
-		const userId = currentUser?._id;
-
-		// Resolve the customer email: prefer the logged-in user's email; else fall
-		// back to arg. At least one is required.
-		const customerEmail = currentUser?.email ?? args.customerEmail;
-		if (!customerEmail) {
-			throw new ConvexError({
-				code: "VALIDATION_ERROR",
-				message:
-					"customerEmail is required when creating a checkout intent for an anonymous user.",
-			});
-		}
-
-		// Validate the coupon code up-front if provided. We don't persist the
-		// coupon id here — we just record the code so activation can re-validate
-		// before redemption (coupon state might change between steps).
-		let couponCodeNormalized: string | undefined;
-		if (args.couponCode && args.couponCode.trim().length > 0) {
-			const code = args.couponCode.trim();
-			// validateCoupon expects a userId for per-customer-limit checks. If
-			// anonymous, we pass a synthetic one (the coupon still validates offer
-			// + expiry + max-redemptions caps). The per-customer limit check will be
-			// re-run at activation time once the real user is resolved.
-			if (userId) {
-				const validation = await validateCoupon(
-					ctx,
-					code,
-					null,
-					userId,
-					args.offerId,
-				);
-				if (!validation.valid) {
-					throw new ConvexError({
-						code: "COUPON_INVALID",
-						message: `Coupon cannot be applied: ${validation.reason}.`,
-						reason: validation.reason,
-					});
-				}
-			} else {
-				// Anonymous: check the non-customer-limit gates only.
-				const coupon = await ctx.db
-					.query("commerce_subscription_coupons")
-					.withIndex("by_code", (q) => q.eq("code", code))
-					.unique();
-				if (!coupon) {
-					throw new ConvexError({
-						code: "COUPON_INVALID",
-						message: "Coupon code not found.",
-						reason: "not_found",
-					});
-				}
-				if (coupon.status !== "active") {
-					throw new ConvexError({
-						code: "COUPON_INVALID",
-						message: "Coupon is not active.",
-						reason: "not_active",
-					});
-				}
-				if (typeof coupon.expiresAt === "number" && now > coupon.expiresAt) {
-					throw new ConvexError({
-						code: "COUPON_INVALID",
-						message: "Coupon has expired.",
-						reason: "expired",
-					});
-				}
-				const offerScope = coupon.offerIds ?? [];
-				if (offerScope.length > 0 && !offerScope.includes(args.offerId)) {
-					throw new ConvexError({
-						code: "COUPON_INVALID",
-						message: "Coupon is not valid for this offer.",
-						reason: "not_valid_for_offer",
-					});
-				}
-			}
-			couponCodeNormalized = code;
-		}
-
-		const liveChargingEnabled = await isLiveSubscriptionChargingEnabled(ctx);
-		const paymentReady =
-			initialAmount <= 0 || liveChargingEnabled
-				? true
-				: false;
-
-		const intentId = await ctx.db.insert(
-			"commerce_subscription_checkout_intents",
+		const intent = await insertCheckoutIntent(
+			ctx,
 			{
-				sourceChannel: "direct_form",
-				status: "payment_pending",
-				userId: userId,
-				customerId: undefined,
-				email: customerEmail,
-				orderId: undefined,
-				orderItemIds: undefined,
-				// `formId` / `formSubmissionId` on this table reference subscription
-				// order forms; a Forms-extension checkout records its generic form
-				// linkage in metadata instead.
-				formId: undefined,
-				formSubmissionId: undefined,
-				selectedOfferIds: [args.offerId],
-				pricingSnapshot: {
-					offerId: args.offerId,
-					offerSlug: offer.slug,
-					offerTitle: offer.title,
-					recurringAmount,
-					setupFeeAmount,
-					currencyCode,
-					trialDays,
-					couponCode: couponCodeNormalized,
-					returnUrl,
-				},
-				initialAmount,
-				recurringAmount,
-				setupFeeAmount,
-				currencyCode,
-				paymentProvider: undefined,
-				paymentTransactionId: undefined,
-				savedPaymentMethodId: undefined,
-				subscriptionId: undefined,
-				idempotencyKey: undefined,
-				// Expire the intent in 1 hour if not activated.
-				expiresAt: addDays(now, 0) + 60 * 60 * 1000,
-				metadata: {
-					couponCode: couponCodeNormalized,
-					returnUrl,
-					sourceFormId: args.formId,
-					sourceFormSubmissionId: args.formSubmissionId,
-				},
-				createdAt: now,
-				updatedAt: now,
+				offerId: args.offerId,
+				customerEmail: args.customerEmail,
+				couponCode: args.couponCode,
+				returnUrl: args.returnUrl,
 			},
+			activeSubmitter,
+			{ formId: submission.formId, formSubmissionId: submission._id },
 		);
-
-		return {
-			intentId,
-			amount: initialAmount,
-			recurringAmount,
-			currency: currencyCode,
-			trialDays,
-			paymentProcessorData: {
-				provider: initialAmount <= 0 ? "free" : "stripe",
-				ready: paymentReady,
-				message: paymentReady
-					? initialAmount <= 0
-						? "Zero-dollar checkout is activated by its signed-in owner with activateFreeIntent."
-						: "Live subscription charging is enabled; complete Stripe payment before activation."
-					: "Paid subscription checkout is disabled until live subscription charging is configured.",
-			},
-		};
+		return { ok: true as const, intent };
 	},
 });
 
@@ -379,9 +481,13 @@ export const createCheckoutIntent = mutation({
 //
 //   - `activateFromIntent` (internal) activates PAID intents. Only code that
 //     has already verified the payment with Stripe may call it: the
-//     signature-verified Stripe webhook, or a server action that retrieved the
-//     PaymentIntent/SetupIntent from Stripe. It re-checks the settlement
-//     against the intent (metadata, amount, currency, mode) before granting.
+//     signature-verified Stripe webhook, or `publicCharge.confirmFirstCharge`,
+//     which retrieves the PaymentIntent/SetupIntent from Stripe with the secret
+//     key. Both reach it through the same internal mutations, so whichever
+//     arrives first activates and the other replays the existing contract. It
+//     re-checks the settlement against the intent (metadata, amount, currency,
+//     mode) before granting, and grants to the intent's own account when it has
+//     one (see `resolvePaidIntentUser`).
 //   - `activateFreeIntent` (public) activates ZERO-AMOUNT intents only. It
 //     takes no payment fields, requires the signed-in owner of the intent, and
 //     requires every server-computed amount to be 0.
@@ -392,15 +498,6 @@ export const createCheckoutIntent = mutation({
 type IntentDoc = Doc<"commerce_subscription_checkout_intents">;
 type OfferDoc = Doc<"commerce_subscription_offers">;
 type TemplateDoc = Doc<"commerce_subscription_templates">;
-
-const activationResultValidator = v.object({
-	ok: v.literal(true),
-	contractId: v.id("commerce_subscriptions"),
-	status: commerceSubscriptionStatusValidator,
-	trialDays: v.number(),
-	currentPeriodEndAt: v.optional(v.number()),
-});
-type ActivationResult = Infer<typeof activationResultValidator>;
 
 /**
  * A Stripe object the server itself retrieved or received through a
@@ -481,6 +578,38 @@ async function loadIntentOffer(
 	return { offer, template };
 }
 
+/**
+ * The Forms submission an intent was started from (recorded by
+ * `createCheckoutIntentForSubmission`), or undefined.
+ */
+function intentFormSubmissionId(
+	ctx: QueryCtx | MutationCtx,
+	intent: IntentDoc,
+): Id<"form_submissions"> | undefined {
+	const ref = snapshotString(intent.metadata, "sourceFormSubmissionId");
+	if (!ref) return undefined;
+	return ctx.db.normalizeId("form_submissions", ref) ?? undefined;
+}
+
+/** Complete the form action runs that were waiting on this intent's payment. */
+async function settleFormCheckout(
+	ctx: MutationCtx,
+	intent: IntentDoc,
+	contractId: Id<"commerce_subscriptions">,
+	status: SubscriptionStatus,
+): Promise<void> {
+	const submissionId = intentFormSubmissionId(ctx, intent);
+	if (!submissionId) return;
+	await completeCheckoutRuns(ctx, submissionId, {
+		intentId: intent._id,
+		contractId,
+		status,
+		amount: intent.initialAmount,
+		recurringAmount: intent.recurringAmount,
+		currency: intent.currencyCode,
+	});
+}
+
 /** Return the contract of an already-activated intent (idempotent replay). */
 async function existingActivation(
 	ctx: MutationCtx,
@@ -491,10 +620,14 @@ async function existingActivation(
 	await ctx.runMutation(internal.purchases.internals.syncSubscriptionCheckoutIntent, {
 		intentId: intent._id,
 	});
+	const status = subscription?.status ?? "active";
+	// A run still waiting on an intent that is already active is settled here,
+	// so a replay heals a run the first activation could not reach.
+	await settleFormCheckout(ctx, intent, intent.subscriptionId, status);
 	return {
 		ok: true as const,
 		contractId: intent.subscriptionId,
-		status: subscription?.status ?? "active",
+		status,
 		trialDays: snapshotNumber(intent.pricingSnapshot, "trialDays") ?? 0,
 		currentPeriodEndAt:
 			subscription?.currentPeriodEndAt ?? subscription?.nextBillingAt,
@@ -566,29 +699,71 @@ function verifyStripeSettlement(
 }
 
 /**
- * The account a paid intent belongs to: the signed-in user who created it, or
- * else the account whose VERIFIED email the payer entered. An unverified
- * account never receives a subscription by email match.
+ * The account a paid intent belongs to.
+ *
+ *   - An intent with a `userId` (created signed-in, or by a signed-in form
+ *     submitter) belongs to that account. If the intent's email is the
+ *     VERIFIED email of other accounts only, the two identities disagree and
+ *     nothing is activated.
+ *   - A guest intent (no `userId`) belongs to the one account whose VERIFIED
+ *     email the payer entered. An unverified account never receives a
+ *     subscription by email match, and an email verified on more than one
+ *     account is ambiguous and refused.
+ *
+ * Throws `USER_NOT_FOUND` (retryable: the website has not finished signup yet)
+ * or `ACCOUNT_MISMATCH` (permanent: an operator must reconcile the accounts).
  */
 async function resolvePaidIntentUser(
 	ctx: MutationCtx,
 	intent: IntentDoc,
 ): Promise<Id<"users">> {
-	if (intent.userId) return intent.userId;
 	const email = normalizeEmail(intent.email);
+	const verifiedOwners = email
+		? (
+				await ctx.db
+					.query("users")
+					.withIndex("by_email", (q) => q.eq("email", email))
+					.collect()
+			).filter((user) => user.emailVerified)
+		: [];
+
+	if (intent.userId) {
+		const owner = await ctx.db.get(intent.userId);
+		if (!owner) {
+			throw new ConvexError({
+				code: "USER_NOT_FOUND",
+				message: "The account that started this checkout no longer exists.",
+			});
+		}
+		if (
+			verifiedOwners.length > 0 &&
+			!verifiedOwners.some((user) => user._id === owner._id)
+		) {
+			throw new ConvexError({
+				code: "ACCOUNT_MISMATCH",
+				message:
+					"This checkout's account and the verified owner of its email are different accounts.",
+			});
+		}
+		return owner._id;
+	}
+
 	if (!email) {
 		throw new ConvexError({
 			code: "VALIDATION_ERROR",
 			message: "Intent has no userId and no customerEmail — cannot resolve user.",
 		});
 	}
-	const candidates = await ctx.db
-		.query("users")
-		.withIndex("by_email", (q) => q.eq("email", email))
-		.collect();
-	const owner = candidates.find((user) => user.emailVerified);
+	if (verifiedOwners.length > 1) {
+		throw new ConvexError({
+			code: "ACCOUNT_MISMATCH",
+			message: "More than one verified account uses this checkout's email.",
+		});
+	}
+	const owner = verifiedOwners[0];
 	// If not found, the website has not finished signup yet (the Clerk sync
-	// creates the row with a verified email). The webhook retries.
+	// creates the row with a verified email). The webhook retries, and
+	// `confirmFirstCharge` reports the checkout as pending.
 	if (!owner) {
 		throw new ConvexError({
 			code: "USER_NOT_FOUND",
@@ -682,6 +857,7 @@ async function activateIntent(
 
 	const paymentMethodId = settlement.paymentMethodId ?? intent.savedPaymentMethodId;
 	const stripeCustomerId = settlement.stripeCustomerId ?? intent.stripeCustomerId;
+	const sourceFormSubmissionId = intentFormSubmissionId(ctx, intent);
 
 	const subscriptionId = await ctx.db.insert("commerce_subscriptions", {
 		customerId: intent.customerId,
@@ -689,7 +865,7 @@ async function activateIntent(
 		sourceChannel: "direct_form",
 		sourceCheckoutIntentId: intentId,
 		sourceOrderId: undefined,
-		sourceFormSubmissionId: undefined,
+		sourceFormSubmissionId,
 		productId: offer.productId,
 		orderId: undefined,
 		orderItemId: undefined,
@@ -908,6 +1084,9 @@ async function activateIntent(
 		// Event emission is best-effort
 	}
 
+	// A paid form checkout: the form's `awaiting_payment` action run is done.
+	await settleFormCheckout(ctx, intent, subscriptionId, status);
+
 	return {
 		ok: true as const,
 		contractId: subscriptionId,
@@ -1123,5 +1302,60 @@ export const getChargeStartAccess = internalQuery({
 			}
 		}
 		return { allowed: true as const };
+	},
+});
+
+// ─── First-charge confirmation access (public `confirmFirstCharge`) ────────
+
+/**
+ * What `publicCharge.confirmFirstCharge` needs to verify a Stripe object
+ * against an intent, read with the caller's identity (actions cannot read the
+ * database). An intent bound to an account may only be confirmed by that
+ * account, signed in and active. A guest intent is addressed by its id; the
+ * action then requires the Stripe client secret as proof of possession.
+ */
+export const getFirstChargeConfirmAccess = internalQuery({
+	args: {
+		checkoutIntentRef: v.string(),
+	},
+	returns: v.union(
+		v.object({
+			allowed: v.literal(false),
+			reason: v.union(v.literal("not_found"), v.literal("not_owner")),
+		}),
+		v.object({
+			allowed: v.literal(true),
+			intentId: v.id("commerce_subscription_checkout_intents"),
+			status: commerceSubscriptionCheckoutIntentStatusValidator,
+			initialAmount: v.number(),
+			currencyCode: v.string(),
+			stripeCustomerId: v.optional(v.string()),
+			paymentTransactionId: v.optional(v.string()),
+			formSubmissionId: v.optional(v.id("form_submissions")),
+		}),
+	),
+	handler: async (ctx, args) => {
+		const intentId = ctx.db.normalizeId(
+			"commerce_subscription_checkout_intents",
+			args.checkoutIntentRef,
+		);
+		const intent = intentId ? await ctx.db.get(intentId) : null;
+		if (!intent) return { allowed: false as const, reason: "not_found" as const };
+		if (intent.userId) {
+			const user = await getCurrentUser(ctx);
+			if (!user || user._id !== intent.userId || user.status !== "active") {
+				return { allowed: false as const, reason: "not_owner" as const };
+			}
+		}
+		return {
+			allowed: true as const,
+			intentId: intent._id,
+			status: intent.status,
+			initialAmount: intent.initialAmount,
+			currencyCode: intent.currencyCode,
+			stripeCustomerId: intent.stripeCustomerId,
+			paymentTransactionId: intent.paymentTransactionId,
+			formSubmissionId: intentFormSubmissionId(ctx, intent),
+		};
 	},
 });

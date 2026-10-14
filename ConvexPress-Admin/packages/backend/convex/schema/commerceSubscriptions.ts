@@ -330,8 +330,14 @@ export const commerceSubscriptionTables = {
       v.id("commerce_subscription_checkout_intents"),
     ),
     sourceOrderId: v.optional(v.id("commerce_orders")),
+    // The submission the contract was bought through: a subscription order
+    // form submission, or a Forms-extension submission whose `subscription`
+    // action started the checkout.
     sourceFormSubmissionId: v.optional(
-      v.id("commerce_subscription_form_submissions"),
+      v.union(
+        v.id("commerce_subscription_form_submissions"),
+        v.id("form_submissions"),
+      ),
     ),
     productId: v.optional(v.id("commerce_products")),
     orderId: v.optional(v.id("commerce_orders")),

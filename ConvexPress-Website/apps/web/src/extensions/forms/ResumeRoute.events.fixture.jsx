@@ -20,7 +20,7 @@ mock.module('@/components/blog/NotFoundPage',()=>({NotFoundPage:()=>createElemen
 mock.module('convex/react',()=>({
  useConvexAuth:()=>({isLoading:false,isAuthenticated:false}),
  useMutation:()=>async args=>{if(!args.isComplete)return {};draft=null;notify();await new Promise(resolve=>{release=resolve;});if(fail)throw Error('Access was revoked');return {submissionId:'draft-one',isComplete:true,confirmationToken:'proof'};},
- useAction:()=>async()=>({}),useConvex:()=>({query:async()=>({type:'message',renderedMessage:'Your saved thought was received.'})}),
+ useAction:()=>async()=>({}),useQuery:()=>undefined,useConvex:()=>({query:async()=>({type:'message',renderedMessage:'Your saved thought was received.'})}),
 }));
 const {createRoot}=await import('react-dom/client');
 const {Route}=await import('../../routes/_marketing/forms.$slug.resume.$token');

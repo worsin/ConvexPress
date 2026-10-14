@@ -243,7 +243,8 @@ export const tables = {
   // The original 9 fields are UNCHANGED. `formId` + `nextAttemptAt` are added as
   // v.optional (existing rows stay valid) — both are load-bearing for the runner
   // (retry timing) and the admin run-history view. `status` union keeps
-  // `awaiting_payment` (paid-subscription non-terminal outcome — webhook-owned).
+  // `awaiting_payment` (paid-subscription non-terminal outcome, completed by the
+  // server-verified activation).
   // Skips are recorded as terminal `completed` rows tagged in `result` JSON
   // (`{ "skipped": true, ... }`), so NO `skipped` status is added.
   form_action_runs: defineTable({
@@ -254,7 +255,7 @@ export const tables = {
       v.literal("pending"),
       v.literal("completed"),
       v.literal("failed"),
-      v.literal("awaiting_payment"), // paid subscription: activation is webhook-owned
+      v.literal("awaiting_payment"), // paid checkout: completed by the server-verified activation
     ),
     attempts: v.number(),
     error: v.optional(v.string()),

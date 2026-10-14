@@ -40,7 +40,7 @@ import {
 } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import type { Capability } from "../../types/capabilities";
@@ -53,8 +53,10 @@ import {
 // Side-effect imports: populate the action-type registry. Both the CRUD
 // validator and the runner depend on these having run at module load.
 import "./actionTypes";
-import "./commerce";
+// Also registers the commerce action types (module side effect).
+import { SIGN_IN_REQUIRED_ERROR } from "./commerce";
 import { normalizeFormReturnUrl } from "./redirects";
+import { getCurrentUser } from "../../helpers/auth";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
 // ─── Local helpers ───────────────────────────────────────────────────────────
@@ -157,14 +159,32 @@ export const listRunsForSubmission = query({
   },
 });
 
+/** The action types that start a checkout (see `commerce.ts`). */
+const CHECKOUT_ACTION_TYPES = new Set(["subscription", "payment"]);
+
+/**
+ * Whether the caller may read a submission's checkout state. A submission made
+ * signed-in is readable only by that account; a signed-out submission is
+ * addressed by its unguessable id, known only to the submitter's client.
+ */
+async function callerOwnsSubmissionCheckout(
+  ctx: QueryCtx,
+  submission: Doc<"form_submissions">,
+): Promise<boolean> {
+  if (!submission.userId) return true;
+  const user = await getCurrentUser(ctx);
+  return user !== null && user._id === submission.userId;
+}
+
 /**
  * PUBLIC: the pending-payment descriptor for a submission, if any. Returns the
  * `needsPayment` data stored on an `awaiting_payment` commerce run so the
  * Website renderer can mount Stripe Elements after submit (the commerce action
- * runs async, so the descriptor is not in the submit() return value). NO auth:
- * the submissionId is an unguessable Convex id known only to the submitter's
- * client, and the descriptor exposes only the single-use clientSecret + the
- * PUBLISHABLE key — never a secret key. Returns null when no payment is pending.
+ * runs async, so the descriptor is not in the submit() return value). The
+ * submissionId is an unguessable Convex id known only to the submitter's
+ * client, and a submission made signed-in is readable only by that account.
+ * The descriptor exposes only the single-use clientSecret + the PUBLISHABLE
+ * key — never a secret key. Returns null when no payment is pending.
  */
 export const getPendingPayment = query({
   args: { submissionId: v.id("form_submissions") },
@@ -183,6 +203,10 @@ export const getPendingPayment = query({
   })),
   handler: async (ctx, { submissionId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
+    const submission = await ctx.db.get(submissionId);
+    if (!submission || !(await callerOwnsSubmissionCheckout(ctx, submission))) {
+      return null;
+    }
 
     const runs = await ctx.db
       .query("form_action_runs")
@@ -218,6 +242,96 @@ export const getPendingPayment = query({
     return null;
   },
 });
+
+/**
+ * PUBLIC: where a submission's checkout stands, so the Website can decide what
+ * to show after submit without guessing from timing:
+ *
+ *   - `none`             — the form starts no checkout (or the submission is
+ *                          not complete).
+ *   - `preparing`        — a checkout action is queued or running.
+ *   - `awaiting_payment` — the card step is ready (`getPendingPayment`).
+ *   - `completed`        — every checkout action finished; `paid` when one was
+ *                          a paid checkout that has been activated.
+ *   - `failed`           — a checkout action failed; `sign_in_required` when the
+ *                          form needs a signed-in submitter, or when the
+ *                          caller is not the account that submitted.
+ *
+ * Same access rule as `getPendingPayment`. Exposes no amounts or secrets.
+ */
+export const getCheckoutStatus = query({
+  args: { submissionId: v.id("form_submissions") },
+  returns: v.union(
+    v.object({ state: v.literal("none") }),
+    v.object({ state: v.literal("preparing") }),
+    v.object({ state: v.literal("awaiting_payment") }),
+    v.object({ state: v.literal("completed"), paid: v.boolean() }),
+    v.object({
+      state: v.literal("failed"),
+      reason: v.union(v.literal("sign_in_required"), v.literal("unavailable")),
+    }),
+  ),
+  handler: async (ctx, { submissionId }) => {
+    const none = { state: "none" as const };
+    if (!(await isPluginEnabled(ctx, "forms"))) return none;
+    const submission = await ctx.db.get(submissionId);
+    if (!submission || submission.status !== "complete") return none;
+
+    const actions = await ctx.db
+      .query("form_actions")
+      .withIndex("by_form_enabled", (q) =>
+        q.eq("formId", submission.formId).eq("enabled", true),
+      )
+      .collect();
+    const checkoutActions = actions.filter((action) => CHECKOUT_ACTION_TYPES.has(action.type));
+    if (checkoutActions.length === 0) return none;
+    // A checkout started signed-in continues only for that account.
+    if (!(await callerOwnsSubmissionCheckout(ctx, submission))) {
+      return { state: "failed" as const, reason: "sign_in_required" as const };
+    }
+
+    let preparing = false;
+    let awaitingPayment = false;
+    let paid = false;
+    for (const action of checkoutActions) {
+      const run = await ctx.db
+        .query("form_action_runs")
+        .withIndex("by_submission_action", (q) =>
+          q.eq("submissionId", submissionId).eq("formActionId", action._id),
+        )
+        .first();
+      if (!run || run.status === "pending") {
+        preparing = true;
+      } else if (run.status === "awaiting_payment") {
+        awaitingPayment = true;
+      } else if (run.status === "failed") {
+        return {
+          state: "failed" as const,
+          reason:
+            run.error === SIGN_IN_REQUIRED_ERROR
+              ? ("sign_in_required" as const)
+              : ("unavailable" as const),
+        };
+      } else if (runResultPaid(run.result)) {
+        paid = true;
+      }
+    }
+    if (awaitingPayment) return { state: "awaiting_payment" as const };
+    if (preparing) return { state: "preparing" as const };
+    return { state: "completed" as const, paid };
+  },
+});
+
+/** Whether a completed checkout run recorded a paid activation. */
+function runResultPaid(result: string | undefined): boolean {
+  if (!result) return false;
+  try {
+    const parsed: unknown = JSON.parse(result);
+    return typeof parsed === "object" && parsed !== null && "paid" in parsed && parsed.paid === true;
+  } catch {
+    return false;
+  }
+}
 
 /** Recent run history for a form (optionally filtered by status). */
 export const listRecentRuns = query({
@@ -797,7 +911,8 @@ export const dispatchAction = internalAction({
         result: result.data ? JSON.stringify(result.data) : undefined,
         error: undefined,
       });
-      // No retry, no failed event — the webhook settles this run later.
+      // No retry, no failed event — the verified activation (webhook or
+    // confirmFirstCharge) completes this run later.
       return;
     }
 
