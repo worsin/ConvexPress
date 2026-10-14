@@ -40,7 +40,7 @@ test("native auth controls follow effective access, identity changes and wall-cl
     expect(m.requests.at(-1).refresh).toBe(1);
     await render({user,access:{...access,validUntil:Date.now()+60_000}});expect(state().page).toBe(true);
     await render({user,access:null});expect(state().page).toBe(false);
-    expect(m.queryNames.every(name=>["users:getCurrentUser","users:getCurrentRoleAccess"].includes(name))).toBe(true);
+    expect(m.queryNames.every(name=>m.AUTH_QUERY_NAMES.includes(name))).toBe(true);
   } finally {
     if(root) await act(async()=>root.unmount());dom.window.close();await rm(output,{recursive:true,force:true});
     for(const [name,descriptor] of original) if(descriptor) Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];
