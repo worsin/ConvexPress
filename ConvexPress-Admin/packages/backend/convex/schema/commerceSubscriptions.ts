@@ -472,6 +472,24 @@ export const commerceSubscriptionTables = {
     periodEndAt: v.optional(v.number()),
     dueAt: v.optional(v.number()),
     paidAt: v.optional(v.number()),
+    // Refunds of this invoice's payment. `refundedAmount` counts pending and
+    // succeeded refunds, so a second request can never exceed what was paid.
+    refundedAmount: v.optional(v.number()),
+    refunds: v.optional(
+      v.array(
+        v.object({
+          key: v.string(),
+          amount: v.number(),
+          status: v.union(v.literal("pending"), v.literal("succeeded"), v.literal("failed")),
+          reason: v.optional(v.string()),
+          providerRefundId: v.optional(v.string()),
+          error: v.optional(v.string()),
+          requestedBy: v.optional(v.string()),
+          requestedAt: v.number(),
+          completedAt: v.optional(v.number()),
+        }),
+      ),
+    ),
     prorationEventId: v.optional(
       v.id("commerce_subscription_proration_events"),
     ),
