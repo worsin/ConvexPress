@@ -13,6 +13,7 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   tags: "Tags",
   revisions: "Revisions",
   media: "Media",
+  plugins: "Extensions",
   pages: "Pages",
   comments: "Comments",
   users: "Users",

@@ -94,9 +94,11 @@ function PluginsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       {plugin.description}
                     </p>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Routes: {plugin.routePrefixes.join(", ")}
-                    </p>
+                    {plugin.routePrefixes.length > 0 ? (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Website pages: {plugin.routePrefixes.join(", ")}
+                      </p>
+                    ) : null}
                     {parent && !parentEnabled ? (
                       <p className="mt-2 text-xs text-muted-foreground">
                         Enabling this extension will also enable {parent.title}.
