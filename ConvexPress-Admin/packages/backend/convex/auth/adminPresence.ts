@@ -1,4 +1,4 @@
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 
 type DbCtx = Pick<QueryCtx, "db">;
@@ -40,8 +40,28 @@ function isExcluded(user: AdminCandidate, excludedUserId?: unknown): boolean {
 }
 
 /**
+ * An external operator (an integrator's staff, see users/externalIdentities.ts)
+ * signs in through the integrator's identity provider rather than a local
+ * password. It administers the site when its account is active and still
+ * linked to an identity; an unlinked account resolves to no user.
+ */
+async function canSignInAsExternalOperator(
+  ctx: DbCtx,
+  user: Doc<"users">,
+): Promise<boolean> {
+  if (user.status !== "active" || user.authSource !== "external") return false;
+  const link = await ctx.db
+    .query("userExternalIdentities")
+    .withIndex("by_user", (q) => q.eq("userId", user._id))
+    .first();
+  return link !== null;
+}
+
+/**
  * Return true only when there is an active administrator account that can keep
- * the admin surface out of first-run setup mode.
+ * the admin surface out of first-run setup mode: a local administrator with a
+ * password, or a linked external administrator. Clerk (website) and management
+ * records never count, because they cannot open the admin surface.
  */
 async function hasActiveAdminExcept(
   ctx: DbCtx,
@@ -58,13 +78,10 @@ async function hasActiveAdminExcept(
       .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
       .collect();
 
-    if (
-      roleAdmins.some(
-        (user) =>
-          !isExcluded(user, excludedUserId) && canUseLocalAdminLogin(user),
-      )
-    ) {
-      return true;
+    for (const user of roleAdmins) {
+      if (isExcluded(user, excludedUserId)) continue;
+      if (canUseLocalAdminLogin(user)) return true;
+      if (await canSignInAsExternalOperator(ctx, user)) return true;
     }
   }
 
