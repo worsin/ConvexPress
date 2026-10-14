@@ -8064,6 +8064,7 @@ export type InternalApi = {
   "onSubscriptionCreated": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPastDue": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPaused": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
+  "onSubscriptionRefunded": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionRenewed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionResumed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionTrialEnding": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
@@ -8145,6 +8146,7 @@ export type InternalApi = {
   "onSubscriptionCreated": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPastDue": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPaused": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
+  "onSubscriptionRefunded": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionRenewed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionResumed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionTrialEnding": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;

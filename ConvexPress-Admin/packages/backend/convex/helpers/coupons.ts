@@ -6,11 +6,15 @@
  * and from `commerceSubscriptions/proration.ts` (future Wave 2 proration
  * invoice apply path).
  *
- * Three exports:
- *   - validateCoupon       — signup- and portal-time validation.
+ * Exports:
+ *   - normalizeCouponCode / findCouponByCode — how codes are stored and found.
+ *   - validateCoupon       — signup- and portal-time validation, with
+ *                            couponRefusalMessage for the customer.
+ *   - firstChargeDiscount  — the discount on a checkout's first charge.
  *   - applyCouponToInvoice — apply a redemption to an open invoice (writes
  *                            a coupon_discount line item + decrements
  *                            remainingApplications).
+ *   - upcomingChargeAmount — what the next renewal charges, discounts applied.
  *   - initializeRedemption — seed a redemption row when a coupon is claimed
  *                            for a contract (set remainingApplications from
  *                            coupon.duration).
@@ -276,6 +280,31 @@ export async function applyCouponToInvoice(
   });
 
   return { discount, newSubtotal };
+}
+
+// ─── Upcoming charge ────────────────────────────────────────────────────────
+
+/**
+ * What the contract's next renewal charges: its recurring amount with each
+ * redemption that still has applications taken off in turn, the way the
+ * renewal invoice is discounted. Reads only; nothing is used up.
+ */
+export async function upcomingChargeAmount(
+  ctx: QueryCtx | MutationCtx,
+  contract: Pick<Doc<"commerce_subscriptions">, "_id" | "recurringAmount">,
+): Promise<number> {
+  const redemptions = await ctx.db
+    .query("commerce_subscription_coupon_redemptions")
+    .withIndex("by_contract", (q) => q.eq("contractId", contract._id))
+    .collect();
+  let amount = contract.recurringAmount;
+  for (const redemption of redemptions) {
+    if (redemption.remainingApplications <= 0) continue;
+    const coupon = await ctx.db.get(redemption.couponId);
+    if (!coupon) continue;
+    amount = Math.round(applyDiscount(amount, coupon.discountType, coupon.amount));
+  }
+  return Math.max(0, amount);
 }
 
 // ─── Initialize redemption ──────────────────────────────────────────────────

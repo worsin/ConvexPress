@@ -6,7 +6,8 @@
  * (`emails.internals.queueEmail`), like every other event-driven email.
  *
  * What a customer is told, by event:
- *   created          welcome: what they bought, what it costs, when it charges
+ *   created          welcome: what they bought, the receipt for the first
+ *                    charge, what it costs and when it charges next
  *   renewed          receipt (invoice, amount, next charge); after a failed
  *                    payment, "your payment went through" instead
  *   past_due         the charge failed: why, when we try again, how long
@@ -15,9 +16,15 @@
  *   cancel_scheduled it ends at the period end; access until then; keep link
  *   cancelled        it has ended (and why, when payments stopped it)
  *   paused/resumed   confirmation
+ *   invoice_refunded how much came back, for which invoice, and when to expect it
+ *
+ * A subscription charge gets exactly one email: these. The purchase record a
+ * charge also creates alerts admins but sends the customer nothing.
  *
  * Templates interpolate `{variables}` with no conditionals, so sentences that
  * depend on state (a retry date or "this was our last try") are written here.
+ * "Next charge" amounts include the contract's discounts (`next_charge_amount`);
+ * `amount` is the plan's price.
  * Links are absolute (site URL + the customer dashboard path) so they work in
  * every mail client. Money is formatted in the contract's currency and dates
  * in the site's time zone.
@@ -28,6 +35,7 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
+import { upcomingChargeAmount } from "../helpers/coupons";
 import { readMergedSettingsSection } from "../settings/read";
 import { asSnapshotBag, snapshotString, type SnapshotBag } from "./snapshot";
 
@@ -139,6 +147,7 @@ async function loadContext(ctx: MutationCtx, eventId: Id<"events">): Promise<Ema
       recipient_name: user.firstName || user.displayName || "there",
       offer_title: await currentPlanTitle(ctx, subscription),
       amount: formatEmailMoney(subscription.recurringAmount, currency),
+      next_charge_amount: formatEmailMoney(await upcomingChargeAmount(ctx, subscription), currency),
       cadence: cadenceText(subscription.billingInterval, subscription.billingIntervalCount),
       next_billing_at: formatEmailDate(subscription.nextBillingAt, timeZone),
       current_period_end: formatEmailDate(subscription.currentPeriodEndAt, timeZone),
@@ -172,19 +181,40 @@ async function invoiceFromPayload(ctx: MutationCtx, payload: SnapshotBag) {
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 
+/** "We charged $289.20 on October 14, 2026 (invoice INV-000010)." for a paid first charge. */
+async function firstChargeReceipt(ctx: MutationCtx, subscription: SubscriptionDoc, timeZone: string): Promise<string> {
+  const invoices = await ctx.db
+    .query("commerce_subscription_invoices")
+    .withIndex("by_subscription", (q) => q.eq("subscriptionId", subscription._id))
+    .collect();
+  const signup = invoices.find((invoice) => invoice.kind === "signup" && invoice.status === "paid");
+  if (!signup || signup.totalAmount <= 0) return "";
+  const charged = formatEmailMoney(signup.totalAmount, signup.currencyCode || subscription.currencyCode);
+  const on = formatEmailDate(signup.paidAt ?? signup.createdAt, timeZone);
+  return signup.invoiceNumber ? `We charged ${charged} on ${on} (invoice ${signup.invoiceNumber}).` : `We charged ${charged} on ${on}.`;
+}
+
 export const onSubscriptionCreated = internalMutation({
   args: { eventId: v.id("events") },
   returns: v.null(),
   handler: async (ctx, args) => {
     const context = await loadContext(ctx, args.eventId);
     if (!context) return null;
-    const { subscription, variables } = context;
-    variables.billing_note =
-      subscription.status === "trialing" && variables.trial_ends_at
-        ? `Your free trial runs until ${variables.trial_ends_at}. Your first charge of ${variables.amount} is on that day, and then ${variables.amount} ${variables.cadence}.`
-        : variables.next_billing_at
-          ? `You pay ${variables.amount} ${variables.cadence}. Your next charge is on ${variables.next_billing_at}.`
-          : `You pay ${variables.amount} ${variables.cadence}.`;
+    const { subscription, variables, timeZone } = context;
+    const { amount, cadence, next_charge_amount: next, next_billing_at: nextAt, trial_ends_at: trialEnds } = variables;
+    const discounted = next !== amount;
+    const terms =
+      subscription.status === "trialing" && trialEnds
+        ? discounted
+          ? `Your free trial runs until ${trialEnds}. Your first charge, ${next} with your discount, is on that day. Your plan is ${amount} ${cadence}.`
+          : `Your free trial runs until ${trialEnds}. Your first charge of ${amount} is on that day, and then ${amount} ${cadence}.`
+        : nextAt
+          ? discounted
+            ? `Your plan is ${amount} ${cadence}. Your next charge is ${next} with your discount, on ${nextAt}.`
+            : `You pay ${amount} ${cadence}. Your next charge is on ${nextAt}.`
+          : `You pay ${amount} ${cadence}.`;
+    const receipt = await firstChargeReceipt(ctx, subscription, timeZone);
+    variables.billing_note = receipt ? `${receipt} ${terms}` : terms;
     await queue(ctx, args.eventId, "subscription-welcome", context);
     return null;
   },
@@ -253,6 +283,11 @@ export const onSubscriptionTrialEnding = internalMutation({
   handler: async (ctx, args) => {
     const context = await loadContext(ctx, args.eventId);
     if (!context) return null;
+    const { amount, cadence, next_charge_amount: next } = context.variables;
+    context.variables.charge_note =
+      next !== amount
+        ? `Your first charge, ${next} with your discount, runs that day. Your plan is ${amount} ${cadence}.`
+        : `Your first charge of ${amount} runs that day, then ${amount} ${cadence}.`;
     await queue(ctx, args.eventId, "subscription-trial-ending", context);
     return null;
   },
@@ -306,9 +341,33 @@ export const onSubscriptionResumed = internalMutation({
     const from = snapshotString(context.payload, "fromStatus");
     context.variables.resume_note =
       from === "pending_cancel"
-        ? `You're staying with ${context.variables.offer_title}. Nothing changes: your next charge of ${context.variables.amount} is on ${context.variables.next_billing_at}.`
-        : `${context.variables.offer_title} is active again. Your next charge of ${context.variables.amount} is on ${context.variables.next_billing_at}.`;
+        ? `You're staying with ${context.variables.offer_title}. Nothing changes: your next charge of ${context.variables.next_charge_amount} is on ${context.variables.next_billing_at}.`
+        : `${context.variables.offer_title} is active again. Your next charge of ${context.variables.next_charge_amount} is on ${context.variables.next_billing_at}.`;
     await queue(ctx, args.eventId, "subscription-resumed", context);
+    return null;
+  },
+});
+
+export const onSubscriptionRefunded = internalMutation({
+  args: { eventId: v.id("events") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const context = await loadContext(ctx, args.eventId);
+    if (!context) return null;
+    const { payload, variables, subscription } = context;
+    const invoice = await invoiceFromPayload(ctx, payload);
+    const amount = payloadNumber(payload, "amount");
+    if (!invoice || amount === undefined || amount <= 0) return null;
+    const currency = invoice.currencyCode || subscription.currencyCode;
+    const refunded = formatEmailMoney(amount, currency);
+    const which = invoice.invoiceNumber ? `invoice ${invoice.invoiceNumber}` : `your ${variables.offer_title} payment`;
+    variables.refund_amount = refunded;
+    variables.invoice_number = invoice.invoiceNumber ?? "";
+    variables.refund_note =
+      amount >= invoice.totalAmount
+        ? `We refunded ${refunded} for ${which}, the full charge, to your original payment method.`
+        : `We refunded ${refunded} of the ${formatEmailMoney(invoice.totalAmount, currency)} you paid for ${which}, to your original payment method.`;
+    await queue(ctx, args.eventId, "subscription-refunded", context);
     return null;
   },
 });

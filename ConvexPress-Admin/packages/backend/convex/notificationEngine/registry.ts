@@ -587,6 +587,20 @@ export const EMAIL_EVENT_HANDLER_ROUTES: NotificationEngineListenerDef[] = [
       "Routes resumed / kept subscription emails through the subscription email system.",
   },
   {
+    eventCode: "commerce.subscription_invoice_refunded",
+    name: `${ENGINE_LISTENER_NAME_PREFIX} Email commerce.subscription_invoice_refunded`,
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionRefunded",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Routes subscription refund emails through the subscription email system.",
+  },
+  {
     eventCode: "commerce.subscription_cancel_scheduled",
     name: `${ENGINE_LISTENER_NAME_PREFIX} Email commerce.subscription_cancel_scheduled`,
     handlerModule: "commerceSubscriptions/emails",

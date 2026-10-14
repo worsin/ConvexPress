@@ -3610,6 +3610,7 @@ export declare const internal:
 "onSubscriptionCreated": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onSubscriptionPastDue": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onSubscriptionPaused": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
+"onSubscriptionRefunded": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onSubscriptionRenewed": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onSubscriptionResumed": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onSubscriptionTrialEnding": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
