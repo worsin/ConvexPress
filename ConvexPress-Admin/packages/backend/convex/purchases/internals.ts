@@ -1170,10 +1170,19 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
   },
 });
 
+/** Refunds Stripe has completed for an invoice's payment. */
+function invoiceRefundedAmount(invoice: Doc<"commerce_subscription_invoices">): number {
+  return (invoice.refunds ?? []).reduce((sum, refund) => (refund.status === "succeeded" ? sum + refund.amount : sum), 0);
+}
+
 function invoiceOrderStatus(
   invoice: Doc<"commerce_subscription_invoices">,
 ): PurchaseOrderStatus {
-  if (invoice.status === "paid") return "paid";
+  if (invoice.status === "paid") {
+    const refunded = invoiceRefundedAmount(invoice);
+    if (refunded > 0) return refunded >= invoice.totalAmount ? "refunded" : "partially_refunded";
+    return "paid";
+  }
   if (invoice.status === "failed" || invoice.status === "void") return "payment_failed";
   return "payment_pending";
 }
@@ -1229,8 +1238,8 @@ export const syncSubscriptionInvoice = internalMutation({
       shippingAmount: 0,
       taxAmount: money(invoice.taxAmount),
       totalAmount,
-      amountPaid: status === "paid" ? totalAmount : 0,
-      amountRefunded: 0,
+      amountPaid: invoice.status === "paid" ? totalAmount : 0,
+      amountRefunded: money(invoiceRefundedAmount(invoice)),
       placedAt: invoice.createdAt,
       paidAt: invoice.paidAt,
       failedAt: status === "payment_failed" ? invoice.updatedAt ?? now : undefined,

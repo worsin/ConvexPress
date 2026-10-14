@@ -177,6 +177,11 @@ export function InvoiceHistoryTable({
             <div className="flex items-center gap-3">
               <span className="text-xs text-foreground">
                 {formatMoney(invoice.totalAmount, invoice.currencyCode)}
+                {invoice.refundedAmount > 0 ? (
+                  <span className="ml-1 text-muted-foreground">
+                    ({formatMoney(invoice.refundedAmount, invoice.currencyCode)} refunded)
+                  </span>
+                ) : null}
               </span>
               <StatusBadge status={invoice.status} />
               <button

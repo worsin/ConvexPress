@@ -353,6 +353,7 @@ export const SUBSCRIPTION_EVENTS = {
   EXPIRED: "commerce.subscription_expired",
   ENTITLEMENT_EXPIRED: "commerce.subscription_entitlement_expired",
   DUPLICATE_PURCHASE: "commerce.subscription_duplicate_purchase",
+  INVOICE_REFUNDED: "commerce.subscription_invoice_refunded",
 } as const;
 
 /** Wishlist System events (3) */

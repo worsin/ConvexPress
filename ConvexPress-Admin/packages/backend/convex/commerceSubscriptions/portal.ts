@@ -594,6 +594,8 @@ const customerInvoiceValidator = v.object({
 	periodEndAt: v.optional(v.number()),
 	dueAt: v.optional(v.number()),
 	paidAt: v.optional(v.number()),
+	/** Refunded to the customer's card (completed refunds only). */
+	refundedAmount: v.number(),
 	createdAt: v.number(),
 	subscription: v.object({
 		_id: v.id("commerce_subscriptions"),
@@ -616,6 +618,7 @@ function customerInvoice(invoice: Doc<"commerce_subscription_invoices">, contrac
 		periodEndAt: invoice.periodEndAt,
 		dueAt: invoice.dueAt,
 		paidAt: invoice.paidAt,
+		refundedAmount: (invoice.refunds ?? []).reduce((sum, refund) => (refund.status === "succeeded" ? sum + refund.amount : sum), 0),
 		createdAt: invoice.createdAt,
 		subscription: { _id: contract._id, status: contract.status },
 	};
