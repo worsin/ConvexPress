@@ -1,85 +1,26 @@
 "use node";
 /**
- * Commerce Subscriptions — Dunning Action (Wave 7 Task 7.2)
+ * Commerce Subscriptions — dunning sweep.
  *
- * Hourly cron-driven sweep (offset 15 min after renewals) that retries
- * failed payments for past-due subscriptions.
+ * Hourly (crons.ts `subscription-dunning`, 15 minutes after renewals): charges
+ * each retry that has come due. A declined renewal schedules its retries in
+ * `internals.handleInvoicePaymentResult` from the contract's dunning policy
+ * (by default 1, 3 and 7 days after each failure, then cancellation).
  *
- * Flow:
- *   1. Query `past_due` subscriptions that have dunning attempts due for retry
- *      (via `internals.getRetryableDunningAttempts`).
- *   2. For each: attempt live-provider payment when charging is enabled,
- *      otherwise fail closed for paid invoices.
- *   3a. Success → mark invoice paid, transition contract to `active`, sync
- *       entitlements. (Delegated to `handleInvoicePaymentResult`.)
- *   3b. Failure → record attempt, schedule next retry (if max not reached),
- *       or cancel the subscription when dunning is exhausted.
- *
- * Default retry schedule (when no template dunningPolicyCode is set):
- *   [1 day, 3 days, 7 days, 14 days] — 4 attempts maximum.
- *
- * Registration in `crons.ts`:
- *   crons.hourly("subscription-dunning", { minuteUTC: 15 },
- *     internal.commerceSubscriptions.dunning.runDunningSweep)
+ * Each retry is claimed first (`internals.claimDunningAttempt`), which closes
+ * retries that no longer apply: the invoice was paid or voided, or the contract
+ * ended or recovered. The charge uses the contract's current card, under an
+ * idempotency key unique to the retry, and its outcome is recorded by
+ * `handleInvoicePaymentResult` like any other charge.
  */
 
 import { v } from "convex/values";
-import type { RegisteredAction } from "convex/server";
 
-import { internalAction, type ActionCtx } from "../_generated/server";
+import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requirePluginEnabled } from "../helpers/plugins";
 
-// ─── Default dunning policy ──────────────────────────────────────────────────
-
-const DEFAULT_RETRY_DAYS = [1, 3, 7, 14]; // attempt at +1d, +3d, +7d, +14d
-const DEFAULT_MAX_ATTEMPTS = 4;
-
-// ─── Disabled-provider fallback ──────────────────────────────────────────────
-
-interface ChargeResult {
-  success: boolean;
-  transactionId?: string;
-  failureReason?: string;
-}
-
-function disabledProviderFallback(invoice: {
-  _id: string;
-  totalAmount: number;
-  savedPaymentMethodId?: string;
-}): ChargeResult {
-  if (invoice.totalAmount === 0) {
-    return { success: true, transactionId: `free_${Date.now()}` };
-  }
-  if (!invoice.savedPaymentMethodId) {
-    return { success: false, failureReason: "no_payment_method_on_file" };
-  }
-  return {
-    success: false,
-    failureReason: "subscription_charging_not_enabled",
-  };
-}
-
-async function isLiveChargingEnabled(ctx: Pick<ActionCtx, "runQuery">): Promise<boolean> {
-  const settings = await ctx.runQuery(
-    internal.commerceSubscriptions.internals.getPaymentChargingSettings,
-    {},
-  );
-  return settings.subscriptionChargingEnabled;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DUNNING SWEEP ACTION
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Hourly dunning retry sweep. Offset 15 minutes in `crons.ts` so renewals
- * complete before dunning runs.
- */
-export const runDunningSweep: RegisteredAction<
-  "internal", { limit?: number },
-  { processed: number; succeeded: number; failed: number; cancelled: number }
-> = internalAction({
+export const runDunningSweep = internalAction({
   args: {
     limit: v.optional(v.number()),
   },
@@ -87,114 +28,36 @@ export const runDunningSweep: RegisteredAction<
     processed: v.number(),
     succeeded: v.number(),
     failed: v.number(),
-    cancelled: v.number(),
+    skipped: v.number(),
   }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 
-    const limit = args.limit ?? 100;
-
-    const retryable = await ctx.runQuery(
-      internal.commerceSubscriptions.internals.getRetryableDunningAttempts,
-      { limit },
-    );
-
-    if (!retryable || retryable.length === 0) {
-      return { processed: 0, succeeded: 0, failed: 0, cancelled: 0 };
-    }
+    const retryable = await ctx.runQuery(internal.commerceSubscriptions.internals.getRetryableDunningAttempts, {
+      limit: args.limit ?? 100,
+    });
 
     let succeeded = 0;
     let failed = 0;
-    let cancelled = 0;
-
+    let skipped = 0;
     for (const attempt of retryable) {
       try {
-        // Fetch the invoice for this dunning attempt. An attempt that never
-        // referenced an invoice has nothing to retry.
-        const invoiceId = attempt.invoiceId;
-        const invoice = invoiceId
-          ? await ctx.runQuery(
-              internal.commerceSubscriptions.internals.getInvoiceForRenewal,
-              { invoiceId },
-            )
-          : null;
-
-        if (!invoiceId || !invoice) {
-          // Invoice gone — abort this attempt.
-          await ctx.runMutation(
-            internal.commerceSubscriptions.internals.abortDunningAttempt,
-            {
-              attemptId: attempt.attemptId,
-              reason: "invoice_not_found",
-            },
-          );
+        const claim = await ctx.runMutation(internal.commerceSubscriptions.internals.claimDunningAttempt, {
+          attemptId: attempt.attemptId,
+        });
+        if (!claim) {
+          skipped++;
           continue;
         }
-
-        if (invoice.manualBilling) {
-          continue;
-        }
-
-        let chargeResult: ChargeResult;
-        if (await isLiveChargingEnabled(ctx)) {
-          const stripeResult = await ctx.runAction(
-            internal.commerceSubscriptions.stripeCharge
-              .chargeSubscriptionInvoice,
-            { invoiceId },
-          );
-          chargeResult = {
-            success: stripeResult.success,
-            transactionId: stripeResult.transactionId,
-            failureReason: stripeResult.failureReason,
-          };
-        } else {
-          chargeResult = disabledProviderFallback(invoice);
-        }
-
-        if (chargeResult.success) {
-          // On success: delegate result handling (marks invoice paid,
-          // advances period, transitions contract to active).
-          await ctx.runMutation(
-            internal.commerceSubscriptions.internals.handleInvoicePaymentResult,
-            {
-              invoiceId,
-              succeeded: true,
-              paymentTransactionId: chargeResult.transactionId,
-            },
-          );
-
-          // Mark dunning attempt as succeeded.
-          await ctx.runMutation(
-            internal.commerceSubscriptions.internals.completeDunningAttempt,
-            {
-              attemptId: attempt.attemptId,
-              outcome: "success",
-            },
-          );
-
-          succeeded++;
-        } else {
-          // On failure: update dunning attempt, decide if we cancel.
-          const outcome = await ctx.runMutation(
-            internal.commerceSubscriptions.internals.recordDunningFailure,
-            {
-              attemptId: attempt.attemptId,
-              subscriptionId: attempt.subscriptionId,
-              invoiceId,
-              attemptNumber: attempt.attemptNumber,
-              failureReason: chargeResult.failureReason,
-              maxAttempts: DEFAULT_MAX_ATTEMPTS,
-              retryDays: DEFAULT_RETRY_DAYS,
-            },
-          );
-
-          if (outcome.cancelled) {
-            cancelled++;
-          } else {
-            failed++;
-          }
-        }
+        const result = await ctx.runAction(internal.commerceSubscriptions.stripeCharge.chargeSubscriptionInvoice, {
+          invoiceId: claim.invoiceId,
+          attemptNumber: claim.attemptNumber,
+        });
+        if (result.skipped) skipped++;
+        else if (result.success) succeeded++;
+        else failed++;
       } catch (err) {
+        // A claimed retry that never reports back is claimable again later.
         console.error(
           `[dunning] Error processing attempt ${attempt.attemptId}:`,
           err instanceof Error ? err.message : String(err),
@@ -203,11 +66,6 @@ export const runDunningSweep: RegisteredAction<
       }
     }
 
-    return {
-      processed: retryable.length,
-      succeeded,
-      failed,
-      cancelled,
-    };
+    return { processed: retryable.length, succeeded, failed, skipped };
   },
 });

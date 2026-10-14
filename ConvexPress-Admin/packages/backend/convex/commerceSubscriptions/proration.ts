@@ -11,9 +11,12 @@
  *     - Create an invoice with a single proration_charge line item.
  *     - Charge through Stripe when live subscription charging is enabled;
  *       otherwise fail closed for positive paid prorations.
- *     - On success: swap the subscription item to the new offer, update the
- *       contract's recurring amount + offerHistory.
+ *     - On success: swap the subscription item to the new offer within the
+ *       current billing period (the proration paid for the rest of it), update
+ *       the contract's recurring amount, offer history and entitlements.
  *     - Return { invoiceId, success, error? }.
+ *
+ *   Amounts are minor units (cents); the proration is charged in whole units.
  *
  *   `applyDowngradeProration(contractId, toOfferId)`
  *     - Sets scheduledOfferChange on the contract.
@@ -27,67 +30,19 @@ import { internal } from "../_generated/api";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { computeProration } from "../helpers/proration";
 import { applyCouponToInvoice } from "../helpers/coupons";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { readMergedSettingsSection } from "../settings/read";
+import { allocateSubscriptionInvoiceNumber } from "./invoiceNumbers";
+import { createCorrelationId, swapToOffer, writeHistory } from "./lifecycle";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-type BillingInterval = "day" | "week" | "month" | "year";
-
-function addBillingPeriod(
-  timestamp: number,
-  interval: BillingInterval,
-  intervalCount: number,
-): number {
-  const date = new Date(timestamp);
-  if (interval === "day") {
-    date.setDate(date.getDate() + intervalCount);
-    return date.getTime();
-  }
-  if (interval === "week") {
-    date.setDate(date.getDate() + 7 * intervalCount);
-    return date.getTime();
-  }
-  if (interval === "month") {
-    date.setMonth(date.getMonth() + intervalCount);
-    return date.getTime();
-  }
-  // year
-  date.setFullYear(date.getFullYear() + intervalCount);
-  return date.getTime();
-}
-
-function createCorrelationId(): string {
-  return `pro_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-async function writeHistory(ctx: MutationCtx, args: {
-  subscriptionId: Id<"commerce_subscriptions">;
-  eventType: string;
-  actorUserId?: Id<"users">;
-  fromStatus?: string;
-  toStatus?: string;
-  reason?: string;
-  data?: unknown;
-  correlationId?: string;
-}) {
-  await ctx.db.insert("commerce_subscription_history", {
-    subscriptionId: args.subscriptionId,
-    eventType: args.eventType,
-    message: args.eventType,
-    actorUserId: args.actorUserId,
-    metadata: {
-      fromStatus: args.fromStatus,
-      toStatus: args.toStatus,
-      reason: args.reason,
-      data: args.data,
-      correlationId: args.correlationId,
-    },
-    createdAt: Date.now(),
-  });
-}
+const UPGRADE_BLOCKED_STATUSES: ReadonlySet<Doc<"commerce_subscriptions">["status"]> = new Set([
+  "past_due",
+  "paused",
+  "draft",
+  "cancelled",
+  "expired",
+]);
 
 // ─── Disabled-provider fallback ───────────────────────────────────────────────
 
@@ -98,11 +53,12 @@ interface ProratedChargeResult {
 }
 
 function disabledProviderFallback(
+  invoiceId: Id<"commerce_subscription_invoices">,
   totalAmount: number,
   savedPaymentMethodId?: string,
 ): ProratedChargeResult {
   if (totalAmount <= 0) {
-    return { success: true, transactionId: `free_${Date.now()}` };
+    return { success: true, transactionId: `free_${String(invoiceId)}` };
   }
   if (!savedPaymentMethodId) {
     return { success: false, failureReason: "no_payment_method_on_file" };
@@ -111,30 +67,6 @@ function disabledProviderFallback(
     success: false,
     failureReason: "subscription_charging_not_enabled",
   };
-}
-
-async function allocateProrationInvoiceNumber(ctx: MutationCtx): Promise<string> {
-  const doc = await ctx.db
-    .query("settings")
-    .withIndex("by_section", (q) =>
-      q.eq("section", "commerce.subscriptions.counters"),
-    )
-    .unique();
-  const values = (doc?.values ?? {}) as {
-    invoiceCounter?: number;
-    invoicePrefix?: string;
-  };
-  const nextCounter = (values.invoiceCounter ?? 0) + 1;
-  const prefix = values.invoicePrefix ?? "INV-";
-  const formatted = `${prefix}${String(nextCounter).padStart(6, "0")}`;
-  const now = Date.now();
-  if (doc) {
-    await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
-      values: { ...values, invoiceCounter: nextCounter },
-      updatedAt: now,
-    });
-  }
-  return formatted;
 }
 
 async function isLiveChargingEnabled(ctx: MutationCtx): Promise<boolean> {
@@ -189,8 +121,7 @@ export const applyUpgradeProration = internalMutation({
     }
 
     // Guard: only allow upgrade on active/trialing/pending_cancel.
-    const blockedStatuses = ["past_due", "paused", "draft", "cancelled", "expired"] as const;
-    if ((blockedStatuses as readonly string[]).includes(contract.status)) {
+    if (UPGRADE_BLOCKED_STATUSES.has(contract.status)) {
       throw new ConvexError({
         code: "INVALID_STATE",
         message: `Cannot apply upgrade proration on a ${contract.status} contract. Resolve payment issues first.`,
@@ -238,6 +169,19 @@ export const applyUpgradeProration = internalMutation({
       });
     }
 
+    // One plan change at a time: a second upgrade while the first one's charge
+    // is still settling would swap items twice.
+    const contractInvoices = await ctx.db
+      .query("commerce_subscription_invoices")
+      .withIndex("by_subscription", (q) => q.eq("subscriptionId", args.contractId))
+      .collect();
+    if (contractInvoices.some((invoice) => invoice.prorationEventId !== undefined && invoice.status === "open")) {
+      throw new ConvexError({
+        code: "PLAN_CHANGE_IN_PROGRESS",
+        message: "A plan change for this subscription is still being processed.",
+      });
+    }
+
     const cycleStart = contract.currentPeriodStartAt ?? contract.createdAt ?? now;
     const cycleEnd = contract.currentPeriodEndAt ?? cycleStart + 30 * 24 * 60 * 60 * 1000;
 
@@ -248,20 +192,21 @@ export const applyUpgradeProration = internalMutation({
       oldOfferPrice: fromOffer.recurringAmount ?? 0,
       newOfferPrice: toOffer.recurringAmount ?? 0,
     });
+    // Amounts are minor units; a charge is a whole number of them.
+    const netCharge = Math.round(proration.netCharge);
 
     // A negative or zero netCharge means downgrade — caller should use
     // applyDowngradeProration instead.
-    if (proration.netCharge <= 0) {
+    if (netCharge <= 0) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "Net proration charge is not positive — this is a downgrade. Use applyDowngradeProration.",
-        netCharge: proration.netCharge,
+        netCharge,
       });
     }
 
     const currencyCode = toOffer.currencyCode ?? contract.currencyCode ?? "USD";
 
-    // Create the proration event record.
     const prorationEventId = await ctx.db.insert(
       "commerce_subscription_proration_events",
       {
@@ -272,47 +217,43 @@ export const applyUpgradeProration = internalMutation({
         daysInCycle: proration.daysInCycle,
         unusedOldAmount: proration.unusedOldAmount,
         proratedNewAmount: proration.proratedNewAmount,
-        netCharge: proration.netCharge,
+        netCharge,
         triggeredBy: args.triggeredByUserId,
         triggeredAt: now,
       },
     );
 
-    // Allocate a sequential invoice number (Wave 10.3).
-    const invoiceNumber = await allocateProrationInvoiceNumber(ctx);
-
-    // Create the invoice.
     const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
       subscriptionId: args.contractId,
       sourceChannel: contract.sourceChannel,
       status: "open",
-      invoiceNumber,
+      invoiceNumber: await allocateSubscriptionInvoiceNumber(ctx),
       currencyCode,
-      subtotalAmount: proration.netCharge,
+      subtotalAmount: netCharge,
       taxAmount: 0, // Tax stub — Wave 7 tax engine extension point.
-      totalAmount: proration.netCharge,
+      totalAmount: netCharge,
       paymentProvider: contract.paymentProvider,
       savedPaymentMethodId: contract.defaultPaymentMethodId,
       manualBilling: false,
       prorationEventId,
+      periodStartAt: now,
+      periodEndAt: cycleEnd,
       dueAt: now,
       createdAt: now,
       updatedAt: now,
     });
 
-    // Update the proration_event with the invoiceId.
     await ctx.db.patch("commerce_subscription_proration_events", prorationEventId, { invoiceId });
 
-    // Create the invoice line item.
     await ctx.db.insert("commerce_subscription_invoice_items", {
       invoiceId,
       subscriptionItemId: activeItem._id,
       description: `Plan upgrade: ${fromOffer.title} → ${toOffer.title}`,
       quantity: 1,
-      unitAmount: proration.netCharge,
+      unitAmount: netCharge,
       lineType: "proration_charge",
       currencyCode,
-      lineTotalAmount: proration.netCharge,
+      lineTotalAmount: netCharge,
       metadata: {
         fromOfferId: fromOffer._id,
         toOfferId: toOffer._id,
@@ -322,78 +263,59 @@ export const applyUpgradeProration = internalMutation({
       createdAt: now,
     });
 
-    // Apply active coupon discounts on this contract.
+    // Apply active coupon discounts on this contract. A redemption that can no
+    // longer apply is skipped and recorded.
     const activeRedemptions = await ctx.db
       .query("commerce_subscription_coupon_redemptions")
       .withIndex("by_contract", (q) => q.eq("contractId", args.contractId))
       .collect();
-
-    let currentSubtotal = proration.netCharge;
+    let currentSubtotal = netCharge;
     for (const redemption of activeRedemptions) {
       if (redemption.remainingApplications <= 0) continue;
       try {
-        const result = await applyCouponToInvoice(
-          ctx,
-          invoiceId,
-          redemption._id,
-          currentSubtotal,
-        );
-        currentSubtotal = result.newSubtotal;
-      } catch {
-        // A redemption failure is non-fatal — continue with others.
+        currentSubtotal = (await applyCouponToInvoice(ctx, invoiceId, redemption._id, currentSubtotal)).newSubtotal;
+      } catch (err) {
+        await writeHistory(ctx, {
+          subscriptionId: args.contractId,
+          eventType: "subscription.coupon_skipped",
+          reason: err instanceof Error ? err.message : String(err),
+          data: { invoiceId, redemptionId: redemption._id },
+          correlationId,
+        });
       }
     }
 
-    // Fetch the final invoice total after coupon application.
     const finalInvoice = await ctx.db.get(invoiceId);
-    const finalTotal = finalInvoice?.totalAmount ?? proration.netCharge;
+    const finalTotal = finalInvoice?.totalAmount ?? netCharge;
 
-    // Charge — branch on liveChargingEnabled. Live path defers the
-    // item swap to handleInvoicePaymentResult (detected via
-    // invoice.prorationEventId) after the Stripe charge settles.
-    const live = await isLiveChargingEnabled(ctx);
-    if (live) {
-      await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
-        status: "open",
-        updatedAt: now,
-      });
+    // Live charging: the charge runs in an action and its outcome, recorded by
+    // handleInvoicePaymentResult, applies the swap (or voids the invoice).
+    if (await isLiveChargingEnabled(ctx)) {
       await ctx.scheduler.runAfter(
         0,
         internal.commerceSubscriptions.stripeCharge.chargeSubscriptionInvoice,
-        { invoiceId },
+        { invoiceId, attemptNumber: 1 },
       );
       await writeHistory(ctx, {
         subscriptionId: args.contractId,
         eventType: "subscription.proration_charge_scheduled",
         actorUserId: args.triggeredByUserId,
-        data: {
-          fromOfferId: fromOffer._id,
-          toOfferId: toOffer._id,
-          invoiceId,
-          prorationEventId,
-          proration,
-        },
+        data: { fromOfferId: fromOffer._id, toOfferId: toOffer._id, invoiceId, prorationEventId, proration, netCharge },
         correlationId,
       });
       return {
         invoiceId,
         success: true,
         pending: true,
-        message:
-          "Proration invoice created. Stripe charge scheduled; item swap applies on success.",
+        message: "Proration invoice created. Stripe charge scheduled; the plan changes when it succeeds.",
       };
     }
 
-    const chargeResult = disabledProviderFallback(
-      finalTotal,
-      contract.defaultPaymentMethodId,
-    );
-
+    const chargeResult = disabledProviderFallback(invoiceId, finalTotal, contract.defaultPaymentMethodId);
     if (!chargeResult.success) {
-      // Mark invoice as failed. Leave contract in current state (not yet past_due —
-      // the dunning sweep will handle retries).
       await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
-        status: "failed",
+        status: "void",
+        dueAt: undefined,
         updatedAt: now,
       });
       return {
@@ -403,89 +325,15 @@ export const applyUpgradeProration = internalMutation({
       };
     }
 
-    // On success: mark invoice paid.
     await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
       status: "paid",
       paidAt: now,
       paymentTransactionId: chargeResult.transactionId,
+      dueAt: undefined,
       updatedAt: now,
     });
-
-    // Swap the subscription item to the new offer.
-    await ctx.db.patch("commerce_subscription_items", activeItem._id, {
-      status: "cancelled",
-      cancelledAt: now,
-      updatedAt: now,
-    });
-
-    // Resolve billing interval from template.
-    let billingInterval: BillingInterval = "month";
-    let billingIntervalCount = 1;
-    if (contract.templateId) {
-      const template = await ctx.db.get(contract.templateId);
-      if (template) {
-        billingInterval = template.billingInterval as BillingInterval;
-        billingIntervalCount = template.billingIntervalCount;
-      }
-    }
-    // Fallback to contract-level fields if set.
-    if (contract.billingInterval) {
-      billingInterval = contract.billingInterval as BillingInterval;
-    }
-    if (contract.billingIntervalCount) {
-      billingIntervalCount = contract.billingIntervalCount;
-    }
-
-    const newCycleStart = now;
-    const newCycleEnd = addBillingPeriod(newCycleStart, billingInterval, billingIntervalCount);
-
-    await ctx.db.insert("commerce_subscription_items", {
-      subscriptionId: args.contractId,
-      sourceOfferId: toOffer._id,
-      productId: toOffer.productId,
-      variantId: toOffer.variantId,
-      bundleId: toOffer.bundleId,
-      titleSnapshot: toOffer.title,
-      quantity: 1,
-      unitAmount: toOffer.recurringAmount ?? 0,
-      unitRecurringAmount: toOffer.recurringAmount ?? 0,
-      unitSetupFeeAmount: toOffer.setupFeeAmount ?? 0,
-      currencyCode,
-      status: "active",
-      startsAt: now,
-      currentPeriodEndAt: newCycleEnd,
-      cancelAtPeriodEnd: false,
-      entitlementCodes: toOffer.entitlementCodes,
-      priceSnapshot: {
-        offerId: toOffer._id,
-        offerSlug: toOffer.slug,
-        recurringAmount: toOffer.recurringAmount,
-        currencyCode,
-      },
-      metadata: { fromPlanChange: true, fromOfferId: fromOffer._id },
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const existingHistory = contract.offerHistory ?? [];
-    await ctx.db.patch("commerce_subscriptions", args.contractId, {
-      recurringAmount: toOffer.recurringAmount ?? contract.recurringAmount,
-      currencyCode,
-      currentPeriodStartAt: newCycleStart,
-      currentPeriodEndAt: newCycleEnd,
-      nextBillingAt: newCycleEnd,
-      lastInvoiceId: invoiceId,
-      scheduledOfferChange: undefined,
-      offerHistory: [
-        ...existingHistory,
-        {
-          offerId: toOffer._id,
-          effectiveAt: now,
-          reason: "upgrade_proration",
-        },
-      ],
-      updatedAt: now,
-    });
+    const entitlements = await swapToOffer(ctx, contract, toOffer, "upgrade_proration", now);
+    await ctx.db.patch("commerce_subscriptions", args.contractId, { lastInvoiceId: invoiceId });
 
     await writeHistory(ctx, {
       subscriptionId: args.contractId,
@@ -501,6 +349,7 @@ export const applyUpgradeProration = internalMutation({
         prorationEventId,
         proration,
         chargeTransactionId: chargeResult.transactionId,
+        ...entitlements,
       },
       correlationId,
     });

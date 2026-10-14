@@ -448,6 +448,11 @@ export const commerceSubscriptionTables = {
     paymentTransactionId: v.optional(v.string()),
     savedPaymentMethodId: v.optional(v.string()),
     manualBilling: v.optional(v.boolean()),
+    // The billing period a renewal invoice pays for. Paying it advances the
+    // contract to `periodEndAt` once; a late payment for a period the contract
+    // has already moved past settles the invoice and nothing else.
+    periodStartAt: v.optional(v.number()),
+    periodEndAt: v.optional(v.number()),
     dueAt: v.optional(v.number()),
     paidAt: v.optional(v.number()),
     prorationEventId: v.optional(
@@ -517,11 +522,16 @@ export const commerceSubscriptionTables = {
     scheduledAt: v.number(),
     processedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
+    // The provider charge this attempt made (a Stripe PaymentIntent id), so a
+    // webhook reporting the same charge is recognised and not counted twice.
+    paymentTransactionId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_subscription", ["subscriptionId"])
-    .index("by_status", ["status"]),
+    .index("by_invoice", ["invoiceId"])
+    .index("by_status", ["status"])
+    .index("by_status_scheduled_at", ["status", "scheduledAt"]),
 
   commerce_subscription_idempotency_keys: defineTable({
     scope: v.string(),

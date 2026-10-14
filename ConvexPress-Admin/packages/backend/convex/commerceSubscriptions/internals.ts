@@ -1,458 +1,50 @@
-import type { RegisteredQuery } from "convex/server";
-import type { Doc, Id } from "../_generated/dataModel";
 /**
- * Commerce Subscriptions — Internal Functions
+ * Commerce Subscriptions — internal functions.
  *
- * Ported from VexCart subscriptions.ts internal mutations, adapted to ConvexPress
- * schema (commerce_subscription_* tables).
+ * Not client-callable: invoked by the renewal and dunning sweeps, the charging
+ * action, the Stripe webhook and other internal functions. Contract status
+ * changes go through `lifecycle.ts`.
  *
- * These are NOT client-callable — invoked by actions, schedulers, or other internal functions.
- *
- * Functions:
- *   - createDueInvoices           Generate invoices for subscriptions due for billing
- *   - handleInvoicePaymentResult  Process payment success/failure for an invoice
- *   - expirePendingCancellations  Expire subscriptions that reached their cancel-at date
- *   - processScheduledDunning     Process a single scheduled dunning attempt
+ *   - createDueInvoices            Renewal invoices for contracts whose period ended
+ *   - handleInvoicePaymentResult   Apply one charge outcome to an invoice (idempotent)
+ *   - recordStripeInvoicePayment   The Stripe webhook's entry to the same
+ *   - getRetryableDunningAttempts  Retries due now (and stalled claims)
+ *   - claimDunningAttempt          Claim one retry for charging
+ *   - expirePendingCancellations   End contracts whose scheduled cancellation is due
  */
-
-import { ConvexError, v } from "convex/values";
+import type { RegisteredQuery } from "convex/server";
+import { ConvexError, v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
+import { SUBSCRIPTION_EVENTS } from "../events/constants";
+import { applyCouponToInvoice } from "../helpers/coupons";
 import { emitEvent } from "../helpers/events";
 import { getCurrentUser } from "../helpers/auth";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
-import { decideBridgeCall } from "./bridgeDecisions";
-import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 import { readMergedSettingsSection } from "../settings/read";
-
+import { commerceSubscriptionInvoiceStatusValidator } from "../schema/commerceSubscriptions";
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
+import { allocateSubscriptionInvoiceNumber } from "./invoiceNumbers";
+import {
+	addBillingPeriod,
+	addDays,
+	canTransition,
+	createCorrelationId,
+	isEnded,
+	resolveLifecycleTerms,
+	swapToOffer,
+	syncEntitlementsForStatus,
+	transitionSubscription,
+	writeHistory,
+	type SubscriptionDoc,
+	type SubscriptionStatus,
+} from "./lifecycle";
 import { activationResultValidator, type ActivationResult } from "./validators";
-// ═══════════════════════════════════════════════════════════════════════════
-// HELPERS (duplicated for internal module isolation)
-// ═══════════════════════════════════════════════════════════════════════════
-
-type BillingInterval = "day" | "week" | "month" | "year";
-type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
-type SubscriptionDoc = Doc<"commerce_subscriptions">;
-
-type HistoryEntry = {
-	subscriptionId: Id<"commerce_subscriptions">;
-	eventType: string;
-	message?: string;
-	actorUserId?: Id<"users">;
-	fromStatus?: SubscriptionStatus;
-	toStatus?: SubscriptionStatus;
-	reason?: string;
-	data?: Record<string, unknown>;
-	correlationId?: string;
-};
-
-type TransitionArgs = {
-	subscription: SubscriptionDoc;
-	toStatus: SubscriptionStatus;
-	reason?: string;
-	correlationId?: string;
-	actorUserId?: Id<"users">;
-	patch?: Record<string, unknown>;
-};
-
-const STATUS_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
-	draft: ["trialing", "active", "cancelled"],
-	trialing: [
-		"active",
-		"past_due",
-		"paused",
-		"pending_cancel",
-		"cancelled",
-		"expired",
-	],
-	active: ["past_due", "paused", "pending_cancel", "cancelled", "expired"],
-	past_due: ["active", "paused", "pending_cancel", "cancelled", "expired"],
-	paused: ["active", "pending_cancel", "cancelled", "expired"],
-	pending_cancel: ["active", "cancelled", "expired"],
-	cancelled: [],
-	expired: [],
-};
-
-const DEFAULT_DUNNING_POLICY = {
-	maxAttempts: 3,
-	retryIntervalsDays: [1, 3, 7],
-	cancelAfterFinalFailure: true,
-};
-
-function canTransition(
-	from: SubscriptionStatus,
-	to: SubscriptionStatus,
-): boolean {
-	return STATUS_TRANSITIONS[from]?.includes(to) ?? false;
-}
-
-function addDays(timestamp: number, days: number): number {
-	return timestamp + days * 24 * 60 * 60 * 1000;
-}
-
-function addBillingPeriod(
-	timestamp: number,
-	interval: BillingInterval,
-	intervalCount: number,
-): number {
-	const date = new Date(timestamp);
-	if (interval === "day") {
-		date.setDate(date.getDate() + intervalCount);
-		return date.getTime();
-	}
-	if (interval === "week") {
-		date.setDate(date.getDate() + 7 * intervalCount);
-		return date.getTime();
-	}
-	if (interval === "month") {
-		date.setMonth(date.getMonth() + intervalCount);
-		return date.getTime();
-	}
-	date.setFullYear(date.getFullYear() + intervalCount);
-	return date.getTime();
-}
-
-function createCorrelationId(): string {
-	return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-async function resolveEffectiveConfig(
-	ctx: { db: QueryCtx["db"] },
-	product: Doc<"commerce_products">,
-	templateId?: Id<"commerce_subscription_templates">,
-) {
-	const override = await ctx.db
-		.query("commerce_product_subscription_overrides")
-		.withIndex("by_product", (q) => q.eq("productId", product._id))
-		.first();
-
-	let template: Doc<"commerce_subscription_templates"> | null = null;
-	const configuredTemplateId = templateId ?? override?.templateId ?? undefined;
-	if (configuredTemplateId) {
-		template = await ctx.db.get(configuredTemplateId);
-	}
-
-	return {
-		gracePeriodDays:
-			override?.overrideGracePeriodDays ?? template?.gracePeriodDays ?? 3,
-		dunningPolicy: DEFAULT_DUNNING_POLICY,
-	};
-}
-
-async function allocateInvoiceNumber(ctx: MutationCtx): Promise<string> {
-	const doc = await ctx.db
-		.query("settings")
-		.withIndex("by_section", (q) =>
-			q.eq("section", "commerce.subscriptions.counters"),
-		)
-		.unique();
-	const values = (doc?.values ?? {}) as {
-		invoiceCounter?: number;
-		invoicePrefix?: string;
-	};
-	const nextCounter = (values.invoiceCounter ?? 0) + 1;
-	const prefix = values.invoicePrefix ?? "INV-";
-	const formatted = `${prefix}${String(nextCounter).padStart(6, "0")}`;
-
-	const now = Date.now();
-	if (doc) {
-		await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
-			values: { ...values, invoiceCounter: nextCounter },
-			updatedAt: now,
-		});
-	}
-	// Note: if the settings row doesn't exist yet, we skip creation here —
-	// it gets created lazily on the first successful settings.update_* mutation
-	// via the standard defaults-first merge. Returning the counter without a
-	// persisted row would drift; in practice the admin configures this once.
-	return formatted;
-}
-
-async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
-	await ctx.db.insert("commerce_subscription_history", {
-		subscriptionId: args.subscriptionId,
-		eventType: args.eventType,
-		message: args.message ?? args.eventType,
-		actorUserId: args.actorUserId,
-		metadata: {
-			fromStatus: args.fromStatus,
-			toStatus: args.toStatus,
-			reason: args.reason,
-			data: args.data,
-			correlationId: args.correlationId,
-		},
-		createdAt: Date.now(),
-	});
-}
-
-/**
- * Returns true iff both the commerce-subscriptions and membership plugins are
- * enabled AND `membership.acceptSubscriptionGrants` is not explicitly false.
- *
- * This gates the subscription → membership bridge call in
- * `syncEntitlementsForStatus`. When this returns false, status transitions
- * proceed normally but do NOT propagate to membership grants.
- */
-async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
-	const commerceOn = await isPluginEnabled(ctx, "commerceSubscriptions");
-	if (!commerceOn) return false;
-	const membershipOn = await isPluginEnabled(ctx, "membership");
-	if (!membershipOn) return false;
-
-	// Check membership.acceptSubscriptionGrants — defaults to true if unset.
-	// If the admin explicitly disabled the auto-grant flow, we silently skip.
-	try {
-		const settingsRow = await ctx.db
-			.query("settings")
-			.withIndex("by_section", (q) =>
-				q.eq("section", "membership.general"),
-			)
-			.unique();
-		const values = (settingsRow?.values ?? {}) as Record<string, unknown>;
-		if (values.acceptSubscriptionGrants === false) return false;
-	} catch {
-		// Settings read failure should not block bridge; fall through to enabled.
-	}
-	return true;
-}
-
-async function syncEntitlementsForStatus(
-	ctx: MutationCtx,
-	subscription: SubscriptionDoc,
-	now: number,
-	gracePeriodDays = 3,
-) {
-	const entitlements = await ctx.db
-		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q) =>
-			q.eq("subscriptionId", subscription._id),
-		)
-		.collect();
-
-	for (const entitlement of entitlements) {
-		if (
-			subscription.status === "active" ||
-			subscription.status === "trialing"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "active",
-				endsAt: undefined,
-				updatedAt: now,
-			});
-		} else if (
-			subscription.status === "past_due" ||
-			subscription.status === "paused"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "grace",
-				graceEndsAt: addDays(now, gracePeriodDays),
-				updatedAt: now,
-			});
-		} else if (
-			subscription.status === "cancelled" ||
-			subscription.status === "expired"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "revoked",
-				endsAt: now,
-				updatedAt: now,
-			});
-		}
-	}
-
-	// ── Bridge: propagate status to membership grants ─────────────────────────
-	// Soft-gated by `isBridgeEnabled` — plugin flags + acceptSubscriptionGrants.
-	// Each entitlement's bridge call is isolated: one failure MUST NOT block the
-	// rest of the loop or the status transition itself.
-	const bridgeEnabled = await isBridgeEnabled(ctx);
-	if (!bridgeEnabled) return;
-
-	for (const entitlement of entitlements) {
-		const decision = decideBridgeCall({
-			subscription,
-			entitlement,
-			gracePeriodDays,
-		});
-		if (decision.action === "noop") continue;
-
-		try {
-			if (decision.action === "grant") {
-				await ctx.runMutation(
-					internal.membership.internals.grantFromSubscription,
-					decision.args,
-				);
-			} else if (decision.action === "moveToGrace") {
-				await ctx.runMutation(
-					internal.membership.internals.moveGrantToGrace,
-					decision.args,
-				);
-			} else if (decision.action === "revoke") {
-				await ctx.runMutation(
-					internal.membership.internals.revokeFromSubscription,
-					decision.args,
-				);
-			}
-		} catch (err) {
-			const subscriptionId = String(subscription._id);
-			const code = entitlement.entitlementCode ?? "(no-code)";
-			console.error(
-				`[bridge] membership propagation failed for subscription ${subscriptionId}, ` +
-					`entitlement ${code}: ${err instanceof Error ? err.message : String(err)}`,
-			);
-			// Record to subscription history so the failure is auditable without
-			// re-throwing. `writeHistory` does not throw.
-			try {
-				await writeHistory(ctx, {
-					subscriptionId: subscription._id,
-					eventType: "subscription.bridge_failed",
-					message: `Membership bridge call failed for entitlement ${code}`,
-					fromStatus: subscription.status,
-					toStatus: subscription.status,
-					reason: "bridge_error",
-					data: {
-						entitlementCode: code,
-						action: decision.action,
-						error: err instanceof Error ? err.message : String(err),
-					},
-				});
-			} catch {
-				// history write failure is non-fatal
-			}
-			// Continue loop — one entitlement's failure must not block others.
-		}
-	}
-}
-
-async function transitionSubscription(
-	ctx: MutationCtx,
-	args: TransitionArgs,
-): Promise<SubscriptionDoc> {
-	const now = Date.now();
-	if (args.subscription.status === args.toStatus) return args.subscription;
-
-	if (!canTransition(args.subscription.status, args.toStatus)) {
-		throw new Error(
-			`Invalid status transition: ${args.subscription.status} -> ${args.toStatus}`,
-		);
-	}
-
-	const patch: Record<string, unknown> = {
-		status: args.toStatus,
-		updatedAt: now,
-		...args.patch,
-	};
-
-	if (args.toStatus === "cancelled" || args.toStatus === "expired") {
-		patch.cancelledAt = now;
-	}
-
-	await patchDynamicWithMediaReferences(ctx, args.subscription._id, patch);
-	const updated = await ctx.db.get(args.subscription._id);
-	if (!updated) throw new Error("Subscription not found after transition");
-
-	await writeHistory(ctx, {
-		subscriptionId: updated._id,
-		eventType: "subscription.status_changed",
-		actorUserId: args.actorUserId,
-		fromStatus: args.subscription.status,
-		toStatus: args.toStatus,
-		reason: args.reason,
-		data: { patch },
-		correlationId: args.correlationId,
-	});
-
-	const product = updated.productId
-		? await ctx.db.get(updated.productId)
-		: null;
-	if (product) {
-		const config = await resolveEffectiveConfig(
-			ctx,
-			product,
-			updated.templateId,
-		);
-		await syncEntitlementsForStatus(
-			ctx,
-			updated,
-			now,
-			config.gracePeriodDays ?? 3,
-		);
-	}
-
-	// Wave 10.2: emit lifecycle events for email subscribers.
-	if (args.toStatus === "paused") {
-		await emitEvent(ctx, "commerce.subscription_paused", "commerce", {
-			subscriptionId: updated._id,
-			userId: updated.userId,
-		});
-	} else if (args.toStatus === "cancelled") {
-		await emitEvent(ctx, "commerce.subscription_cancelled", "commerce", {
-			subscriptionId: updated._id,
-			userId: updated.userId,
-			reason: args.reason,
-		});
-	}
-
-	return updated;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL QUERIES
 // ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Get subscriptions due for billing (used by renewal action).
- */
-export const getDueSubscriptions = internalQuery({
-	args: {
-		limit: v.optional(v.number()),
-	},
-	returns: v.array(commerceSubscriptionsDocs.commerce_subscriptions),
-	handler: async (ctx, args) => {
-		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
-		const now = Date.now();
-		const limit = args.limit ?? 50;
-
-		const active = await ctx.db
-			.query("commerce_subscriptions")
-			.withIndex("by_status", (q) => q.eq("status", "active"))
-			.collect();
-		const trialing = await ctx.db
-			.query("commerce_subscriptions")
-			.withIndex("by_status", (q) => q.eq("status", "trialing"))
-			.collect();
-
-		return [...active, ...trialing]
-			.filter(
-				(sub) => (sub.nextBillingAt ?? Number.MAX_SAFE_INTEGER) <= now,
-			)
-			.slice(0, limit);
-	},
-});
-
-/**
- * Get failed invoices due for retry (used by dunning action).
- */
-export const getRetryableInvoices = internalQuery({
-	args: {
-		limit: v.optional(v.number()),
-	},
-	returns: v.union(v.null(), v.array(commerceSubscriptionsDocs.commerce_subscription_invoices)),
-	handler: async (ctx, args) => {
-		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
-		const now = Date.now();
-		const limit = args.limit ?? 100;
-
-		const failedInvoices = await ctx.db
-			.query("commerce_subscription_invoices")
-			.withIndex("by_status", (q) => q.eq("status", "failed"))
-			.collect();
-
-		return failedInvoices
-			.filter((inv) => inv.dueAt !== undefined && inv.dueAt <= now)
-			.slice(0, limit);
-	},
-});
 
 export const checkEntitlementForUser = internalQuery({
 	args: {
@@ -507,12 +99,123 @@ export const checkEntitlementForUser = internalQuery({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INTERNAL MUTATIONS — INVOICE GENERATION
+// RENEWAL INVOICES
 // ═══════════════════════════════════════════════════════════════════════════
 
+type InvoiceDoc = Doc<"commerce_subscription_invoices">;
+type AttemptDoc = Doc<"commerce_subscription_dunning_attempts">;
+
+/** Contracts the renewal sweep invoices when their period has ended. */
+const RENEWABLE: readonly SubscriptionStatus[] = ["active", "trialing"];
+
 /**
- * Create invoices for subscriptions that are due for billing.
- * Called by the renewal action on a schedule.
+ * An invoice that still has a charge coming: open (being charged now) or
+ * failed with dunning in progress. A contract with one gets no new renewal
+ * invoice, so one period is never invoiced twice.
+ */
+function isUnsettled(invoice: InvoiceDoc): boolean {
+	return invoice.status === "draft" || invoice.status === "open" || invoice.status === "failed";
+}
+
+/**
+ * Coupon redemptions with applications left discount the invoice, each using
+ * one application. A redemption that can no longer apply (its coupon was
+ * deleted) is skipped and recorded rather than failing the renewal.
+ */
+async function applyRedemptions(
+	ctx: MutationCtx,
+	subscriptionId: Id<"commerce_subscriptions">,
+	invoiceId: Id<"commerce_subscription_invoices">,
+	subtotal: number,
+): Promise<void> {
+	const redemptions = await ctx.db
+		.query("commerce_subscription_coupon_redemptions")
+		.withIndex("by_contract", (q) => q.eq("contractId", subscriptionId))
+		.collect();
+	let current = subtotal;
+	for (const redemption of redemptions) {
+		if (redemption.remainingApplications <= 0) continue;
+		try {
+			current = (await applyCouponToInvoice(ctx, invoiceId, redemption._id, current)).newSubtotal;
+		} catch (err) {
+			await writeHistory(ctx, {
+				subscriptionId,
+				eventType: "subscription.coupon_skipped",
+				reason: err instanceof Error ? err.message : String(err),
+				data: { invoiceId, redemptionId: redemption._id },
+			});
+		}
+	}
+}
+
+async function insertRenewalInvoice(
+	ctx: MutationCtx,
+	subscription: SubscriptionDoc,
+	now: number,
+): Promise<Id<"commerce_subscription_invoices">> {
+	const terms = await resolveLifecycleTerms(ctx, subscription);
+	const periodStartAt = subscription.currentPeriodEndAt ?? now;
+	const periodEndAt = addBillingPeriod(periodStartAt, terms.billingInterval, terms.billingIntervalCount);
+	const subtotalAmount = subscription.recurringAmount;
+
+	const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
+		subscriptionId: subscription._id,
+		checkoutIntentId: subscription.sourceCheckoutIntentId,
+		sourceChannel: subscription.sourceChannel,
+		status: "open",
+		invoiceNumber: await allocateSubscriptionInvoiceNumber(ctx),
+		currencyCode: subscription.currencyCode,
+		subtotalAmount,
+		taxAmount: 0,
+		totalAmount: subtotalAmount,
+		paymentProvider: subscription.paymentProvider,
+		savedPaymentMethodId: subscription.defaultPaymentMethodId,
+		manualBilling: subscription.manualBilling,
+		periodStartAt,
+		periodEndAt,
+		dueAt: now,
+		createdAt: now,
+		updatedAt: now,
+	});
+
+	const items = await ctx.db
+		.query("commerce_subscription_items")
+		.withIndex("by_subscription", (q) => q.eq("subscriptionId", subscription._id))
+		.collect();
+	for (const item of items) {
+		if (item.status !== "active" && item.status !== "pending_cancel") continue;
+		await ctx.db.insert("commerce_subscription_invoice_items", {
+			invoiceId,
+			subscriptionItemId: item._id,
+			description: "Recurring subscription charge",
+			quantity: item.quantity,
+			unitAmount: item.unitAmount,
+			lineType: "recurring",
+			currencyCode: item.currencyCode,
+			lineTotalAmount: item.unitAmount * item.quantity,
+			metadata: {
+				sourceOfferId: item.sourceOfferId,
+				sourceOfferItemId: item.sourceOfferItemId,
+				productId: item.productId,
+				variantId: item.variantId,
+				bundleId: item.bundleId,
+			},
+			createdAt: now,
+		});
+	}
+
+	await applyRedemptions(ctx, subscription._id, invoiceId, subtotalAmount);
+
+	await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
+		invoiceId,
+		eventType: "subscription_invoice_created",
+	});
+	return invoiceId;
+}
+
+/**
+ * Create the renewal invoice for each contract whose paid period has ended.
+ * Called by the renewal sweep, which charges each invoice it gets back.
  */
 export const createDueInvoices = internalMutation({
 	args: {
@@ -525,249 +228,113 @@ export const createDueInvoices = internalMutation({
 		const now = Date.now();
 		const limit = args.limit ?? 50;
 
-		const active = await ctx.db
-			.query("commerce_subscriptions")
-			.withIndex("by_status", (q) => q.eq("status", "active"))
-			.collect();
-		const trialing = await ctx.db
-			.query("commerce_subscriptions")
-			.withIndex("by_status", (q) => q.eq("status", "trialing"))
-			.collect();
-
-		const dueSubscriptions = [...active, ...trialing]
-			.filter(
-				(sub) => (sub.nextBillingAt ?? Number.MAX_SAFE_INTEGER) <= now,
-			)
-			.slice(0, limit);
-
-		const createdInvoiceIds: Id<"commerce_subscription_invoices">[] = [];
-
-		for (const subscription of dueSubscriptions) {
-			// Skip if there's already an open/draft invoice
-			const existingInvoices = await ctx.db
-				.query("commerce_subscription_invoices")
-				.withIndex("by_subscription", (q) =>
-					q.eq("subscriptionId", subscription._id),
-				)
+		const due: SubscriptionDoc[] = [];
+		for (const status of RENEWABLE) {
+			const rows = await ctx.db
+				.query("commerce_subscriptions")
+				.withIndex("by_status", (q) => q.eq("status", status))
 				.collect();
-			const hasOpen = existingInvoices.some(
-				(inv) => inv.status === "open" || inv.status === "draft",
-			);
-			if (hasOpen) continue;
-
-			const subtotalAmount = subscription.recurringAmount ?? 0;
-			const taxAmount = 0;
-			const totalAmount = subtotalAmount + taxAmount;
-
-			const invoiceNumber = await allocateInvoiceNumber(ctx);
-
-			const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
-				subscriptionId: subscription._id,
-				checkoutIntentId: subscription.sourceCheckoutIntentId,
-				sourceChannel: subscription.sourceChannel,
-				status: "open",
-				invoiceNumber,
-				currencyCode: subscription.currencyCode,
-				subtotalAmount,
-				taxAmount,
-				totalAmount,
-				paymentProvider: subscription.paymentProvider,
-				paymentTransactionId: undefined,
-				savedPaymentMethodId: subscription.defaultPaymentMethodId,
-				manualBilling: subscription.manualBilling,
-				dueAt: now,
-				paidAt: undefined,
-				createdAt: now,
-				updatedAt: now,
-			});
-
-			// Create invoice line items from subscription items
-			const items = await ctx.db
-				.query("commerce_subscription_items")
-				.withIndex("by_subscription", (q) =>
-					q.eq("subscriptionId", subscription._id),
-				)
-				.collect();
-
-			for (const item of items.filter((item) => item.status === "active" || item.status === "pending_cancel")) {
-				await ctx.db.insert("commerce_subscription_invoice_items", {
-					invoiceId,
-					subscriptionItemId: item._id,
-					description: "Recurring subscription charge",
-					quantity: item.quantity,
-					unitAmount: item.unitAmount,
-					lineType: "recurring",
-					currencyCode: item.currencyCode,
-					lineTotalAmount: item.unitAmount * item.quantity,
-					metadata: {
-						sourceOfferId: item.sourceOfferId,
-						sourceOfferItemId: item.sourceOfferItemId,
-						productId: item.productId,
-						variantId: item.variantId,
-						bundleId: item.bundleId,
-					},
-					createdAt: now,
-				});
+			for (const row of rows) {
+				if (row.nextBillingAt !== undefined && row.nextBillingAt <= now) due.push(row);
 			}
-
-			await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
-				invoiceId,
-				eventType: "subscription_invoice_created",
-			});
-
-			createdInvoiceIds.push(invoiceId);
 		}
 
-		return {
-			createdCount: createdInvoiceIds.length,
-			invoiceIds: createdInvoiceIds,
-		};
+		const invoiceIds: Id<"commerce_subscription_invoices">[] = [];
+		for (const subscription of due) {
+			if (invoiceIds.length >= limit) break;
+			const invoices = await ctx.db
+				.query("commerce_subscription_invoices")
+				.withIndex("by_subscription", (q) => q.eq("subscriptionId", subscription._id))
+				.collect();
+			if (invoices.some(isUnsettled)) continue;
+			invoiceIds.push(await insertRenewalInvoice(ctx, subscription, now));
+		}
+
+		return { createdCount: invoiceIds.length, invoiceIds };
+	},
+});
+
+/** How long an open invoice may wait for its charge before the sweep re-drives it. */
+const CHARGE_STALE_AFTER_MS = 15 * 60 * 1000;
+/**
+ * Re-drives reuse the charge's idempotency key, which Stripe honours for at
+ * least 24 hours. Past that window a re-drive could charge twice, so an older
+ * stuck invoice is left for an operator.
+ */
+const CHARGE_REPLAY_WINDOW_MS = 23 * 60 * 60 * 1000;
+
+/**
+ * Open invoices whose charge never reported back (the charging action failed
+ * before recording a result). The renewal sweep charges them again with the
+ * same idempotency key, so a charge Stripe already made is returned, not
+ * repeated.
+ */
+export const getStalledInvoiceCharges = internalQuery({
+	args: { limit: v.optional(v.number()) },
+	returns: v.array(v.object({ invoiceId: v.id("commerce_subscription_invoices"), stalledSince: v.number() })),
+	handler: async (ctx, args) => {
+		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
+		const now = Date.now();
+		const open = await ctx.db
+			.query("commerce_subscription_invoices")
+			.withIndex("by_status", (q) => q.eq("status", "open"))
+			.collect();
+		return open
+			.filter(
+				(invoice) =>
+					!invoice.manualBilling &&
+					invoice.updatedAt <= now - CHARGE_STALE_AFTER_MS &&
+					invoice.updatedAt > now - CHARGE_REPLAY_WINDOW_MS,
+			)
+			.slice(0, args.limit ?? 25)
+			.map((invoice) => ({ invoiceId: invoice._id, stalledSince: invoice.updatedAt }));
 	},
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PRORATION ITEM-SWAP HELPER
+// PRORATION ITEM SWAP
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Apply the deferred item swap for a successful proration invoice. Called
- * from `handleInvoicePaymentResult` when the invoice has a prorationEventId
- * and the payment succeeded. Mirrors the synchronous swap that the stub
- * path performs inside `applyUpgradeProration`.
+ * Apply the plan change a paid upgrade proration invoice bought. The proration
+ * charged the price difference for the rest of the current period, so the
+ * period itself is unchanged: the next renewal bills the new price when it ends.
  */
 async function applyProrationItemSwap(
 	ctx: MutationCtx,
-	invoice: Doc<"commerce_subscription_invoices">,
+	invoice: InvoiceDoc,
 	subscription: SubscriptionDoc,
 	paymentTransactionId: string | undefined,
 	correlationId: string,
+	now: number,
 ): Promise<void> {
-	const now = Date.now();
-
-	const prorationEvent = invoice.prorationEventId
-		? await ctx.db.get(invoice.prorationEventId)
-		: null;
-	if (!prorationEvent) {
-		// Event was deleted; just mark invoice paid and exit.
-		await patchDynamicWithMediaReferences(ctx, invoice._id, {
-			status: "paid",
-			paidAt: now,
-			paymentTransactionId,
-			updatedAt: now,
-		});
-		return;
-	}
-
-	const toOffer = await ctx.db.get(prorationEvent.toOfferId);
-	const fromOffer = await ctx.db.get(prorationEvent.fromOfferId);
-	if (!toOffer || !fromOffer) {
-		await patchDynamicWithMediaReferences(ctx, invoice._id, {
-			status: "paid",
-			paidAt: now,
-			paymentTransactionId,
-			updatedAt: now,
-		});
-		return;
-	}
-
-	// Mark invoice paid.
-	await patchDynamicWithMediaReferences(ctx, invoice._id, {
+	await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
 		status: "paid",
 		paidAt: now,
 		paymentTransactionId,
+		dueAt: undefined,
 		updatedAt: now,
 	});
 
-	// Find the active item to cancel.
-	const items = await ctx.db
-		.query("commerce_subscription_items")
-		.withIndex("by_subscription", (q) =>
-			q.eq("subscriptionId", subscription._id),
-		)
-		.collect();
-	const activeItem = items.find((i) => i.status === "active");
-	if (activeItem) {
-		await patchDynamicWithMediaReferences(ctx, activeItem._id, {
-			status: "cancelled",
-			cancelledAt: now,
-			updatedAt: now,
+	const prorationEvent = invoice.prorationEventId ? await ctx.db.get(invoice.prorationEventId) : null;
+	const toOffer = prorationEvent ? await ctx.db.get(prorationEvent.toOfferId) : null;
+	const fromOffer = prorationEvent ? await ctx.db.get(prorationEvent.fromOfferId) : null;
+	if (!prorationEvent || !toOffer || !fromOffer) {
+		await writeHistory(ctx, {
+			subscriptionId: subscription._id,
+			eventType: "subscription.proration_swap_skipped",
+			reason: "proration_event_or_offer_missing",
+			data: { invoiceId: invoice._id, prorationEventId: invoice.prorationEventId },
+			correlationId,
 		});
+		return;
 	}
 
-	// Resolve billing interval (template first, contract fallback).
-	let billingInterval: BillingInterval = "month";
-	let billingIntervalCount = 1;
-	if (subscription.templateId) {
-		const template = await ctx.db.get(subscription.templateId);
-		if (template) {
-			billingInterval = template.billingInterval as BillingInterval;
-			billingIntervalCount = template.billingIntervalCount;
-		}
+	await swapToOffer(ctx, subscription, toOffer, "upgrade_proration", now);
+	const updated = await ctx.db.get(subscription._id);
+	if (updated) {
+		await ctx.db.patch("commerce_subscriptions", updated._id, { lastInvoiceId: invoice._id });
 	}
-	if (subscription.billingInterval) {
-		billingInterval = subscription.billingInterval as BillingInterval;
-	}
-	if (subscription.billingIntervalCount) {
-		billingIntervalCount = subscription.billingIntervalCount;
-	}
-
-	const newCycleStart = now;
-	const newCycleEnd = addBillingPeriod(
-		newCycleStart,
-		billingInterval,
-		billingIntervalCount,
-	);
-	const currencyCode =
-		invoice.currencyCode ?? subscription.currencyCode ?? "USD";
-
-	// Insert new active item for the target offer.
-	await ctx.db.insert("commerce_subscription_items", {
-		subscriptionId: subscription._id,
-		sourceOfferId: toOffer._id,
-		productId: toOffer.productId,
-		variantId: toOffer.variantId,
-		bundleId: toOffer.bundleId,
-		titleSnapshot: toOffer.title,
-		quantity: 1,
-		unitAmount: toOffer.recurringAmount ?? 0,
-		unitRecurringAmount: toOffer.recurringAmount ?? 0,
-		unitSetupFeeAmount: toOffer.setupFeeAmount ?? 0,
-		currencyCode,
-		status: "active",
-		startsAt: now,
-		currentPeriodEndAt: newCycleEnd,
-		cancelAtPeriodEnd: false,
-		entitlementCodes: toOffer.entitlementCodes,
-		priceSnapshot: {
-			offerId: toOffer._id,
-			offerSlug: toOffer.slug,
-			recurringAmount: toOffer.recurringAmount,
-			currencyCode,
-		},
-		metadata: { fromPlanChange: true, fromOfferId: fromOffer._id },
-		createdAt: now,
-		updatedAt: now,
-	});
-
-	const existingHistory = subscription.offerHistory ?? [];
-	await patchDynamicWithMediaReferences(ctx, subscription._id, {
-		recurringAmount: toOffer.recurringAmount ?? subscription.recurringAmount,
-		currencyCode,
-		currentPeriodStartAt: newCycleStart,
-		currentPeriodEndAt: newCycleEnd,
-		nextBillingAt: newCycleEnd,
-		lastInvoiceId: invoice._id,
-		scheduledOfferChange: undefined,
-		offerHistory: [
-			...existingHistory,
-			{
-				offerId: toOffer._id,
-				effectiveAt: now,
-				reason: "upgrade_proration",
-			},
-		],
-		updatedAt: now,
-	});
 
 	await writeHistory(ctx, {
 		subscriptionId: subscription._id,
@@ -788,12 +355,304 @@ async function applyProrationItemSwap(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INTERNAL MUTATIONS — PAYMENT RESULT HANDLING
+// PAYMENT RESULTS
 // ═══════════════════════════════════════════════════════════════════════════
 
+async function attemptsForInvoice(
+	ctx: MutationCtx,
+	invoiceId: Id<"commerce_subscription_invoices">,
+): Promise<AttemptDoc[]> {
+	return await ctx.db
+		.query("commerce_subscription_dunning_attempts")
+		.withIndex("by_invoice", (q) => q.eq("invoiceId", invoiceId))
+		.collect();
+}
+
+const paymentResultValidator = v.object({
+	applied: v.boolean(),
+	outcome: v.union(v.literal("paid"), v.literal("failed"), v.literal("ignored")),
+	reason: v.optional(v.string()),
+});
+type PaymentResult = Infer<typeof paymentResultValidator>;
+
+const ignored = (reason: string): PaymentResult => ({ applied: false, outcome: "ignored", reason });
+
+type ChargeOutcome = {
+	paymentTransactionId?: string;
+	failureCode?: string;
+	failureReason?: string;
+};
+
+async function recordPaidInvoice(
+	ctx: MutationCtx,
+	invoice: InvoiceDoc,
+	subscription: SubscriptionDoc,
+	charge: ChargeOutcome,
+	correlationId: string,
+	now: number,
+): Promise<PaymentResult> {
+	// Any retry still waiting for this invoice is done: it was paid.
+	for (const attempt of await attemptsForInvoice(ctx, invoice._id)) {
+		if (attempt.status !== "scheduled" && attempt.status !== "processing") continue;
+		const own = attempt.status === "processing";
+		await ctx.db.patch("commerce_subscription_dunning_attempts", attempt._id, {
+			status: own ? "succeeded" : "aborted",
+			processedAt: now,
+			paymentTransactionId: own ? charge.paymentTransactionId : attempt.paymentTransactionId,
+			errorMessage: own ? undefined : "invoice_paid",
+			updatedAt: now,
+		});
+	}
+
+	if (invoice.prorationEventId) {
+		await applyProrationItemSwap(ctx, invoice, subscription, charge.paymentTransactionId, correlationId, now);
+		await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
+			invoiceId: invoice._id,
+			eventType: "subscription_invoice_paid",
+			metadata: { paymentTransactionId: charge.paymentTransactionId, prorationEventId: invoice.prorationEventId },
+		});
+		return { applied: true, outcome: "paid" };
+	}
+
+	await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
+		status: "paid",
+		paidAt: now,
+		paymentTransactionId: charge.paymentTransactionId,
+		dueAt: undefined,
+		updatedAt: now,
+	});
+	await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
+		invoiceId: invoice._id,
+		eventType: "subscription_invoice_paid",
+		metadata: { paymentTransactionId: charge.paymentTransactionId },
+	});
+
+	if (isEnded(subscription.status)) {
+		// Money arrived for a contract that has since ended (a late payment on a
+		// voided invoice). It is recorded, not used to revive the contract; an
+		// operator decides between reinstating and refunding.
+		await writeHistory(ctx, {
+			subscriptionId: subscription._id,
+			eventType: "subscription.payment_after_close",
+			fromStatus: subscription.status,
+			toStatus: subscription.status,
+			data: { invoiceId: invoice._id, paymentTransactionId: charge.paymentTransactionId },
+			correlationId,
+		});
+		return { applied: true, outcome: "paid", reason: "contract_ended" };
+	}
+
+	// The invoice pays for the period it was issued for. When the contract has
+	// already moved past that period, the payment settles the invoice and
+	// nothing else.
+	const terms = await resolveLifecycleTerms(ctx, subscription);
+	const periodStartAt = invoice.periodStartAt ?? subscription.currentPeriodEndAt ?? now;
+	const periodEndAt =
+		invoice.periodEndAt ?? addBillingPeriod(periodStartAt, terms.billingInterval, terms.billingIntervalCount);
+	const advances = subscription.currentPeriodEndAt === undefined || periodEndAt > subscription.currentPeriodEndAt;
+	if (advances) {
+		await ctx.db.patch("commerce_subscriptions", subscription._id, {
+			currentPeriodStartAt: periodStartAt,
+			currentPeriodEndAt: periodEndAt,
+			nextBillingAt: periodEndAt,
+			lastInvoiceId: invoice._id,
+			updatedAt: now,
+		});
+	}
+
+	const current = await ctx.db.get(subscription._id);
+	if (!current) return { applied: true, outcome: "paid" };
+	if (current.status === "past_due" || current.status === "trialing") {
+		await transitionSubscription(ctx, {
+			subscription: current,
+			toStatus: "active",
+			reason: current.status === "past_due" ? "payment_recovered" : "trial_converted",
+			correlationId,
+		});
+	} else {
+		await syncEntitlementsForStatus(ctx, current, now, terms.gracePeriodDays);
+	}
+
+	await writeHistory(ctx, {
+		subscriptionId: subscription._id,
+		eventType: "subscription.renewed",
+		fromStatus: subscription.status,
+		toStatus: current.status === "past_due" || current.status === "trialing" ? "active" : current.status,
+		data: { invoiceId: invoice._id, paymentTransactionId: charge.paymentTransactionId, periodEndAt, advanced: advances },
+		correlationId,
+	});
+	await emitEvent(ctx, SUBSCRIPTION_EVENTS.RENEWED, "commerce", {
+		subscriptionId: subscription._id,
+		userId: subscription.userId,
+		invoiceId: invoice._id,
+		amount: invoice.totalAmount,
+		currencyCode: invoice.currencyCode,
+		periodEndAt,
+	});
+	return { applied: true, outcome: "paid" };
+}
+
+async function recordFailedCharge(
+	ctx: MutationCtx,
+	invoice: InvoiceDoc,
+	subscription: SubscriptionDoc,
+	charge: ChargeOutcome,
+	correlationId: string,
+	now: number,
+): Promise<PaymentResult> {
+	if (invoice.status === "void") return ignored("invoice_closed");
+	const attempts = await attemptsForInvoice(ctx, invoice._id);
+	// Stripe reports a declined charge both to the charging action and by
+	// webhook. The PaymentIntent id makes the second report a no-op.
+	if (charge.paymentTransactionId && attempts.some((a) => a.paymentTransactionId === charge.paymentTransactionId)) {
+		return ignored("already_recorded");
+	}
+
+	if (invoice.prorationEventId) {
+		// A plan change the customer asked for: the change does not happen, and
+		// the contract is not put into dunning over it.
+		await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
+			status: "void",
+			paymentTransactionId: charge.paymentTransactionId,
+			dueAt: undefined,
+			updatedAt: now,
+		});
+		await writeHistory(ctx, {
+			subscriptionId: subscription._id,
+			eventType: "subscription.proration_charge_failed",
+			fromStatus: subscription.status,
+			toStatus: subscription.status,
+			reason: charge.failureReason,
+			data: { invoiceId: invoice._id, prorationEventId: invoice.prorationEventId },
+			correlationId,
+		});
+		await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
+			invoiceId: invoice._id,
+			eventType: "subscription_invoice_payment_failed",
+			metadata: {
+				paymentTransactionId: charge.paymentTransactionId,
+				prorationEventId: invoice.prorationEventId,
+				failureCode: charge.failureCode,
+				failureReason: charge.failureReason,
+			},
+		});
+		return { applied: true, outcome: "failed", reason: "plan_change_not_applied" };
+	}
+
+	if (isEnded(subscription.status)) return ignored("contract_ended");
+
+	// The charge that failed: the dunning retry that claimed it, or the renewal
+	// charge itself (attempt 1).
+	const claimed = attempts.find((a) => a.status === "processing");
+	if (claimed) {
+		await ctx.db.patch("commerce_subscription_dunning_attempts", claimed._id, {
+			status: "failed",
+			processedAt: now,
+			errorMessage: charge.failureReason,
+			paymentTransactionId: charge.paymentTransactionId,
+			updatedAt: now,
+		});
+	} else {
+		await ctx.db.insert("commerce_subscription_dunning_attempts", {
+			subscriptionId: subscription._id,
+			invoiceId: invoice._id,
+			attemptNumber: attempts.length + 1,
+			status: "failed",
+			scheduledAt: now,
+			processedAt: now,
+			errorMessage: charge.failureReason,
+			paymentTransactionId: charge.paymentTransactionId,
+			createdAt: now,
+			updatedAt: now,
+		});
+	}
+
+	const terms = await resolveLifecycleTerms(ctx, subscription);
+	const policy = terms.dunningPolicy;
+	const failedCharges = (await attemptsForInvoice(ctx, invoice._id)).filter((a) => a.status === "failed").length;
+	const retryInDays = policy.retryIntervalsDays[failedCharges - 1];
+	const nextRetryAt = retryInDays === undefined ? undefined : addDays(now, retryInDays);
+	const hasScheduled = attempts.some((a) => a.status === "scheduled");
+	if (nextRetryAt !== undefined && !hasScheduled) {
+		await ctx.db.insert("commerce_subscription_dunning_attempts", {
+			subscriptionId: subscription._id,
+			invoiceId: invoice._id,
+			attemptNumber: failedCharges + 1,
+			status: "scheduled",
+			scheduledAt: nextRetryAt,
+			createdAt: now,
+			updatedAt: now,
+		});
+	}
+
+	await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
+		status: "failed",
+		paymentTransactionId: charge.paymentTransactionId,
+		dueAt: nextRetryAt,
+		updatedAt: now,
+	});
+	await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
+		invoiceId: invoice._id,
+		eventType: "subscription_invoice_payment_failed",
+		metadata: {
+			paymentTransactionId: charge.paymentTransactionId,
+			failureCode: charge.failureCode,
+			failureReason: charge.failureReason,
+		},
+	});
+
+	let current = subscription;
+	if (current.status !== "past_due" && canTransition(current.status, "past_due")) {
+		current = await transitionSubscription(ctx, {
+			subscription: current,
+			toStatus: "past_due",
+			reason: charge.failureReason ?? "payment_failed",
+			correlationId,
+		});
+	}
+
+	await writeHistory(ctx, {
+		subscriptionId: subscription._id,
+		eventType: "subscription.payment_failed",
+		fromStatus: subscription.status,
+		toStatus: current.status,
+		reason: charge.failureReason,
+		data: { invoiceId: invoice._id, failureCode: charge.failureCode, attemptNumber: failedCharges, nextRetryAt },
+		correlationId,
+	});
+	await emitEvent(ctx, SUBSCRIPTION_EVENTS.PAST_DUE, "commerce", {
+		subscriptionId: subscription._id,
+		userId: subscription.userId,
+		invoiceId: invoice._id,
+		attemptNumber: failedCharges,
+		maxAttempts: policy.retryIntervalsDays.length + 1,
+		nextRetryAt,
+	});
+
+	if (nextRetryAt === undefined && policy.cancelAfterFinalFailure) {
+		await transitionSubscription(ctx, {
+			subscription: current,
+			toStatus: "cancelled",
+			reason: "dunning_exhausted",
+			correlationId,
+			patch: { cancelAtPeriodEnd: false },
+			eventData: { invoiceId: invoice._id, attemptNumber: failedCharges },
+		});
+	}
+	return { applied: true, outcome: "failed" };
+}
+
 /**
- * Handle the result of a subscription invoice payment attempt.
- * Called by the renewal action after attempting payment.
+ * Record the outcome of one charge of a subscription invoice. Every path that
+ * learns an outcome reports here (the charging action, the Stripe webhook, the
+ * disabled-provider fallback), and the same charge may be reported more than
+ * once, so this is idempotent: a paid invoice stays paid and a declined charge
+ * is counted once by its PaymentIntent id.
+ *
+ * Success pays the invoice, advances the contract one period (once) and
+ * restores access. Failure records the attempt, schedules the next retry from
+ * the dunning policy, moves the contract to `past_due` (access to grace) and,
+ * when retries are exhausted, cancels it.
  */
 export const handleInvoicePaymentResult = internalMutation({
 	args: {
@@ -804,281 +663,77 @@ export const handleInvoicePaymentResult = internalMutation({
 		failureReason: v.optional(v.string()),
 		correlationId: v.optional(v.string()),
 	},
-	returns: v.union(v.object({ success: v.boolean() }), v.null()),
-	handler: async (ctx, args) => {
+	returns: paymentResultValidator,
+	handler: async (ctx, args): Promise<PaymentResult> => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
-		const now = Date.now();
-		const correlationId = args.correlationId ?? createCorrelationId();
+		return await applyPaymentResult(ctx, args);
+	},
+});
 
-		const invoice = await ctx.db.get(args.invoiceId);
-		if (!invoice) throw new Error("Invoice not found");
+async function applyPaymentResult(
+	ctx: MutationCtx,
+	args: {
+		invoiceId: Id<"commerce_subscription_invoices">;
+		succeeded: boolean;
+		paymentTransactionId?: string;
+		failureCode?: string;
+		failureReason?: string;
+		correlationId?: string;
+	},
+): Promise<PaymentResult> {
+	const now = Date.now();
+	const correlationId = args.correlationId ?? createCorrelationId();
+	const invoice = await ctx.db.get(args.invoiceId);
+	if (!invoice) return ignored("invoice_not_found");
+	const subscription = await ctx.db.get(invoice.subscriptionId);
+	if (!subscription) return ignored("subscription_not_found");
+	if (invoice.status === "paid") return ignored("already_paid");
 
-		const subscription = await ctx.db.get(invoice.subscriptionId);
-		if (!subscription) throw new Error("Subscription not found");
+	const charge: ChargeOutcome = {
+		paymentTransactionId: args.paymentTransactionId,
+		failureCode: args.failureCode,
+		failureReason: args.failureReason,
+	};
+	return args.succeeded
+		? await recordPaidInvoice(ctx, invoice, subscription, charge, correlationId, now)
+		: await recordFailedCharge(ctx, invoice, subscription, charge, correlationId, now);
+}
 
-		// Proration invoices (upgrades) flow through a different result path:
-		// on success, apply the item swap from the proration event; on failure,
-		// mark the invoice failed but do NOT enter dunning (proration is a
-		// customer-initiated portal action, not a recurring-billing failure).
-		if (invoice.prorationEventId) {
-			if (args.succeeded) {
-				await applyProrationItemSwap(
-					ctx,
-					invoice,
-					subscription,
-					args.paymentTransactionId,
-					correlationId,
-				);
-				await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
-					invoiceId: invoice._id,
-					eventType: "subscription_invoice_paid",
-					metadata: {
-						paymentTransactionId: args.paymentTransactionId,
-						prorationEventId: invoice.prorationEventId,
-					},
-				});
-			} else {
-				await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
-					status: "failed",
-					updatedAt: now,
-				});
-				await writeHistory(ctx, {
-					subscriptionId: subscription._id,
-					eventType: "subscription.proration_charge_failed",
-					fromStatus: subscription.status,
-					toStatus: subscription.status,
-					data: {
-						invoiceId: invoice._id,
-						prorationEventId: invoice.prorationEventId,
-						failureReason: args.failureReason,
-					},
-					correlationId,
-				});
-				await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
-					invoiceId: invoice._id,
-					eventType: "subscription_invoice_payment_failed",
-					metadata: {
-						paymentTransactionId: args.paymentTransactionId,
-						prorationEventId: invoice.prorationEventId,
-						failureCode: args.failureCode,
-						failureReason: args.failureReason,
-					},
-				});
-			}
-			return;
-		}
-
-		if (args.succeeded) {
-			// === SUCCESS PATH ===
-			const currentPeriodEndAt = subscription.currentPeriodEndAt ?? now;
-			const nextPeriodStartAt = currentPeriodEndAt;
-
-			// Use a default interval if not stored on subscription
-			const billingInterval: BillingInterval = "month";
-			const billingIntervalCount = 1;
-
-			// Try to get interval from template
-			let template: Doc<"commerce_subscription_templates"> | null = null;
-			if (subscription.templateId) {
-				template = await ctx.db.get(subscription.templateId);
-			}
-			const effectiveInterval = template?.billingInterval ?? billingInterval;
-			const effectiveCount =
-				template?.billingIntervalCount ?? billingIntervalCount;
-
-			const nextPeriodEndAt = addBillingPeriod(
-				nextPeriodStartAt,
-				effectiveInterval as BillingInterval,
-				effectiveCount,
-			);
-
-			// Mark invoice as paid
-			await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
-				status: "paid",
-				paidAt: now,
-				updatedAt: now,
-			});
-
-			await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
-				invoiceId: invoice._id,
-				eventType: "subscription_invoice_paid",
-				metadata: {
-					paymentTransactionId: args.paymentTransactionId,
-				},
-			});
-
-			// Advance subscription billing period
-			await ctx.db.patch("commerce_subscriptions", subscription._id, {
-				status: "active",
-				currentPeriodStartAt: nextPeriodStartAt,
-				currentPeriodEndAt: nextPeriodEndAt,
-				nextBillingAt: nextPeriodEndAt,
-				updatedAt: now,
-			});
-
-			// Sync entitlements to active
-			const updated = await ctx.db.get(subscription._id);
-			if (updated) {
-				const product = updated.productId
-					? await ctx.db.get(updated.productId)
-					: null;
-				if (product) {
-					const config = await resolveEffectiveConfig(
-						ctx,
-						product,
-						updated.templateId,
-					);
-					await syncEntitlementsForStatus(
-						ctx,
-						updated,
-						now,
-						config.gracePeriodDays ?? 3,
-					);
-				}
-			}
-
-			await writeHistory(ctx, {
-				subscriptionId: subscription._id,
-				eventType: "subscription.renewed",
-				fromStatus: subscription.status,
-				toStatus: "active",
-				data: {
-					invoiceId: invoice._id,
-					paymentTransactionId: args.paymentTransactionId,
-					nextPeriodEndAt,
-				},
-				correlationId,
-			});
-
-			// Wave 10.2: emit for email subscribers.
-			await emitEvent(ctx, "commerce.subscription_renewed", "commerce", {
-				subscriptionId: subscription._id,
-				userId: subscription.userId,
-				invoiceId: invoice._id,
-			});
-		} else {
-			// === FAILURE PATH ===
-			const product = subscription.productId
-				? await ctx.db.get(subscription.productId)
-				: null;
-			const config = product
-				? await resolveEffectiveConfig(ctx, product, subscription.templateId)
-				: { gracePeriodDays: 3, dunningPolicy: DEFAULT_DUNNING_POLICY };
-
-			// Count existing dunning attempts for this subscription
-			const existingAttempts = await ctx.db
-				.query("commerce_subscription_dunning_attempts")
-				.withIndex("by_subscription", (q) =>
-					q.eq("subscriptionId", subscription._id),
-				)
-				.collect();
-			const attemptNumber = existingAttempts.length + 1;
-
-			const retryDays =
-				config.dunningPolicy.retryIntervalsDays[attemptNumber - 1];
-			const nextRetryAt =
-				retryDays !== undefined ? addDays(now, retryDays) : undefined;
-
-			// Mark invoice as failed
-			await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
-				status: "failed",
-				dueAt: nextRetryAt,
-				updatedAt: now,
-			});
-			await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
-				invoiceId: invoice._id,
-				eventType: "subscription_invoice_payment_failed",
-				metadata: {
-					paymentTransactionId: args.paymentTransactionId,
-					failureCode: args.failureCode,
-					failureReason: args.failureReason,
-				},
-			});
-
-			// Move subscription to past_due
-			if (subscription.status !== "past_due") {
-				await ctx.db.patch("commerce_subscriptions", subscription._id, {
-					status: "past_due",
-					updatedAt: now,
-				});
-			}
-
-			// Record dunning attempt
-			await ctx.db.insert("commerce_subscription_dunning_attempts", {
-				subscriptionId: subscription._id,
-				invoiceId: invoice._id,
-				attemptNumber,
-				status: "failed",
-				scheduledAt: now,
-				processedAt: now,
-				errorMessage: args.failureReason,
-				createdAt: now,
-				updatedAt: now,
-			});
-
-			// Sync entitlements to grace
-			const updated = await ctx.db.get(subscription._id);
-			if (updated) {
-				await syncEntitlementsForStatus(
-					ctx,
-					updated,
-					now,
-					config.gracePeriodDays ?? 3,
-				);
-			}
-
-			// Wave 10.2: emit past_due so email subscribers can notify the customer.
-			await emitEvent(ctx, "commerce.subscription_past_due", "commerce", {
-				subscriptionId: subscription._id,
-				userId: subscription.userId,
-				attemptNumber,
-				maxAttempts: config.dunningPolicy.maxAttempts,
-			});
-
-			// Check if dunning is exhausted
-			if (
-				config.dunningPolicy.cancelAfterFinalFailure &&
-				attemptNumber >= config.dunningPolicy.maxAttempts
-			) {
-				const current = await ctx.db.get(subscription._id);
-				if (current) {
-					await transitionSubscription(ctx, {
-						subscription: current,
-						toStatus: "cancelled",
-						reason: "dunning_exhausted",
-						correlationId,
-						patch: {},
-					});
-				}
-			}
-
-			await writeHistory(ctx, {
-				subscriptionId: subscription._id,
-				eventType: "subscription.payment_failed",
-				fromStatus: subscription.status,
-				toStatus: "past_due",
-				reason: args.failureReason,
-				data: {
-					invoiceId: invoice._id,
-					failureCode: args.failureCode,
-					attemptNumber,
-					nextRetryAt,
-				},
-				correlationId,
-			});
-		}
-
-		return { success: true };
+/**
+ * The Stripe webhook's entry point for `subscription_invoice` PaymentIntents.
+ * The invoice reference comes from PaymentIntent metadata, so it is resolved
+ * here; a reference that names no invoice is acknowledged and ignored.
+ */
+export const recordStripeInvoicePayment = internalMutation({
+	args: {
+		invoiceRef: v.string(),
+		succeeded: v.boolean(),
+		paymentTransactionId: v.string(),
+		failureCode: v.optional(v.string()),
+		failureReason: v.optional(v.string()),
+	},
+	returns: paymentResultValidator,
+	handler: async (ctx, args): Promise<PaymentResult> => {
+		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return ignored("plugin_disabled");
+		const invoiceId = ctx.db.normalizeId("commerce_subscription_invoices", args.invoiceRef);
+		if (!invoiceId) return ignored("invoice_not_found");
+		return await applyPaymentResult(ctx, {
+			invoiceId,
+			succeeded: args.succeeded,
+			paymentTransactionId: args.paymentTransactionId,
+			failureCode: args.failureCode,
+			failureReason: args.failureReason,
+		});
 	},
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INTERNAL MUTATIONS — EXPIRATION SWEEP
+// EXPIRATION SWEEP
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Expire subscriptions that have reached their scheduled cancel date.
- * Transitions pending_cancel -> cancelled when currentPeriodEndAt has passed.
+ * End contracts whose scheduled cancellation has been reached: pending_cancel
+ * contracts whose paid period is over move to cancelled.
  */
 export const expirePendingCancellations = internalMutation({
 	args: {
@@ -1095,22 +750,15 @@ export const expirePendingCancellations = internalMutation({
 			.withIndex("by_status", (q) => q.eq("status", "pending_cancel"))
 			.collect();
 
-		const dueForCancellation = pendingCancel
-			.filter(
-				(sub) =>
-					sub.currentPeriodEndAt !== undefined && sub.currentPeriodEndAt <= now,
-			)
-			.slice(0, limit);
-
 		let cancelledCount = 0;
-
-		for (const subscription of dueForCancellation) {
+		for (const subscription of pendingCancel) {
+			if (cancelledCount >= limit) break;
+			if (subscription.currentPeriodEndAt === undefined || subscription.currentPeriodEndAt > now) continue;
 			await transitionSubscription(ctx, {
 				subscription,
 				toStatus: "cancelled",
 				reason: "period_end_reached",
 				correlationId: createCorrelationId(),
-				patch: {},
 			});
 			cancelledCount++;
 		}
@@ -1119,82 +767,45 @@ export const expirePendingCancellations = internalMutation({
 	},
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DUNNING RETRIES
+// ═══════════════════════════════════════════════════════════════════════════
+
 /**
- * Process a single scheduled dunning attempt.
- * Marks the attempt as processing, then schedules the actual payment action.
+ * A claimed retry whose charging action died without reporting back is
+ * claimable again after this long. The retry reuses its idempotency key.
  */
-export const processScheduledDunning = internalMutation({
+const CLAIM_STALE_AFTER_MS = 30 * 60 * 1000;
+
+/** Retries due now, plus claimed retries that never reported back. */
+export const getRetryableDunningAttempts = internalQuery({
 	args: {
-		dunningAttemptId: v.id("commerce_subscription_dunning_attempts"),
+		limit: v.optional(v.number()),
 	},
-	returns: v.union(
-		v.object({ skipped: v.boolean() }),
+	returns: v.array(
 		v.object({
+			attemptId: v.id("commerce_subscription_dunning_attempts"),
 			subscriptionId: v.id("commerce_subscriptions"),
 			invoiceId: v.optional(v.id("commerce_subscription_invoices")),
 			attemptNumber: v.number(),
 		}),
 	),
 	handler: async (ctx, args) => {
-		await requirePluginEnabled(ctx, "commerceSubscriptions");
-		const now = Date.now();
-		const attempt = await ctx.db.get(args.dunningAttemptId);
-		if (!attempt || attempt.status !== "scheduled") {
-			return { skipped: true };
-		}
-
-		await ctx.db.patch("commerce_subscription_dunning_attempts", args.dunningAttemptId, {
-			status: "processing",
-			processedAt: now,
-			updatedAt: now,
-		});
-
-		// The action layer will pick up processing attempts and actually charge
-		// For now, mark ready for the action to handle
-		return {
-			subscriptionId: attempt.subscriptionId,
-			invoiceId: attempt.invoiceId,
-			attemptNumber: attempt.attemptNumber,
-		};
-	},
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DUNNING SUPPORT — RETRYABLE ATTEMPTS + OUTCOME RECORDING
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Query retryable dunning attempts: `commerce_subscription_dunning_attempts`
- * rows with `status === "scheduled"` whose associated invoice is still
- * `failed` and the subscription is `past_due`.
- *
- * Called by the dunning action (actions cannot read DB directly).
- */
-export const getRetryableDunningAttempts = internalQuery({
-	args: {
-		limit: v.optional(v.number()),
-	},
-	returns: v.array(v.object({
-   attemptId: v.id("commerce_subscription_dunning_attempts"),
-   subscriptionId: v.id("commerce_subscriptions"),
-   invoiceId: v.optional(v.id("commerce_subscription_invoices")),
-   attemptNumber: v.number(),
- })),
-	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		const now = Date.now();
 		const limit = args.limit ?? 100;
 
-		const scheduled = await ctx.db
+		const due = await ctx.db
 			.query("commerce_subscription_dunning_attempts")
-			.withIndex("by_status", (q) => q.eq("status", "scheduled"))
-			.collect();
+			.withIndex("by_status_scheduled_at", (q) => q.eq("status", "scheduled").lte("scheduledAt", now))
+			.take(limit);
+		const claimed = await ctx.db
+			.query("commerce_subscription_dunning_attempts")
+			.withIndex("by_status_scheduled_at", (q) => q.eq("status", "processing"))
+			.take(limit);
+		const stalled = claimed.filter((a) => (a.processedAt ?? a.updatedAt) <= now - CLAIM_STALE_AFTER_MS);
 
-		const due = scheduled
-			.filter((a) => a.scheduledAt <= now)
-			.slice(0, limit);
-
-		return due.map((a) => ({
+		return [...due, ...stalled].slice(0, limit).map((a) => ({
 			attemptId: a._id,
 			subscriptionId: a.subscriptionId,
 			invoiceId: a.invoiceId,
@@ -1204,145 +815,57 @@ export const getRetryableDunningAttempts = internalQuery({
 });
 
 /**
- * Mark a dunning attempt as aborted (invoice gone or unrecoverable).
+ * Claim a retry for charging. Returns what to charge, or null when the retry
+ * no longer applies; it is then closed with the reason (invoice already paid
+ * or voided, contract ended or no longer past due). Two sweeps cannot both
+ * claim the same retry: the claim and its checks run in one transaction.
  */
-export const abortDunningAttempt = internalMutation({
+export const claimDunningAttempt = internalMutation({
 	args: {
 		attemptId: v.id("commerce_subscription_dunning_attempts"),
-		reason: v.string(),
 	},
-	returns: v.null(),
+	returns: v.union(
+		v.null(),
+		v.object({
+			invoiceId: v.id("commerce_subscription_invoices"),
+			attemptNumber: v.number(),
+		}),
+	),
 	handler: async (ctx, args) => {
+		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		const now = Date.now();
-		await ctx.db.patch("commerce_subscription_dunning_attempts", args.attemptId, {
-			status: "aborted",
-			processedAt: now,
-			errorMessage: args.reason,
-			updatedAt: now,
-		});
-	},
-});
+		const attempt = await ctx.db.get(args.attemptId);
+		if (!attempt) return null;
+		const claimable =
+			attempt.status === "scheduled"
+				? attempt.scheduledAt <= now
+				: attempt.status === "processing" && (attempt.processedAt ?? attempt.updatedAt) <= now - CLAIM_STALE_AFTER_MS;
+		if (!claimable) return null;
 
-/**
- * Mark a dunning attempt as succeeded.
- */
-export const completeDunningAttempt = internalMutation({
-	args: {
-		attemptId: v.id("commerce_subscription_dunning_attempts"),
-		outcome: v.literal("success"),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const now = Date.now();
-		await ctx.db.patch("commerce_subscription_dunning_attempts", args.attemptId, {
-			status: "succeeded",
-			processedAt: now,
-			updatedAt: now,
-		});
-	},
-});
-
-/**
- * Record a dunning charge failure. Updates the attempt row, schedules the
- * next retry (or cancels the subscription if max attempts is reached).
- *
- * Returns `{ cancelled: boolean, nextRetryAt? }`.
- */
-export const recordDunningFailure = internalMutation({
-	args: {
-		attemptId: v.id("commerce_subscription_dunning_attempts"),
-		subscriptionId: v.id("commerce_subscriptions"),
-		invoiceId: v.id("commerce_subscription_invoices"),
-		attemptNumber: v.number(),
-		failureReason: v.optional(v.string()),
-		maxAttempts: v.number(),
-		retryDays: v.array(v.number()),
-	},
-	returns: v.object({ cancelled: v.boolean(), nextRetryAt: v.optional(v.number()) }),
-	handler: async (ctx, args) => {
-		const now = Date.now();
-		const correlationId = createCorrelationId();
-
-		// Mark this attempt as failed.
-		await ctx.db.patch("commerce_subscription_dunning_attempts", args.attemptId, {
-			status: "failed",
-			processedAt: now,
-			errorMessage: args.failureReason,
-			updatedAt: now,
-		});
-
-		// Mark the invoice as failed too (update dueAt to the next retry time).
-		const nextRetryDays = args.retryDays[args.attemptNumber]; // 0-indexed next attempt
-		const nextRetryAt =
-			nextRetryDays !== undefined ? addDays(now, nextRetryDays) : undefined;
-
-		await ctx.db.patch("commerce_subscription_invoices", args.invoiceId, {
-			status: "failed",
-			dueAt: nextRetryAt,
-			updatedAt: now,
-		});
-
-		const subscription = await ctx.db.get(args.subscriptionId);
-		if (!subscription) return { cancelled: false };
-
-		// Check if dunning is exhausted.
-		if (args.attemptNumber >= args.maxAttempts) {
-			// Cancel the subscription.
-			await transitionSubscription(ctx, {
-				subscription,
-				toStatus: "cancelled",
-				reason: "dunning_exhausted",
-				correlationId,
-				patch: {},
-			});
-
-			await writeHistory(ctx, {
-				subscriptionId: args.subscriptionId,
-				eventType: "subscription.dunning_exhausted",
-				fromStatus: subscription.status,
-				toStatus: "cancelled",
-				reason: "dunning_exhausted",
-				data: {
-					invoiceId: args.invoiceId,
-					attemptNumber: args.attemptNumber,
-					failureReason: args.failureReason,
-				},
-				correlationId,
-			});
-
-			return { cancelled: true };
-		}
-
-		// Schedule the next dunning attempt.
-		if (nextRetryAt !== undefined) {
-			await ctx.db.insert("commerce_subscription_dunning_attempts", {
-				subscriptionId: args.subscriptionId,
-				invoiceId: args.invoiceId,
-				attemptNumber: args.attemptNumber + 1,
-				status: "scheduled",
-				scheduledAt: nextRetryAt,
-				processedAt: undefined,
-				errorMessage: undefined,
-				createdAt: now,
+		const close = async (reason: string) => {
+			await ctx.db.patch("commerce_subscription_dunning_attempts", attempt._id, {
+				status: "aborted",
+				processedAt: now,
+				errorMessage: reason,
 				updatedAt: now,
 			});
-		}
+			return null;
+		};
 
-		await writeHistory(ctx, {
-			subscriptionId: args.subscriptionId,
-			eventType: "subscription.payment_failed",
-			fromStatus: subscription.status,
-			toStatus: subscription.status,
-			reason: args.failureReason,
-			data: {
-				invoiceId: args.invoiceId,
-				attemptNumber: args.attemptNumber,
-				nextRetryAt,
-			},
-			correlationId,
+		const invoice = attempt.invoiceId ? await ctx.db.get(attempt.invoiceId) : null;
+		if (!invoice) return await close("invoice_not_found");
+		if (invoice.status === "paid") return await close("invoice_paid");
+		if (invoice.status === "void") return await close("invoice_void");
+		const subscription = await ctx.db.get(attempt.subscriptionId);
+		if (!subscription) return await close("subscription_not_found");
+		if (subscription.status !== "past_due") return await close(`subscription_${subscription.status}`);
+
+		await ctx.db.patch("commerce_subscription_dunning_attempts", attempt._id, {
+			status: "processing",
+			processedAt: now,
+			updatedAt: now,
 		});
-
-		return { cancelled: false, nextRetryAt };
+		return { invoiceId: invoice._id, attemptNumber: attempt.attemptNumber };
 	},
 });
 
@@ -1367,47 +890,53 @@ export const getPaymentChargingSettings = internalQuery({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RENEWAL SUPPORT — INVOICE FETCH FOR ACTIONS
+// CHARGING SUPPORT — INVOICE FETCH FOR ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Fetch a single invoice for the renewal action (actions cannot read DB
- * directly). Returns only the fields the action needs to decide how to
- * charge.
+ * The fields the charging action needs, and whether the invoice can be charged
+ * at all: it must be unpaid and not voided, and its contract must not have
+ * ended. Actions cannot read the database directly.
  */
 export const getInvoiceForRenewal = internalQuery({
 	args: {
 		invoiceId: v.id("commerce_subscription_invoices"),
 	},
-	returns: v.union(v.null(), v.object({
-   _id: v.id("commerce_subscription_invoices"),
-   totalAmount: v.number(),
-   currencyCode: v.string(),
-   savedPaymentMethodId: v.optional(v.string()),
-   stripeCustomerId: v.optional(v.string()),
-   subscriptionId: v.id("commerce_subscriptions"),
-   manualBilling: v.optional(v.boolean()),
-   email: v.optional(v.string()),
- })),
+	returns: v.union(
+		v.null(),
+		v.object({
+			_id: v.id("commerce_subscription_invoices"),
+			status: commerceSubscriptionInvoiceStatusValidator,
+			payable: v.boolean(),
+			totalAmount: v.number(),
+			currencyCode: v.string(),
+			savedPaymentMethodId: v.optional(v.string()),
+			stripeCustomerId: v.optional(v.string()),
+			subscriptionId: v.id("commerce_subscriptions"),
+			manualBilling: v.optional(v.boolean()),
+			email: v.optional(v.string()),
+		}),
+	),
 	handler: async (ctx, args) => {
 		const invoice = await ctx.db.get(args.invoiceId);
 		if (!invoice) return null;
 		const subscription = await ctx.db.get(invoice.subscriptionId);
-		let email: string | undefined;
-		if (subscription?.userId) {
-			const user = await ctx.db.get(subscription.userId);
-			email = user?.email;
-		}
+		const user = subscription?.userId ? await ctx.db.get(subscription.userId) : null;
+		const payable =
+			(invoice.status === "open" || invoice.status === "failed") &&
+			subscription !== null &&
+			!isEnded(subscription.status);
 		return {
 			_id: invoice._id,
+			status: invoice.status,
+			payable,
 			totalAmount: invoice.totalAmount,
 			currencyCode: invoice.currencyCode,
-			savedPaymentMethodId:
-				invoice.savedPaymentMethodId ?? subscription?.defaultPaymentMethodId,
+			savedPaymentMethodId: subscription?.defaultPaymentMethodId ?? invoice.savedPaymentMethodId,
 			stripeCustomerId: subscription?.stripeCustomerId,
 			subscriptionId: invoice.subscriptionId,
 			manualBilling: invoice.manualBilling,
-			email,
+			email: user?.email,
 		};
 	},
 });
@@ -1633,128 +1162,48 @@ export const recordSavedPaymentMethod = internalMutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SCHEDULED OFFER CHANGE APPLICATION (Step 1.e)
+// SCHEDULED OFFER CHANGES
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Apply any scheduled offer changes whose `effectiveAt` has passed.
- * Applied before creating the renewal invoice for the effective cycle.
- *
- * Per contract: updates the active subscription_item to point to the new
- * offer, clears `scheduledOfferChange`, and appends to `offerHistory`.
+ * Apply scheduled offer changes (downgrades) whose `effectiveAt` has passed,
+ * before the renewal invoice for the new period is created, so that invoice
+ * bills the new offer.
  */
 async function applyDueOfferChanges(ctx: MutationCtx): Promise<{ applied: number }> {
-		const now = Date.now();
-
-		// Collect contracts that have a scheduled offer change due.
-		const active = await ctx.db
+	const now = Date.now();
+	let applied = 0;
+	for (const status of RENEWABLE) {
+		const rows = await ctx.db
 			.query("commerce_subscriptions")
-			.withIndex("by_status", (q) => q.eq("status", "active"))
+			.withIndex("by_status", (q) => q.eq("status", status))
 			.collect();
-
-		let applied = 0;
-
-		for (const subscription of active) {
+		for (const subscription of rows) {
 			const change = subscription.scheduledOfferChange;
-			if (!change) continue;
-			if (change.effectiveAt > now) continue;
-
+			if (!change || change.effectiveAt > now) continue;
 			const toOffer = await ctx.db.get(change.toOfferId);
 			if (!toOffer) {
-				// Offer was deleted — clear the stale scheduled change.
-				await patchDynamicWithMediaReferences(ctx, subscription._id, {
-					scheduledOfferChange: undefined,
-					updatedAt: now,
+				await ctx.db.patch("commerce_subscriptions", subscription._id, { scheduledOfferChange: undefined, updatedAt: now });
+				await writeHistory(ctx, {
+					subscriptionId: subscription._id,
+					eventType: "subscription.scheduled_offer_change_dropped",
+					reason: "offer_missing",
+					data: { toOfferId: change.toOfferId },
 				});
 				continue;
 			}
-
-			// Update the active subscription item to the new offer.
-			const items = await ctx.db
-				.query("commerce_subscription_items")
-				.withIndex("by_subscription", (q) =>
-					q.eq("subscriptionId", subscription._id),
-				)
-				.collect();
-			const activeItem =
-				items.find((it) => it.status === "active") ??
-				items.find((it) => it.status === "pending_cancel") ??
-				items[0];
-
-			if (activeItem) {
-				// Cancel the old item.
-				await patchDynamicWithMediaReferences(ctx, activeItem._id, {
-					status: "cancelled",
-					cancelledAt: now,
-					updatedAt: now,
-				});
-
-				// Insert a new item for the new offer.
-				await ctx.db.insert("commerce_subscription_items", {
-					subscriptionId: subscription._id,
-					sourceOfferId: toOffer._id,
-					sourceOfferItemId: undefined,
-					productId: toOffer.productId,
-					variantId: toOffer.variantId,
-					bundleId: toOffer.bundleId,
-					titleSnapshot: toOffer.title,
-					quantity: 1,
-					unitAmount: toOffer.recurringAmount ?? 0,
-					unitRecurringAmount: toOffer.recurringAmount ?? 0,
-					unitSetupFeeAmount: toOffer.setupFeeAmount ?? 0,
-					currencyCode: toOffer.currencyCode ?? subscription.currencyCode,
-					status: "active",
-					startsAt: now,
-					currentPeriodEndAt: subscription.currentPeriodEndAt,
-					cancelAtPeriodEnd: false,
-					cancelledAt: undefined,
-					entitlementCodes: toOffer.entitlementCodes,
-					priceSnapshot: {
-						offerId: toOffer._id,
-						offerSlug: toOffer.slug,
-						recurringAmount: toOffer.recurringAmount,
-						currencyCode: toOffer.currencyCode ?? subscription.currencyCode,
-					},
-					createdAt: now,
-					updatedAt: now,
-				});
-			}
-
-			// Patch contract: apply the new recurring amount, clear scheduled change,
-			// append to offerHistory.
-			const existingHistory = subscription.offerHistory ?? [];
-			await patchDynamicWithMediaReferences(ctx, subscription._id, {
-				recurringAmount:
-					toOffer.recurringAmount ?? subscription.recurringAmount,
-				scheduledOfferChange: undefined,
-				offerHistory: [
-					...existingHistory,
-					{
-						offerId: toOffer._id,
-						effectiveAt: now,
-						reason: "scheduled_downgrade_applied",
-					},
-				],
-				updatedAt: now,
-			});
-
+			const entitlements = await swapToOffer(ctx, subscription, toOffer, "scheduled_downgrade_applied", now);
 			await writeHistory(ctx, {
 				subscriptionId: subscription._id,
 				eventType: "subscription.scheduled_offer_change_applied",
 				fromStatus: subscription.status,
 				toStatus: subscription.status,
-				data: {
-					fromItemId: activeItem?._id,
-					toOfferId: toOffer._id,
-					scheduledEffectiveAt: change.effectiveAt,
-					appliedAt: now,
-				},
+				data: { toOfferId: toOffer._id, scheduledEffectiveAt: change.effectiveAt, appliedAt: now, ...entitlements },
 			});
-
 			applied++;
 		}
-
-		return { applied };
+	}
+	return { applied };
 }
 
 export const applyDueScheduledOfferChanges = internalMutation({

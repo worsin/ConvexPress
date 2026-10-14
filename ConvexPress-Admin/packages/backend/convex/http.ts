@@ -533,13 +533,12 @@ http.route({
           // one-time order PaymentIntents route to commerce.
           const kind = paymentIntent.metadata?.kind;
           if (kind === "subscription_invoice") {
-            const invoiceId = paymentIntent.metadata?.invoiceId;
-            if (invoiceId) {
+            const invoiceRef = paymentIntent.metadata?.invoiceId;
+            if (invoiceRef) {
               await ctx.runMutation(
-                internal.commerceSubscriptions.internals
-                  .handleInvoicePaymentResult,
+                internal.commerceSubscriptions.internals.recordStripeInvoicePayment,
                 {
-                  invoiceId: invoiceId as Id<"commerce_subscription_invoices">,
+                  invoiceRef,
                   succeeded: true,
                   paymentTransactionId: paymentIntent.id,
                 },
@@ -604,15 +603,15 @@ http.route({
           const paymentIntent = event.data.object;
           const kind = paymentIntent.metadata?.kind;
           if (kind === "subscription_invoice") {
-            const invoiceId = paymentIntent.metadata?.invoiceId;
-            if (invoiceId) {
+            const invoiceRef = paymentIntent.metadata?.invoiceId;
+            if (invoiceRef) {
               await ctx.runMutation(
-                internal.commerceSubscriptions.internals
-                  .handleInvoicePaymentResult,
+                internal.commerceSubscriptions.internals.recordStripeInvoicePayment,
                 {
-                  invoiceId: invoiceId as Id<"commerce_subscription_invoices">,
+                  invoiceRef,
                   succeeded: false,
                   paymentTransactionId: paymentIntent.id,
+                  failureCode: paymentIntent.last_payment_error?.decline_code,
                   failureReason:
                     paymentIntent.last_payment_error?.code ??
                     paymentIntent.last_payment_error?.message ??

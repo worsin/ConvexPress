@@ -53,6 +53,7 @@ describe("commerce hardening: production handlers", () => {
   test("B05 due offer changes run before invoice generation even when there are no invoices", async () => {
     const ctx = commerceHarness();
     ctx.handlers["commerceSubscriptions/internals:createDueInvoices"] = () => ({ createdCount: 0, invoiceIds: [] });
+    ctx.handlers["commerceSubscriptions/internals:getStalledInvoiceCharges"] = () => [];
     await invoke(runRenewalSweep, ctx);
     const names = ctx.calls.map((call: any) => call.name);
     expect(names.indexOf("commerceSubscriptions/internals:applyDueScheduledOfferChanges")).toBeGreaterThanOrEqual(0);

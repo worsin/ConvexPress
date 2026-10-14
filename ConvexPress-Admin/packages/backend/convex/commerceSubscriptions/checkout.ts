@@ -45,6 +45,7 @@ import {
 import { normalizeFormReturnUrl } from "../extensions/forms/redirects";
 import { commerceSubscriptionCheckoutIntentStatusValidator } from "../schema/commerceSubscriptions";
 import { completeCheckoutRuns } from "../extensions/forms/checkoutRuns";
+import { addBillingPeriod } from "./lifecycle";
 import { snapshotNumber, snapshotString } from "./snapshot";
 import { activationResultValidator, type ActivationResult } from "./validators";
 
@@ -67,29 +68,6 @@ type HistoryEntry = {
 
 function addDays(timestamp: number, days: number): number {
 	return timestamp + days * 24 * 60 * 60 * 1000;
-}
-
-function addBillingPeriod(
-	timestamp: number,
-	interval: BillingInterval,
-	intervalCount: number,
-): number {
-	const date = new Date(timestamp);
-	if (interval === "day") {
-		date.setDate(date.getDate() + intervalCount);
-		return date.getTime();
-	}
-	if (interval === "week") {
-		date.setDate(date.getDate() + 7 * intervalCount);
-		return date.getTime();
-	}
-	if (interval === "month") {
-		date.setMonth(date.getMonth() + intervalCount);
-		return date.getTime();
-	}
-	// year
-	date.setFullYear(date.getFullYear() + intervalCount);
-	return date.getTime();
 }
 
 function createCorrelationId(): string {
