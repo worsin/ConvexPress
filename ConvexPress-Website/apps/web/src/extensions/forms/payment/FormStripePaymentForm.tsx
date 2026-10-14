@@ -8,8 +8,9 @@
  *
  * PCI boundary: this component receives ONLY the single-use `clientSecret` +
  * the PUBLISHABLE key. It creates NO PaymentIntent, holds NO secret key, and
- * NEVER calls `activateFromIntent` — the Stripe webhook activates the intent
- * server-side after the card confirms, then the customer is redirected to
+ * cannot activate anything — paid activation is server-only (the internal
+ * `checkout.activateFromIntent`, reached from the signature-verified Stripe
+ * webhook after the card confirms). The customer is then redirected to
  * `returnUrl`.
  */
 

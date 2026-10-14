@@ -241,15 +241,6 @@ async function writeResult(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// saveSetupIntentResult — called from webhook when a setup_intent succeeds
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Attach a saved payment method to a checkout intent after Stripe's
- * `setup_intent.succeeded` fires. Idempotent: if the intent already has
- * a saved PM, we no-op.
- */
-// ═══════════════════════════════════════════════════════════════════════════
 // beginSubscriptionFirstCharge — signup-time Stripe PaymentIntent
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -296,6 +287,10 @@ export const beginSubscriptionFirstCharge = internalAction({
     );
 
     if (!intent) throw new Error("checkout_intent_not_found");
+    // An activated, failed or expired intent must never take another payment.
+    if (intent.status !== "payment_pending" && intent.status !== "draft") {
+      throw new Error("checkout_intent_not_payable");
+    }
     if (!intent.email) throw new Error("missing_email_on_intent");
 
     const Stripe = (await import("stripe")).default;
@@ -388,20 +383,31 @@ export const beginSubscriptionFirstCharge = internalAction({
   },
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// saveSetupIntentResult — called from webhook when a setup_intent succeeds
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Called from the signature-verified `setup_intent.succeeded` webhook.
+ * `checkoutIntentRef` is the SetupIntent's `checkoutIntentId` metadata, which
+ * the server set in `beginSubscriptionFirstCharge`. Records the saved card,
+ * then (for `subscription_setup` SetupIntents) activates the intent through
+ * the internal activation, which re-checks the intent is a $0-now intent.
+ */
 export const saveSetupIntentResult = internalAction({
   args: {
-    checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+    checkoutIntentRef: v.string(),
     stripeCustomerId: v.string(),
     paymentMethodId: v.string(),
     setupIntentId: v.optional(v.string()),
     activateCheckout: v.optional(v.boolean()),
   },
   returns: v.null(),
-  handler: async (ctx, args): Promise<void> => {
+  handler: async (ctx, args): Promise<null> => {
     await ctx.runMutation(
       internal.commerceSubscriptions.internals.recordSavedPaymentMethod,
       {
-        checkoutIntentId: args.checkoutIntentId,
+        checkoutIntentRef: args.checkoutIntentRef,
         stripeCustomerId: args.stripeCustomerId,
         paymentMethodId: args.paymentMethodId,
       },
@@ -410,12 +416,13 @@ export const saveSetupIntentResult = internalAction({
       await ctx.runMutation(
         internal.commerceSubscriptions.internals.activateCheckoutIntentFromStripeSetup,
         {
-          checkoutIntentId: args.checkoutIntentId,
+          checkoutIntentRef: args.checkoutIntentRef,
           stripeCustomerId: args.stripeCustomerId,
           paymentMethodId: args.paymentMethodId,
           setupIntentId: args.setupIntentId,
         },
       );
     }
+    return null;
   },
 });

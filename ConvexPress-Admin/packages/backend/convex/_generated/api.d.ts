@@ -633,16 +633,16 @@ export declare const api:
 ,
 "payments":
 {
-"capturePayPalOrder": FunctionReference<"mutation", "public", { transactionId: Id<"commerce_payment_transactions">, paypalOrderId: string }, { status: string }>,
-"createPayPalOrder": FunctionReference<"mutation", "public", { orderId: Id<"commerce_orders"> }, { transactionId: Id<"commerce_payment_transactions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions"> }>,
+"capturePayPalOrder": FunctionReference<"mutation", "public", { transactionId: Id<"commerce_payment_transactions">, paypalOrderId: string, sessionToken?: string }, { status: string }>,
+"createPayPalOrder": FunctionReference<"mutation", "public", { orderId: Id<"commerce_orders">, sessionToken?: string }, { transactionId: Id<"commerce_payment_transactions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions"> }>,
 "deletePaymentMethod": FunctionReference<"mutation", "public", { id: Id<"commerce_saved_payment_methods"> }, { success: boolean }>,
 "getAvailableMethods": FunctionReference<"query", "public", {  }, { methods: Array<{ id: string, name: string, provider: "stripe" | "paypal", icon: string }>, stripePublishableKey: null | string, paypalClientId: null | string }>,
 "getSavedMethods": FunctionReference<"query", "public", {  }, Array<{ _id: Id<"commerce_saved_payment_methods">, type: string, brand?: string, last4: string, expiryMonth?: number, expiryYear?: number, isDefault: boolean }>>,
 "getSettings": FunctionReference<"query", "public", {  }, { stripePublishableKey: null | string, enabledPaymentMethods: Array<{ code: string, label: string, enabled: boolean }>, currencyCode: string }>,
 "getTransaction": FunctionReference<"query", "public", { transactionId: Id<"commerce_payment_transactions"> }, null | { orderId?: Id<"commerce_orders">, checkoutSessionId?: Id<"commerce_checkout_sessions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions">, captureId?: Id<"commerce_payment_captures">, provider: string, providerTransactionId?: string, clientSecret?: string, status: string, amount: { amount: number, currencyCode: string }, refundedAmount?: number, metadata?: any, failureCode?: string, failureMessage?: string, completedAt?: number, createdAt: number, updatedAt: number, _id: Id<"commerce_payment_transactions">, _creationTime: number, refunds: Array<{ orderId: Id<"commerce_orders">, transactionId?: Id<"commerce_payment_transactions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions">, captureId?: Id<"commerce_payment_captures">, returnId?: Id<"commerce_return_requests">, amount: { amount: number, currencyCode: string }, reason?: string, status: string, providerRefundId?: string, failureCode?: string, failureMessage?: string, createdBy?: Id<"users">, createdAt: number, updatedAt: number, _id: Id<"commerce_payment_refunds">, _creationTime: number }>, order: null | { _id: Id<"commerce_orders">, orderNumber: string, email: string, status: "pending" | "processing" | "paid" | "fulfilled" | "completed" | "cancelled" | "refunded" | "failed", totalAmount: number } }>,
 "getTransactionStats": FunctionReference<"query", "public", { days?: number }, { totalTransactions: number, succeededCount: number, failedCount: number, refundedCount: number, totalRevenue: number, totalRefunded: number, netRevenue: number, successRate: number }>,
-"getTransactionStatus": FunctionReference<"query", "public", { transactionId: Id<"commerce_payment_transactions"> }, null | { _id: Id<"commerce_payment_transactions">, status: string, clientSecret: null | string, providerTransactionId: null | string, failureMessage: null | string }>,
-"initiatePayment": FunctionReference<"mutation", "public", { orderId: Id<"commerce_orders"> }, { transactionId: Id<"commerce_payment_transactions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions"> }>,
+"getTransactionStatus": FunctionReference<"query", "public", { transactionId: Id<"commerce_payment_transactions">, sessionToken?: string }, null | { _id: Id<"commerce_payment_transactions">, status: string, clientSecret: null | string, providerTransactionId: null | string, failureMessage: null | string }>,
+"initiatePayment": FunctionReference<"mutation", "public", { orderId: Id<"commerce_orders">, sessionToken?: string }, { transactionId: Id<"commerce_payment_transactions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions"> }>,
 "listCaptures": FunctionReference<"query", "public", { orderId?: Id<"commerce_orders">, limit?: number }, Array<{ collectionId: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions">, transactionId?: Id<"commerce_payment_transactions">, orderId?: Id<"commerce_orders">, provider: string, providerCaptureId?: string, amount: { amount: number, currencyCode: string }, createdBy?: Id<"users">, metadata?: any, createdAt: number, _id: Id<"commerce_payment_captures">, _creationTime: number }>>,
 "listCollections": FunctionReference<"query", "public", { status?: string, limit?: number }, Array<{ orderId?: Id<"commerce_orders">, checkoutSessionId?: Id<"commerce_checkout_sessions">, currencyCode: string, amount: number, authorizedAmount?: number, capturedAmount?: number, refundedAmount?: number, status: "pending" | "authorized" | "partially_captured" | "captured" | "partially_refunded" | "refunded" | "canceled" | "failed", completedAt?: number, metadata?: any, createdAt: number, updatedAt: number, _id: Id<"commerce_payment_collections">, _creationTime: number, orderNumber?: string, orderEmail?: string, sessions: Array<{ collectionId: Id<"commerce_payment_collections">, orderId?: Id<"commerce_orders">, checkoutSessionId?: Id<"commerce_checkout_sessions">, provider: string, providerSessionId?: string, clientSecret?: string, status: "pending" | "processing" | "authorized" | "captured" | "failed" | "canceled", amount: { amount: number, currencyCode: string }, data?: any, context?: any, authorizedAt?: number, completedAt?: number, metadata?: any, createdAt: number, updatedAt: number, _id: Id<"commerce_payment_sessions">, _creationTime: number }>, captures: Array<{ collectionId: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions">, transactionId?: Id<"commerce_payment_transactions">, orderId?: Id<"commerce_orders">, provider: string, providerCaptureId?: string, amount: { amount: number, currencyCode: string }, createdBy?: Id<"users">, metadata?: any, createdAt: number, _id: Id<"commerce_payment_captures">, _creationTime: number }> }>>,
 "listTransactions": FunctionReference<"query", "public", { status?: string, provider?: string, limit?: number }, Array<{ orderId?: Id<"commerce_orders">, checkoutSessionId?: Id<"commerce_checkout_sessions">, collectionId?: Id<"commerce_payment_collections">, sessionId?: Id<"commerce_payment_sessions">, captureId?: Id<"commerce_payment_captures">, provider: string, providerTransactionId?: string, clientSecret?: string, status: string, amount: { amount: number, currencyCode: string }, refundedAmount?: number, metadata?: any, failureCode?: string, failureMessage?: string, completedAt?: number, createdAt: number, updatedAt: number, _id: Id<"commerce_payment_transactions">, _creationTime: number, orderNumber: null | string, orderEmail: null | string }>>,
@@ -888,7 +888,6 @@ export declare const api:
 "getBalance": FunctionReference<"query", "public", { userId: Id<"users"> }, { balance: number }>,
 "issue": FunctionReference<"mutation", "public", { userId: Id<"users">, amount: number, sourceReturnId?: Id<"commerce_return_requests">, sourceOrderId?: Id<"commerce_orders">, note?: string, expiresAt?: number }, { balance: number }>,
 "listLedger": FunctionReference<"query", "public", { userId: Id<"users">, limit?: number }, Array<{ userId: Id<"users">, entryType: "issue" | "redeem" | "expire" | "adjust", amount: number, balanceAfter: number, sourceReturnId?: Id<"commerce_return_requests">, sourceOrderId?: Id<"commerce_orders">, note?: string, createdBy?: Id<"users">, expiresAt?: number, createdAt: number, _id: Id<"commerce_store_credit_ledger">, _creationTime: number }>>,
-"redeem": FunctionReference<"mutation", "public", { userId: Id<"users">, amount: number, orderId?: Id<"commerce_orders">, note?: string }, { balance: number }>,
 }
 ,
 }
@@ -927,7 +926,7 @@ export declare const api:
 {
 "checkout":
 {
-"activateFromIntent": FunctionReference<"mutation", "public", { intentId: Id<"commerce_subscription_checkout_intents">, paymentResult: { provider: string, providerTransactionId: string, status: "succeeded" | "pending_settlement" | "failed", paymentMethodId?: string, stripeCustomerId?: string } }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number } | { ok: false, reason: "payment_failed" }>,
+"activateFreeIntent": FunctionReference<"mutation", "public", { intentId: Id<"commerce_subscription_checkout_intents"> }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number }>,
 "createCheckoutIntent": FunctionReference<"mutation", "public", { offerId: Id<"commerce_subscription_offers">, customerEmail?: string, couponCode?: string, returnUrl?: string, formId?: Id<"forms">, formSubmissionId?: Id<"form_submissions"> }, { intentId: Id<"commerce_subscription_checkout_intents">, amount: number, recurringAmount: number, currency: string, trialDays: number, paymentProcessorData: { provider: string, ready: boolean, message: string } }>,
 }
 ,
@@ -3536,6 +3535,7 @@ export declare const internal:
 "storeCredit":
 {
 "expireExpired": FunctionReference<"mutation", "internal", {  }, { expiredCount: number }>,
+"redeem": FunctionReference<"mutation", "internal", { userId: Id<"users">, amount: number, orderId?: Id<"commerce_orders">, note?: string }, { balance: number }>,
 }
 ,
 }
@@ -3562,6 +3562,13 @@ export declare const internal:
 "processRenewals": FunctionReference<"action", "internal", { limit?: number }, { processed: number, succeeded: number, failed: number, invoiceIds: Array<Id<"commerce_subscription_invoices">>, skipped: boolean, reason: string, message: string }>,
 }
 ,
+"checkout":
+{
+"activateFreeIntentForSubmission": FunctionReference<"mutation", "internal", { intentId: Id<"commerce_subscription_checkout_intents">, submissionId: Id<"form_submissions"> }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number } | { ok: false, reason: "sign_in_required" }>,
+"activateFromIntent": FunctionReference<"mutation", "internal", { intentId: Id<"commerce_subscription_checkout_intents">, settlement: { kind: "payment_intent", paymentIntentId: string, status: "succeeded", amountReceived: number, currency: string, checkoutIntentRef: string, paymentMethodId?: string, stripeCustomerId?: string } | { kind: "setup_intent", setupIntentId: string, status: "succeeded", checkoutIntentRef: string, paymentMethodId: string, stripeCustomerId: string } }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number }>,
+"getChargeStartAccess": FunctionReference<"query", "internal", { intentId: Id<"commerce_subscription_checkout_intents"> }, { allowed: true } | { allowed: false, reason: "not_found" | "not_owner" | "not_payable" }>,
+}
+,
 "dunning":
 {
 "runDunningSweep": FunctionReference<"action", "internal", { limit?: number }, { processed: number, succeeded: number, failed: number, cancelled: number }>,
@@ -3580,8 +3587,8 @@ export declare const internal:
 "internals":
 {
 "abortDunningAttempt": FunctionReference<"mutation", "internal", { attemptId: Id<"commerce_subscription_dunning_attempts">, reason: string }, null>,
-"activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, paymentIntentId: string, paymentMethodId?: string, stripeCustomerId?: string }, null>,
-"activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, setupIntentId: string, paymentMethodId: string, stripeCustomerId: string }, null>,
+"activateCheckoutIntentFromStripe": FunctionReference<"mutation", "internal", { checkoutIntentRef: string, paymentIntentId: string, paymentIntentStatus: string, amountReceived: number, currency: string, paymentMethodId?: string, stripeCustomerId?: string }, null>,
+"activateCheckoutIntentFromStripeSetup": FunctionReference<"mutation", "internal", { checkoutIntentRef: string, setupIntentId: string, paymentMethodId: string, stripeCustomerId: string }, null>,
 "applyDueScheduledOfferChanges": FunctionReference<"mutation", "internal", {  }, { applied: number }>,
 "checkEntitlementForUser": FunctionReference<"query", "internal", { userId: Id<"users">, entitlementCode: string }, { hasEntitlement: boolean, entitlement: null | { subscriptionId: Id<"commerce_subscriptions">, userId?: Id<"users">, entitlementCode: string, status: "active" | "grace" | "revoked" | "expired", startsAt: number, endsAt?: number, graceEndsAt?: number, metadata?: any, createdAt: number, updatedAt: number, _id: Id<"commerce_subscription_entitlements">, _creationTime: number }, inGracePeriod?: boolean }>,
 "completeDunningAttempt": FunctionReference<"mutation", "internal", { attemptId: Id<"commerce_subscription_dunning_attempts">, outcome: "success" }, null>,
@@ -3600,7 +3607,7 @@ export declare const internal:
 "processScheduledDunning": FunctionReference<"mutation", "internal", { dunningAttemptId: Id<"commerce_subscription_dunning_attempts"> }, { skipped: boolean } | { subscriptionId: Id<"commerce_subscriptions">, invoiceId?: Id<"commerce_subscription_invoices">, attemptNumber: number }>,
 "recordDunningFailure": FunctionReference<"mutation", "internal", { attemptId: Id<"commerce_subscription_dunning_attempts">, subscriptionId: Id<"commerce_subscriptions">, invoiceId: Id<"commerce_subscription_invoices">, attemptNumber: number, failureReason?: string, maxAttempts: number, retryDays: Array<number> }, { cancelled: boolean, nextRetryAt?: number }>,
 "recordFirstChargeIntent": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, stripeCustomerId: string, paymentIntentId: string }, null>,
-"recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, stripeCustomerId: string, paymentMethodId: string }, null>,
+"recordSavedPaymentMethod": FunctionReference<"mutation", "internal", { checkoutIntentRef: string, stripeCustomerId: string, paymentMethodId: string }, null>,
 }
 ,
 "proration":
@@ -3618,7 +3625,7 @@ export declare const internal:
 {
 "beginSubscriptionFirstCharge": FunctionReference<"action", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents"> }, { clientSecret: null | string, paymentIntentId: string, amount: number, currency: string, stripeCustomerId: string, mode: "payment" | "setup" }>,
 "chargeSubscriptionInvoice": FunctionReference<"action", "internal", { invoiceId: Id<"commerce_subscription_invoices"> }, { success: boolean, transactionId?: string, failureReason?: string, requiresAction?: boolean }>,
-"saveSetupIntentResult": FunctionReference<"action", "internal", { checkoutIntentId: Id<"commerce_subscription_checkout_intents">, stripeCustomerId: string, paymentMethodId: string, setupIntentId?: string, activateCheckout?: boolean }, null>,
+"saveSetupIntentResult": FunctionReference<"action", "internal", { checkoutIntentRef: string, stripeCustomerId: string, paymentMethodId: string, setupIntentId?: string, activateCheckout?: boolean }, null>,
 }
 ,
 }

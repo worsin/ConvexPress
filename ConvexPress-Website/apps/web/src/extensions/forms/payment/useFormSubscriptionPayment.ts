@@ -12,12 +12,13 @@
  *   - `accountPolicy:"create_on_website"` + anonymous: run Clerk
  *     `signUp.create → setActive` (or email-verify redirect persisting the
  *     intentId) BEFORE the card confirms, mirroring `SignupForm.tsx`, so the
- *     webhook's `activateFromIntent` never hits `USER_NOT_FOUND`.
+ *     webhook's activation finds the verified account (no `USER_NOT_FOUND`).
  *   - `require_existing` + anonymous: surface a "must be signed in" message; no
  *     charge can activate.
  *
- * The client NEVER calls `activateFromIntent` for the paid path — the Stripe
- * webhook owns paid activation. On card success Stripe redirects to `returnUrl`.
+ * The client cannot activate the paid path — paid activation is server-only
+ * and owned by the signature-verified Stripe webhook. On card success Stripe
+ * redirects to `returnUrl`.
  */
 
 import { useEffect, useMemo, useState } from "react";

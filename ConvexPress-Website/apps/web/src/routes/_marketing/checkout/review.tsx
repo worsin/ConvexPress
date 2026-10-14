@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js/pure";
 import type { Stripe as StripeType } from "@stripe/stripe-js";
@@ -37,25 +38,24 @@ function CheckoutReviewPage() {
     (api as any).commerce.checkout.getSession,
     isReady && sessionToken ? { sessionToken } : "skip",
   ) as any;
-  const completeCheckout = useMutation(
-    (api as any).commerce.checkout.complete,
-  );
-  const initiatePayment = useMutation(
-    (api as any).commerce.payments.initiatePayment,
-  );
+  const completeCheckout = useMutation(api.commerce.checkout.complete);
+  const initiatePayment = useMutation(api.commerce.payments.initiatePayment);
 
   // Payment state
   const [paymentStep, setPaymentStep] = useState<CheckoutReviewStep>("review");
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<Id<"commerce_orders"> | null>(null);
+  const [transactionId, setTransactionId] =
+    useState<Id<"commerce_payment_transactions"> | null>(null);
   const [stripePromise, setStripePromise] = useState<Promise<StripeType | null> | null>(null);
   const stripeInitialized = useRef(false);
 
-  // Poll transaction status to get clientSecret
+  // Poll transaction status to get clientSecret. The checkout session token
+  // proves this browser placed the order; the server hides the payment from
+  // anyone else.
   const transactionStatus = useQuery(
-    (api as any).commerce.payments.getTransactionStatus,
-    transactionId ? { transactionId: transactionId as any } : "skip",
-  ) as any;
+    api.commerce.payments.getTransactionStatus,
+    transactionId && sessionToken ? { transactionId, sessionToken } : "skip",
+  );
 
   const clientSecret = transactionStatus?.clientSecret ?? null;
 
@@ -179,7 +179,8 @@ function CheckoutReviewPage() {
       if (isCardPayment) {
         // Initiate Stripe payment
         const result = await initiatePayment({
-          orderId: newOrderId as any,
+          orderId: newOrderId,
+          sessionToken,
         });
         setTransactionId(result.transactionId);
         // Now we wait for clientSecret via polling (useQuery)

@@ -25,6 +25,7 @@ import {
 	internalMutation,
 	internalQuery,
 	type MutationCtx,
+	type QueryCtx,
 } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
@@ -32,6 +33,7 @@ import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { CHECKOUT_EVENTS, SYSTEM } from "../events/constants";
 import { getCommerceSettings, requireCommerceEnabled } from "./helpers";
+import { getCurrentShopper } from "./shopperAccess";
 import {
 	getBundlePurchaseDelta,
 	isBundleLineMetadata,
@@ -159,6 +161,37 @@ async function commitReservedInventoryForPaidOrder(ctx: MutationCtx, order: Orde
   // Both a successful commit and a recorded conflict finish the reservation
   // path. Never follow a conflict with an allocation using today's stock owner.
   return true;
+}
+
+/**
+ * Whether the caller may pay (or read the payment of) this order: it is the
+ * signed-in owner's order, or a guest order whose checkout session token the
+ * caller holds — the same proof `checkout.complete` required to create it.
+ */
+async function canPayOrder(
+	ctx: QueryCtx,
+	order: OrderDoc,
+	sessionToken: string | undefined,
+): Promise<boolean> {
+	const shopper = await getCurrentShopper(ctx);
+	if (order.userId) return shopper?._id === order.userId;
+	const token = sessionToken?.trim();
+	if (!token || !order.checkoutSessionId) return false;
+	const session = await ctx.db.get(order.checkoutSessionId);
+	return session?.sessionToken === token;
+}
+
+async function requireOrderPaymentAccess(
+	ctx: QueryCtx,
+	order: OrderDoc,
+	sessionToken: string | undefined,
+): Promise<void> {
+	if (!(await canPayOrder(ctx, order, sessionToken))) {
+		throw new ConvexError({
+			code: "FORBIDDEN",
+			message: "This order belongs to another shopper.",
+		});
+	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -389,10 +422,13 @@ export const getTransaction = query({
 
 /**
  * Get a transaction by ID (for frontend polling after initiatePayment).
+ * Returns the PaymentIntent client secret, so only the order's payer may read
+ * it; anyone else gets null.
  */
 export const getTransactionStatus = query({
 	args: {
 		transactionId: v.id("commerce_payment_transactions"),
+		sessionToken: v.optional(v.string()),
 	},
 	returns: v.union(v.null(), v.object({
    _id: v.id("commerce_payment_transactions"),
@@ -403,7 +439,9 @@ export const getTransactionStatus = query({
  })),
 	handler: async (ctx, args) => {
 		const transaction = await ctx.db.get(args.transactionId);
-		if (!transaction) return null;
+		if (!transaction?.orderId) return null;
+		const order = await ctx.db.get(transaction.orderId);
+		if (!order || !(await canPayOrder(ctx, order, args.sessionToken))) return null;
 
 		return {
 			_id: transaction._id,
@@ -423,11 +461,13 @@ export const getTransactionStatus = query({
  * Initiate payment for an order. Creates a payment transaction record
  * and schedules the Stripe action to create a PaymentIntent.
  *
- * Called by the frontend after checkout.complete() returns an orderId.
+ * Called by the frontend after checkout.complete() returns an orderId. The
+ * caller must own the order (or hold its guest checkout session token).
  */
 export const initiatePayment = mutation({
 	args: {
 		orderId: v.id("commerce_orders"),
+		sessionToken: v.optional(v.string()),
 	},
 	returns: v.object({
    transactionId: v.id("commerce_payment_transactions"),
@@ -444,6 +484,7 @@ export const initiatePayment = mutation({
 				message: "Order not found.",
 			});
 		}
+		await requireOrderPaymentAccess(ctx, order, args.sessionToken);
 
 		if (order.paymentStatus !== "pending" || ["cancelled", "failed", "refunded"].includes(order.status)) {
 			throw new ConvexError({
@@ -1751,11 +1792,13 @@ export const updateSettings = mutation({
 
 /**
  * Create a PayPal order. Creates transaction record with PayPal provider
- * and schedules PayPal order creation action.
+ * and schedules PayPal order creation action. The caller must own the order
+ * (or hold its guest checkout session token).
  */
 export const createPayPalOrder = mutation({
 	args: {
 		orderId: v.id("commerce_orders"),
+		sessionToken: v.optional(v.string()),
 	},
 	returns: v.object({
    transactionId: v.id("commerce_payment_transactions"),
@@ -1772,6 +1815,7 @@ export const createPayPalOrder = mutation({
 				message: "Order not found.",
 			});
 		}
+		await requireOrderPaymentAccess(ctx, order, args.sessionToken);
 
 		if (order.paymentStatus !== "pending" || ["cancelled", "failed", "refunded"].includes(order.status)) {
 			throw new ConvexError({
@@ -1851,11 +1895,17 @@ export const createPayPalOrder = mutation({
 /**
  * Capture a PayPal order after customer approval.
  * Called by the frontend after the customer approves the PayPal order.
+ *
+ * The PayPal order id the client sends must be the one the server created
+ * for this transaction (`createPayPalOrderAction` recorded it as the
+ * transaction's provider id); it is never used to address any other PayPal
+ * object. The caller must own the order.
  */
 export const capturePayPalOrder = mutation({
 	args: {
 		transactionId: v.id("commerce_payment_transactions"),
 		paypalOrderId: v.string(),
+		sessionToken: v.optional(v.string()),
 	},
 	returns: v.object({ status: v.string() }),
 	handler: async (ctx, args) => {
@@ -1876,8 +1926,33 @@ export const capturePayPalOrder = mutation({
 			});
 		}
 
+		const order = transaction.orderId ? await ctx.db.get(transaction.orderId) : null;
+		if (!order) {
+			throw new ConvexError({
+				code: "NOT_FOUND",
+				message: "Order not found.",
+			});
+		}
+		await requireOrderPaymentAccess(ctx, order, args.sessionToken);
+
+		if (
+			!transaction.providerTransactionId ||
+			transaction.providerTransactionId !== args.paypalOrderId
+		) {
+			throw new ConvexError({
+				code: "PAYMENT_MISMATCH",
+				message: "This PayPal order does not belong to this transaction.",
+			});
+		}
+
 		if (transaction.status === "succeeded") {
 			return { status: "already_completed" };
+		}
+		if (transaction.status !== "pending" && transaction.status !== "processing") {
+			throw new ConvexError({
+				code: "VALIDATION_ERROR",
+				message: `Transaction is "${transaction.status}" and cannot be captured.`,
+			});
 		}
 
 		// Schedule the capture action

@@ -31,6 +31,12 @@
  * the portal wrappers simply delegate. They exist as thin wrappers (not
  * re-exports) so the website calls a stable `portal.*` API surface that is
  * distinct from the admin API surface.
+ *
+ * Both surfaces hold an owner to good-standing transitions: pause only an
+ * active/trialing contract, resume only a paused (or scheduled-to-cancel)
+ * one, and a resume after the paid period ended bills immediately. A
+ * customer can never walk a past_due, cancelled or expired contract back to
+ * `active` without paying.
  */
 
 import { ConvexError, v } from "convex/values";
@@ -42,7 +48,7 @@ import { initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { computeProration } from "../helpers/proration";
 import { decideBridgeCall } from "./bridgeDecisions";
-import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { isOfferOpenToCustomers, requireCommerceSubscriptionsEnabled } from "./helpers";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { membershipDocs } from "../schema/membership.docs.generated";
@@ -50,7 +56,6 @@ import { membershipDocs } from "../schema/membership.docs.generated";
 
 // ─── Local helpers ──────────────────────────────────────────────────────────
 
-type BillingInterval = NonNullable<Doc<"commerce_subscriptions">["billingInterval"]>;
 type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
 
 type HistoryEntry = {
@@ -75,29 +80,6 @@ const prorationResultValidator = v.object({
 
 function addDays(timestamp: number, days: number): number {
 	return timestamp + days * 24 * 60 * 60 * 1000;
-}
-
-function addBillingPeriod(
-	timestamp: number,
-	interval: BillingInterval,
-	intervalCount: number,
-): number {
-	const date = new Date(timestamp);
-	if (interval === "day") {
-		date.setDate(date.getDate() + intervalCount);
-		return date.getTime();
-	}
-	if (interval === "week") {
-		date.setDate(date.getDate() + 7 * intervalCount);
-		return date.getTime();
-	}
-	if (interval === "month") {
-		date.setMonth(date.getMonth() + intervalCount);
-		return date.getTime();
-	}
-	// year
-	date.setFullYear(date.getFullYear() + intervalCount);
-	return date.getTime();
 }
 
 function createCorrelationId(): string {
@@ -885,6 +867,16 @@ export const requestPauseContract = mutation({
 		if (contract.status === "paused") {
 			return { ok: true, alreadyPaused: true };
 		}
+		// Only a contract in good standing can be paused by its owner. Pausing a
+		// past_due, cancelled or expired contract and then resuming it would
+		// restore entitlements without paying.
+		if (contract.status !== "active" && contract.status !== "trialing") {
+			throw new ConvexError({
+				code: "INVALID_STATE",
+				message: `Cannot pause a ${contract.status} subscription.`,
+				currentStatus: contract.status,
+			});
+		}
 
 		const correlationId = createCorrelationId();
 
@@ -943,14 +935,13 @@ export const requestResumeContract = mutation({
 		}
 
 		const now = Date.now();
+		// A paid period that ended while paused is not re-granted for free: the
+		// renewal falls due now and the renewal sweep charges it before a new
+		// period starts.
 		const nextBillingAt =
-			(contract.currentPeriodEndAt ?? 0) < now
-				? addBillingPeriod(
-						now,
-						contract.billingInterval ?? "month",
-						contract.billingIntervalCount ?? 1,
-					)
-				: contract.currentPeriodEndAt;
+			contract.currentPeriodEndAt !== undefined && contract.currentPeriodEndAt > now
+				? contract.currentPeriodEndAt
+				: now;
 
 		await ctx.db.patch("commerce_subscriptions", args.contractId, {
 			status: "active",
@@ -1038,7 +1029,21 @@ export const requestCancelContract = mutation({
 			return { ok: true, status: "cancelled" as const, immediate: true };
 		}
 
-		// Schedule at period end.
+		// Schedule at period end. Only a contract in good standing (or paused)
+		// can be scheduled: a scheduled cancellation can be resumed, so allowing
+		// it from past_due/expired would be a path back to `active` unpaid.
+		if (
+			contract.status !== "active" &&
+			contract.status !== "trialing" &&
+			contract.status !== "paused" &&
+			contract.status !== "pending_cancel"
+		) {
+			throw new ConvexError({
+				code: "INVALID_STATE",
+				message: `Cannot schedule cancellation of a ${contract.status} subscription. Cancel it immediately instead.`,
+				currentStatus: contract.status,
+			});
+		}
 		await ctx.db.patch("commerce_subscriptions", args.contractId, {
 			status: "pending_cancel",
 			cancelAtPeriodEnd: true,
@@ -1129,6 +1134,15 @@ export const requestPlanChange = mutation({
 			throw new ConvexError({
 				code: "OFFER_ARCHIVED",
 				message: "Target offer is no longer available.",
+			});
+		}
+		// The client chooses the target by id, so it must be an offer customers
+		// can buy. A draft or admin-provisioned offer (for example a $0 comp
+		// plan) is never reachable by plan change.
+		if (!isOfferOpenToCustomers(toOffer)) {
+			throw new ConvexError({
+				code: "OFFER_UNAVAILABLE",
+				message: "Target offer is not available.",
 			});
 		}
 

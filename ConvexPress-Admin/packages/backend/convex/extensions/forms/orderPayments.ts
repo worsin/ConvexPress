@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { readMergedSettingsSection } from "../../settings/read";
+import { getCurrentUser } from "../../helpers/permissions";
 import { parsePricingLineItems } from "./pricingSnapshot";
 
 interface StoredPricing {
@@ -79,6 +80,13 @@ export const getOrderPaymentSource = internalQuery({
   handler: async (ctx, { submissionId }) => {
     const submission = await ctx.db.get(submissionId);
     if (!submission || submission.status !== "complete") return null;
+    // A submission made while signed in is paid from that account only. The
+    // caller's identity propagates from `beginOrderPayment` into this query.
+    // A signed-out submission is addressed by its unguessable id.
+    if (submission.userId) {
+      const caller = await getCurrentUser(ctx);
+      if (!caller || caller._id !== submission.userId) return null;
+    }
 
     const form = await ctx.db.get(submission.formId);
     if (!form) return null;

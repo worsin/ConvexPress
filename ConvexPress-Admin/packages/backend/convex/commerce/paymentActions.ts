@@ -574,7 +574,7 @@ export const capturePayPalOrderAction = internalAction({
 
       // Capture the order
       const captureResponse = await fetch(
-        `${baseUrl}/v2/checkout/orders/${args.paypalOrderId}/capture`,
+        `${baseUrl}/v2/checkout/orders/${encodeURIComponent(args.paypalOrderId)}/capture`,
         {
           method: "POST",
           headers: {
