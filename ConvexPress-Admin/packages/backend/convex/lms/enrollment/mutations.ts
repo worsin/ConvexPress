@@ -3,6 +3,7 @@
  */
 
 import { ConvexError, v } from "convex/values";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
 import { requireAuth, requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
@@ -57,6 +58,15 @@ export const enroll = mutation({
       ? isCurrentlyActiveEnrollment(existing, now)
       : false;
 
+    // Staff choose the source when enrolling a learner. A self-enrollment's
+    // source is DERIVED from the access decision, never taken from the client:
+    // a membership-gated enrollment must stay a `membership_plan` projection
+    // (re-checked against the live grant on every access), or a learner could
+    // label it `manual`/`purchase` and keep the course after the membership
+    // lapses.
+    let source: Doc<"lms_enrollments">["source"] = args.source ?? "manual";
+    let membershipPlanId: Id<"membership_plans"> | undefined;
+
     if (selfEnrollment) {
       const decision = await canUserAccessCourse(ctx, { courseId: args.courseId, userId: me._id });
       const selfEnrollable = decision.allowed || decision.reason === "free" || decision.reason === "open";
@@ -70,6 +80,20 @@ export const enroll = mutation({
         });
       }
       if (existingIsCurrentlyActive) return existing!._id;
+      if (decision.reason === "membership") {
+        membershipPlanId = (decision.matchingPlanIds ?? [])
+          .map((planId) => ctx.db.normalizeId("membership_plans", planId))
+          .find((planId): planId is Id<"membership_plans"> => planId !== null);
+        if (!membershipPlanId) {
+          throw new ConvexError({
+            code: "ACCESS_DENIED",
+            message: "You do not have access to enroll in this course.",
+          });
+        }
+        source = "membership_plan";
+      } else {
+        source = "manual";
+      }
 
       const recentActiveEnrollments = await ctx.db
         .query("lms_enrollments")
@@ -103,9 +127,11 @@ export const enroll = mutation({
     }
 
     if (existing) {
+      const reactivatedSource = selfEnrollment ? source : args.source ?? existing.source;
       await ctx.db.patch("lms_enrollments", existing._id, {
         status: "active",
-        source: args.source ?? existing.source,
+        source: reactivatedSource,
+        membershipPlanId: selfEnrollment ? membershipPlanId : existing.membershipPlanId,
         enrolledAt: existingIsCurrentlyActive ? existing.enrolledAt : now,
         expiresAt,
         updatedAt: now,
@@ -114,7 +140,7 @@ export const enroll = mutation({
         courseId: args.courseId,
         userId: targetUserId,
         enrollmentId: existing._id,
-        source: args.source ?? existing.source,
+        source: reactivatedSource,
         reactivated: true,
       });
       return existing._id;
@@ -123,7 +149,8 @@ export const enroll = mutation({
     const enrollmentId = await ctx.db.insert("lms_enrollments", {
       userId: targetUserId,
       courseId: args.courseId,
-      source: args.source ?? "manual",
+      source,
+      membershipPlanId,
       enrolledAt: now,
       expiresAt,
       status: "active",
@@ -134,7 +161,7 @@ export const enroll = mutation({
       courseId: args.courseId,
       userId: targetUserId,
       enrollmentId,
-      source: args.source ?? "manual",
+      source,
     });
     return enrollmentId;
   },
