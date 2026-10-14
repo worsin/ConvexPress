@@ -10,9 +10,14 @@
  *   3. Role document has capabilities[] array
  *   4. Permission checks verify the user's role includes the required capability
  *
- * Dual-auth support:
+ * Identity sources (see auth/issuers.ts; each issuer resolves only through
+ * the user records it owns):
  *   - Admin users authenticate locally (JWT issued by ConvexPress, subject = Convex _id)
- *   - Website users authenticate via Clerk (subject = Clerk user ID)
+ *   - Management sessions come from the control plane (subject = session id)
+ *   - Website users authenticate via Clerk (subject = Clerk user ID), accepted
+ *     only from the configured Clerk issuer
+ *   - External operators come from an integrator's trusted issuer and resolve
+ *     only through a server-side userExternalIdentities link
  *
  * Migration support:
  *   - Users may still have legacy `internalRole` string field instead of `roleId`
@@ -46,9 +51,9 @@ import type { AnyCapability, Capability } from "../types/capabilities";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 import { isPluginEnabled } from "./plugins";
 import { readMembershipAuthorityGrants, membershipAuthorityReader } from "./membershipAuthority";
-
-const ADMIN_ISSUER = "https://convexpress-admin.local";
-const MANAGEMENT_ISSUER = "https://convexpress-management.local";
+import { classifyIdentity } from "../auth/issuers";
+import { externalIdentityStillLinks, readExternalIdentityUser } from "./externalIdentities";
+import { roleCompatibleWithIdentity } from "../../lib/auth/roleAssignment";
 const CUSTOMER_ROLE_AUTH_CAPABILITIES = new Set<string>(
   BUILT_IN_ROLES.filter(
     (role) => role.type === "customer" && role.status === "active",
@@ -97,10 +102,7 @@ export async function getActiveManagementSession(
   budget?: RequestReadLedger,
 ): Promise<ActiveManagementSession | null> {
   const identity = await ctx.auth.getUserIdentity();
-  if (
-    !identity ||
-    !identity.tokenIdentifier.startsWith(MANAGEMENT_ISSUER + "|")
-  ) {
+  if (!identity || classifyIdentity(identity) !== "management") {
     return null;
   }
 
@@ -196,7 +198,7 @@ async function managementSessionAllows(
  * session, binding, authority or role earlier in this same transaction. */
 async function capabilityPrincipal(ctx: AuthReadCtx, budget?: RequestReadLedger) {
   const identity = await ctx.auth.getUserIdentity();
-  if (identity?.tokenIdentifier.startsWith(MANAGEMENT_ISSUER + "|")) {
+  if (identity && classifyIdentity(identity) === "management") {
     const session = await readActiveManagementSession(ctx, identity.subject as Id<"convexpress_managementSessions">, budget);
     return { user: session?.user ?? null, session };
   }
@@ -216,7 +218,17 @@ function principalAllowsManagementCapability(
 
 /**
  * Get the current authenticated user from the database.
- * Supports local admin, site customer, and short-lived management sessions.
+ *
+ * Resolution order, by the verified token's issuer (auth/issuers.ts):
+ *   1. ConvexPress admin JWT: subject is the users `_id`; requires authSource "local".
+ *   2. Management session: the session, authority, binding and user must all be active.
+ *   3. Clerk, only when the issuer equals the configured Clerk issuer: subject
+ *      is clerkUserId; requires authSource "clerk".
+ *   4. Any other trusted issuer: only through a userExternalIdentities link on
+ *      the exact tokenIdentifier; requires authSource "external" and an active
+ *      account.
+ * Anything else resolves to null. No path matches a subject against another
+ * issuer's user records.
  *
  * @returns User document or null if not authenticated / not found.
  */
@@ -227,43 +239,39 @@ export async function getCurrentUser(
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
 
-  // tokenIdentifier format: "issuer|subject"
-  const isAdminAuth = identity.tokenIdentifier.startsWith(ADMIN_ISSUER + "|");
-  const isManagementAuth = identity.tokenIdentifier.startsWith(
-    MANAGEMENT_ISSUER + "|",
-  );
-
-  if (isManagementAuth) {
-    const session = await getActiveManagementSession(ctx, budget);
-    return session?.user ?? null;
+  switch (classifyIdentity(identity)) {
+    case "admin": {
+      // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
+      // A stale local JWT must not continue to authorize an account that has
+      // since been linked to Clerk or otherwise moved out of local admin auth.
+      const userId = ctx.db.normalizeId("users", identity.subject);
+      if (!userId) return null;
+      budget?.beforeRead();
+      const user = await ctx.db.get("users", userId);
+      budget?.record(user);
+      if (!user || user.authSource !== "local") return null;
+      return user;
+    }
+    case "management": {
+      const session = await getActiveManagementSession(ctx, budget);
+      return session?.user ?? null;
+    }
+    case "clerk": {
+      // Clerk auth — subject is Clerk user ID, from the configured issuer only.
+      budget?.beforeRead();
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerkUserId", (q) =>
+          q.eq("clerkUserId", identity.subject),
+        )
+        .unique();
+      budget?.record(user);
+      if (!user || user.authSource !== "clerk") return null;
+      return user;
+    }
+    case "external":
+      return await readExternalIdentityUser(ctx, identity, budget);
   }
-
-  if (isAdminAuth) {
-    // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
-    // A stale local JWT must not continue to authorize an account that has
-    // since been linked to Clerk or otherwise moved out of local admin auth.
-    budget?.beforeRead();
-    const user = await ctx.db.get(
-      "users",
-      identity.subject as Id<"users">,
-    );
-    budget?.record(user);
-    if (!user || user.authSource !== "local") return null;
-    return user;
-  }
-
-  // Clerk auth — subject is Clerk user ID
-  budget?.beforeRead();
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerkUserId", (q) =>
-      q.eq("clerkUserId", identity.subject),
-    )
-    .unique();
-
-  budget?.record(user);
-  if (!user || user.authSource !== "clerk") return null;
-  return user;
 }
 
 /**
@@ -294,10 +302,8 @@ async function resolveUserRole(
   budget?: RequestReadLedger,
 ): Promise<RoleDoc | null> {
   const reader = membershipAuthorityReader(ctx, budget);
-  const canUseRoleForAuthSource = (role: RoleDoc): boolean => {
-    if (role.type === "customer") return true;
-    return user.authSource === "local" || user.authSource === "management";
-  };
+  const canUseRoleForAuthSource = (role: RoleDoc): boolean =>
+    roleCompatibleWithIdentity(user, role);
 
   // Path 1: Direct roleId (new system)
   let base: RoleDoc | null = null;
@@ -626,10 +632,12 @@ export async function requireCan(
  * this structure from a public caller as authentication. */
 export type CapturedPublicationAuthority = {
   userId: Id<"users">;
-  authSource: "local" | "clerk" | "management";
+  authSource: "local" | "clerk" | "management" | "external";
   clerkSubject: string | null;
   passwordChangedAt: number | null;
   managementSessionId: Id<"convexpress_managementSessions"> | null;
+  /** The exact external identity link that authorized the capture (external only). */
+  externalTokenIdentifier?: string;
   capabilities: string[];
   expiresAt: number;
 };
@@ -645,6 +653,13 @@ export async function capturePublicationAuthority(
   const session = user.authSource === "management" ? await getActiveManagementSession(ctx, budget) : null;
   if (user.authSource === "management" && (!session || session.user._id !== user._id || session.websiteKey !== scope.websiteKey || session.instanceKey !== scope.instanceKey))
     throw new ConvexError({ code: "SYNCED_REFRESH_AUTHORITY", message: "This session belongs to another website environment." });
+  // requireCan resolved this external user through exactly this link; bind
+  // the background job to it so unlinking revokes the job's authority too.
+  const externalTokenIdentifier = user.authSource === "external"
+    ? (await ctx.auth.getUserIdentity())?.tokenIdentifier
+    : undefined;
+  if (user.authSource === "external" && !externalTokenIdentifier)
+    throw new ConvexError({ code: "SYNCED_REFRESH_AUTHORITY", message: "Sign in again before refreshing reusable content." });
   const capabilities: string[] = [capability];
   for (const candidate of ["form.create", "form.update"] as const)
     if (await currentUserCan(ctx, candidate, budget)) capabilities.push(candidate);
@@ -653,6 +668,7 @@ export async function capturePublicationAuthority(
     clerkSubject: user.clerkUserId ?? null,
     passwordChangedAt: user.lastPasswordChangedAt ?? null,
     managementSessionId: session?.sessionId ?? null,
+    ...(externalTokenIdentifier ? { externalTokenIdentifier } : {}),
     capabilities,
     // A durable operation can pause for explicit authenticated retry. It never
     // extends a management session or keeps indefinite background authority.
@@ -677,6 +693,7 @@ export async function requireCapturedPublicationAuthority(
   if (!user || user.status !== "active" || user.authSource !== authority.authSource) return fail();
   if (user.authSource === "local" && (user.lastPasswordChangedAt ?? null) !== authority.passwordChangedAt) return fail();
   if (user.authSource === "clerk" && (!authority.clerkSubject || user.clerkUserId !== authority.clerkSubject)) return fail();
+  if (user.authSource === "external" && (!authority.externalTokenIdentifier || !(await externalIdentityStillLinks(ctx, authority.externalTokenIdentifier, user._id, budget)))) return fail();
   if (user.authSource === "management") {
     if (!authority.managementSessionId) return fail();
     const session = await readActiveManagementSession(ctx, authority.managementSessionId, budget);

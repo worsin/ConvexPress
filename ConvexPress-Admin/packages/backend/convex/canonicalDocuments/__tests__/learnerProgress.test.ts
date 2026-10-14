@@ -6,6 +6,8 @@ import {insertWithMediaReferences} from '../../media/attachmentGuard';
 import {RequestReadLedger} from '../../helpers/requestReadLedger';
 import {rebuildCurriculumCounts} from '../../lms/curriculumCountRecovery';
 import {recoverProgressCounts} from '../../lms/progress/countRecovery';
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://school.clerk.accounts.dev");
 const modules={'./convex/_generated/api.js':()=>import('../../_generated/api.js'),'./convex/_generated/server.js':()=>import('../../_generated/server.js'),'./convex/membership/policyReads.ts':()=>import('../../membership/policyReads')};
 const scope={websiteKey:'school',instanceKey:'staging'};
 async function fixture(){

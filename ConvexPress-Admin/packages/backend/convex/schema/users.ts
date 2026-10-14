@@ -2,6 +2,22 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
+ * How a user signs in. Each value owns exactly one identity path in
+ * helpers/permissions.ts getCurrentUser:
+ *   local       ConvexPress admin JWT (subject is the users `_id`), password in passwordHash
+ *   clerk       the configured Clerk issuer (subject is clerkUserId)
+ *   management  a control-plane management session
+ *   external    an integrator's trusted issuer, only through a userExternalIdentities link.
+ *               No passwordHash and no clerkUserId; never claimable by a self-service path.
+ */
+export const userAuthSourceValidator = v.union(
+  v.literal("local"),
+  v.literal("clerk"),
+  v.literal("management"),
+  v.literal("external"),
+);
+
+/**
  * Core users table - owned by User Profile System
  * Convex Auth manages admin authentication; Clerk manages website authentication.
  *
@@ -18,13 +34,7 @@ import { v } from "convex/values";
 export const usersTables = {
   users: defineTable({
     // === Auth Identity Fields ===
-    authSource: v.optional(
-      v.union(
-        v.literal("local"),
-        v.literal("clerk"),
-        v.literal("management"),
-      ),
-    ),
+    authSource: v.optional(userAuthSourceValidator),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     clerkProvisioningStatus: v.optional(
@@ -177,4 +187,26 @@ export const usersTables = {
     .index("by_is_internal", ["isInternal"])
     .index("by_clerkUserId", ["clerkUserId"])
     .index("by_authSource", ["authSource"]),
+
+  /**
+   * Server-side links from an integrator's trusted identity provider to a
+   * ConvexPress user with authSource "external". An identity whose issuer is
+   * neither ConvexPress's own nor the configured Clerk instance resolves to a
+   * user ONLY through a row here, matched on the exact tokenIdentifier Convex
+   * derives from the verified token. Never matched by subject or email alone.
+   *
+   * Written only by the internal integrator API in users/externalIdentities.ts.
+   */
+  userExternalIdentities: defineTable({
+    userId: v.id("users"),
+    issuer: v.string(), // exact `iss` claim of the integrator's tokens
+    subject: v.string(), // exact `sub` claim for this person
+    tokenIdentifier: v.string(), // Convex UserIdentity.tokenIdentifier: `${issuer}|${subject}`
+    linkedAt: v.number(),
+    linkedBy: v.optional(v.string()), // integrator-supplied actor reference for the audit trail
+    label: v.optional(v.string()), // integrator-supplied description, e.g. "CaseMedix staff"
+  })
+    .index("by_tokenIdentifier", ["tokenIdentifier"])
+    .index("by_user", ["userId"])
+    .index("by_issuer_subject", ["issuer", "subject"]),
 };

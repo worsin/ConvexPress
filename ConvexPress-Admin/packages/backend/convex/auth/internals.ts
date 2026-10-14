@@ -10,10 +10,12 @@ import type { Doc, Id } from "../_generated/dataModel";
  */
 
 import { v } from "convex/values";
+import { userAuthSourceValidator } from "../schema/users";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { canUseAdminLocalAuth, hasActiveAdmin } from "./adminPresence";
 import { credentialBelongsToEnvironment, requireCredentialEnvironmentBinding } from "./environmentBinding";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { isDelegatedSignInAccount } from "./delegatedAccounts";
 
 import { authDocs } from "../schema/auth.docs.generated";
 const FIRST_ADMIN_SETUP_TOKEN_STATE_KEY = "first_admin_setup_token_consumed";
@@ -38,7 +40,7 @@ export const findLocalUser: RegisteredQuery<"internal", {email?:string;username?
     adminLoginAllowed: v.boolean(),
     _id: v.id("users"),
     _creationTime: v.number(),
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    authSource: v.optional(userAuthSourceValidator),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
@@ -152,7 +154,7 @@ export const getLocalSessionUserById = internalQuery({
     adminLoginAllowed: v.boolean(),
     _id: v.id("users"),
     _creationTime: v.number(),
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    authSource: v.optional(userAuthSourceValidator),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
@@ -397,6 +399,12 @@ export const setPasswordHash = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Only local accounts hold a ConvexPress password. Setting one on a Clerk,
+    // external or management account would create a second way to sign in.
+    const user = await ctx.db.get("users", args.userId);
+    if (!user || user.authSource !== "local") {
+      throw new Error("Only local accounts can have a ConvexPress password.");
+    }
     await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       passwordHash: args.passwordHash,
       lastPasswordChangedAt: Date.now(),
@@ -486,6 +494,12 @@ export const createAdminUser: RegisteredMutation<"internal", {email:string;usern
     if (existing && (existing.clerkUserId || existing.authSource === "clerk")) {
       throw new Error(
         "That email belongs to a website customer account. Use a different email for the administrator.",
+      );
+    }
+
+    if (existing && isDelegatedSignInAccount(existing)) {
+      throw new Error(
+        "That email belongs to an account that signs in through an external identity provider. Use a different email for the administrator.",
       );
     }
 

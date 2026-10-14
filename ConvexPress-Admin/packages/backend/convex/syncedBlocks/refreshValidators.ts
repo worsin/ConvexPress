@@ -2,10 +2,12 @@ import { v } from "convex/values";
 
 export const refreshAuthorityValidator = v.object({
   userId: v.id("users"),
-  authSource: v.union(v.literal("local"), v.literal("clerk"), v.literal("management")),
+  authSource: v.union(v.literal("local"), v.literal("clerk"), v.literal("management"), v.literal("external")),
   clerkSubject: v.union(v.string(), v.null()),
   passwordChangedAt: v.union(v.number(), v.null()),
   managementSessionId: v.union(v.id("convexpress_managementSessions"), v.null()),
+  // External operators only: the exact identity link that authorized the job.
+  externalTokenIdentifier: v.optional(v.string()),
   capabilities: v.array(v.string()), expiresAt: v.number(),
 });
 export const refreshStatusValidator = v.union(v.literal("pending"), v.literal("completed"), v.literal("failed"), v.literal("superseded"));

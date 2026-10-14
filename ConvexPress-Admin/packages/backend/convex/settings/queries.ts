@@ -27,7 +27,7 @@
 import { readMergedSettingsSection as getMergedSettingsSection } from "./read";
 import { ConvexError } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { requireCan, getCurrentUser, resolveUserRole } from "../helpers/permissions";
 import { redactSettingSecrets } from "../helpers/settingsSecret";
 import { getSectionArgs } from "./validators";
 import {
@@ -108,6 +108,10 @@ async function requireSettingsReadAccess(ctx: QueryCtx, section: SettingsSection
   const user = await getCurrentUser(ctx);
   if (!user || user.status !== "active") return null;
   if (user.authSource === "clerk") {
+    throw new ConvexError({ code: "FORBIDDEN", message: "Insufficient permissions" });
+  }
+  // External accounts are operators only while they hold an internal role.
+  if (user.authSource === "external" && (await resolveUserRole(ctx, user))?.type !== "internal") {
     throw new ConvexError({ code: "FORBIDDEN", message: "Insufficient permissions" });
   }
   return user;

@@ -27,6 +27,7 @@ import { internal } from "../_generated/api";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { getCurrentUser, requireCan, resolveUserRole } from "../helpers/permissions";
+import { deleteExternalIdentityLinksForUser } from "../helpers/externalIdentities";
 import { emitEvent } from "../helpers/events";
 import { countActiveAdmins } from "../helpers/profile";
 import { PROFILE_EVENTS, SYSTEM } from "../events/constants";
@@ -391,6 +392,14 @@ export const updateUser = mutation({
 
     if (args.email !== undefined) {
       const nextEmail = args.email.trim().toLowerCase();
+      if (nextEmail !== targetUser.email && targetUser.authSource === "external") {
+        // The integrator's identity provider owns an external operator's
+        // email; it changes through users/externalIdentities, not here.
+        throw new ConvexError({
+          code: "EXTERNAL_IDENTITY_MANAGED",
+          message: "This account's email is managed by its external identity provider.",
+        });
+      }
       if (nextEmail !== targetUser.email) {
         // Check email uniqueness
         const existingByEmail = await ctx.db
@@ -756,7 +765,9 @@ export const deleteUser = mutation({
       }
     }
 
-    // 9. Delete the user record
+    // 9. Delete the user record and any external sign-in links to it, so no
+    // link outlives the account it authorized.
+    await deleteExternalIdentityLinksForUser(ctx, args.userId);
     await deleteWithMediaReferences<"users">(ctx, "users", args.userId);
 
     // 10. Emit event (uses stored data since the record is now deleted)
@@ -826,7 +837,8 @@ export const bulkDeleteUsers = mutation({
           }
         }
 
-        // Delete user record
+        // Delete user record and its external sign-in links
+        await deleteExternalIdentityLinksForUser(ctx, userId);
         await deleteWithMediaReferences<"users">(ctx, "users", userId);
 
         // Emit event per user

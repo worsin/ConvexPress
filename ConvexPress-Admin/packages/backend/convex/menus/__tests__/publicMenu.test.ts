@@ -4,6 +4,8 @@ import { convexTest } from "convex-test";
 import schema from "../../schema";
 import { makeFunctionReference } from "convex/server";
 import type { PublicMenuResult } from "../publicContract";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example.invalid");
 const getMenuForLocation = makeFunctionReference<
   "query",
   { locationSlug: string },

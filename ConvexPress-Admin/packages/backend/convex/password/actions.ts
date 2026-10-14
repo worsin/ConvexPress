@@ -20,6 +20,7 @@ import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { adminResetUserPasswordArgs, completePasswordResetArgs } from "./validators";
+import { DELEGATED_SIGN_IN_EXPLANATION, isDelegatedSignInAccount } from "../auth/delegatedAccounts";
 
 /** Token expiry: 24 hours */
 const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
@@ -139,6 +140,15 @@ export const adminResetUserPassword = action({
       throw new ConvexError({
         code: "NOT_FOUND",
         message: "User not found.",
+      });
+    }
+
+    // External and management accounts have no ConvexPress password; their
+    // sign-in belongs to another system and must never be claimable here.
+    if (isDelegatedSignInAccount(targetUser)) {
+      throw new ConvexError({
+        code: "PASSWORD_RESET_UNAVAILABLE",
+        message: DELEGATED_SIGN_IN_EXPLANATION,
       });
     }
 

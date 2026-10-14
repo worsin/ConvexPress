@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import { api } from "../../_generated/api";
 import { digitalFixture as fixture } from "./fixtures.test";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example");
 const queries = api.commerceDigital.queries;
 
 test("digital authoring queries deny anonymous and customer access even when IDs are known", async () => {

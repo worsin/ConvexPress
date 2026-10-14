@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { makeFunctionReference } from "convex/server";
 import { digitalFixture } from "./fixtures.test";
 import type { LibraryArgs, LibraryPage } from "../library";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example");
 const read = makeFunctionReference<"query", LibraryArgs, LibraryPage | null>("commerceDigital/library:page");
 const args: LibraryArgs = { instanceKey: "library-site", refreshKey: "initial", paginationOpts: { numItems: 12, cursor: null } };
 async function fixture() {

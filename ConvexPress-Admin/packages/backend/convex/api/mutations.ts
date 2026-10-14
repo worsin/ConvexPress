@@ -160,15 +160,10 @@ export const createKey = mutation({
     // 6. Hash the key for storage
     const keyHash = await sha256Hash(plaintextKey);
 
-    // 7. Get user identity
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHENTICATED",
-        message: "Not authenticated",
-      });
-    }
-    const userId = identity.subject;
+    // 7. Record the resolved ConvexPress user, never the raw token subject:
+    // subjects are only unique per issuer, and the HTTP API maps this value
+    // back to a user.
+    const userId: string = user._id;
 
     // 8. Insert the API key record
     const now = Date.now();
@@ -231,7 +226,7 @@ export const revokeKey = mutation({
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Check authorization
-    await requireCan(ctx, "api.revoke_key");
+    const user = await requireCan(ctx, "api.revoke_key");
 
     // 2. Fetch the key
     const key = await ctx.db.get("apiKeys", args.keyId);
@@ -258,15 +253,8 @@ export const revokeKey = mutation({
       });
     }
 
-    // 5. Get revoker identity
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHENTICATED",
-        message: "Not authenticated",
-      });
-    }
-    const revokedBy = identity.subject;
+    // 5. Record the resolved revoker, never the raw token subject.
+    const revokedBy: string = user._id;
 
     // 6. Update the key
     const now = Date.now();
@@ -392,15 +380,8 @@ export const createWebhook = mutation({
     }
     const encryptedSecret = await encryptSecret(plaintextSecret, encryptionKey);
 
-    // 8. Get user identity
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHENTICATED",
-        message: "Not authenticated",
-      });
-    }
-    const userId = identity.subject;
+    // 8. Record the resolved ConvexPress user, never the raw token subject.
+    const userId: string = user._id;
 
     // 9. Register event listener in the Event Dispatcher
     const now = Date.now();

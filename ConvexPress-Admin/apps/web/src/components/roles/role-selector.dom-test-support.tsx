@@ -57,6 +57,15 @@ const roles = [
     isDefault: true,
   },
   {
+    _id: "system",
+    name: "System",
+    slug: "system",
+    type: "system",
+    status: "active",
+    level: 0,
+    isDefault: false,
+  },
+  {
     _id: "inactive",
     name: "Inactive",
     slug: "inactive",
@@ -144,13 +153,32 @@ try {
     );
     assert.deepEqual(
       [...container.querySelectorAll("option")].map((option) => option.value),
-      ["editor", "subscriber"],
+      ["editor", "subscriber", "system"],
     );
     assert.equal(
       container.querySelector("select")?.getAttribute("aria-describedby"),
       null,
     );
   }
+  // External operators keep internal roles but never receive system roles.
+  await act(async () =>
+    root.render(
+      <RoleSelector
+        id="role"
+        value="editor"
+        assignmentTarget={{ authSource: "external" }}
+        onChange={() => {}}
+      />,
+    ),
+  );
+  assert.deepEqual(
+    [...container.querySelectorAll("option")].map((option) => option.value),
+    ["editor", "subscriber"],
+  );
+  assert.equal(
+    container.querySelector("select")?.getAttribute("aria-describedby"),
+    null,
+  );
   const { InviteUserForm } = await import("../registration/InviteUserForm");
   await act(async () => root.render(<InviteUserForm />));
   assert.deepEqual(
@@ -186,7 +214,7 @@ try {
   );
   assert.ok(document.body.textContent?.includes("customer roles"));
   console.log(
-    "role-selector: identity-filtered options, unavailable current role, explanation and actual customer selection passed",
+    "role-selector: identity-filtered options, external operators without system roles, unavailable current role, explanation and actual customer selection passed",
   );
 } finally {
   await act(async () => root.unmount());

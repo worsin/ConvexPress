@@ -11,6 +11,15 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 
 export type UserStatus = "active" | "inactive" | "banned";
 
+// --- Auth Source ---
+
+/**
+ * How a user signs in. "external" accounts come from an integrator's trusted
+ * identity provider: ConvexPress holds no password and no Clerk account for
+ * them, so password reset and Clerk actions do not apply.
+ */
+export type UserAuthSource = "local" | "clerk" | "management" | "external";
+
 // --- Social Links ---
 
 export interface SocialLinks {
@@ -44,6 +53,7 @@ export interface User {
 
   // Auth identity fields (read-only)
   authIdentifier: string;
+  authSource?: UserAuthSource;
   email: string;
   emailVerified: boolean;
   firstName?: string;

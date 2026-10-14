@@ -81,7 +81,7 @@ export const exportAuditLog: import("convex/server").RegisteredAction<"public", 
     // Verify the user has the export_audit_log capability via an internal query
     const canExport = await ctx.runQuery(
       internal.auditLogs.internals.checkExportPermission,
-      { userId: identity.subject },
+      {},
     );
     if (!canExport) {
       throw new ConvexError({

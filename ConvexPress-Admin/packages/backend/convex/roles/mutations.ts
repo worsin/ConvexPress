@@ -18,6 +18,7 @@ import { ConvexError, v } from "convex/values";
 import {
   roleCompatibleWithIdentity,
   CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
+  legacyInternalRoleForRoleSlug,
 } from "../../lib/auth/roleAssignment";
 import { mutation, type MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
@@ -497,14 +498,7 @@ export const assign = mutation({
     });
 
     // Map new role slug to legacy internalRole for backward compatibility
-    const legacyRoleMap: Record<string, string> = {
-      administrator: "admin",
-      editor: "editor",
-      author: "author",
-      contributor: "contributor",
-      subscriber: "customer",
-    };
-    const legacyRole = legacyRoleMap[newRole.slug] ?? newRole.slug;
+    const legacyRole = legacyInternalRoleForRoleSlug(newRole.slug);
     const isInternalType = newRole.type === "internal";
 
     // Update user's role

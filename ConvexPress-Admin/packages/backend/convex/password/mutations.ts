@@ -33,6 +33,7 @@ import {
   storeResetTokenArgs,
 } from "./validators";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { isDelegatedSignInAccount } from "../auth/delegatedAccounts";
 
 import { v } from "convex/values";
 // ─── recordResetRequest ─────────────────────────────────────────────────────
@@ -59,10 +60,11 @@ export const recordResetRequest = internalMutation({
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .unique();
 
-    if (!user || !user.clerkUserId) {
+    if (!user || !user.clerkUserId || isDelegatedSignInAccount(user)) {
       // Silent return -- email enumeration prevention. Accounts without a
-      // Clerk identity (local admins) cannot complete this flow, so no token
-      // or email is issued for them either.
+      // Clerk identity (local admins) cannot complete this flow, and accounts
+      // signed in by another system (external, management) must never get a
+      // ConvexPress-issued password, so no token or email is issued for them.
       return;
     }
 
@@ -117,7 +119,9 @@ export const storeResetToken = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
-    if (!user) return;
+    // Delegated sign-in accounts never receive a reset token (defense in
+    // depth; adminResetUserPassword refuses them before reaching here).
+    if (!user || isDelegatedSignInAccount(user)) return;
 
     const now = Date.now();
 

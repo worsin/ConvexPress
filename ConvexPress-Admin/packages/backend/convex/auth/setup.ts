@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { hashPassword, hashSetupToken } from "./helpers";
 import type { Id } from "../_generated/dataModel";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { isDelegatedSignInAccount } from "./delegatedAccounts";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
@@ -284,6 +285,10 @@ export const upsertSmokeAdmin: RegisteredMutation<"internal", {email:string;user
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
+
+    if (existing && isDelegatedSignInAccount(existing)) {
+      throw new Error("That email belongs to an account that signs in through an external identity provider.");
+    }
 
     if (existing) {
       await patchWithMediaReferences<"users">(ctx, "users", existing._id, {

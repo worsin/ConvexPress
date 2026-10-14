@@ -6,7 +6,6 @@
  *
  * Functions:
  *   getPasswordStatus          (public)   - Get password metadata for self or another user
- *   getUserBySubject           (internal) - Look up user by auth subject (for action auth)
  *   getUserById                (internal) - Look up user by Convex ID (for action target)
  *   getUserRoleLevel           (internal) - Get a user's role level (for action auth)
  *   getRegistrationMethodByEmail (internal) - Check if email is OAuth-registered
@@ -18,7 +17,6 @@ import { v, ConvexError } from "convex/values";
 import {
   currentUserCan,
   getCurrentUser,
-  lookupUserByIdentifier,
   requireCan,
 } from "../helpers/permissions";
 import { getPasswordStatusArgs } from "./validators";
@@ -93,78 +91,6 @@ export const requirePasswordResetCapability = internalQuery({
 });
 
 // ─── Internal Queries (for actions) ─────────────────────────────────────────
-
-/**
- * Look up a user by auth identity subject.
- * Used by adminResetUserPassword action to identify the caller.
- * Handles both Convex Auth (subject = user _id) and Clerk (subject = clerk user ID).
- */
-export const getUserBySubject = internalQuery({
-  args: { subject: v.string() },
-  returns: v.union(v.null(), v.object({
-    _id: v.id("users"),
-    _creationTime: v.number(),
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
-    passwordHash: v.optional(v.string()),
-    clerkUserId: v.optional(v.string()),
-    email: v.string(),
-    emailVerified: v.boolean(),
-    firstName: v.optional(v.string()),
-    lastName: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    profilePictureUrl: v.optional(v.string()),
-    username: v.optional(v.string()),
-    nickname: v.optional(v.string()),
-    displayName: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    bio: v.optional(v.string()),
-    url: v.optional(v.string()),
-    avatarUrl: v.optional(v.string()),
-    avatarMediaId: v.optional(v.id("media")),
-    avatarStorageId: v.optional(v.string()),
-    socialLinks: v.optional(v.object({
-      twitter: v.optional(v.string()),
-      facebook: v.optional(v.string()),
-      instagram: v.optional(v.string()),
-      linkedin: v.optional(v.string()),
-      youtube: v.optional(v.string()),
-      github: v.optional(v.string()),
-      website: v.optional(v.string()),
-    })),
-    roleId: v.optional(v.id("roles")),
-    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
-    deactivatedAt: v.optional(v.number()),
-    deactivatedBy: v.optional(v.id("users")),
-    preferences: v.optional(v.object({
-      adminColorScheme: v.optional(v.string()),
-      showAdminBar: v.optional(v.boolean()),
-      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
-      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
-      notifyOnComment: v.optional(v.boolean()),
-      notifyOnReply: v.optional(v.boolean()),
-      notifyOnMention: v.optional(v.boolean()),
-    })),
-    locale: v.optional(v.string()),
-    timezone: v.optional(v.string()),
-    postCount: v.optional(v.number()),
-    commentCount: v.optional(v.number()),
-    registrationMethod: v.optional(v.string()),
-    invitedBy: v.optional(v.id("users")),
-    emailVerifiedAt: v.optional(v.number()),
-    registeredAt: v.optional(v.number()),
-    lastLoginAt: v.optional(v.number()),
-    lastPasswordChangedAt: v.optional(v.number()),
-    passwordResetRequestedAt: v.optional(v.number()),
-    passwordResetCount: v.optional(v.number()),
-    internalRole: v.optional(v.string()),
-    isInternal: v.optional(v.boolean()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })),
-  handler: async (ctx, args) => {
-    return await lookupUserByIdentifier(ctx, args.subject);
-  },
-});
 
 /**
  * Look up a user by Convex document ID.

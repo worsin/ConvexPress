@@ -10,6 +10,8 @@ import { getFunctionName } from "convex/server";
 import * as policyReads from "../../membership/policyReads";
 import * as profiles from "../../profiles/queries";
 import * as canonicalDocuments from "../../canonicalDocuments";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://synthetic.clerk");
 
 type Row = Record<string, any>;
 const SECRET = "UNRELEASED_BODY_MARKER";
@@ -226,6 +228,7 @@ function fixture(
 				options.actor
 					? {
 							subject: options.actor === "editor" ? user._id : user.clerkUserId,
+							issuer: options.actor === "editor" ? "https://convexpress-admin.local" : "https://synthetic.clerk",
 							tokenIdentifier:
 								options.actor === "editor"
 									? `https://convexpress-admin.local|${user._id}`

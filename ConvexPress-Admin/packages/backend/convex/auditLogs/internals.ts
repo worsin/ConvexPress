@@ -12,7 +12,7 @@
  * There is no public create mutation. Entries are immutable once written.
  */
 
-import { lookupUserByIdentifier } from "../helpers/permissions";
+import { currentUserCan, lookupUserByIdentifier } from "../helpers/permissions";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
@@ -360,34 +360,17 @@ export const emitExportEvent = internalMutation({
 // ─── Check Export Permission ─────────────────────────────────────────────────
 
 /**
- * Internal query to check if a user has the export_audit_log capability.
- * Called from the export action since actions cannot use requireCan() directly.
+ * Internal query to check if the calling action's user has the audit.export
+ * capability. Convex passes the action's verified identity to this query, so
+ * the caller is resolved by currentUserCan (issuer rules, auth source, active
+ * status and role compatibility), never from an argument. (The previous check
+ * read an undefined "export_audit_log" capability, so no role could pass it.)
  */
 export const checkExportPermission = internalQuery({
-  args: {
-    userId: v.string(),
-  },
+  args: {},
   returns: v.boolean(),
-  handler: async (ctx, args): Promise<boolean> => {
-    // Look up user by identifier
-    const user = await lookupUserByIdentifier(ctx, args.userId);
-
-    if (!user) return false;
-
-    // Resolve role and check for capability
-    if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
-      if (!role) return false;
-      return (
-        Array.isArray(role.capabilities) &&
-        role.capabilities.includes("export_audit_log")
-      );
-    }
-
-    // Legacy role fallback: administrators always have all capabilities
-    if (user.internalRole === "administrator") return true;
-
-    return false;
+  handler: async (ctx): Promise<boolean> => {
+    return await currentUserCan(ctx, "audit.export");
   },
 });
 

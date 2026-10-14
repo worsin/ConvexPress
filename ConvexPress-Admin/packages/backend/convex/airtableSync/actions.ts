@@ -35,7 +35,7 @@ async function requireAdmin(ctx: ActionCtx) {
 
   await ctx.runQuery(
     internal.airtableSync._internal.checkAdminPermission,
-    { userId: identity.subject },
+    {},
   );
 
   return identity;

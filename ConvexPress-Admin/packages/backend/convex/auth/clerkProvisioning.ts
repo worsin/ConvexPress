@@ -17,6 +17,8 @@ import {
   getRegistrationSettings,
 } from "../helpers/registration";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { classifyIdentity } from "./issuers";
+import { isDelegatedSignInAccount } from "./delegatedAccounts";
 
 import { v } from "convex/values";
 /**
@@ -80,6 +82,12 @@ async function provisionClerkIdentity(
   {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+    // Only the configured Clerk issuer provisions website accounts. Any other
+    // trusted issuer's subject is not a Clerk user ID and must never become one.
+    if (classifyIdentity(identity) !== "clerk") {
+      decline.reason = "unknown";
+      return null;
+    }
 
     const clerkUserId = normalizeClerkUserId(identity.subject);
     if (!clerkUserId) return null;
@@ -122,6 +130,15 @@ async function provisionClerkIdentity(
         .unique();
 
       if (byEmail) {
+        // External and management accounts sign in through another system;
+        // a Clerk session must never claim them by email.
+        if (isDelegatedSignInAccount(byEmail)) {
+          console.warn(
+            `[ClerkProvisioning] Email ${normalizedEmail} belongs to an account with delegated sign-in; not linking to Clerk user ${clerkUserId}.`,
+          );
+          decline.reason = "email_conflict";
+          return null;
+        }
         if (!byEmail.clerkUserId) {
           if (!emailVerified) {
             decline.reason = "email_unverified";

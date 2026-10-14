@@ -17,6 +17,7 @@ import type { Id } from "../_generated/dataModel";
 import { getUserIdentifier } from "../helpers/permissions";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
+import { userAuthSourceValidator } from "../schema/users";
 import {
   generateSlug,
   ensureUniqueSlug,
@@ -292,7 +293,7 @@ export const listUsersInternal = internalQuery({
       roleLevel: v.optional(v.number()),
       _id: v.id("users"),
       _creationTime: v.number(),
-      authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+      authSource: v.optional(userAuthSourceValidator),
       passwordHash: v.optional(v.string()),
       clerkUserId: v.optional(v.string()),
       clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
@@ -524,7 +525,7 @@ export const getUserInternal = internalQuery({
     roleLevel: v.optional(v.number()),
     _id: v.id("users"),
     _creationTime: v.number(),
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    authSource: v.optional(userAuthSourceValidator),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),

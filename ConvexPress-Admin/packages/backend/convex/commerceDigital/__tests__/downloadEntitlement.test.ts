@@ -3,6 +3,8 @@ import { api, internal } from "../../_generated/api";
 import { digitalFixture } from "./fixtures.test";
 import { readDownloadEntitlement } from "../downloadEntitlement";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example");
 
 const token = "PRIVATE_DOWNLOAD_TOKEN";
 const q = api.commerceDigital.queries;

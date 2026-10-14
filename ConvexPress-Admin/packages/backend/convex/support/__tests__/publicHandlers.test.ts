@@ -2,6 +2,8 @@ import {test,expect} from "bun:test";
 import {convexTest} from "convex-test";
 import {makeFunctionReference} from "convex/server";
 import schema from "../../schema";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://fixture.clerk.accounts.dev");
 const modules={"./convex/membership/policyReads.ts":()=>import("../../membership/policyReads"),"./convex/_generated/api.js":()=>import("../../_generated/api.js"),"./convex/_generated/server.js":()=>import("../../_generated/server.js"),"./convex/support/widget.ts":()=>import("../widget"),"./convex/support/analytics.ts":()=>import("../analytics"),"./convex/support/channels.ts":()=>import("../channels")};
 const recent=makeFunctionReference<"query">("support/widget:getRecentTickets"),stats=makeFunctionReference<"query">("support/analytics:getDeflectionStats"),create=makeFunctionReference<"mutation">("support/channels:create");
 test("typed support handlers preserve customer ticket isolation and staff-only configuration",async()=>{

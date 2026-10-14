@@ -5,6 +5,8 @@ import {createNavigationReader} from '../navigation';
 import {RequestReadLedger} from '../../helpers/requestReadLedger';
 import {resolveCanonicalData, validateCanonicalData} from '../foundation/resolve';
 import {navigationResultSchemas} from '../foundation/navigationContracts';
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example.invalid");
 const modules = {
   './convex/_generated/api.js': () => import('../../_generated/api.js'),
   './convex/_generated/server.js': () => import('../../_generated/server.js'),
@@ -36,11 +38,11 @@ test('account projection recognizes only the active user in this site and expose
   expect(await read(client)).toEqual(signedOut);
   await t.run(ctx => ctx.db.patch('users',ids.user,{status:'active',authSource:'clerk',clerkUserId:'other-provider-user'}));
   expect(await read(client)).toEqual(signedOut);
-  const customer = t.withIdentity({subject:'other-provider-user',tokenIdentifier:'https://clerk.example.invalid|other-provider-user'});
+  const customer = t.withIdentity({subject:'other-provider-user',issuer:'https://clerk.example.invalid',tokenIdentifier:'https://clerk.example.invalid|other-provider-user'});
   expect(await read(customer)).toEqual({state:'signed-in',href:'/dashboard'});
   await t.run(ctx => ctx.db.patch('users',ids.user,{status:'banned'}));
   expect(await read(customer)).toEqual(signedOut);
-  const unknown = t.withIdentity({subject:'unregistered-clerk-viewer',tokenIdentifier:'https://clerk.example.invalid|unregistered-clerk-viewer'});
+  const unknown = t.withIdentity({subject:'unregistered-clerk-viewer',issuer:'https://clerk.example.invalid',tokenIdentifier:'https://clerk.example.invalid|unregistered-clerk-viewer'});
   expect(await read(unknown)).toEqual(signedOut);
 });
 
