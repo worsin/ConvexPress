@@ -36,6 +36,7 @@ import {
 } from "../_generated/server";
 import { getCurrentUser, requireAuth } from "../helpers/auth";
 import { findCouponByCode, initializeRedemption, validateCoupon } from "../helpers/coupons";
+import { readMergedSettingsSection } from "../settings/read";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import {
@@ -101,13 +102,7 @@ async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 	if (!membershipOn) return false;
 
 	try {
-		const settingsRow = await ctx.db
-			.query("settings")
-			.withIndex("by_section", (q) =>
-				q.eq("section", "membership.general"),
-			)
-			.unique();
-		const values = (settingsRow?.values ?? {}) as Record<string, unknown>;
+		const values = await readMergedSettingsSection(ctx, "membership.general");
 		if (values.acceptSubscriptionGrants === false) return false;
 	} catch {
 		// Settings read failure should not block the bridge.
@@ -119,13 +114,7 @@ async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 async function isLiveSubscriptionChargingEnabled(
 	ctx: QueryCtx | MutationCtx,
 ): Promise<boolean> {
-	const settingsRow = await ctx.db
-		.query("settings")
-		.withIndex("by_section", (q) =>
-			q.eq("section", "commerce.payments"),
-		)
-		.unique();
-	const values = (settingsRow?.values ?? {}) as Record<string, unknown>;
+	const values = await readMergedSettingsSection(ctx, "commerce.payments");
 	return values.subscriptionChargingEnabled === true;
 }
 

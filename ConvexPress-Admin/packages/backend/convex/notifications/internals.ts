@@ -24,6 +24,7 @@ import type { Doc, Id, TableNames } from "../_generated/dataModel";
 
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { NOTIFICATION_EVENTS } from "../events/constants";
 import { emitEvent } from "../helpers/events";
 import { interpolateTemplate } from "../helpers/notification";
 import { getUserIdentifier } from "../helpers/permissions";
@@ -415,11 +416,11 @@ export const send: RegisteredMutation<"internal", ObjectType<typeof sendArgs>, I
       createdAt: now,
     });
 
-    // ─── 7. Emit notification.site_sent event ────────────────────────────
+    // ─── 7. Emit notification.sent ───────────────────────────────────────
     // This event is consumed by the Audit Log System for record-keeping.
     // The circuit breaker in onEvent prevents notification.* events from
     // triggering more site notifications (infinite loop prevention).
-    await emitEvent(ctx, "notification.site_sent", "notification", {
+    await emitEvent(ctx, NOTIFICATION_EVENTS.SENT, "notification", {
       userId: args.userId,
       type: args.type,
       message,

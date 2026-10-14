@@ -3639,6 +3639,7 @@ export declare const internal:
 "migrations":
 {
 "endItemsOfEndedContracts": FunctionReference<"mutation", "internal", { status?: "cancelled" | "expired", cursor?: string | null, itemsEnded?: number }, { itemsEnded: number, done: boolean }>,
+"normalizeCouponCodes": FunctionReference<"mutation", "internal", {  }, { normalized: number, collisions: Array<string> }>,
 }
 ,
 "operator":
