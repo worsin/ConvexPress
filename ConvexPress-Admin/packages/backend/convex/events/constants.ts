@@ -48,6 +48,7 @@ export const SYSTEM = {
   CART: "cart",
   CHECKOUT: "checkout",
   PURCHASE: "purchase",
+  COMMERCE: "commerce",
   WISHLIST: "wishlist",
   LMS: "lms",
   FORMS: "forms",
@@ -339,6 +340,19 @@ export const PURCHASE_EVENTS = {
   UPDATED: "purchase.updated",
 } as const;
 
+/** Subscription contract lifecycle events (commerceSubscriptions) */
+export const SUBSCRIPTION_EVENTS = {
+  CREATED: "commerce.subscription_created",
+  RENEWED: "commerce.subscription_renewed",
+  PAST_DUE: "commerce.subscription_past_due",
+  TRIAL_ENDING: "commerce.subscription_trial_ending",
+  PAUSED: "commerce.subscription_paused",
+  RESUMED: "commerce.subscription_resumed",
+  CANCEL_SCHEDULED: "commerce.subscription_cancel_scheduled",
+  CANCELLED: "commerce.subscription_cancelled",
+  EXPIRED: "commerce.subscription_expired",
+} as const;
+
 /** Wishlist System events (3) */
 export const WISHLIST_EVENTS = {
   ITEM_ADDED: "wishlist.item_added",
@@ -450,6 +464,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(CART_EVENTS),
   ...Object.values(CHECKOUT_EVENTS),
   ...Object.values(PURCHASE_EVENTS),
+  ...Object.values(SUBSCRIPTION_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
   ...Object.values(LMS_EVENTS),
   ...Object.values(FORM_EVENTS),
@@ -504,6 +519,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.CART]: Object.values(CART_EVENTS),
   [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
   [SYSTEM.PURCHASE]: Object.values(PURCHASE_EVENTS),
+  [SYSTEM.COMMERCE]: Object.values(SUBSCRIPTION_EVENTS),
   [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
   [SYSTEM.LMS]: Object.values(LMS_EVENTS),
   [SYSTEM.FORMS]: Object.values(FORM_EVENTS),

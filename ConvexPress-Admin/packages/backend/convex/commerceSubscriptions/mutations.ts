@@ -46,36 +46,24 @@ import {
 } from "./pricing";
 import { subscriptionIntervalValidator } from "./validators";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+import {
+	addBillingPeriod,
+	addDays,
+	createCorrelationId,
+	DEFAULT_DUNNING_POLICY,
+	syncEntitlementsForStatus,
+	transitionSubscription,
+	writeHistory,
+	type BillingInterval,
+	type SubscriptionDoc,
+	type SubscriptionStatus,
+} from "./lifecycle";
 
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-type BillingInterval = NonNullable<Doc<"commerce_subscriptions">["billingInterval"]>;
-type SubscriptionStatus = Doc<"commerce_subscriptions">["status"];
-type SubscriptionDoc = Doc<"commerce_subscriptions">;
-
-type HistoryEntry = {
-	subscriptionId: Id<"commerce_subscriptions">;
-	eventType: string;
-	message?: string;
-	actorUserId?: Id<"users">;
-	fromStatus?: SubscriptionStatus;
-	toStatus?: SubscriptionStatus;
-	reason?: string;
-	data?: Record<string, unknown>;
-	correlationId?: string;
-};
-
-type TransitionArgs = {
-	subscription: SubscriptionDoc;
-	toStatus: SubscriptionStatus;
-	reason?: string;
-	correlationId?: string;
-	actorUserId?: Id<"users">;
-	patch?: Record<string, unknown>;
-};
 
 type IdempotencyClaim<Response> =
 	| { mode: "none" }
@@ -97,40 +85,11 @@ function isCreateSubscriptionResponse(
 	return validate(createSubscriptionResponseValidator, value);
 }
 
-const STATUS_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
-	draft: ["trialing", "active", "cancelled"],
-	trialing: [
-		"active",
-		"past_due",
-		"paused",
-		"pending_cancel",
-		"cancelled",
-		"expired",
-	],
-	active: ["past_due", "paused", "pending_cancel", "cancelled", "expired"],
-	past_due: ["active", "paused", "pending_cancel", "cancelled", "expired"],
-	paused: ["active", "pending_cancel", "cancelled", "expired"],
-	pending_cancel: ["active", "cancelled", "expired"],
-	cancelled: [],
-	expired: [],
-};
-
-const DEFAULT_DUNNING_POLICY = {
-	maxAttempts: 3,
-	retryIntervalsDays: [1, 3, 7],
-	cancelAfterFinalFailure: true,
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function canTransition(
-	from: SubscriptionStatus,
-	to: SubscriptionStatus,
-): boolean {
-	return STATUS_TRANSITIONS[from]?.includes(to) ?? false;
-}
 
 // Customer (non-admin) lifecycle limits. The status table above is what staff
 // may do; a customer acting on their own contract may only move it within good
@@ -170,36 +129,6 @@ function resumedBillingAt(currentPeriodEndAt: number | undefined, now: number): 
 		: now;
 }
 
-function addDays(timestamp: number, days: number): number {
-	return timestamp + days * 24 * 60 * 60 * 1000;
-}
-
-function addBillingPeriod(
-	timestamp: number,
-	interval: BillingInterval,
-	intervalCount: number,
-): number {
-	const date = new Date(timestamp);
-	if (interval === "day") {
-		date.setDate(date.getDate() + intervalCount);
-		return date.getTime();
-	}
-	if (interval === "week") {
-		date.setDate(date.getDate() + 7 * intervalCount);
-		return date.getTime();
-	}
-	if (interval === "month") {
-		date.setMonth(date.getMonth() + intervalCount);
-		return date.getTime();
-	}
-	// year
-	date.setFullYear(date.getFullYear() + intervalCount);
-	return date.getTime();
-}
-
-function createCorrelationId(): string {
-	return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 async function getProductOverride(
 	ctx: { db: QueryCtx["db"] },
@@ -262,157 +191,6 @@ async function resolveEffectiveConfig(
 	};
 }
 
-async function writeHistory(ctx: MutationCtx, args: HistoryEntry) {
-	await ctx.db.insert("commerce_subscription_history", {
-		subscriptionId: args.subscriptionId,
-		eventType: args.eventType,
-		message: args.message ?? args.eventType,
-		actorUserId: args.actorUserId,
-		metadata: {
-			fromStatus: args.fromStatus,
-			toStatus: args.toStatus,
-			reason: args.reason,
-			data: args.data,
-			correlationId: args.correlationId,
-		},
-		createdAt: Date.now(),
-	});
-}
-
-/**
- * Returns true iff both the commerce-subscriptions and membership plugins are
- * enabled AND `membership.acceptSubscriptionGrants` is not explicitly false.
- *
- * See the matching helper in `commerceSubscriptions/internals.ts`. The two
- * are intentionally duplicated because their callers
- * (`syncEntitlementsForStatus`) are also duplicated — that pre-existing smell
- * is out of scope for this task.
- */
-async function isBridgeEnabled(ctx: QueryCtx | MutationCtx): Promise<boolean> {
-	const commerceOn = await isPluginEnabled(ctx, "commerceSubscriptions");
-	if (!commerceOn) return false;
-	const membershipOn = await isPluginEnabled(ctx, "membership");
-	if (!membershipOn) return false;
-
-	try {
-		const settingsRow = await ctx.db
-			.query("settings")
-			.withIndex("by_section", (q) =>
-				q.eq("section", "membership.general"),
-			)
-			.unique();
-		const values = (settingsRow?.values ?? {}) as Record<string, unknown>;
-		if (values.acceptSubscriptionGrants === false) return false;
-	} catch {
-		// Settings read failure should not block bridge; fall through to enabled.
-	}
-	return true;
-}
-
-async function syncEntitlementsForStatus(
-	ctx: MutationCtx,
-	subscription: SubscriptionDoc,
-	now: number,
-	gracePeriodDays = 3,
-) {
-	const entitlements = await ctx.db
-		.query("commerce_subscription_entitlements")
-		.withIndex("by_subscription", (q) =>
-			q.eq("subscriptionId", subscription._id),
-		)
-		.collect();
-
-	for (const entitlement of entitlements) {
-		if (
-			subscription.status === "active" ||
-			subscription.status === "trialing"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "active",
-				endsAt: undefined,
-				updatedAt: now,
-			});
-		} else if (
-			subscription.status === "past_due" ||
-			subscription.status === "paused"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "grace",
-				graceEndsAt: addDays(now, gracePeriodDays),
-				updatedAt: now,
-			});
-		} else if (
-			subscription.status === "cancelled" ||
-			subscription.status === "expired"
-		) {
-			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
-				status: "revoked",
-				endsAt: now,
-				updatedAt: now,
-			});
-		}
-	}
-
-	// ── Bridge: propagate status to membership grants ─────────────────────────
-	// Soft-gated by `isBridgeEnabled` — plugin flags + acceptSubscriptionGrants.
-	// Each entitlement's bridge call is isolated: one failure MUST NOT block the
-	// rest of the loop or the status transition itself.
-	const bridgeEnabled = await isBridgeEnabled(ctx);
-	if (!bridgeEnabled) return;
-
-	for (const entitlement of entitlements) {
-		const decision = decideBridgeCall({
-			subscription,
-			entitlement,
-			gracePeriodDays,
-		});
-		if (decision.action === "noop") continue;
-
-		try {
-			if (decision.action === "grant") {
-				await ctx.runMutation(
-					internal.membership.internals.grantFromSubscription,
-					decision.args,
-				);
-			} else if (decision.action === "moveToGrace") {
-				await ctx.runMutation(
-					internal.membership.internals.moveGrantToGrace,
-					decision.args,
-				);
-			} else if (decision.action === "revoke") {
-				await ctx.runMutation(
-					internal.membership.internals.revokeFromSubscription,
-					decision.args,
-				);
-			}
-		} catch (err) {
-			const subscriptionId = String(subscription._id);
-			const code = entitlement.entitlementCode ?? "(no-code)";
-			console.error(
-				`[bridge] membership propagation failed for subscription ${subscriptionId}, ` +
-					`entitlement ${code}: ${err instanceof Error ? err.message : String(err)}`,
-			);
-			try {
-				await writeHistory(ctx, {
-					subscriptionId: subscription._id,
-					eventType: "subscription.bridge_failed",
-					message: `Membership bridge call failed for entitlement ${code}`,
-					fromStatus: subscription.status,
-					toStatus: subscription.status,
-					reason: "bridge_error",
-					data: {
-						entitlementCode: code,
-						action: decision.action,
-						error: err instanceof Error ? err.message : String(err),
-					},
-				});
-			} catch {
-				// history write failure is non-fatal
-			}
-			// Continue loop — one entitlement's failure must not block others.
-		}
-	}
-}
 
 async function ensureSubscriptionEntitlement(
 	ctx: MutationCtx,
@@ -520,81 +298,6 @@ async function failIdempotency(ctx: MutationCtx, claim: FinalizableClaim) {
 	});
 }
 
-async function transitionSubscription(
-	ctx: MutationCtx,
-	args: TransitionArgs,
-): Promise<SubscriptionDoc> {
-	const now = Date.now();
-	if (args.subscription.status === args.toStatus) return args.subscription;
-
-	if (!canTransition(args.subscription.status, args.toStatus)) {
-		throw new ConvexError({
-			code: "INVALID_TRANSITION",
-			message: `Invalid status transition: ${args.subscription.status} -> ${args.toStatus}`,
-		});
-	}
-
-	const patch: Record<string, unknown> = {
-		status: args.toStatus,
-		updatedAt: now,
-		...args.patch,
-	};
-
-	if (args.toStatus === "paused") {
-		// Mark paused timestamp via history; schema doesn't have pausedAt
-	}
-	if (args.toStatus === "cancelled" || args.toStatus === "expired") {
-		patch.cancelledAt = now;
-	}
-
-	await patchDynamicWithMediaReferences(ctx, args.subscription._id, patch);
-	const updated = await ctx.db.get(args.subscription._id);
-	if (!updated) throw new Error("Subscription not found after transition");
-
-	await writeHistory(ctx, {
-		subscriptionId: updated._id,
-		eventType: "subscription.status_changed",
-		actorUserId: args.actorUserId,
-		fromStatus: args.subscription.status,
-		toStatus: args.toStatus,
-		reason: args.reason,
-		data: { patch },
-		correlationId: args.correlationId,
-	});
-
-	// Sync entitlements
-	const product = updated.productId
-		? await ctx.db.get(updated.productId)
-		: null;
-	if (product) {
-		const config = await resolveEffectiveConfig(
-			ctx,
-			product,
-			updated.templateId,
-		);
-		await syncEntitlementsForStatus(
-			ctx,
-			updated,
-			now,
-			config.gracePeriodDays ?? 3,
-		);
-	}
-
-	// Emit event
-	try {
-		await emitEvent(ctx, `commerce.subscription_${args.toStatus}`, "commerce", {
-			subscriptionId: updated._id,
-			userId: updated.userId,
-			fromStatus: args.subscription.status,
-			toStatus: args.toStatus,
-			reason: args.reason,
-		});
-	} catch {
-		// Event emission is best-effort
-	}
-
-	return updated;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TEMPLATE & OVERRIDE MUTATIONS

@@ -174,10 +174,9 @@ export async function applyCouponToInvoice(
     });
   }
 
-  const newSubtotal = applyDiscount(
-    invoiceSubtotal,
-    coupon.discountType,
-    coupon.amount,
+  // Invoice amounts are minor units: a discounted amount is a whole number of them.
+  const newSubtotal = Math.round(
+    applyDiscount(invoiceSubtotal, coupon.discountType, coupon.amount),
   );
   const discount = Math.max(0, invoiceSubtotal - newSubtotal);
 

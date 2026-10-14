@@ -7,19 +7,21 @@
  * is `true` in settings.
  *
  * Flow:
- *   - Called by `runRenewalSweep`, `runDunningSweep`, and proration helpers
- *     with a single `invoiceId`.
- *   - Reads the invoice + parent subscription via `getInvoiceForRenewal`.
- *   - Creates a Stripe PaymentIntent with `off_session: true, confirm: true`
- *     using the saved `payment_method` on the contract.
- *   - Idempotency key = invoice id — Stripe dedupes retries.
- *   - Persists the charge result via `handleInvoicePaymentResult`.
+ *   - Called by `runRenewalSweep`, `runDunningSweep` and plan-change prorations
+ *     with an `invoiceId` and the attempt number.
+ *   - Reads the invoice and contract via `getInvoiceForRenewal`; charges only a
+ *     payable invoice, on the contract's current saved card.
+ *   - Creates a Stripe PaymentIntent with `off_session: true, confirm: true`.
+ *     Idempotency key = invoice id + attempt number.
+ *   - Records the outcome via `handleInvoicePaymentResult`.
  *
- * Webhook-driven async confirmations (3DS, delayed-capture) land on
- * `/webhooks/stripe` and route back to `handleInvoicePaymentResult` by
- * PaymentIntent `metadata.kind === "subscription_invoice"`.
+ * Stripe also reports each charge to `/webhooks/stripe`, which routes
+ * `metadata.kind === "subscription_invoice"` PaymentIntents to
+ * `recordStripeInvoicePayment`. Recording is idempotent, so the second report
+ * of a charge changes nothing.
  */
 
+import Stripe from "stripe";
 import { v } from "convex/values";
 
 import { internalAction, type ActionCtx } from "../_generated/server";
@@ -32,6 +34,8 @@ import { activationResultValidator, type ActivationResult } from "./validators";
 
 export interface SubscriptionChargeResult {
   success: boolean;
+  /** Nothing was charged or recorded: the invoice was not payable here. */
+  skipped?: boolean;
   transactionId?: string;
   failureReason?: string;
   requiresAction?: boolean; // 3DS / off-session recovery required
@@ -69,70 +73,73 @@ export async function getStripeSecretKey(ctx: Pick<ActionCtx, "runQuery">): Prom
 // chargeSubscriptionInvoice — real off-session charge
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Charge one subscription invoice and record the outcome through
+ * `internals.handleInvoicePaymentResult`. The renewal sweep, the dunning sweep
+ * and plan-change prorations all charge through here.
+ *
+ * Nothing is charged unless the invoice is payable (unpaid, not voided, its
+ * contract not ended). `attemptNumber` is part of the Stripe idempotency key:
+ * each dunning retry is a new charge (and can use a replaced card), while a
+ * re-drive of the same attempt returns the charge Stripe already made.
+ *
+ * With live charging switched off, free invoices settle and paid ones fail
+ * closed (`subscription_charging_not_enabled`); nothing is simulated.
+ */
 export const chargeSubscriptionInvoice = internalAction({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),
+    attemptNumber: v.optional(v.number()),
   },
   returns: v.object({
     success: v.boolean(),
+    skipped: v.optional(v.boolean()),
     transactionId: v.optional(v.string()),
     failureReason: v.optional(v.string()),
     requiresAction: v.optional(v.boolean()),
   }),
   handler: async (ctx, args): Promise<SubscriptionChargeResult> => {
-    const live = await isLiveChargingEnabled(ctx);
-    if (!live) {
-      return {
-        success: false,
-        failureReason: "live_charging_disabled",
-      };
-    }
-
-    const stripeKey = await getStripeSecretKey(ctx);
-    if (!stripeKey) {
-      await writeResult(ctx, args.invoiceId, {
-        success: false,
-        failureReason: "stripe_not_configured",
-      });
-      return { success: false, failureReason: "stripe_not_configured" };
-    }
-
     const invoice = await ctx.runQuery(
       internal.commerceSubscriptions.internals.getInvoiceForRenewal,
       { invoiceId: args.invoiceId },
     );
-
     if (!invoice) {
-      return { success: false, failureReason: "invoice_not_found" };
+      return { success: false, skipped: true, failureReason: "invoice_not_found" };
     }
-
-    // Free-tier invoices skip Stripe entirely.
-    if (invoice.totalAmount === 0) {
-      const result: SubscriptionChargeResult = {
-        success: true,
-        transactionId: `free_${Date.now()}`,
-      };
-      await writeResult(ctx, args.invoiceId, result);
-      return result;
+    if (!invoice.payable) {
+      return { success: false, skipped: true, failureReason: `invoice_not_payable_${invoice.status}` };
     }
-
     if (invoice.manualBilling) {
-      return { success: false, failureReason: "manual_billing" };
+      return { success: false, skipped: true, failureReason: "manual_billing" };
     }
 
-    if (!invoice.savedPaymentMethodId || !invoice.stripeCustomerId) {
-      const result: SubscriptionChargeResult = {
+    if (invoice.totalAmount === 0) {
+      return await record(ctx, args.invoiceId, {
+        success: true,
+        transactionId: `free_${String(args.invoiceId)}`,
+      });
+    }
+
+    if (!(await isLiveChargingEnabled(ctx))) {
+      return await record(ctx, args.invoiceId, {
         success: false,
-        failureReason: "no_payment_method_on_file",
-      };
-      await writeResult(ctx, args.invoiceId, result);
-      return result;
+        failureReason: invoice.savedPaymentMethodId
+          ? "subscription_charging_not_enabled"
+          : "no_payment_method_on_file",
+      });
     }
 
-    try {
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(stripeKey);
+    const stripeKey = await getStripeSecretKey(ctx);
+    if (!stripeKey) {
+      return await record(ctx, args.invoiceId, { success: false, failureReason: "stripe_not_configured" });
+    }
+    if (!invoice.savedPaymentMethodId || !invoice.stripeCustomerId) {
+      return await record(ctx, args.invoiceId, { success: false, failureReason: "no_payment_method_on_file" });
+    }
 
+    const attemptNumber = args.attemptNumber ?? 1;
+    try {
+      const stripe = new Stripe(stripeKey);
       const paymentIntent = await stripe.paymentIntents.create(
         {
           amount: invoice.totalAmount,
@@ -146,55 +153,36 @@ export const chargeSubscriptionInvoice = internalAction({
             kind: "subscription_invoice",
             invoiceId: String(args.invoiceId),
             subscriptionId: String(invoice.subscriptionId),
+            attemptNumber: String(attemptNumber),
           },
         },
-        { idempotencyKey: `sub_inv_${String(args.invoiceId)}` },
+        { idempotencyKey: `sub_inv_${String(args.invoiceId)}_${attemptNumber}` },
       );
 
       if (paymentIntent.status === "succeeded") {
-        const result: SubscriptionChargeResult = {
-          success: true,
-          transactionId: paymentIntent.id,
-        };
-        await writeResult(ctx, args.invoiceId, result);
-        return result;
+        return await record(ctx, args.invoiceId, { success: true, transactionId: paymentIntent.id });
       }
-
       if (paymentIntent.status === "requires_action") {
-        // Off-session 3DS recovery. The customer must revisit the portal
-        // to confirm; the webhook finalizes on success. For accounting
-        // purposes we treat this as a pending failure so dunning starts.
-        const result: SubscriptionChargeResult = {
+        return await record(ctx, args.invoiceId, {
           success: false,
           failureReason: "authentication_required",
           requiresAction: true,
           transactionId: paymentIntent.id,
-        };
-        await writeResult(ctx, args.invoiceId, result);
-        return result;
+        });
       }
-
-      const result: SubscriptionChargeResult = {
+      return await record(ctx, args.invoiceId, {
         success: false,
         failureReason: `unexpected_status_${paymentIntent.status}`,
         transactionId: paymentIntent.id,
-      };
-      await writeResult(ctx, args.invoiceId, result);
-      return result;
+      });
     } catch (err) {
-      // Stripe decline errors carry decline_code / code / message.
       const failure = describeStripeFailure(err);
-      console.error(
-        `[stripeCharge] Invoice ${args.invoiceId} charge failed:`,
-        failure.message ?? err,
-      );
-      const result: SubscriptionChargeResult = {
+      console.error(`[stripeCharge] Invoice ${args.invoiceId} charge failed:`, failure.message ?? err);
+      return await record(ctx, args.invoiceId, {
         success: false,
         failureReason: failure.failureReason,
         transactionId: failure.paymentIntentId,
-      };
-      await writeResult(ctx, args.invoiceId, result);
-      return result;
+      });
     }
   },
 });
@@ -226,11 +214,11 @@ function describeStripeFailure(err: unknown): {
   };
 }
 
-async function writeResult(
+async function record(
   ctx: Pick<ActionCtx, "runMutation">,
   invoiceId: Id<"commerce_subscription_invoices">,
   result: SubscriptionChargeResult,
-): Promise<void> {
+): Promise<SubscriptionChargeResult> {
   await ctx.runMutation(
     internal.commerceSubscriptions.internals.handleInvoicePaymentResult,
     {
@@ -240,6 +228,7 @@ async function writeResult(
       failureReason: result.failureReason,
     },
   );
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -296,7 +285,6 @@ export const beginSubscriptionFirstCharge = internalAction({
     }
     if (!intent.email) throw new Error("missing_email_on_intent");
 
-    const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeKey);
 
     // Find or create Stripe Customer.

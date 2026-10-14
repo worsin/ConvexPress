@@ -405,22 +405,6 @@ crons.daily(
   {},
 );
 
-// ─── Commerce Subscriptions (legacy stubs) ──────────────────────────────────
-// The Wave 2 `commerce:subscription-renewals`, `commerce:subscription-dunning-
-// retries`, and `commerce:subscription-expirations` crons previously registered
-// here pointed at no-op stubs in `actions.ts` that returned
-// { skipped: true, reason: "subscription_charging_not_configured" }.
-//
-// Wave 7 ships real implementations registered below under
-// "Commerce Subscriptions System" (renewal.runRenewalSweep,
-// dunning.runDunningSweep, internals.expirePendingCancellations).
-//
-// The legacy action exports (actions.processRenewals / processDunningRetries /
-// processExpiredSubscriptions / chargeSubscriptionInvoice) are KEPT in place
-// so any code that still references `internal.commerceSubscriptions.actions.*`
-// keeps compiling. We only remove the cron registrations to eliminate the
-// double-schedule.
-
 // ─── Membership Plan System ─────────────────────────────────────────────────
 // Deadline checks protect reads immediately; bounded maintenance keeps stored
 // statuses and enrollment projections current and resumes interrupted workers.
