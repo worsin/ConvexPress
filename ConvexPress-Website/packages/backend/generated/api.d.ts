@@ -8059,10 +8059,12 @@ export type InternalApi = {
 };
   "emails": {
   "onSubscriptionCancelled": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
+  "onSubscriptionCancelScheduled": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionCreated": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPastDue": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPaused": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionRenewed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
+  "onSubscriptionResumed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionTrialEnding": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
 };
   "internals": {
@@ -8138,10 +8140,12 @@ export type InternalApi = {
 };
   "commerceSubscriptions/emails": {
   "onSubscriptionCancelled": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
+  "onSubscriptionCancelScheduled": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionCreated": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPastDue": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionPaused": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionRenewed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
+  "onSubscriptionResumed": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
   "onSubscriptionTrialEnding": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
 };
   "commerceSubscriptions/internals": {

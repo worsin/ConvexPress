@@ -490,6 +490,8 @@ async function recordPaidInvoice(
 		amount: invoice.totalAmount,
 		currencyCode: invoice.currencyCode,
 		periodEndAt,
+		// A payment that ends a past-due spell: the customer hears "it went through".
+		recovered: subscription.status === "past_due",
 	});
 	return { applied: true, outcome: "paid" };
 }
