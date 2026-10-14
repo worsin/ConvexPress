@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useAuth } from "@/lib/auth-context";
@@ -135,6 +136,7 @@ export function FormEntryDetail({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
+  useBreadcrumbTitle(formId, form?.title);
   const detail = useQuery(api.extensions.forms.queries.getSubmission, {
     id: entryId,
   }) as SubmissionDetail | null | undefined;

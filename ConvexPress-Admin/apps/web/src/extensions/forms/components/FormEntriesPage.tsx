@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useAuth } from "@/lib/auth-context";
@@ -104,6 +105,7 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
   const form = useQuery(api.extensions.forms.queries.getForm, {
     id: formId,
   }) as FormRow | null | undefined;
+  useBreadcrumbTitle(formId, form?.title);
 
   const status = statusForTab(tab);
   const searchTerm = search.trim();

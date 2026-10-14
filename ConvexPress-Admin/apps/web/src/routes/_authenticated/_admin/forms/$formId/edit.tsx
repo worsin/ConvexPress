@@ -5,6 +5,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import { LoaderIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { FieldGroupBuilder } from "@/components/custom-fields/FieldGroupBuilder";
@@ -44,6 +45,7 @@ function EditFormPage() {
 
 function EditFormContent({ formId }: { formId: Id<"forms"> }) {
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
+  useBreadcrumbTitle(formId, form?.title);
   const updateForm = useMutation(api.extensions.forms.mutations.update);
 
   // Forms reuse the customFields engine via a backing field group. Load that

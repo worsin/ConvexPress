@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { Capability } from "@backend/convex/types/capabilities";
@@ -101,6 +102,7 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
   const canManage = useCan(formCap("form.manage_confirmations"));
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
+  useBreadcrumbTitle(formId, form?.title);
   const fieldGroupId = form?.fieldGroupId;
   const fields = useQuery(
     api.customFields.queries.getFieldsByGroup,
