@@ -26,6 +26,7 @@ import { readMergedSettingsSection } from "../settings/read";
 import { commerceSubscriptionInvoiceStatusValidator } from "../schema/commerceSubscriptions";
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { allocateSubscriptionInvoiceNumber } from "./invoiceNumbers";
+import { assertNotAlreadySubscribed } from "./ownership";
 import {
 	addBillingPeriod,
 	addDays,
@@ -1006,6 +1007,13 @@ export const getCheckoutIntentForCharge = internalQuery({
 	handler: async (ctx, args) => {
 		const intent = await ctx.db.get(args.checkoutIntentId);
 		if (!intent) return null;
+		// Re-checked before the card is charged: the customer may have bought the
+		// same access since this checkout started.
+		const offerId = intent.selectedOfferIds?.[0];
+		const offer = offerId ? await ctx.db.get(offerId) : null;
+		if (offer && (intent.status === "payment_pending" || intent.status === "draft")) {
+			await assertNotAlreadySubscribed(ctx, offer, { userId: intent.userId, email: intent.userId ? undefined : intent.email });
+		}
 		return {
 			_id: intent._id,
 			email: intent.email,

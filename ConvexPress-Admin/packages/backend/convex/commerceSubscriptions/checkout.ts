@@ -45,7 +45,9 @@ import {
 import { normalizeFormReturnUrl } from "../extensions/forms/redirects";
 import { commerceSubscriptionCheckoutIntentStatusValidator } from "../schema/commerceSubscriptions";
 import { completeCheckoutRuns } from "../extensions/forms/checkoutRuns";
+import { SUBSCRIPTION_EVENTS } from "../events/constants";
 import { allocateSubscriptionInvoiceNumber } from "./invoiceNumbers";
+import { assertNotAlreadySubscribed, findLiveContractWithCodes } from "./ownership";
 import { addBillingPeriod } from "./lifecycle";
 import { snapshotNumber, snapshotString } from "./snapshot";
 import { activationResultValidator, type ActivationResult } from "./validators";
@@ -190,6 +192,8 @@ async function insertCheckoutIntent(
 			message: "This offer is not available for signup.",
 		});
 	}
+
+	await assertNotAlreadySubscribed(ctx, offer, { userId: owner?._id, email: owner ? undefined : args.customerEmail });
 
 	// Load the template to resolve trial/grace defaults.
 	const template = await ctx.db.get(offer.templateId);
@@ -1047,6 +1051,27 @@ async function activateIntent(
 			paymentTransactionId: settlement.providerTransactionId,
 		},
 	});
+
+	// Two checkouts paid at the same moment can both get here. The money was
+	// taken, so the contract is created; an operator is told to reconcile.
+	if (offer.limitOnePerCustomer === true) {
+		const existing = await findLiveContractWithCodes(ctx, userId, offer.entitlementCodes ?? [], subscriptionId);
+		if (existing) {
+			await writeHistory(ctx, {
+				subscriptionId,
+				eventType: "subscription.duplicate_purchase",
+				toStatus: status,
+				data: { existingSubscriptionId: existing._id, offerId },
+				correlationId,
+			});
+			await emitEvent(ctx, SUBSCRIPTION_EVENTS.DUPLICATE_PURCHASE, "commerce", {
+				subscriptionId,
+				existingSubscriptionId: existing._id,
+				userId,
+				offerId,
+			});
+		}
+	}
 
 	if (intent.initialAmount > 0) {
 		await insertSignupInvoice(ctx, {

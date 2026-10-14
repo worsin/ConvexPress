@@ -352,6 +352,7 @@ export const SUBSCRIPTION_EVENTS = {
   CANCELLED: "commerce.subscription_cancelled",
   EXPIRED: "commerce.subscription_expired",
   ENTITLEMENT_EXPIRED: "commerce.subscription_entitlement_expired",
+  DUPLICATE_PURCHASE: "commerce.subscription_duplicate_purchase",
 } as const;
 
 /** Wishlist System events (3) */

@@ -61,6 +61,7 @@ import { normalizeFormReturnUrl } from "./redirects";
 import { getCurrentUser } from "../../helpers/auth";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
+import { ALREADY_SUBSCRIBED_MESSAGE } from "../../commerceSubscriptions/ownership";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
 /**
@@ -257,7 +258,9 @@ export const getPendingPayment = query({
  *                          a paid checkout that has been activated.
  *   - `failed`           — a checkout action failed; `sign_in_required` when the
  *                          form needs a signed-in submitter, or when the
- *                          caller is not the account that submitted.
+ *                          caller is not the account that submitted;
+ *                          `already_subscribed` when the buyer already holds a
+ *                          one-per-customer offer's access.
  *
  * Same access rule as `getPendingPayment`. Exposes no amounts or secrets.
  */
@@ -270,7 +273,7 @@ export const getCheckoutStatus = query({
     v.object({ state: v.literal("completed"), paid: v.boolean() }),
     v.object({
       state: v.literal("failed"),
-      reason: v.union(v.literal("sign_in_required"), v.literal("unavailable")),
+      reason: v.union(v.literal("sign_in_required"), v.literal("already_subscribed"), v.literal("unavailable")),
     }),
   ),
   handler: async (ctx, { submissionId }) => {
@@ -312,7 +315,9 @@ export const getCheckoutStatus = query({
           reason:
             run.error === SIGN_IN_REQUIRED_ERROR
               ? ("sign_in_required" as const)
-              : ("unavailable" as const),
+              : run.error === ALREADY_SUBSCRIBED_MESSAGE
+                ? ("already_subscribed" as const)
+                : ("unavailable" as const),
         };
       } else if (runResultPaid(run.result)) {
         paid = true;

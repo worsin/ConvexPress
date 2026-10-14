@@ -26,6 +26,7 @@ import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Loader2 } from "lucide-react";
 
 import { AuthError } from "@/components/auth/AuthError";
+import { useDashboardPath } from "@/hooks/useDashboardConfig";
 import { FormStripePaymentForm } from "./FormStripePaymentForm";
 import {
   INITIAL_CHECKOUT_STATE,
@@ -104,6 +105,7 @@ function replaceSearch(search: string): void {
 }
 
 export function FormSubscriptionCheckout({ formId, formTitle, submission, returned, onFinished }: Props) {
+  const dashboard = useDashboardPath();
   const storage = useMemo(() => browserCheckoutStorage(), []);
   const inPage = submission ?? null;
   const stored = useMemo(
@@ -312,12 +314,24 @@ export function FormSubscriptionCheckout({ formId, formTitle, submission, return
       );
       break;
     case "failed":
-      heading = state.reason === "sign_in_required" ? "Sign in to subscribe" : "Checkout not completed";
+      heading =
+        state.reason === "sign_in_required"
+          ? "Sign in to subscribe"
+          : state.reason === "already_subscribed"
+            ? "You're already subscribed"
+            : "Checkout not completed";
       body = (
         <>
           <AuthError message={failureMessage(state.reason)} />
           {state.reason === "sign_in_required" ? (
             <AccountLinks returnTo={formPath} />
+          ) : state.reason === "already_subscribed" ? (
+            <a
+              href={dashboard.to("/subscriptions")}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+            >
+              Manage my subscription
+            </a>
           ) : (
             <a
               href={formPath}

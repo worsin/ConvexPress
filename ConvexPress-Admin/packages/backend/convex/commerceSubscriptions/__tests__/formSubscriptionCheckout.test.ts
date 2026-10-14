@@ -48,6 +48,29 @@ const modules = {
   "./convex/notifications/internals.ts": () => import("../../notifications/internals"),
 };
 
+/**
+ * Every convex-test instance a test created. Activation schedules a background
+ * card-summary refresh; it must finish while this file's Stripe fakes are still
+ * installed, so cleanup waits for it.
+ */
+const liveTests: Array<ReturnType<typeof convexTest>> = [];
+
+/**
+ * Let scheduled functions (runAfter(0)) start, then wait for them and anything
+ * they schedule. convex-test only waits for work already running, so give the
+ * timers a turn first.
+ */
+async function drainScheduled(t: ReturnType<typeof convexTest>): Promise<void> {
+  for (let round = 0; round < 5; round++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await t.finishInProgressScheduledFunctions();
+  }
+}
+async function settleScheduledWork(): Promise<void> {
+  const pending = liveTests.splice(0);
+  for (const t of pending) await drainScheduled(t);
+}
+
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const WEBHOOK_SECRET = "whsec_form_subscription_checkout";
 const STRIPE_KEY = "sk_test_form_subscription_checkout";
@@ -159,7 +182,8 @@ beforeEach(() => {
   }));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await settleScheduledWork();
   // Each spy targets a shared prototype; restore so other suites see real Stripe.
   const paymentIntents: FakeableIntents = Object.getPrototypeOf(stripe.paymentIntents);
   const setupIntents: FakeableIntents = Object.getPrototypeOf(stripe.setupIntents);
@@ -185,6 +209,7 @@ type AccountPolicy = "require_existing" | "create_on_website";
 
 async function fixture() {
   const t = convexTest({ schema, modules });
+  liveTests.push(t);
   const ids = await t.run(async (ctx) => {
     const user = (email: string, emailVerified = true) =>
       ctx.db.insert("users", { authSource: "local", email, emailVerified, status: "active", createdAt: 1, updatedAt: 1 });
@@ -744,5 +769,89 @@ describe("first-charge confirmation rules", () => {
     expect(clientSecretObjectId("seti_9_secret_x")).toBe("seti_9");
     expect(clientSecretObjectId("nonsense")).toBeNull();
     expect(clientSecretObjectId("_secret_x")).toBeNull();
+  });
+});
+
+// ─── One subscription per customer (upstream PR 025) ────────────────────────
+
+describe("form checkout: one subscription per customer", () => {
+  const limitOne = (f: Fixture, offerId: Id<"commerce_subscription_offers">) =>
+    f.t.run((ctx) => ctx.db.patch("commerce_subscription_offers", offerId, { limitOnePerCustomer: true }));
+
+  /** A live contract for `userId` carrying the "pro" entitlement every fixture offer grants. */
+  const liveContract = (f: Fixture, userId: Id<"users">) =>
+    f.t.run(async (ctx) => {
+      const subscriptionId = await ctx.db.insert("commerce_subscriptions", {
+        userId, sourceChannel: "direct_form", status: "active", currencyCode: "USD", recurringAmount: 1500,
+        billingInterval: "month", billingIntervalCount: 1, createdAt: 1, updatedAt: 1,
+      });
+      await ctx.db.insert("commerce_subscription_entitlements", {
+        subscriptionId, userId, entitlementCode: "pro", status: "active", startsAt: 1, createdAt: 1, updatedAt: 1,
+      });
+      return subscriptionId;
+    });
+
+  test("a customer who already has the access is refused at checkout and never charged", async () => {
+    const f = await fixture();
+    await limitOne(f, f.ids.paid);
+    await liveContract(f, f.ids.owner);
+    const actionId = await addAction(f, f.ids.paid, "require_existing");
+    const { submissionId, run } = await submitAndRun(f, f.owner, "owner@example.invalid", actionId);
+
+    expect(run.status).toBe("failed");
+    expect(stripeCreates).toBe(0);
+    expect(await f.owner.query(api.extensions.forms.actions.getCheckoutStatus, { submissionId })).toEqual({
+      state: "failed",
+      reason: "already_subscribed",
+    });
+    // The direct signup path refuses too.
+    await expect(
+      f.owner.mutation(api.commerceSubscriptions.checkout.createCheckoutIntent, { offerId: f.ids.paid }),
+    ).rejects.toThrow("already have an active subscription");
+  });
+
+  test("access bought after checkout started is caught before the card is charged", async () => {
+    const f = await fixture();
+    await limitOne(f, f.ids.paid);
+    const actionId = await addAction(f, f.ids.paid, "require_existing");
+    const started = await startPaidCheckout(f, f.owner, "owner@example.invalid", actionId);
+    await liveContract(f, f.ids.owner);
+    const intentId = f.t.run((ctx) => ctx.db.normalizeId("commerce_subscription_checkout_intents", started.intentId));
+    const checkoutIntentId = await intentId;
+    if (!checkoutIntentId) throw new Error("no intent");
+    await expect(
+      f.t.query(internal.commerceSubscriptions.internals.getCheckoutIntentForCharge, { checkoutIntentId }),
+    ).rejects.toThrow("already have an active subscription");
+  });
+
+  test("two checkouts paid at the same moment both activate, and the second is flagged for an operator", async () => {
+    const f = await fixture();
+    await limitOne(f, f.ids.paid);
+    const actionId = await addAction(f, f.ids.paid, "require_existing");
+    const first = await startPaidCheckout(f, f.owner, "owner@example.invalid", actionId);
+    const second = await startPaidCheckout(f, f.owner, "owner@example.invalid", actionId);
+    settle(first.objectId);
+    settle(second.objectId);
+    await f.owner.action(api.commerceSubscriptions.publicCharge.confirmFirstCharge, confirmArgs(first));
+    const confirmed = await f.owner.action(api.commerceSubscriptions.publicCharge.confirmFirstCharge, confirmArgs(second));
+    if (confirmed.status !== "active") throw new Error(`expected active, got ${JSON.stringify(confirmed)}`);
+
+    const flagged = await f.t.run(async (ctx) => ({
+      history: (await ctx.db.query("commerce_subscription_history").collect()).filter(
+        (row) => row.eventType === "subscription.duplicate_purchase",
+      ),
+      events: (await ctx.db.query("events").collect()).filter((row) => row.code === "commerce.subscription_duplicate_purchase"),
+    }));
+    expect(flagged.history).toHaveLength(1);
+    expect(flagged.history[0]?.subscriptionId).toBe(confirmed.subscriptionId);
+    expect(flagged.events).toHaveLength(1);
+  });
+
+  test("without the setting, a customer may hold several", async () => {
+    const f = await fixture();
+    await liveContract(f, f.ids.owner);
+    const actionId = await addAction(f, f.ids.paid, "require_existing");
+    const { run } = await submitAndRun(f, f.owner, "owner@example.invalid", actionId);
+    expect(run.status).toBe("awaiting_payment");
   });
 });

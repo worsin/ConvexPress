@@ -34,6 +34,21 @@ const modules = {
   "./convex/notifications/internals.ts": () => import("../../notifications/internals"),
 };
 
+/** convex-test instances created by this file; cleanup drains their scheduled work. */
+const liveTests: Array<ReturnType<typeof convexTest>> = [];
+
+/**
+ * Let scheduled functions (runAfter(0)) start, then wait for them and anything
+ * they schedule. convex-test only waits for work already running, so give the
+ * timers a turn first.
+ */
+async function drainScheduled(t: ReturnType<typeof convexTest>): Promise<void> {
+  for (let round = 0; round < 5; round++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await t.finishInProgressScheduledFunctions();
+  }
+}
+
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const WEBHOOK_SECRET = "whsec_customer_portal";
 const STRIPE_KEY = "sk_test_customer_portal";
@@ -69,6 +84,11 @@ interface FakeablePaymentMethods {
 interface FakeableCustomers {
   create(params: { email?: string }): Promise<unknown>;
 }
+interface FakeablePaymentIntents {
+  create(params: { amount?: number; payment_method?: string; metadata?: Record<string, string> }): Promise<unknown>;
+}
+/** Off-session charges the dunning retry makes: they succeed on any card here. */
+const offSessionCharges: Array<{ amount: number | undefined; paymentMethod: string | undefined }> = [];
 
 const setupIntents = new Map<string, FakeSetupIntent>();
 const paymentMethods = new Map<string, FakePaymentMethod>([
@@ -118,14 +138,22 @@ beforeEach(() => {
     return found;
   });
   spyOn(customers, "create").mockImplementation(async () => ({ id: "cus_created" }));
+  offSessionCharges.length = 0;
+  const pi: FakeablePaymentIntents = Object.getPrototypeOf(stripe.paymentIntents);
+  spyOn(pi, "create").mockImplementation(async (params) => {
+    offSessionCharges.push({ amount: params.amount, paymentMethod: params.payment_method });
+    return { id: `pi_portal${offSessionCharges.length}`, object: "payment_intent", status: "succeeded", metadata: params.metadata ?? {} };
+  });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  for (const t of liveTests.splice(0)) await drainScheduled(t);
   setSystemTime();
   const targets: Array<Record<string, unknown>> = [
     Object.getPrototypeOf(stripe.setupIntents),
     Object.getPrototypeOf(stripe.paymentMethods),
     Object.getPrototypeOf(stripe.customers),
+    Object.getPrototypeOf(stripe.paymentIntents),
   ];
   for (const target of targets) {
     for (const name of ["create", "retrieve"]) {
@@ -151,6 +179,7 @@ type ContractShape = {
 
 async function fixture(shape: ContractShape = {}) {
   const t = convexTest({ schema, modules });
+  liveTests.push(t);
   const ids = await t.run(async (ctx) => {
     const user = (email: string) =>
       ctx.db.insert("users", { authSource: "local", email, emailVerified: true, status: "active", createdAt: 1, updatedAt: 1 });
@@ -413,6 +442,14 @@ describe("account page: changing the card", () => {
       (await ctx.db.query("commerce_subscription_dunning_attempts").collect()).find((a) => a.status === "scheduled"),
     );
     expect(retry?.scheduledAt).toBe(START);
+
+    // The dunning sweep the card change scheduled charges the new card.
+    await drainScheduled(f.t);
+    expect(offSessionCharges).toEqual([{ amount: 29_900, paymentMethod: "pm_amex" }]);
+    const recovered = await f.only();
+    expect(recovered.status).toBe("active");
+    expect(recovered.billingIssue).toBeNull();
+    expect(recovered.entitlements[0]?.status).toBe("active");
   });
 
   test("a SetupIntent made for another contract, or by someone else, is not recorded", async () => {
