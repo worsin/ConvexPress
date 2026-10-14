@@ -3,6 +3,12 @@ import {Parser} from 'htmlparser2';
 type Element = {tag:string; attrs:Record<string,string>; children:(Element|string)[]};
 type Mark = {type:string; attrs?:Record<string,string>};
 type Inline = {type:'text'; text:string; marks?:Mark[]} | {type:'hardBreak'};
+/** The TipTap document the declared HTML subset parses into. */
+export type LegacyHtmlParagraph = {type:'paragraph'; content:Inline[]};
+export type LegacyHtmlHeading = {type:'heading'; attrs:{level:number}; content:Inline[]};
+export type LegacyHtmlList = {type:'bulletList'|'orderedList'; attrs?:{start:number}; content:LegacyHtmlListItem[]};
+export type LegacyHtmlListItem = {type:'listItem'; content:(LegacyHtmlParagraph|LegacyHtmlList)[]};
+export type LegacyHtmlDocument = {type:'doc'; content:(LegacyHtmlParagraph|LegacyHtmlHeading|LegacyHtmlList)[]};
 const marks:Record<string,string>={strong:'bold',b:'bold',em:'italic',i:'italic',s:'strike',strike:'strike',u:'underline',code:'code'};
 const isHeading=(name:string)=>/^h[1-6]$/u.test(name);
 const isList=(name:string)=>name==='ul'||name==='ol';
@@ -14,7 +20,7 @@ const allowedParents:Record<string,readonly string[]>={p:['','li'],ul:['','li'],
 /** Parse a declared HTML subset into editable rich text. This is deliberately
  * not a sanitizer: unrepresentable authoring and parser repairs reject the
  * entire import. The caller retains the exact source in revision history. */
-export function legacyHtmlDocument(source:string,fail:(message:string)=>never):unknown {
+export function legacyHtmlDocument(source:string,fail:(message:string)=>never):LegacyHtmlDocument {
  const roots:Element[]=[], stack:Element[]=[];
  let cursor=0,nodes=0,attributes=new Set<string>();
  const consume=()=>{
@@ -71,7 +77,7 @@ export function legacyHtmlDocument(source:string,fail:(message:string)=>never):u
    return inline(child.children,previous?active:[...active,mark]);
   });
  }
- function list(node:Element):unknown{
+ function list(node:Element):LegacyHtmlList{
   const items=node.children.map(child=>{
    if(typeof child==='string'||child.tag!=='li')fail('HTML lists may only contain list items');
    return listItem(child);
@@ -81,8 +87,8 @@ export function legacyHtmlDocument(source:string,fail:(message:string)=>never):u
   return {type:node.tag==='ul'?'bulletList':'orderedList',...(start!==undefined?{attrs:{start}}:{}),content:items};
  }
  /** A list item's inline runs become paragraphs; nested paragraphs and lists keep their place. */
- function listItem(node:Element):unknown{
-  const content:unknown[]=[];let run:(Element|string)[]=[];
+ function listItem(node:Element):LegacyHtmlListItem{
+  const content:(LegacyHtmlParagraph|LegacyHtmlList)[]=[];let run:(Element|string)[]=[];
   const flush=()=>{
    const meaningful=run.some(child=>typeof child!=='string'||child.trim());
    if(meaningful)content.push({type:'paragraph',content:inline(run)});
@@ -98,5 +104,5 @@ export function legacyHtmlDocument(source:string,fail:(message:string)=>never):u
   if(!content.length)fail('Empty HTML list items require review');
   return {type:'listItem',content};
  }
- return {type:'doc',content:roots.map(node=>isList(node.tag)?list(node):({type:node.tag==='p'?'paragraph':'heading',...(node.tag==='p'?{}:{attrs:{level:Number(node.tag.slice(1))}}),content:inline(node.children)}))};
+ return {type:'doc',content:roots.map(node=>isList(node.tag)?list(node):node.tag==='p'?{type:'paragraph',content:inline(node.children)}:{type:'heading',attrs:{level:Number(node.tag.slice(1))},content:inline(node.children)})};
 }

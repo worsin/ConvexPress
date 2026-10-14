@@ -4,7 +4,7 @@
  * LegacyMigrationError rather than discarding authored content. */
 import type { CanonicalTree } from "./foundation/generated/types";
 import type { InactiveLegacySettings } from "./foundation/migrationContracts";
-import { reviewLegacyBlocks } from "./foundation/legacyBlockMigration";
+import { reviewLegacyBlocks, type LegacyRichTextFormat } from "./foundation/legacyBlockMigration";
 import { migrateLegacySections } from "./foundation/legacySectionMigration";
 import { reviewLegacyDocumentSource } from "./foundation/legacyDocumentMigration";
 import { hasStructuredArticle, migrateStructuredArticle, type StructuredArticle } from "./foundation/legacyStructuredMigration";
@@ -17,6 +17,8 @@ export type LegacyAuthoringSource = StructuredArticle & {
   blocks?: readonly unknown[];
   pageSections?: unknown;
   content?: string;
+  /** How the version 1 `core/rich-text` blocks' bodies were authored; plain unless declared. */
+  richTextFormat?: LegacyRichTextFormat;
 };
 export type LegacySourceKind = "blocks" | "sections" | "structured-article" | "document";
 export type LegacyAuthoringConversion = {
@@ -42,7 +44,7 @@ export function legacySourceKind(source: LegacyAuthoringSource): LegacySourceKin
 export function convertLegacyAuthoring(source: LegacyAuthoringSource, identity: string, reusableSources?: ReadonlyMap<string, string>): LegacyAuthoringConversion {
   switch (legacySourceKind(source)) {
     case "blocks": {
-      const review = reviewLegacyBlocks(source.blocks);
+      const review = reviewLegacyBlocks(source.blocks, { richTextFormat: source.richTextFormat });
       return { blocks: review.blocks, ...(review.inactiveSettings.length ? { inactiveSettings: review.inactiveSettings } : {}) };
     }
     case "sections":

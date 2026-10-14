@@ -2011,6 +2011,7 @@ export async function importLegacyDocument(ctx: MutationCtx, args: LegacyDocumen
   converted = convertLegacyAuthoring({
    type: args.type, slug: args.slug, contentMode: args.source.contentMode, blocks: args.source.blocks,
    pageSections: legacyPageSections(args.source.pageSectionsJson), content: args.source.content,
+   richTextFormat: args.source.richTextFormat,
   }, `legacy-import:${args.sourceRef}`);
  } catch (error) {
   if (error instanceof LegacyMigrationError) return { ok: false, code: error.code, path: error.path, message: error.message };
