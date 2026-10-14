@@ -21,6 +21,7 @@ import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { adminResetUserPasswordArgs, completePasswordResetArgs } from "./validators";
 import { DELEGATED_SIGN_IN_EXPLANATION, isDelegatedSignInAccount } from "../auth/delegatedAccounts";
+import { getServiceKeyFromAction } from "../helpers/serviceKeys";
 
 /** Token expiry: 24 hours */
 const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
@@ -249,8 +250,7 @@ export const completePasswordReset = action({
     }
 
     // 4. Update the password in Clerk via the Backend API
-    const { getServiceKeyFromAction } = await import("../helpers/serviceKeys");
-    const clerkSecretKey = await getServiceKeyFromAction(
+      const clerkSecretKey = await getServiceKeyFromAction(
       ctx,
       "integrations.clerk",
       "clerkSecretKey",

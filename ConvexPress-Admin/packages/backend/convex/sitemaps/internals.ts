@@ -68,6 +68,8 @@ import {
   getNoindexPostIds,
 } from "./helpers/settings";
 import { isPluginEnabled } from "../helpers/plugins";
+import { SEO_EVENTS, SYSTEM } from "../events/constants";
+import { emitEvent } from "../helpers/events";
 
 // ─── Local Helpers ────────────────────────────────────────────────────────────
 
@@ -505,8 +507,6 @@ export const emitGeneratedEvent = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { SEO_EVENTS, SYSTEM } = await import("../events/constants");
-    const { emitEvent } = await import("../helpers/events");
 
     await emitEvent(ctx, SEO_EVENTS.SITEMAP_GENERATED, SYSTEM.SITEMAP, {
       url: `${args.siteUrl}/sitemap.xml`,

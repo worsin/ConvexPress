@@ -60,6 +60,8 @@
 
 import { z } from "zod";
 import { v } from "convex/values";
+import { emitEvent } from "../../helpers/events";
+import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -247,8 +249,6 @@ export const emitSubscriptionStarted = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { emitEvent } = await import("../../helpers/events");
-    const { FORM_EVENTS, SYSTEM } = await import("../../events/constants");
     await emitEvent(ctx, FORM_EVENTS.SUBSCRIPTION_STARTED, SYSTEM.FORMS, {
       formId: args.formId,
       submissionId: args.submissionId,

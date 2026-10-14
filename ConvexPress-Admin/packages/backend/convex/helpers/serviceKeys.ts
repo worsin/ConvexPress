@@ -27,6 +27,7 @@ import type { SettingsSection } from "../settings/defaults";
 import type { SectionValues } from "../settings/sectionValues";
 import { decryptSettingSecret } from "./settingsSecret";
 import { settingsRecord } from "./settingsReader";
+import { internal } from "../_generated/api";
 
 /** A field of a settings section that holds text (where service keys live). */
 export type SectionTextKey<S extends SettingsSection> = {
@@ -150,7 +151,6 @@ export async function getServiceKeyFromAction<S extends SettingsSection>(
   settingsKey: SectionTextKey<S>,
   envVarName: string,
 ): Promise<string | undefined> {
-  const { internal } = await import("../_generated/api");
   const doc = await ctx.runQuery(internal.settings.httpInternals.getBySectionInternal, { section });
   const value = settingsRecord(doc)[settingsKey];
   if (typeof value === "string" && value.trim()) {
