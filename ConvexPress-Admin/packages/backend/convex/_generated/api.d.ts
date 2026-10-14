@@ -1352,6 +1352,7 @@ export declare const api:
 {
 "actions":
 {
+"actionEditorSetup": FunctionReference<"query", "public", { formId: Id<"forms"> }, null | { account: "none" | "at_end" | "required", fields: Array<{ _id: Id<"fieldDefinitions">, key: string, name: string, label: string, type: string, choices: Array<{ value: string, label: string }> }>, offers: Array<{ _id: Id<"commerce_subscription_offers">, title: string, status: string, availableInDirectForms: boolean, currencyCode: string, recurringAmount: number, setupFeeAmount: number, billingInterval: "day" | "week" | "month" | "year", billingIntervalCount: number, trialDays: number }> }>,
 "availableActionTypes": FunctionReference<"query", "public", {  }, Array<{ type: string, label: string }>>,
 "createAction": FunctionReference<"mutation", "public", { formId: Id<"forms">, type: string, label: string, config: string, conditionalLogic?: string, enabled?: boolean }, null | { formId: Id<"forms">, type: string, label: string, config: string, conditionalLogic?: string, enabled: boolean, order: number, _id: Id<"form_actions">, _creationTime: number }>,
 "deleteAction": FunctionReference<"mutation", "public", { actionId: Id<"form_actions"> }, { success: boolean }>,
@@ -1362,7 +1363,7 @@ export declare const api:
 "listRunsForSubmission": FunctionReference<"query", "public", { submissionId: Id<"form_submissions"> }, Array<{ submissionId: Id<"form_submissions">, formActionId: Id<"form_actions">, type: string, status: "pending" | "completed" | "failed" | "awaiting_payment", attempts: number, error?: string, result?: string, formId?: Id<"forms">, nextAttemptAt?: number, createdAt: number, updatedAt: number, _id: Id<"form_action_runs">, _creationTime: number }>>,
 "reorderActions": FunctionReference<"mutation", "public", { formId: Id<"forms">, orderedIds: Array<Id<"form_actions">> }, { success: boolean }>,
 "replayRun": FunctionReference<"mutation", "public", { runId: Id<"form_action_runs"> }, { replayed: boolean }>,
-"updateAction": FunctionReference<"mutation", "public", { actionId: Id<"form_actions">, label?: string, config?: string, conditionalLogic?: string, enabled?: boolean }, null | { formId: Id<"forms">, type: string, label: string, config: string, conditionalLogic?: string, enabled: boolean, order: number, _id: Id<"form_actions">, _creationTime: number }>,
+"updateAction": FunctionReference<"mutation", "public", { actionId: Id<"form_actions">, label?: string, config?: string, conditionalLogic?: string | null, enabled?: boolean }, null | { formId: Id<"forms">, type: string, label: string, config: string, conditionalLogic?: string, enabled: boolean, order: number, _id: Id<"form_actions">, _creationTime: number }>,
 }
 ,
 "analytics":
@@ -1381,7 +1382,7 @@ export declare const api:
 "reorderConfirmations": FunctionReference<"mutation", "public", { formId: Id<"forms">, order: Array<Id<"form_confirmations">> }, { success: boolean }>,
 "resolveConfirmation": FunctionReference<"query", "public", { formId: Id<"forms">, submissionId: Id<"form_submissions">, confirmationToken?: string, contactPassword?: string }, { confirmationId: string, type: "message" | "redirect" | "page", renderedMessage?: string, redirectUrl?: string, pagePath?: string }>,
 "setDefaultConfirmation": FunctionReference<"mutation", "public", { formId: Id<"forms">, confirmationId: Id<"form_confirmations"> }, { success: boolean }>,
-"updateConfirmation": FunctionReference<"mutation", "public", { confirmationId: Id<"form_confirmations">, patch: { name?: string, type?: "message" | "redirect" | "page", content?: string, redirectUrl?: string, pageId?: string, conditionalLogic?: string } }, null | { formId: Id<"forms">, name: string, type: "message" | "redirect" | "page", content?: string, redirectUrl?: string, pageId?: string, conditionalLogic?: string, isDefault: boolean, order: number, createdBy: Id<"users">, updatedBy: Id<"users">, createdAt: number, updatedAt: number, _id: Id<"form_confirmations">, _creationTime: number }>,
+"updateConfirmation": FunctionReference<"mutation", "public", { confirmationId: Id<"form_confirmations">, patch: { name?: string, type?: "message" | "redirect" | "page", content?: string, redirectUrl?: string, pageId?: string, conditionalLogic?: string | null } }, null | { formId: Id<"forms">, name: string, type: "message" | "redirect" | "page", content?: string, redirectUrl?: string, pageId?: string, conditionalLogic?: string, isDefault: boolean, order: number, createdBy: Id<"users">, updatedBy: Id<"users">, createdAt: number, updatedAt: number, _id: Id<"form_confirmations">, _creationTime: number }>,
 }
 ,
 "devFixtures":
@@ -1417,7 +1418,7 @@ export declare const api:
 "listForForm": FunctionReference<"query", "public", { formId: Id<"forms"> }, Array<{ formId: Id<"forms">, name: string, channel: "email" | "site", recipientType: "admin" | "customer", toExpression?: string, subjectTemplate?: string, messageTemplate?: string, triggerEventCode: string, conditionalLogic?: string, enabled: boolean, order: number, _id: Id<"form_notifications">, _creationTime: number }>>,
 "remove": FunctionReference<"mutation", "public", { notificationId: Id<"form_notifications"> }, { success: boolean }>,
 "reorder": FunctionReference<"mutation", "public", { formId: Id<"forms">, orderedIds: Array<Id<"form_notifications">> }, { success: boolean }>,
-"update": FunctionReference<"mutation", "public", { notificationId: Id<"form_notifications">, patch: { name?: string, channel?: "email" | "site", recipientType?: "admin" | "customer", toExpression?: string, subjectTemplate?: string, messageTemplate?: string, triggerEventCode?: "form.submitted" | "form.progress_saved" | "form.action_failed", conditionalLogic?: string, enabled?: boolean } }, null | { formId: Id<"forms">, name: string, channel: "email" | "site", recipientType: "admin" | "customer", toExpression?: string, subjectTemplate?: string, messageTemplate?: string, triggerEventCode: string, conditionalLogic?: string, enabled: boolean, order: number, _id: Id<"form_notifications">, _creationTime: number }>,
+"update": FunctionReference<"mutation", "public", { notificationId: Id<"form_notifications">, patch: { name?: string, channel?: "email" | "site", recipientType?: "admin" | "customer", toExpression?: string, subjectTemplate?: string, messageTemplate?: string, triggerEventCode?: "form.submitted" | "form.progress_saved" | "form.action_failed", conditionalLogic?: string | null, enabled?: boolean } }, null | { formId: Id<"forms">, name: string, channel: "email" | "site", recipientType: "admin" | "customer", toExpression?: string, subjectTemplate?: string, messageTemplate?: string, triggerEventCode: string, conditionalLogic?: string, enabled: boolean, order: number, _id: Id<"form_notifications">, _creationTime: number }>,
 }
 ,
 "orderPaymentActions":

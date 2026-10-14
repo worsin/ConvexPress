@@ -18,7 +18,7 @@ import type { AdminNavSection } from "@/lib/admin-shell/types";
  * Local wrapper for Forms capability strings. Mirrors the backend helper and
  * keeps the nav authorization surface explicit.
  */
-const formCap = (cap: string): Capability => cap as Capability;
+const formCap = (cap: Capability): Capability => cap;
 
 /**
  * Form Analytics & Export System surfaces two per-form capabilities:

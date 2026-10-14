@@ -20,7 +20,7 @@
  */
 
 // @ts-ignore Convex backend tsconfig does not include Bun test globals.
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 
 import {
   registerActionType,
@@ -52,6 +52,14 @@ import {
 const BUILTIN_TYPES_AT_LOAD = listActionTypes()
   .map((d) => d.type)
   .sort();
+
+// Tests below empty the registry; it is module state shared with every test
+// file in the run, so each test leaves the built-in types registered again.
+const BUILTIN_DEFINITIONS = listActionTypes();
+afterEach(() => {
+  __resetActionRegistryForTests();
+  for (const definition of BUILTIN_DEFINITIONS) registerActionType(definition);
+});
 
 // ─── Registry ────────────────────────────────────────────────────────────────
 

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const formCap = (cap: string): Capability => cap as Capability;
+const formCap = (cap: Capability): Capability => cap;
 
 type FormStatus = "draft" | "published" | "archived";
 

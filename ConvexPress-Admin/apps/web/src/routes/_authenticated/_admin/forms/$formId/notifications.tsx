@@ -53,7 +53,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
  * Local wrapper for Forms capability strings. Mirrors the backend helper and
  * keeps the notifications authorization surface explicit.
  */
-const formCap = (cap: string): Capability => cap as Capability;
+const formCap = (cap: Capability): Capability => cap;
 
 type Channel = "email" | "site";
 type RecipientType = "admin" | "customer";
@@ -309,7 +309,8 @@ function NotificationsContent({ formId }: { formId: Id<"forms"> }) {
                       try {
                         await updateRow({
                           notificationId: row._id,
-                          patch: values,
+                          // No rules left removes the condition (null), so it always fires.
+                          patch: { ...values, conditionalLogic: values.conditionalLogic ?? null },
                         });
                         toast.success("Notification saved.");
                         setEditingId(null);
@@ -628,6 +629,8 @@ function NotificationEditor({
           value={conditionalLogic}
           onChange={setConditionalLogic}
           siblingFields={siblingFields}
+          subject="this notification"
+          verbs={{ show: "Send", hide: "Don't send" }}
         />
       </div>
 

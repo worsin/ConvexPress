@@ -40,8 +40,8 @@ import { RequestReadLedger } from "../../helpers/requestReadLedger";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
 import { paginationResultValidator } from "convex/server";
-function formCap(cap: string): Capability {
-  return cap as Capability;
+function formCap(cap: Capability): Capability {
+  return cap;
 }
 
 const formStatus = v.union(

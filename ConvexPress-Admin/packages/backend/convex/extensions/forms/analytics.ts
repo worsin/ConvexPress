@@ -54,8 +54,8 @@ type FunnelStage = "viewed" | "started" | "completed" | "abandoned";
 // ─── Module-local helpers ───────────────────────────────────────────────────
 
 /** Local wrapper for Forms capability strings. */
-function formCap(cap: string): Capability {
-  return cap as Capability;
+function formCap(cap: Capability): Capability {
+  return cap;
 }
 
 /** UTC day bucket "YYYY-MM-DD" for an epoch-ms timestamp. */
