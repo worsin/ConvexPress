@@ -26,7 +26,7 @@ export default function JournalSignupOffer({ data }: SurfaceProps<SignupOfferSur
           <Link to="/" className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground">
             ← Back to site
           </Link>
-          <Link to="/login" className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground">
+          <Link to="/login" search={{ returnTo: offer ? `/signup/${offer._id}` : undefined }} className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground">
             Already have an account? Sign in
           </Link>
         </Container>

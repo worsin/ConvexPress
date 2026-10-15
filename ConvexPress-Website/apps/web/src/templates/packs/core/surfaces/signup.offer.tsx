@@ -54,6 +54,7 @@ export default function CoreSignupOffer({ data }: SurfaceProps<SignupOfferSurfac
         </Link>
         <Link
           to="/login"
+          search={{ returnTo: offer ? `/signup/${offer._id}` : undefined }}
           className="text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           Already have an account? Sign in

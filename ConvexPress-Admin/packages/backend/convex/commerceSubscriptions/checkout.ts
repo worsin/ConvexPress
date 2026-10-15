@@ -31,6 +31,7 @@ import {
 	internalMutation,
 	internalQuery,
 	mutation,
+	query,
 	type MutationCtx,
 	type QueryCtx,
 } from "../_generated/server";
@@ -51,6 +52,7 @@ import { allocateSubscriptionInvoiceNumber } from "./invoiceNumbers";
 import { assertNotAlreadySubscribed, findLiveContractWithCodes } from "./ownership";
 import { addBillingPeriod } from "./lifecycle";
 import { snapshotNumber, snapshotString } from "./snapshot";
+import { checkoutSummary, checkoutSummaryValidator } from "./checkoutSummary";
 import { activationResultValidator, type ActivationResult } from "./validators";
 
 // ─── Helpers (duplicated with intentional care; see mutations.ts) ───────────
@@ -395,6 +397,38 @@ export const createCheckoutIntentForSubmission = internalMutation({
 			{ formId: submission.formId, formSubmissionId: submission._id },
 		);
 		return { ok: true as const, intent };
+	},
+});
+
+/**
+ * PUBLIC: one of my checkouts, as the signup page shows it before payment —
+ * what is due today, what recurs, and the plan's terms (`checkoutSummary`).
+ * Null unless the signed-in account owns the intent.
+ */
+export const getMyCheckout = query({
+	args: { intentId: v.id("commerce_subscription_checkout_intents") },
+	returns: v.union(
+		v.null(),
+		v.object({
+			status: commerceSubscriptionCheckoutIntentStatusValidator,
+			amount: v.number(),
+			recurringAmount: v.number(),
+			currency: v.string(),
+			summary: v.union(v.null(), checkoutSummaryValidator),
+		}),
+	),
+	handler: async (ctx, args) => {
+		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+		const user = await getCurrentUser(ctx);
+		const intent = user ? await ctx.db.get(args.intentId) : null;
+		if (!user || !intent || intent.userId !== user._id) return null;
+		return {
+			status: intent.status,
+			amount: intent.initialAmount,
+			recurringAmount: intent.recurringAmount,
+			currency: intent.currencyCode,
+			summary: await checkoutSummary(ctx, intent._id),
+		};
 	},
 });
 

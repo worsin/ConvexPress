@@ -954,6 +954,7 @@ export declare const api:
 {
 "activateFreeIntent": FunctionReference<"mutation", "public", { intentId: Id<"commerce_subscription_checkout_intents"> }, { ok: true, contractId: Id<"commerce_subscriptions">, status: "draft" | "trialing" | "active" | "past_due" | "paused" | "pending_cancel" | "cancelled" | "expired", trialDays: number, currentPeriodEndAt?: number }>,
 "createCheckoutIntent": FunctionReference<"mutation", "public", { offerId: Id<"commerce_subscription_offers">, customerEmail?: string, couponCode?: string, returnUrl?: string }, { intentId: Id<"commerce_subscription_checkout_intents">, amount: number, recurringAmount: number, currency: string, trialDays: number, paymentProcessorData: { provider: string, ready: boolean, message: string } }>,
+"getMyCheckout": FunctionReference<"query", "public", { intentId: Id<"commerce_subscription_checkout_intents"> }, null | { status: "draft" | "payment_pending" | "payment_succeeded" | "approval_pending" | "activated" | "failed" | "expired", amount: number, recurringAmount: number, currency: string, summary: null | { planTitle: string, billingInterval: "day" | "week" | "month" | "year", billingIntervalCount: number, recurringAmount: number, setupFeeAmount: number, trialDays: number, couponCode?: string, firstChargeDiscount: number, nextChargeAt: number } }>,
 }
 ,
 "coupons":

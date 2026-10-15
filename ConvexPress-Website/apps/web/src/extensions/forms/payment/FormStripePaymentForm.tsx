@@ -1,7 +1,7 @@
 /**
  * Form Commerce — in-form Stripe Elements surface (Website).
  *
- * Mirror of `components/subscriptions/StripePaymentForm.tsx`. Mounted by the
+ * The site's Stripe Elements card form. Mounted by the
  * form wizard when a form's order payment or `subscription`/`payment` action
  * needs a card (the subscription descriptor is read from the action run via
  * `extensions.forms.actions.getPendingPayment`).

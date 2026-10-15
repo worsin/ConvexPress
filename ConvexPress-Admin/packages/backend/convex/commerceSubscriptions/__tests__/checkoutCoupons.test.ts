@@ -11,7 +11,7 @@ import Stripe from "stripe";
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import schema from "../../schema";
-import { checkoutSummary } from "../../extensions/forms/actions";
+import { checkoutSummary } from "../checkoutSummary";
 
 const modules = {
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
