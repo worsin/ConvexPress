@@ -263,12 +263,10 @@ export function parseSubscriptionReturn(search: string): SubscriptionReturn | nu
 export function subscriptionReturnPath(
   pathname: string,
   checkoutIntentId: string,
-  formId: string,
+  formId?: string,
 ): string {
-  const params = new URLSearchParams({
-    subscription_return: checkoutIntentId,
-    subscription_form: formId,
-  });
+  const params = new URLSearchParams({ subscription_return: checkoutIntentId });
+  if (formId) params.set("subscription_form", formId);
   return `${pathname}?${params.toString()}`;
 }
 

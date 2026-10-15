@@ -19,23 +19,22 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useAction, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
+import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Loader2 } from "lucide-react";
 
 import { AuthError } from "@/components/auth/AuthError";
 import { useDashboardPath } from "@/hooks/useDashboardConfig";
+import { OrderSummary, formatMinor } from "@/components/subscriptions/OrderSummary";
 import { FormStripePaymentForm } from "./FormStripePaymentForm";
-import type { PendingPaymentDescriptor } from "./useFormSubscriptionPayment";
+import { useConfirmFirstCharge } from "./useConfirmFirstCharge";
 import {
   INITIAL_CHECKOUT_STATE,
   browserCheckoutStorage,
   clearStoredCheckout,
   confirmationFromClientSecret,
   failureMessage,
-  isRetryableConfirmError,
   pendingMessage,
   readStoredCheckout,
   reduceCheckout,
@@ -73,31 +72,6 @@ interface Props {
 
 /** Show a "taking longer than usual" note after this long in `preparing`. */
 const SLOW_PREPARE_MS = 20_000;
-
-function convexErrorCode(err: unknown): string | undefined {
-  if (!(err instanceof ConvexError)) return undefined;
-  const data: unknown = err.data;
-  if (typeof data !== "object" || data === null || !("code" in data)) return undefined;
-  return typeof data.code === "string" ? data.code : undefined;
-}
-
-function errorText(err: unknown): string {
-  if (err instanceof ConvexError) {
-    const data: unknown = err.data;
-    if (typeof data === "object" && data !== null && "message" in data && typeof data.message === "string") {
-      return data.message;
-    }
-  }
-  return err instanceof Error ? err.message : "Unknown error";
-}
-
-function formatMinor(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100);
-  } catch {
-    return `${(amount / 100).toFixed(2)} ${currency}`;
-  }
-}
 
 /** Replace the address bar's query without reloading (drops Stripe's params). */
 function replaceSearch(search: string): void {
@@ -182,35 +156,7 @@ export function FormSubscriptionCheckout({ formId, formTitle, submission, return
   }, [returned, stored, storage, formId]);
 
   // ── Confirm with the server (retries are scheduled by the reducer) ────────
-  const confirmFirstCharge = useAction(api.commerceSubscriptions.publicCharge.confirmFirstCharge);
-  useEffect(() => {
-    if (state.phase !== "activating" || !checkoutIntentId) return;
-    const { confirmation, delayMs } = state;
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      const target =
-        confirmation.kind === "payment_intent"
-          ? { paymentIntentId: confirmation.objectId }
-          : { setupIntentId: confirmation.objectId };
-      confirmFirstCharge({ checkoutIntentId, clientSecret: confirmation.clientSecret, ...target }).then(
-        (result) => {
-          if (!cancelled) dispatch({ type: "confirm_result", result });
-        },
-        (err: unknown) => {
-          if (cancelled) return;
-          dispatch({
-            type: "confirm_error",
-            retryable: isRetryableConfirmError(convexErrorCode(err)),
-            message: errorText(err),
-          });
-        },
-      );
-    }, delayMs);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [state, checkoutIntentId, confirmFirstCharge]);
+  useConfirmFirstCharge(state, dispatch, checkoutIntentId);
 
   // ── Finish ────────────────────────────────────────────────────────────────
   const finishedRef = useRef(false);
@@ -378,84 +324,6 @@ function Progress({ message }: { message: string }) {
     <div role="status" aria-live="polite" className="flex items-center gap-3 text-sm text-muted-foreground">
       <Loader2 className="size-4 animate-spin" aria-hidden="true" />
       <span>{message}</span>
-    </div>
-  );
-}
-
-type CheckoutSummary = NonNullable<PendingPaymentDescriptor["summary"]>;
-
-function formatLongDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-}
-
-function cadence(summary: CheckoutSummary | null): string {
-  if (!summary) return "each billing period";
-  const n = summary.billingIntervalCount > 1 ? summary.billingIntervalCount : 1;
-  return n === 1 ? `per ${summary.billingInterval}` : `every ${n} ${summary.billingInterval}s`;
-}
-
-/**
- * What the customer is buying and paying: the plan, setup fee, coupon, what
- * is due today, and what happens after (the next charge and its date). Every
- * figure comes from the server's checkout intent.
- */
-export function OrderSummary({
-  mode,
-  amount,
-  recurringAmount,
-  currency,
-  summary,
-}: {
-  mode: "payment" | "setup";
-  amount: number;
-  recurringAmount: number;
-  currency: string;
-  summary: CheckoutSummary | null;
-}) {
-  const money = (value: number) => formatMinor(value, currency);
-  const trial = summary && summary.trialDays > 0;
-  return (
-    <div data-slot="checkout-order-summary" className="flex flex-col gap-3 border-b border-border pb-4 text-sm">
-      {summary ? (
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-medium text-foreground">{summary.planTitle}</p>
-            <p className="text-xs text-muted-foreground">
-              {money(summary.recurringAmount)} {cadence(summary)}
-              {trial ? ` · ${summary.trialDays}-day free trial` : ""}
-            </p>
-          </div>
-          <span className="shrink-0 tabular-nums text-foreground">{trial ? money(0) : money(summary.recurringAmount)}</span>
-        </div>
-      ) : null}
-      {summary && summary.setupFeeAmount > 0 ? (
-        <div className="flex items-center justify-between gap-3 text-muted-foreground">
-          <span>One-time setup fee</span>
-          <span className="tabular-nums text-foreground">{money(summary.setupFeeAmount)}</span>
-        </div>
-      ) : null}
-      {summary && summary.firstChargeDiscount > 0 ? (
-        <div className="flex items-center justify-between gap-3 text-muted-foreground">
-          <span>Coupon {summary.couponCode}</span>
-          <span className="tabular-nums text-foreground">−{money(summary.firstChargeDiscount)}</span>
-        </div>
-      ) : null}
-      <div className="flex items-center justify-between border-t border-border pt-3">
-        <span className="font-medium text-foreground">Due today</span>
-        <span className="text-lg font-semibold tabular-nums text-foreground">{money(amount)}</span>
-      </div>
-      {recurringAmount > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {summary
-            ? `Then ${money(recurringAmount)} ${cadence(summary)}, starting ${formatLongDate(summary.nextChargeAt)}. Cancel any time from your account.`
-            : `Then ${money(recurringAmount)} each billing period. Cancel any time from your account.`}
-          {summary?.couponCode && summary.firstChargeDiscount === 0 ? ` Coupon ${summary.couponCode} applies to your upcoming charges.` : ""}
-        </p>
-      ) : null}
-      {mode === "setup" ? (
-        <p className="text-xs text-muted-foreground">You won't be charged today. Your card is saved for the charges above.</p>
-      ) : null}
-      <p className="text-xs text-muted-foreground">Your card details are encrypted and never stored on this site.</p>
     </div>
   );
 }

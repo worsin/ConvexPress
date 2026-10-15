@@ -26,7 +26,7 @@ export default function DepotSignupOffer({ data, packId }: SurfaceProps<SignupOf
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to site
           </Link>
-          <Link to="/login" className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+          <Link to="/login" search={{ returnTo: offer ? `/signup/${offer._id}` : undefined }} className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
             Already have an account? <span className="font-medium text-primary">Sign in</span>
           </Link>
         </Container>
