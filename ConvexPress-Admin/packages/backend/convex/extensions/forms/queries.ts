@@ -133,6 +133,88 @@ function normalizeSubmissionRow(row: SubmissionDoc): Infer<typeof submissionRowV
   };
 }
 
+/** Who an entry is from, for the entry list: a name, else an email, else the first answer. */
+const entryPreviewValidator = v.object({ title: v.string(), detail: v.optional(v.string()) });
+type EntryPreview = Infer<typeof entryPreviewValidator>;
+const submissionListRowValidator = submissionRowValidator.extend({ preview: entryPreviewValidator });
+
+/** An answer as text: stored values are plain, or JSON for lists and compound fields. */
+function answerText(raw: string): string {
+  const trimmed = raw.trim();
+  if (!/^["[{]/.test(trimmed)) return trimmed;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed === "string") return parsed.trim();
+    if (Array.isArray(parsed)) return parsed.filter((item) => typeof item === "string").join(", ");
+    if (parsed && typeof parsed === "object") {
+      return Object.values(parsed).filter((item): item is string => typeof item === "string" && item.trim() !== "").join(" ");
+    }
+  } catch {
+    // Not JSON after all: show it as typed.
+  }
+  return trimmed;
+}
+
+function clip(text: string, length = 80): string {
+  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+}
+
+async function entryPreviews(
+  ctx: { db: QueryCtx["db"] },
+  formId: Id<"forms">,
+  rows: SubmissionDoc[],
+): Promise<Map<string, EntryPreview>> {
+  const previews = new Map<string, EntryPreview>();
+  if (rows.length === 0) return previews;
+  const form = await ctx.db.get(formId);
+  const groupId = form?.fieldGroupId;
+  const definitions = groupId
+    ? await ctx.db
+        .query("fieldDefinitions")
+        .withIndex("by_group", (q) => q.eq("groupId", groupId))
+        .collect()
+    : [];
+  definitions.sort((a, b) => a.menuOrder - b.menuOrder);
+  const isText = (type: string) => ["text", "email", "textarea", "phone", "url", "number", "select", "radio"].includes(type);
+
+  for (const row of rows) {
+    const answers = new Map<string, string>();
+    for (const value of await ctx.db
+      .query("fieldValues")
+      .withIndex("by_entity", (q) => q.eq("entityType", "form_submission").eq("entityId", row._id))
+      .collect()) {
+      const text = answerText(value.value);
+      if (text) answers.set(value.fieldKey, text);
+    }
+    const byName = (test: (name: string) => boolean) => definitions.find((field) => test(field.name.toLowerCase()) && answers.has(field.key));
+    const first = byName((name) => name.endsWith("first_name") || name === "firstname");
+    const last = byName((name) => name.endsWith("last_name") || name === "lastname");
+    const full = byName((name) => name === "name" || name.endsWith("full_name") || name.endsWith("your_name"));
+    const email = definitions.find((field) => field.type === "email" && answers.has(field.key));
+    const emailText = email ? answers.get(email.key) : undefined;
+    const name =
+      first || last
+        ? [first, last].map((field) => (field ? answers.get(field.key) : undefined)).filter(Boolean).join(" ")
+        : full
+          ? answers.get(full.key)
+          : undefined;
+    const fallback = definitions.find((field) => isText(field.type) && answers.has(field.key));
+    const title = name || emailText || (fallback ? answers.get(fallback.key) : undefined) || "No answers yet";
+    previews.set(row._id, {
+      title: clip(title),
+      detail: emailText && emailText !== title ? clip(emailText) : undefined,
+    });
+  }
+  return previews;
+}
+
+function withPreview(previews: Map<string, EntryPreview>) {
+  return (row: SubmissionDoc) => ({
+    ...normalizeSubmissionRow(row),
+    preview: previews.get(row._id) ?? { title: "No answers yet" },
+  });
+}
+
 function normalizeEntrySearch(search: string | undefined): string {
   return (search ?? "").trim().toLowerCase().slice(0, 128);
 }
@@ -215,9 +297,8 @@ async function searchSubmissions(
 
   const cursorIndex = parseSearchCursor(paginationOpts.cursor);
   const numItems = Math.max(1, paginationOpts.numItems);
-  const page = matched
-    .slice(cursorIndex, cursorIndex + numItems)
-    .map(normalizeSubmissionRow);
+  const slice = matched.slice(cursorIndex, cursorIndex + numItems);
+  const page = slice.map(withPreview(await entryPreviews(ctx, formId, slice)));
   const nextCursor = cursorIndex + numItems;
   const isDone = nextCursor >= matched.length;
   return {
@@ -614,7 +695,7 @@ export const listSubmissions = query({
     read: v.optional(v.boolean()),
     starred: v.optional(v.boolean()),
   },
-  returns: paginationResultValidator(submissionRowValidator),
+  returns: paginationResultValidator(submissionListRowValidator),
   handler: async (
     ctx,
     { formId, paginationOpts, status, search, read, starred },
@@ -651,7 +732,7 @@ export const listSubmissions = query({
         .paginate(paginationOpts);
       return {
         ...result,
-        page: result.page.map(normalizeSubmissionRow),
+        page: result.page.map(withPreview(await entryPreviews(ctx, formId, result.page))),
       };
     }
     const result = await ctx.db
@@ -661,7 +742,7 @@ export const listSubmissions = query({
       .paginate(paginationOpts);
     return {
       ...result,
-      page: result.page.map(normalizeSubmissionRow),
+      page: result.page.map(withPreview(await entryPreviews(ctx, formId, result.page))),
     };
   },
 });
