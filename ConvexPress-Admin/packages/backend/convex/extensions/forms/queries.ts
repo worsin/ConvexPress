@@ -21,7 +21,7 @@ import { paginationOptsValidator } from "convex/server";
 import { currentUserCan, getCurrentUser } from "../../helpers/permissions";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { evaluateMembershipAccess } from "../../membership/access";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { Capability } from "../../types/capabilities";
 import {
   parseFormSettings,
@@ -57,24 +57,7 @@ const submissionStatus = v.union(
   v.literal("deleted"),
 );
 
-type SubmissionDoc = {
-  _id: Id<"form_submissions">;
-  formId: Id<"forms">;
-  status: "partial" | "complete" | "spam" | "deleted";
-  submittedAt?: number;
-  completedAt?: number;
-  ip?: string;
-  userAgent?: string;
-  referrer?: string;
-  userId?: Id<"users">;
-  resumeToken?: string;
-  currentStep?: number;
-  read?: boolean;
-  starred?: boolean;
-  meta?: string;
-  createdAt: number;
-  updatedAt: number;
-};
+type SubmissionDoc = Doc<"form_submissions">;
 
 async function countFieldsForForm(
   ctx: { db: QueryCtx["db"] },
@@ -102,13 +85,51 @@ async function withFieldCounts<
   );
 }
 
-function normalizeSubmissionRow<T extends SubmissionDoc>(
-  row: T,
-): T & { read: boolean; starred: boolean } {
+/**
+ * A submission as admin screens see it: an explicit projection, so a field
+ * added to the table never breaks these reads' validators, and the
+ * confirmation token's hash (what the respondent's receipt link proves)
+ * never leaves the server.
+ */
+const submissionRowValidator = v.object({
+  _id: v.id("form_submissions"),
+  _creationTime: v.number(),
+  formId: v.id("forms"),
+  status: v.union(v.literal("partial"), v.literal("spam"), v.literal("complete"), v.literal("deleted")),
+  submittedAt: v.optional(v.number()),
+  completedAt: v.optional(v.number()),
+  ip: v.optional(v.string()),
+  userAgent: v.optional(v.string()),
+  referrer: v.optional(v.string()),
+  userId: v.optional(v.id("users")),
+  resumeToken: v.optional(v.string()),
+  currentStep: v.optional(v.number()),
+  read: v.boolean(),
+  starred: v.boolean(),
+  meta: v.optional(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+function normalizeSubmissionRow(row: SubmissionDoc): Infer<typeof submissionRowValidator> {
   return {
-    ...row,
+    _id: row._id,
+    _creationTime: row._creationTime,
+    formId: row.formId,
+    status: row.status,
+    submittedAt: row.submittedAt,
+    completedAt: row.completedAt,
+    ip: row.ip,
+    userAgent: row.userAgent,
+    referrer: row.referrer,
+    userId: row.userId,
+    resumeToken: row.resumeToken,
+    currentStep: row.currentStep,
     read: row.read === true,
     starred: row.starred === true,
+    meta: row.meta,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
@@ -593,24 +614,7 @@ export const listSubmissions = query({
     read: v.optional(v.boolean()),
     starred: v.optional(v.boolean()),
   },
-  returns: paginationResultValidator(v.object({
-    _id: v.id("form_submissions"),
-    formId: v.id("forms"),
-    status: v.union(v.literal("partial"), v.literal("spam"), v.literal("complete"), v.literal("deleted")),
-    submittedAt: v.optional(v.number()),
-    completedAt: v.optional(v.number()),
-    ip: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-    referrer: v.optional(v.string()),
-    userId: v.optional(v.id("users")),
-    resumeToken: v.optional(v.string()),
-    currentStep: v.optional(v.number()),
-    read: v.boolean(),
-    starred: v.boolean(),
-    meta: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })),
+  returns: paginationResultValidator(submissionRowValidator),
   handler: async (
     ctx,
     { formId, paginationOpts, status, search, read, starred },
@@ -713,27 +717,7 @@ export const listNotes = query({
 export const getSubmission = query({
   args: { id: v.id("form_submissions") },
   returns: v.union(v.null(), v.object({
-    submission: v.object({
-      _id: v.id("form_submissions"),
-      _creationTime: v.number(),
-      userId: v.optional(v.id("users")),
-      completedAt: v.optional(v.number()),
-      referrer: v.optional(v.string()),
-      userAgent: v.optional(v.string()),
-      ip: v.optional(v.string()),
-      currentStep: v.optional(v.number()),
-      submittedAt: v.optional(v.number()),
-      confirmationTokenHash: v.optional(v.string()),
-      confirmationExpiresAt: v.optional(v.number()),
-      resumeToken: v.optional(v.string()),
-      read: v.boolean(),
-      starred: v.boolean(),
-      meta: v.optional(v.string()),
-      updatedAt: v.number(),
-      createdAt: v.number(),
-      status: v.union(v.literal("partial"), v.literal("spam"), v.literal("complete"), v.literal("deleted")),
-      formId: v.id("forms"),
-    }),
+    submission: submissionRowValidator,
     values: v.array(v.object({
       fieldLabel: v.string(),
       fieldType: v.optional(v.string()),
