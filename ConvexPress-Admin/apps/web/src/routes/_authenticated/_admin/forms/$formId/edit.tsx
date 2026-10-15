@@ -9,6 +9,7 @@ import { api } from "@backend/convex/_generated/api";
 import type { Doc, Id } from "@backend/convex/_generated/dataModel";
 import { FieldListEditor } from "@/components/custom-fields/FieldListEditor";
 import { PluginGuard } from "@/components/plugins/PluginGuard";
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,8 @@ function EditFormPage() {
 }
 
 function EditFormContent({ formId }: { formId: Id<"forms"> }) {
+  // The route segment is "edit"; the tab (and so the crumb) is "Fields".
+  useBreadcrumbTitle("edit", "Fields");
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
   const fieldGroupId = form?.fieldGroupId;
   const fields = useQuery(api.customFields.queries.getFieldsByGroup, fieldGroupId ? { groupId: fieldGroupId } : "skip");
