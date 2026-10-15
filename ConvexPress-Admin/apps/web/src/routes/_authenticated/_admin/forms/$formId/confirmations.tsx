@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { Capability } from "@backend/convex/types/capabilities";
@@ -102,7 +101,6 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
   const canManage = useCan(formCap("form.manage_confirmations"));
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
-  useBreadcrumbTitle(formId, form?.title);
   const fieldGroupId = form?.fieldGroupId;
   const fields = useQuery(
     api.customFields.queries.getFieldsByGroup,
@@ -178,20 +176,7 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
     );
   }
 
-  if (form === null) {
-    return (
-      <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">
-            Form not found
-          </h1>
-          <Link to="/forms" className="mt-4 inline-block">
-            <Button variant="outline">Back to Forms</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (form === null) return null; // the form layout shows not-found
 
   // Reorder controls operate over the non-default rows (default always last).
   const reorderable = rows.filter((r) => !r.isDefault);
@@ -231,21 +216,16 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Confirmations
-          </h1>
+          <h2 className="text-lg font-semibold text-foreground">Confirmations</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             What the respondent sees after submitting &ldquo;{form.title}&rdquo;.
             The first matching confirmation wins; the default is the fallback.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/forms/$formId/edit" params={{ formId }}>
-            <Button variant="outline">Back to Form</Button>
-          </Link>
           <Button
             onClick={() => {
               setIsCreating(true);

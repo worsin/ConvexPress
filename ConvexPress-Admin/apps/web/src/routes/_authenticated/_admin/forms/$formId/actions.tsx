@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { ConditionalLogicBuilder } from "@/components/custom-fields/ConditionalLogicBuilder";
@@ -103,7 +102,6 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   const canManage = useCan("form.manage_actions");
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
-  useBreadcrumbTitle(formId, form?.title);
   const setup = useQuery(api.extensions.forms.actions.actionEditorSetup, canManage ? { formId } : "skip");
   const rows = useQuery(api.extensions.forms.actions.listActions, canManage ? { formId } : "skip");
   const actionTypes = useQuery(api.extensions.forms.actions.availableActionTypes, canManage ? {} : "skip");
@@ -135,7 +133,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
 
   if (form === undefined || rows === undefined || setup === undefined) {
     return (
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
+      <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
@@ -143,18 +141,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
     );
   }
 
-  if (form === null || setup === null) {
-    return (
-      <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">Form not found</h1>
-          <Link to="/forms" className="mt-4 inline-block">
-            <Button variant="outline">Back to Forms</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (form === null || setup === null) return null; // the form layout shows not-found
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -190,19 +177,16 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Actions</h1>
+          <h2 className="text-lg font-semibold text-foreground">Actions</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             What happens when &ldquo;{form.title}&rdquo; is submitted: start a subscription, take a payment, or send the answers
             on. Actions run in order; each can have conditions, and failures are retried.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/forms/$formId/edit" params={{ formId }}>
-            <Button variant="outline">Back to Form</Button>
-          </Link>
           <Button
             onClick={() => {
               setIsCreating(true);

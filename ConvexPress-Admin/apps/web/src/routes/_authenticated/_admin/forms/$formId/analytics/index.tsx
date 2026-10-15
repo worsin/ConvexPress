@@ -10,6 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { PluginGuard } from "@/components/plugins/PluginGuard";
+import { asId } from "@/lib/utils";
 import { FormAnalyticsPage } from "@/extensions/forms/components/FormAnalyticsPage";
 
 export const Route = createFileRoute(
@@ -22,7 +23,7 @@ function FormAnalyticsRoute() {
   const { formId } = Route.useParams();
   return (
     <PluginGuard pluginId="forms">
-      <FormAnalyticsPage formId={formId as Id<"forms">} />
+      <FormAnalyticsPage formId={asId<"forms">(formId)} />
     </PluginGuard>
   );
 }

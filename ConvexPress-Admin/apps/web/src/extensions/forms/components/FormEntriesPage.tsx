@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useAuth } from "@/lib/auth-context";
@@ -105,7 +104,6 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
   const form = useQuery(api.extensions.forms.queries.getForm, {
     id: formId,
   }) as FormRow | null | undefined;
-  useBreadcrumbTitle(formId, form?.title);
 
   const status = statusForTab(tab);
   const searchTerm = search.trim();
@@ -206,56 +204,13 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
     return <EntriesAccessDenied />;
   }
 
-  if (form === null) {
-    return (
-      <div className="mx-auto max-w-6xl p-6">
-        <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">
-            Form not found
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            The requested form could not be loaded.
-          </p>
-          <Link to="/forms" className="mt-4 inline-block">
-            <Button variant="outline">Back to Forms</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (form === null) return null; // the form layout shows not-found
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/forms" className="hover:text-foreground">
-              Forms
-            </Link>
-            <span>/</span>
-            <Link
-              to="/forms/$formId/edit"
-              params={{ formId }}
-              className="hover:text-foreground"
-            >
-              {form.title}
-            </Link>
-          </div>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">
-            Entries
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Review submissions, triage status, and add internal notes.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/forms/$formId/edit" params={{ formId }}>
-            <Button variant="outline">Builder</Button>
-          </Link>
-          <Link to="/forms/$formId/analytics" params={{ formId }}>
-            <Button variant="outline">Analytics</Button>
-          </Link>
-        </div>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Entries</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Review submissions, triage status, and add internal notes.</p>
       </div>
 
       <div className="rounded-lg border border-border bg-card">
@@ -636,7 +591,7 @@ export function EntryStatusBadge({ status }: { status: EntryStatus }) {
 
 function EntriesSkeleton() {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <Skeleton className="h-16 w-full" />
       <Skeleton className="h-96 w-full" />
     </div>
