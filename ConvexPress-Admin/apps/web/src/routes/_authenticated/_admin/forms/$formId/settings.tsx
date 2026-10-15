@@ -5,7 +5,6 @@ import { useQuery } from "convex-helpers/react/cache";
 import { ArrowLeft, LoaderIcon, Save } from "lucide-react";
 import { toast } from "sonner";
 
-import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { Capability } from "@backend/convex/types/capabilities";
@@ -92,7 +91,6 @@ function FormSettingsRoute() {
 function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   const canUpdate = useCan(formCap("form.update"));
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
-  useBreadcrumbTitle(formId, form?.title);
   const updateForm = useMutation(api.extensions.forms.mutations.update);
   const [baseSettings, setBaseSettings] = useState<FormSettings>({});
   const [draft, setDraft] = useState<SettingsDraft>({
@@ -144,24 +142,7 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   }, [form]);
 
   if (form === undefined) return <SettingsSkeleton />;
-  if (form === null) {
-    return (
-      <div className="mx-auto max-w-4xl p-6">
-        <section className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">Form not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            The requested form could not be loaded.
-          </p>
-          <Link to="/forms" className="mt-4 inline-block">
-            <Button variant="outline">
-              <ArrowLeft className="size-4" data-icon="inline-start" />
-              Back to Forms
-            </Button>
-          </Link>
-        </section>
-      </div>
-    );
-  }
+  if (form === null) return null; // the form layout shows not-found
 
   async function handleSave() {
     const nextSettings = buildSettings(baseSettings, draft);
@@ -190,23 +171,15 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            {form.title} Settings
-          </h1>
+          <h2 className="text-lg font-semibold text-foreground">Settings</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Control form availability, access, and response limits.
+            Whether the form is open, who can use it, and how many responses it takes.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/forms/$formId/edit" params={{ formId }}>
-            <Button variant="outline">
-              <ArrowLeft className="size-4" data-icon="inline-start" />
-              Builder
-            </Button>
-          </Link>
           <Button
             onClick={() => void handleSave()}
             disabled={!canUpdate || isSaving}

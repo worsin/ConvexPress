@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useCan } from "@/hooks/useCan";
@@ -103,8 +102,6 @@ function pct(n: number): string {
 export function FormAnalyticsPage({ formId }: { formId: Id<"forms"> }) {
   const [range, setRange] = useState(defaultRange);
 
-  const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
-  useBreadcrumbTitle(formId, form?.title);
   const funnel = useQuery(api.extensions.forms.analytics.getFunnel, {
     formId,
     from: range.from,
@@ -119,7 +116,7 @@ export function FormAnalyticsPage({ formId }: { formId: Id<"forms"> }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <BarChart3 className="size-5 text-muted-foreground" />
-          <h1 className="text-2xl font-bold text-foreground">Form Analytics</h1>
+          <h2 className="text-lg font-semibold text-foreground">Analytics</h2>
         </div>
         <div className="flex items-center gap-3">
           <DateRangePicker range={range} onChange={setRange} />

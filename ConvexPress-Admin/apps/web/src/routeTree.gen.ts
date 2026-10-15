@@ -130,6 +130,7 @@ import { Route as AuthenticatedAdminGalleryNewRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminGalleryCategoriesRouteImport } from './routes/_authenticated/_admin/gallery/categories'
 import { Route as AuthenticatedAdminFormsSettingsRouteImport } from './routes/_authenticated/_admin/forms/settings'
 import { Route as AuthenticatedAdminFormsNewRouteImport } from './routes/_authenticated/_admin/forms/new'
+import { Route as AuthenticatedAdminFormsFormIdRouteImport } from './routes/_authenticated/_admin/forms/$formId'
 import { Route as AuthenticatedAdminEventsNewRouteImport } from './routes/_authenticated/_admin/events/new'
 import { Route as AuthenticatedAdminEventsCategoriesRouteImport } from './routes/_authenticated/_admin/events/categories'
 import { Route as AuthenticatedAdminEventsEventIdRouteImport } from './routes/_authenticated/_admin/events/$eventId'
@@ -1005,6 +1006,12 @@ const AuthenticatedAdminFormsNewRoute =
     path: '/forms/new',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminFormsFormIdRoute =
+  AuthenticatedAdminFormsFormIdRouteImport.update({
+    id: '/forms/$formId',
+    path: '/forms/$formId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminEventsNewRoute =
   AuthenticatedAdminEventsNewRouteImport.update({
     id: '/events/new',
@@ -1529,33 +1536,33 @@ const AuthenticatedAdminGalleryAlbumIdEditRoute =
   } as any)
 const AuthenticatedAdminFormsFormIdSettingsRoute =
   AuthenticatedAdminFormsFormIdSettingsRouteImport.update({
-    id: '/forms/$formId/settings',
-    path: '/forms/$formId/settings',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminFormsFormIdNotificationsRoute =
   AuthenticatedAdminFormsFormIdNotificationsRouteImport.update({
-    id: '/forms/$formId/notifications',
-    path: '/forms/$formId/notifications',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminFormsFormIdEditRoute =
   AuthenticatedAdminFormsFormIdEditRouteImport.update({
-    id: '/forms/$formId/edit',
-    path: '/forms/$formId/edit',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminFormsFormIdConfirmationsRoute =
   AuthenticatedAdminFormsFormIdConfirmationsRouteImport.update({
-    id: '/forms/$formId/confirmations',
-    path: '/forms/$formId/confirmations',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/confirmations',
+    path: '/confirmations',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminFormsFormIdActionsRoute =
   AuthenticatedAdminFormsFormIdActionsRouteImport.update({
-    id: '/forms/$formId/actions',
-    path: '/forms/$formId/actions',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/actions',
+    path: '/actions',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminCustomerDashboardLayoutsScopeRoute =
   AuthenticatedAdminCustomerDashboardLayoutsScopeRouteImport.update({
@@ -1683,15 +1690,15 @@ const AuthenticatedAdminLmsCoursesCourseIdIndexRoute =
   } as any)
 const AuthenticatedAdminFormsFormIdEntriesIndexRoute =
   AuthenticatedAdminFormsFormIdEntriesIndexRouteImport.update({
-    id: '/forms/$formId/entries/',
-    path: '/forms/$formId/entries/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/entries/',
+    path: '/entries/',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminFormsFormIdAnalyticsIndexRoute =
   AuthenticatedAdminFormsFormIdAnalyticsIndexRouteImport.update({
-    id: '/forms/$formId/analytics/',
-    path: '/forms/$formId/analytics/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/analytics/',
+    path: '/analytics/',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport.update({
@@ -1803,9 +1810,9 @@ const AuthenticatedAdminLmsCoursesCourseIdBuilderRoute =
   } as any)
 const AuthenticatedAdminFormsFormIdEntriesEntryIdRoute =
   AuthenticatedAdminFormsFormIdEntriesEntryIdRouteImport.update({
-    id: '/forms/$formId/entries/$entryId',
-    path: '/forms/$formId/entries/$entryId',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/entries/$entryId',
+    path: '/entries/$entryId',
+    getParentRoute: () => AuthenticatedAdminFormsFormIdRoute,
   } as any)
 const AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute =
   AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport.update({
@@ -1988,6 +1995,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof AuthenticatedAdminEventsEventIdRoute
   '/events/categories': typeof AuthenticatedAdminEventsCategoriesRoute
   '/events/new': typeof AuthenticatedAdminEventsNewRoute
+  '/forms/$formId': typeof AuthenticatedAdminFormsFormIdRouteWithChildren
   '/forms/new': typeof AuthenticatedAdminFormsNewRoute
   '/forms/settings': typeof AuthenticatedAdminFormsSettingsRoute
   '/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
@@ -2237,6 +2245,7 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AuthenticatedAdminEventsEventIdRoute
   '/events/categories': typeof AuthenticatedAdminEventsCategoriesRoute
   '/events/new': typeof AuthenticatedAdminEventsNewRoute
+  '/forms/$formId': typeof AuthenticatedAdminFormsFormIdRouteWithChildren
   '/forms/new': typeof AuthenticatedAdminFormsNewRoute
   '/forms/settings': typeof AuthenticatedAdminFormsSettingsRoute
   '/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
@@ -2507,6 +2516,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/events/$eventId': typeof AuthenticatedAdminEventsEventIdRoute
   '/_authenticated/_admin/events/categories': typeof AuthenticatedAdminEventsCategoriesRoute
   '/_authenticated/_admin/events/new': typeof AuthenticatedAdminEventsNewRoute
+  '/_authenticated/_admin/forms/$formId': typeof AuthenticatedAdminFormsFormIdRouteWithChildren
   '/_authenticated/_admin/forms/new': typeof AuthenticatedAdminFormsNewRoute
   '/_authenticated/_admin/forms/settings': typeof AuthenticatedAdminFormsSettingsRoute
   '/_authenticated/_admin/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
@@ -2777,6 +2787,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/events/categories'
     | '/events/new'
+    | '/forms/$formId'
     | '/forms/new'
     | '/forms/settings'
     | '/gallery/categories'
@@ -3026,6 +3037,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/events/categories'
     | '/events/new'
+    | '/forms/$formId'
     | '/forms/new'
     | '/forms/settings'
     | '/gallery/categories'
@@ -3295,6 +3307,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/events/$eventId'
     | '/_authenticated/_admin/events/categories'
     | '/_authenticated/_admin/events/new'
+    | '/_authenticated/_admin/forms/$formId'
     | '/_authenticated/_admin/forms/new'
     | '/_authenticated/_admin/forms/settings'
     | '/_authenticated/_admin/gallery/categories'
@@ -4363,6 +4376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFormsNewRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/forms/$formId': {
+      id: '/_authenticated/_admin/forms/$formId'
+      path: '/forms/$formId'
+      fullPath: '/forms/$formId'
+      preLoaderRoute: typeof AuthenticatedAdminFormsFormIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/events/new': {
       id: '/_authenticated/_admin/events/new'
       path: '/events/new'
@@ -4932,38 +4952,38 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_admin/forms/$formId/settings': {
       id: '/_authenticated/_admin/forms/$formId/settings'
-      path: '/forms/$formId/settings'
+      path: '/settings'
       fullPath: '/forms/$formId/settings'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/forms/$formId/notifications': {
       id: '/_authenticated/_admin/forms/$formId/notifications'
-      path: '/forms/$formId/notifications'
+      path: '/notifications'
       fullPath: '/forms/$formId/notifications'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdNotificationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/forms/$formId/edit': {
       id: '/_authenticated/_admin/forms/$formId/edit'
-      path: '/forms/$formId/edit'
+      path: '/edit'
       fullPath: '/forms/$formId/edit'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdEditRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/forms/$formId/confirmations': {
       id: '/_authenticated/_admin/forms/$formId/confirmations'
-      path: '/forms/$formId/confirmations'
+      path: '/confirmations'
       fullPath: '/forms/$formId/confirmations'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdConfirmationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/forms/$formId/actions': {
       id: '/_authenticated/_admin/forms/$formId/actions'
-      path: '/forms/$formId/actions'
+      path: '/actions'
       fullPath: '/forms/$formId/actions'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdActionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/customer-dashboard/layouts/$scope': {
       id: '/_authenticated/_admin/customer-dashboard/layouts/$scope'
@@ -5107,17 +5127,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_admin/forms/$formId/entries/': {
       id: '/_authenticated/_admin/forms/$formId/entries/'
-      path: '/forms/$formId/entries'
+      path: '/entries'
       fullPath: '/forms/$formId/entries/'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdEntriesIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/forms/$formId/analytics/': {
       id: '/_authenticated/_admin/forms/$formId/analytics/'
-      path: '/forms/$formId/analytics'
+      path: '/analytics'
       fullPath: '/forms/$formId/analytics/'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/commerce/subscriptions/templates/': {
       id: '/_authenticated/_admin/commerce/subscriptions/templates/'
@@ -5247,10 +5267,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_admin/forms/$formId/entries/$entryId': {
       id: '/_authenticated/_admin/forms/$formId/entries/$entryId'
-      path: '/forms/$formId/entries/$entryId'
+      path: '/entries/$entryId'
       fullPath: '/forms/$formId/entries/$entryId'
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFormsFormIdRoute
     }
     '/_authenticated/_admin/commerce/subscriptions/templates/new': {
       id: '/_authenticated/_admin/commerce/subscriptions/templates/new'
@@ -6247,6 +6267,42 @@ const AuthenticatedAdminToolsRouteWithChildren =
     AuthenticatedAdminToolsRouteChildren,
   )
 
+interface AuthenticatedAdminFormsFormIdRouteChildren {
+  AuthenticatedAdminFormsFormIdActionsRoute: typeof AuthenticatedAdminFormsFormIdActionsRoute
+  AuthenticatedAdminFormsFormIdConfirmationsRoute: typeof AuthenticatedAdminFormsFormIdConfirmationsRoute
+  AuthenticatedAdminFormsFormIdEditRoute: typeof AuthenticatedAdminFormsFormIdEditRoute
+  AuthenticatedAdminFormsFormIdNotificationsRoute: typeof AuthenticatedAdminFormsFormIdNotificationsRoute
+  AuthenticatedAdminFormsFormIdSettingsRoute: typeof AuthenticatedAdminFormsFormIdSettingsRoute
+  AuthenticatedAdminFormsFormIdEntriesEntryIdRoute: typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRoute
+  AuthenticatedAdminFormsFormIdAnalyticsIndexRoute: typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRoute
+  AuthenticatedAdminFormsFormIdEntriesIndexRoute: typeof AuthenticatedAdminFormsFormIdEntriesIndexRoute
+}
+
+const AuthenticatedAdminFormsFormIdRouteChildren: AuthenticatedAdminFormsFormIdRouteChildren =
+  {
+    AuthenticatedAdminFormsFormIdActionsRoute:
+      AuthenticatedAdminFormsFormIdActionsRoute,
+    AuthenticatedAdminFormsFormIdConfirmationsRoute:
+      AuthenticatedAdminFormsFormIdConfirmationsRoute,
+    AuthenticatedAdminFormsFormIdEditRoute:
+      AuthenticatedAdminFormsFormIdEditRoute,
+    AuthenticatedAdminFormsFormIdNotificationsRoute:
+      AuthenticatedAdminFormsFormIdNotificationsRoute,
+    AuthenticatedAdminFormsFormIdSettingsRoute:
+      AuthenticatedAdminFormsFormIdSettingsRoute,
+    AuthenticatedAdminFormsFormIdEntriesEntryIdRoute:
+      AuthenticatedAdminFormsFormIdEntriesEntryIdRoute,
+    AuthenticatedAdminFormsFormIdAnalyticsIndexRoute:
+      AuthenticatedAdminFormsFormIdAnalyticsIndexRoute,
+    AuthenticatedAdminFormsFormIdEntriesIndexRoute:
+      AuthenticatedAdminFormsFormIdEntriesIndexRoute,
+  }
+
+const AuthenticatedAdminFormsFormIdRouteWithChildren =
+  AuthenticatedAdminFormsFormIdRoute._addFileChildren(
+    AuthenticatedAdminFormsFormIdRouteChildren,
+  )
+
 interface AuthenticatedAdminPagesPageIdRouteChildren {
   AuthenticatedAdminPagesPageIdEditRoute: typeof AuthenticatedAdminPagesPageIdEditRoute
   AuthenticatedAdminPagesPageIdEngagementRoute: typeof AuthenticatedAdminPagesPageIdEngagementRoute
@@ -6325,6 +6381,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminEventsEventIdRoute: typeof AuthenticatedAdminEventsEventIdRoute
   AuthenticatedAdminEventsCategoriesRoute: typeof AuthenticatedAdminEventsCategoriesRoute
   AuthenticatedAdminEventsNewRoute: typeof AuthenticatedAdminEventsNewRoute
+  AuthenticatedAdminFormsFormIdRoute: typeof AuthenticatedAdminFormsFormIdRouteWithChildren
   AuthenticatedAdminFormsNewRoute: typeof AuthenticatedAdminFormsNewRoute
   AuthenticatedAdminFormsSettingsRoute: typeof AuthenticatedAdminFormsSettingsRoute
   AuthenticatedAdminLayoutsLayoutIdRoute: typeof AuthenticatedAdminLayoutsLayoutIdRoute
@@ -6358,19 +6415,11 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminWebhooksIndexRoute: typeof AuthenticatedAdminWebhooksIndexRoute
   AuthenticatedAdminCommentsCommentIdEditRoute: typeof AuthenticatedAdminCommentsCommentIdEditRoute
   AuthenticatedAdminCustomerDashboardLayoutsScopeRoute: typeof AuthenticatedAdminCustomerDashboardLayoutsScopeRoute
-  AuthenticatedAdminFormsFormIdActionsRoute: typeof AuthenticatedAdminFormsFormIdActionsRoute
-  AuthenticatedAdminFormsFormIdConfirmationsRoute: typeof AuthenticatedAdminFormsFormIdConfirmationsRoute
-  AuthenticatedAdminFormsFormIdEditRoute: typeof AuthenticatedAdminFormsFormIdEditRoute
-  AuthenticatedAdminFormsFormIdNotificationsRoute: typeof AuthenticatedAdminFormsFormIdNotificationsRoute
-  AuthenticatedAdminFormsFormIdSettingsRoute: typeof AuthenticatedAdminFormsFormIdSettingsRoute
   AuthenticatedAdminMediaMediaIdEditRoute: typeof AuthenticatedAdminMediaMediaIdEditRoute
   AuthenticatedAdminMenusMenuIdEditRoute: typeof AuthenticatedAdminMenusMenuIdEditRoute
   AuthenticatedAdminRolesRoleIdEditRoute: typeof AuthenticatedAdminRolesRoleIdEditRoute
   AuthenticatedAdminUsersUserIdEditRoute: typeof AuthenticatedAdminUsersUserIdEditRoute
   AuthenticatedAdminCustomerDashboardLayoutsIndexRoute: typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
-  AuthenticatedAdminFormsFormIdEntriesEntryIdRoute: typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRoute
-  AuthenticatedAdminFormsFormIdAnalyticsIndexRoute: typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRoute
-  AuthenticatedAdminFormsFormIdEntriesIndexRoute: typeof AuthenticatedAdminFormsFormIdEntriesIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -6402,6 +6451,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminEventsCategoriesRoute:
     AuthenticatedAdminEventsCategoriesRoute,
   AuthenticatedAdminEventsNewRoute: AuthenticatedAdminEventsNewRoute,
+  AuthenticatedAdminFormsFormIdRoute:
+    AuthenticatedAdminFormsFormIdRouteWithChildren,
   AuthenticatedAdminFormsNewRoute: AuthenticatedAdminFormsNewRoute,
   AuthenticatedAdminFormsSettingsRoute: AuthenticatedAdminFormsSettingsRoute,
   AuthenticatedAdminLayoutsLayoutIdRoute:
@@ -6444,16 +6495,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminCommentsCommentIdEditRoute,
   AuthenticatedAdminCustomerDashboardLayoutsScopeRoute:
     AuthenticatedAdminCustomerDashboardLayoutsScopeRoute,
-  AuthenticatedAdminFormsFormIdActionsRoute:
-    AuthenticatedAdminFormsFormIdActionsRoute,
-  AuthenticatedAdminFormsFormIdConfirmationsRoute:
-    AuthenticatedAdminFormsFormIdConfirmationsRoute,
-  AuthenticatedAdminFormsFormIdEditRoute:
-    AuthenticatedAdminFormsFormIdEditRoute,
-  AuthenticatedAdminFormsFormIdNotificationsRoute:
-    AuthenticatedAdminFormsFormIdNotificationsRoute,
-  AuthenticatedAdminFormsFormIdSettingsRoute:
-    AuthenticatedAdminFormsFormIdSettingsRoute,
   AuthenticatedAdminMediaMediaIdEditRoute:
     AuthenticatedAdminMediaMediaIdEditRoute,
   AuthenticatedAdminMenusMenuIdEditRoute:
@@ -6464,12 +6505,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminUsersUserIdEditRoute,
   AuthenticatedAdminCustomerDashboardLayoutsIndexRoute:
     AuthenticatedAdminCustomerDashboardLayoutsIndexRoute,
-  AuthenticatedAdminFormsFormIdEntriesEntryIdRoute:
-    AuthenticatedAdminFormsFormIdEntriesEntryIdRoute,
-  AuthenticatedAdminFormsFormIdAnalyticsIndexRoute:
-    AuthenticatedAdminFormsFormIdAnalyticsIndexRoute,
-  AuthenticatedAdminFormsFormIdEntriesIndexRoute:
-    AuthenticatedAdminFormsFormIdEntriesIndexRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =

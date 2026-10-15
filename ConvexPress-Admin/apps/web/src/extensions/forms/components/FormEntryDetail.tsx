@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useAuth } from "@/lib/auth-context";
@@ -136,7 +135,6 @@ export function FormEntryDetail({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
-  useBreadcrumbTitle(formId, form?.title);
   const detail = useQuery(api.extensions.forms.queries.getSubmission, {
     id: entryId,
   }) as SubmissionDetail | null | undefined;
@@ -266,11 +264,11 @@ export function FormEntryDetail({
 
   if (!canView) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
+      <div>
         <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">
+          <h2 className="text-lg font-semibold text-foreground">
             Entry unavailable
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Your current role cannot view form entries.
           </p>
@@ -288,11 +286,11 @@ export function FormEntryDetail({
 
   if (form === null || detail === null || isWrongForm || !submission) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
+      <div>
         <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="text-xl font-semibold text-foreground">
+          <h2 className="text-lg font-semibold text-foreground">
             Entry not found
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             The requested entry could not be loaded for this form.
           </p>
@@ -305,7 +303,7 @@ export function FormEntryDetail({
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <Link
@@ -316,12 +314,9 @@ export function FormEntryDetail({
             <ArrowLeftIcon className="size-4" />
             Entries
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">
-            Entry {String(submission._id)}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Submitted to {String((form as { title?: string }).title ?? "form")}.
-          </p>
+          <h2 className="mt-2 text-lg font-semibold text-foreground">
+            Entry from {formatDate(submission.submittedAt ?? submission.createdAt)}
+          </h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <EntryStatusBadge status={submission.status} />
@@ -607,7 +602,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 
 function EntryDetailSkeleton() {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <Skeleton className="h-16 w-full" />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Skeleton className="h-96 w-full" />

@@ -11,76 +11,24 @@
  * - useRef for stable keyboard shortcut callback
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  ArrowLeftIcon,
-  PlusIcon,
-  SaveIcon,
-} from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  useSensors,
-  useSensor,
-  PointerSensor,
-  KeyboardSensor,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { ArrowLeftIcon, SaveIcon } from "lucide-react";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
-import type { Id } from "@backend/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { SortableFieldRow } from "@/components/custom-fields/SortableFieldRow";
-import { FieldTypeSelector } from "@/components/custom-fields/FieldTypeSelector";
+import { FieldListEditor, type FieldDoc } from "@/components/custom-fields/FieldListEditor";
 import { LocationRulesBuilder } from "@/components/custom-fields/LocationRulesBuilder";
 import { cn, getErrorMessage } from "@/lib/utils";
 
-interface FieldGroupData {
-  _id: string;
-  title: string;
-  key: string;
-  description?: string;
-  locationRules: Array<
-    Array<{ param: string; operator: "==" | "!="; value: string }>
-  >;
-  position: "normal" | "side" | "after_title";
-  style: "default" | "seamless";
-  labelPlacement: "top" | "left";
-  instructionPlacement: "label" | "field";
-  isActive: boolean;
-  menuOrder: number;
-}
-
-interface FieldData {
-  _id: string;
-  groupId: string;
-  label: string;
-  name: string;
-  key: string;
-  type: string;
-  instructions?: string;
-  required: boolean;
-  defaultValue?: string;
-  settings: string;
-  conditionalLogic?: string;
-  wrapperWidth?: string;
-  wrapperClass?: string;
-  wrapperId?: string;
-  menuOrder: number;
-  parentFieldId?: string;
-}
+type FieldGroupData = NonNullable<FunctionReturnType<typeof api.customFields.queries.getGroup>>;
 
 interface FieldGroupBuilderProps {
   group: FieldGroupData;
-  fields: FieldData[];
+  fields: FieldDoc[];
 }
 
 /**
@@ -108,9 +56,6 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
 
   // --- Mutations ---
   const updateGroup = useMutation(api.customFields.mutations.updateGroup);
-  const createField = useMutation(api.customFields.mutations.createField);
-  const deleteField = useMutation(api.customFields.mutations.deleteField);
-  const reorderFields = useMutation(api.customFields.mutations.reorderFields);
 
   // --- Local form state (initialized from props, no sync needed) ---
   const [title, setTitle] = useState(group.title);
@@ -124,59 +69,9 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
   );
   const [isActive, setIsActive] = useState(group.isActive);
   const [menuOrder, setMenuOrder] = useState(group.menuOrder);
-  const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
 
   // --- useTransition for save/add/delete operations ---
   const [isSaving, startSaveTransition] = useTransition();
-
-  // Top-level fields only (not sub-fields)
-  const topLevelFields = useMemo(
-    () => fields.filter((f) => !f.parentFieldId),
-    [fields],
-  );
-
-  // Sortable IDs for @dnd-kit
-  const sortableFieldIds = useMemo(
-    () => topLevelFields.map((f) => f._id),
-    [topLevelFields],
-  );
-
-  // @dnd-kit sensors: pointer with 8px activation distance, keyboard
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor),
-  );
-
-  // --- Drag end handler for field reordering ---
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = topLevelFields.findIndex((f) => f._id === active.id);
-      const newIndex = topLevelFields.findIndex((f) => f._id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const reordered = arrayMove(topLevelFields, oldIndex, newIndex);
-
-      // Build field order array and persist via mutation
-      const fieldOrder = reordered.map((f, i) => ({
-        fieldId: f._id as Id<"fieldDefinitions">,
-        menuOrder: i,
-      }));
-
-      reorderFields({
-        groupId: group._id as Id<"fieldGroups">,
-        fieldOrder,
-      }).catch(() => {
-        toast.error("Failed to reorder fields");
-      });
-    },
-    [topLevelFields, group._id, reorderFields],
-  );
 
   // --- Save handler ---
   const handleSave = useCallback(async () => {
@@ -187,7 +82,7 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
 
     try {
       await updateGroup({
-        groupId: group._id as Id<"fieldGroups">,
+        groupId: group._id,
         title: title.trim(),
         description: description.trim() || undefined,
         locationRules,
@@ -200,7 +95,7 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
       });
       toast.success("Field group saved");
     } catch (error: unknown) {
-      toast.error((error as { data?: { message?: string }; message?: string })?.data?.message ?? "Failed to save field group");
+      toast.error(getErrorMessage(error, "Failed to save field group"));
     }
   }, [
     title,
@@ -233,45 +128,6 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []); // Stable: no deps needed thanks to ref
-
-  // --- Add field handler ---
-  const handleAddField = useCallback(
-    async (type: string) => {
-      try {
-        await createField({
-          groupId: group._id as Id<"fieldGroups">,
-          label: "New Field",
-          type,
-          menuOrder: topLevelFields.length,
-        });
-        setShowTypeSelector(false);
-        toast.success("Field added");
-      } catch (error: unknown) {
-        toast.error((error as { data?: { message?: string }; message?: string })?.data?.message ?? "Failed to add field");
-      }
-    },
-    [createField, group._id, topLevelFields.length],
-  );
-
-  // --- Delete field handler ---
-  const handleDeleteField = useCallback(
-    async (fieldId: string) => {
-      try {
-        await deleteField({
-          fieldId: fieldId as Id<"fieldDefinitions">,
-          deleteValues: true,
-        });
-        if (expandedFieldId === fieldId) {
-          setExpandedFieldId(null);
-        }
-        toast.success("Field deleted");
-      } catch (error: unknown) {
-      console.error("Failed to delete field:", error);
-      toast.error("Failed to delete field");
-      }
-    },
-    [deleteField, expandedFieldId],
-  );
 
   return (
     <div className="space-y-6">
@@ -346,66 +202,8 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
         </div>
       </div>
 
-      {/* Fields Section */}
-      <div className="border border-border bg-card">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">Fields</h2>
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={() => setShowTypeSelector(!showTypeSelector)}
-          >
-            <PlusIcon className="size-3" />
-            Add Field
-          </Button>
-        </div>
-
-        {/* Type selector dropdown */}
-        {showTypeSelector && (
-          <div className="border-b border-border p-4">
-            <FieldTypeSelector
-              onSelect={handleAddField}
-              onClose={() => setShowTypeSelector(false)}
-            />
-          </div>
-        )}
-
-        {/* Field rows with drag-drop reordering */}
-        {topLevelFields.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No fields yet. Click "Add Field" to get started.
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={sortableFieldIds}
-              strategy={verticalListSortingStrategy}
-            >
-              <div>
-                {topLevelFields.map((field) => (
-                  <SortableFieldRow
-                    key={field._id}
-                    field={field}
-                    allFields={fields}
-                    isExpanded={expandedFieldId === field._id}
-                    onToggle={() =>
-                      setExpandedFieldId(
-                        expandedFieldId === field._id ? null : field._id,
-                      )
-                    }
-                    onDelete={() => handleDeleteField(field._id)}
-                    groupId={group._id}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
+      {/* Fields */}
+      <FieldListEditor groupId={group._id} fields={fields} />
 
       {/* Settings Section */}
       <div className="border border-border bg-card p-4 space-y-4">
@@ -435,7 +233,7 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
             </label>
             <select
               value={position}
-              onChange={(e) => setPosition(e.target.value as "normal" | "side" | "after_title")}
+              onChange={(e) => setPosition(e.target.value === "side" ? "side" : e.target.value === "after_title" ? "after_title" : "normal")}
               className="w-full h-8 rounded-none border border-border bg-background px-2 text-xs"
             >
               <option value="normal">Normal (below editor)</option>
@@ -451,7 +249,7 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
             </label>
             <select
               value={style}
-              onChange={(e) => setStyle(e.target.value as "default" | "seamless")}
+              onChange={(e) => setStyle(e.target.value === "seamless" ? "seamless" : "default")}
               className="w-full h-8 rounded-none border border-border bg-background px-2 text-xs"
             >
               <option value="default">Default (standard metabox)</option>
@@ -466,7 +264,7 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
             </label>
             <select
               value={labelPlacement}
-              onChange={(e) => setLabelPlacement(e.target.value as "top" | "left")}
+              onChange={(e) => setLabelPlacement(e.target.value === "left" ? "left" : "top")}
               className="w-full h-8 rounded-none border border-border bg-background px-2 text-xs"
             >
               <option value="top">Top (above input)</option>
@@ -481,7 +279,7 @@ function FieldGroupBuilderForm({ group, fields }: FieldGroupBuilderProps) {
             </label>
             <select
               value={instructionPlacement}
-              onChange={(e) => setInstructionPlacement(e.target.value as "label" | "field")}
+              onChange={(e) => setInstructionPlacement(e.target.value === "field" ? "field" : "label")}
               className="w-full h-8 rounded-none border border-border bg-background px-2 text-xs"
             >
               <option value="label">Below Label</option>
