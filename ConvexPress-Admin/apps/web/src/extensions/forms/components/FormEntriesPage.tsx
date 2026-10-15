@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useAuth } from "@/lib/auth-context";
@@ -26,27 +27,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 type EntryStatus = "partial" | "complete" | "spam" | "deleted";
 type EntryTab = "all" | "unread" | "starred" | EntryStatus;
 
-interface FormRow {
-  _id: Id<"forms">;
-  title: string;
-  slug: string;
-}
-
-interface SubmissionRow {
-  _id: Id<"form_submissions">;
-  formId: Id<"forms">;
-  status: EntryStatus;
-  submittedAt?: number;
-  completedAt?: number;
-  referrer?: string;
-  userId?: Id<"users">;
-  resumeToken?: string;
-  currentStep?: number;
-  read?: boolean;
-  starred?: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
+type SubmissionRow = FunctionReturnType<typeof api.extensions.forms.queries.listSubmissions>["page"][number];
 
 const TABS: Array<{ id: EntryTab; label: string }> = [
   { id: "all", label: "All" },
@@ -101,9 +82,7 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
     "spam" | "trash" | null
   >(null);
 
-  const form = useQuery(api.extensions.forms.queries.getForm, {
-    id: formId,
-  }) as FormRow | null | undefined;
+  const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
 
   const status = statusForTab(tab);
   const searchTerm = search.trim();
@@ -114,12 +93,7 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
       ? { formId, status, search: searchTerm || undefined, ...triage }
       : { formId, search: searchTerm || undefined, ...triage },
     { initialNumItems: 25 },
-  ) as {
-    results?: SubmissionRow[];
-    status: string;
-    loadMore: (numItems: number) => void;
-    isLoading: boolean;
-  };
+  );
 
   const updateEntry = useMutation(api.extensions.forms.mutations.updateEntry);
   const updateEntryBulk = useMutation(
@@ -400,7 +374,7 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
                       aria-label="Select all visible entries"
                     />
                   </th>
-                  <th className="px-3 py-3 font-medium">Entry</th>
+                  <th className="px-3 py-3 font-medium">From</th>
                   <th className="px-3 py-3 font-medium">Status</th>
                   <th className="px-3 py-3 font-medium">Submitted</th>
                   <th className="px-3 py-3 font-medium">Source</th>
@@ -435,8 +409,9 @@ export function FormEntriesPage({ formId }: { formId: Id<"forms"> }) {
                             : "text-left font-semibold text-foreground hover:underline"
                         }
                       >
-                        {String(row._id)}
+                        {row.preview.title}
                       </button>
+                      {row.preview.detail ? <div className="text-xs text-muted-foreground">{row.preview.detail}</div> : null}
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         {row.starred === true ? (
                           <StarIcon className="size-3.5 fill-current text-primary" />
