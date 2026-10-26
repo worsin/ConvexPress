@@ -24,6 +24,16 @@ export function validateTemplateContract(directory, manifest, catalog) {
       for (const surface of field.surfaces ?? []) if (!catalog.has(surface)) issues.push(`field '${group.id}.${field.id}' names unknown surface '${surface}'`);
     }
   }
+  const CORE_PAGE_TEMPLATES = new Set(["default", "full-width", "sidebar-left", "sidebar-right", "no-sidebar", "landing", "blank"]);
+  const pageTemplateIds = new Set();
+  for (const template of manifest.pageTemplates ?? []) {
+    if (!/^[a-z][a-z0-9-]{0,63}$/.test(template.id ?? "")) issues.push(`page template id '${template.id}' must be lowercase letters, digits and hyphens`);
+    else if (CORE_PAGE_TEMPLATES.has(template.id)) issues.push(`page template '${template.id}' is a Core layout; packs add new ids`);
+    else if (pageTemplateIds.has(template.id)) issues.push(`duplicate page template '${template.id}'`);
+    pageTemplateIds.add(template.id);
+    if (!template.name?.trim()) issues.push(`page template '${template.id}' needs a name`);
+  }
+  if (pageTemplateIds.size > 0 && !(manifest.surfaces ?? []).includes("page")) issues.push("a pack that adds page templates must implement the page surface");
   const visit = folder => {
     for (const name of readdirSync(folder)) {
       const file = join(folder, name);

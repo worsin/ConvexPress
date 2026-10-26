@@ -75,6 +75,7 @@ const entries = manifests
       m.defaults ? `    defaults: ${JSON.stringify(m.defaults)},` : null,
       m.menuLocations ? `    menuLocations: ${JSON.stringify(m.menuLocations)},` : null,
       m.presets ? `    presets: ${JSON.stringify(m.presets)},` : null,
+      m.pageTemplates?.length ? `    pageTemplates: ${JSON.stringify(m.pageTemplates)},` : null,
     ].filter(Boolean);
     return `  {\n${fields.join("\n")}\n  },`;
   })
@@ -103,6 +104,8 @@ export interface TemplatePackSummary {
   defaults?: Record<string, Record<string, unknown>>;
   menuLocations?: Record<string, string>;
   presets?: Record<string, Array<{ id: string; name: string; colors: Record<string, string> }>>;
+  /** Page layouts the pack adds to Core's, offered in the page editor. */
+  pageTemplates?: Array<{ id: string; name: string; description?: string }>;
 }
 
 export const TEMPLATE_PACKS: TemplatePackSummary[] = [

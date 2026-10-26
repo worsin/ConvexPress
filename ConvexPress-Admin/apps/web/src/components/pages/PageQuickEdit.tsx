@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useState } from "react";
+import { pageLayoutOptions } from "@/lib/templates/pageLayouts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +58,13 @@ function CanonicalPageQuickEdit({ page, onClose }: PageQuickEditProps) {
 
   const { tree } = usePageTree({ status: "all" });
   const { templates } = usePageTemplates();
-  const templateOptions = templates as PageTemplateOption[];
+  // The backend lists Core's layouts; installed template packs add their own.
+  const templateOptions: PageTemplateOption[] = [
+    ...templates.map((template) => ({ id: template.id, name: template.name })),
+    ...pageLayoutOptions()
+      .filter((option) => !templates.some((template) => template.id === option.value))
+      .map((option) => ({ id: option.value, name: option.label })),
+  ];
 
   // Flatten tree for parent dropdown, excluding self AND all descendants
   // (selecting a descendant as parent would create a circular reference)

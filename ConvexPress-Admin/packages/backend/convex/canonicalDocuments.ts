@@ -239,7 +239,8 @@ export const productTermOptions: RegisteredQuery<"public", ProductTermOptionsArg
 import { getDocumentSettings, setDocumentSettings } from "./canonicalDocuments/service";
 import type { CanonicalDocumentSettings, CanonicalSettingsWrite } from "./canonicalDocuments/foundation/documentContracts";
 const layoutFields = {
-  pageTemplate: v.union(v.literal("default"),v.literal("full-width"),v.literal("sidebar-left"),v.literal("sidebar-right"),v.literal("no-sidebar"),v.literal("landing"),v.literal("blank")),
+  /** A core layout or a template pack's; the canonical contract checks the id. */
+  pageTemplate: v.string(),
   hideHeader: v.boolean(), hideFooter: v.boolean(),
 };
 const documentVisibility = v.union(v.literal("public"), v.literal("private"), v.literal("password"));

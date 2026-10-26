@@ -21,6 +21,8 @@ export interface TemplatePackSummary {
   defaults?: Record<string, Record<string, unknown>>;
   menuLocations?: Record<string, string>;
   presets?: Record<string, Array<{ id: string; name: string; colors: Record<string, string> }>>;
+  /** Page layouts the pack adds to Core's, offered in the page editor. */
+  pageTemplates?: Array<{ id: string; name: string; description?: string }>;
 }
 
 export const TEMPLATE_PACKS: TemplatePackSummary[] = [
