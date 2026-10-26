@@ -27,11 +27,44 @@ export function Prose({ text }: { text: string }) {
 	};
 	return (
 		<P.Stack gap="md">
-			{text.split(/\n\s*\n/u).map((paragraph, index) => (
-				<P.Text key={index}>{inline(paragraph)}</P.Text>
-			))}
+			{proseRuns(text).map((run, index) =>
+				run.kind === "list" ? (
+					<ul key={index} className="cp-p cp-list" data-gap="sm">
+						{run.items.map((item, at) => (
+							<li key={at}>{inline(item)}</li>
+						))}
+					</ul>
+				) : (
+					<P.Text key={index}>{inline(run.text)}</P.Text>
+				),
+			)}
 		</P.Stack>
 	);
+}
+export type ProseRun = { kind: "text"; text: string } | { kind: "list"; items: string[] };
+/** Paragraphs split on blank lines; within one, consecutive lines that start
+ * with "- " form a list, and the lines around it stay paragraphs. */
+export function proseRuns(text: string): ProseRun[] {
+	const runs: ProseRun[] = [];
+	for (const paragraph of text.split(/\n\s*\n/u)) {
+		let current: ProseRun | null = null;
+		for (const line of paragraph.split("\n")) {
+			const item = /^\s*- (.*)$/u.exec(line);
+			if (item) {
+				if (current?.kind !== "list") {
+					current = { kind: "list", items: [] };
+					runs.push(current);
+				}
+				current.items.push(item[1]);
+			} else if (current?.kind === "text") {
+				current.text += `\n${line}`;
+			} else {
+				current = { kind: "text", text: line };
+				runs.push(current);
+			}
+		}
+	}
+	return runs;
 }
 export function Intro({
 	eyebrow,

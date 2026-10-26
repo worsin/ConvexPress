@@ -27,10 +27,11 @@ function richText(value: unknown): string {
   return doc.content.map(paragraph => (paragraph.content ?? []).map(node => node.type === "text" ? node.text : "\n").join("")).join("\n");
 }
 
-/** Match the SDK Prose adapter's deliberately small inline grammar exactly.
+/** Match the SDK Prose adapter's deliberately small grammar exactly: blank
+ * lines separate paragraphs, "- " starts a list item, and the inline marks.
  * Unsupported Markdown is rendered literally, so it must stay literal here. */
 export function proseText(value: string): string {
-  return value.split(/\n\s*\n/u).map(paragraph => paragraph.replace(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/gu, token => {
+  return value.split(/\n\s*\n/u).map(paragraph => paragraph.replace(/^\s*- /gmu, "").replace(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/gu, token => {
     if (token.startsWith("**")) return token.slice(2, -2);
     if (token.startsWith("*")) return token.slice(1, -1);
     return /^\[([^\]]+)\]\(([^)]+)\)$/u.exec(token)![1];
