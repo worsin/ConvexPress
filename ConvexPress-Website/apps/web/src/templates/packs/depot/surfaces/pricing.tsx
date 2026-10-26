@@ -11,6 +11,7 @@ import type { PricingOffer } from "@/lib/pricingCardRenderer";
 import { cn } from "@/lib/utils";
 import type { PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
 import { OfferSignupLink } from "@/components/subscriptions/OfferSignupLink";
+import { PricingWithContent } from "@/templates/sdk/block-public/PricingWithContent";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Card, Container, EmptyState, Label, SectionHeading, Td, Th, buttonClasses } from "../parts";
@@ -72,13 +73,15 @@ export default function DepotPricing({ data }: SurfaceProps<PricingSurfaceData>)
   const gridCols = sorted.length >= 4 ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3";
   const rows = Array.from(new Set(sorted.flatMap((offer) => featureLabels(offer).map((feature) => feature.label))));
 
-  return (
+  const page = (lead: boolean) => (
     <Container padded={false} data-slot="pricing-page" className="flex flex-col gap-6 py-6 md:py-8">
-      <div className="flex flex-col gap-1 border-b border-border pb-4">
-        <Label>Pricing</Label>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{headline}</h1>
-        <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">{subheadline}</p>
-      </div>
+      {lead ? (
+        <div className="flex flex-col gap-1 border-b border-border pb-4">
+          <Label>Pricing</Label>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{headline}</h1>
+          <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">{subheadline}</p>
+        </div>
+      ) : null}
 
       {sorted.length === 0 ? (
         <EmptyState title="No plans are currently available." description="Check back soon." />
@@ -164,6 +167,7 @@ export default function DepotPricing({ data }: SurfaceProps<PricingSurfaceData>)
       )}
     </Container>
   );
+  return data.content ? <PricingWithContent documentId={data.content.documentId} plans={page} /> : page(true);
 }
 
 function OfferCard({ offer, featured }: { offer: PricingOffer; featured: boolean }) {

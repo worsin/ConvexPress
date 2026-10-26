@@ -133,6 +133,7 @@ const source = [
 `import ${JSON.stringify(fileURLToPath(new URL("./assistant-handoff-dom.cases.jsx", import.meta.url)))};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./shopping-assistant.cases.tsx", import.meta.url)))};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./product-history-dom.cases.jsx", import.meta.url)))};`,
+`import ${JSON.stringify(fileURLToPath(new URL("./insertion.cases.jsx", import.meta.url)))};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./product-collection-dom.cases.jsx", import.meta.url)))};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./product-collection.cases.tsx", import.meta.url)))};`,
 `import {resolveProductsDemo} from ${JSON.stringify(fileURLToPath(new URL("../../../../block-demo/products-adapter.ts", import.meta.url)))};`,

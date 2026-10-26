@@ -1018,8 +1018,10 @@ export declare const api:
 ,
 "pricingCards":
 {
-"getPricingCardConfig": FunctionReference<"query", "public", {  }, { singletonKey: string, orderedOfferIds: Array<Id<"commerce_subscription_offers">>, headline?: string, subheadline?: string, featuredOfferId?: Id<"commerce_subscription_offers">, templateKey: string, signupFormId?: Id<"forms">, updatedAt: number, updatedBy: Id<"users">, _id: Id<"commerce_subscription_pricing_card_config">, _creationTime: number } | { _id: null, singletonKey: string, orderedOfferIds: Array<Id<"commerce_subscription_offers">>, featuredOfferId?: Id<"commerce_subscription_offers">, headline?: string, subheadline?: string, templateKey: string, signupFormId?: Id<"forms">, updatedAt: number, updatedBy: null }>,
-"updatePricingCardConfig": FunctionReference<"mutation", "public", { orderedOfferIds: Array<Id<"commerce_subscription_offers">>, featuredOfferId?: Id<"commerce_subscription_offers">, headline?: string, subheadline?: string, templateKey?: string, signupFormId?: Id<"forms"> | null }, { success: boolean }>,
+"getPricingCardConfig": FunctionReference<"query", "public", {  }, { singletonKey: string, orderedOfferIds: Array<Id<"commerce_subscription_offers">>, headline?: string, subheadline?: string, featuredOfferId?: Id<"commerce_subscription_offers">, templateKey: string, signupFormId?: Id<"forms">, contentPageId?: Id<"posts">, updatedAt: number, updatedBy: Id<"users">, _id: Id<"commerce_subscription_pricing_card_config">, _creationTime: number } | { _id: null, singletonKey: string, orderedOfferIds: Array<Id<"commerce_subscription_offers">>, featuredOfferId?: Id<"commerce_subscription_offers">, headline?: string, subheadline?: string, templateKey: string, signupFormId?: Id<"forms">, contentPageId?: Id<"posts">, updatedAt: number, updatedBy: null }>,
+"getPricingContentPage": FunctionReference<"query", "public", {  }, null | { _id: Id<"posts">, title: string, excerpt?: string, blocksVersion: 2 }>,
+"listPricingContentPages": FunctionReference<"query", "public", {  }, Array<{ _id: Id<"posts">, title: string, slug: string, status: string, isPublic: boolean }>>,
+"updatePricingCardConfig": FunctionReference<"mutation", "public", { orderedOfferIds: Array<Id<"commerce_subscription_offers">>, featuredOfferId?: Id<"commerce_subscription_offers">, headline?: string, subheadline?: string, templateKey?: string, signupFormId?: Id<"forms"> | null, contentPageId?: Id<"posts"> | null }, { success: boolean }>,
 }
 ,
 "publicCharge":
@@ -3363,6 +3365,11 @@ export declare const internal:
 "write": FunctionReference<"mutation", "internal", { targetId: Id<"posts"> | null, fieldsJson: string, clearFields: Array<string>, restoring: boolean, allocation?: { receiptId: Id<"contentPromotion_receipts">, key: string } }, Id<"posts">>,
 }
 ,
+"siteSetup":
+{
+"writeDocument": FunctionReference<"mutation", "internal", { type: "post" | "page", setupKey: string, title: string, slug: string, status: "draft" | "publish", authorId: Id<"users">, excerpt?: string, pageTemplate?: string, blocks: Array<{ id: string, name: string, version: number, attrs: Record<string, any>, children?: Array<any>, layout?: { width?: "contained" | "wide" | "full", tone?: "default" | "muted" | "inverted" | "accent", spacing?: "none" | "compact" | "default" | "spacious", align?: "start" | "center" }, style?: string, treatment?: { name: string, values: Record<string, string | number> }, visibility?: "everyone" | "signedIn" | "signedOut", lock?: { move?: boolean, remove?: boolean, edit?: boolean }, anchor?: string }>, adoptUnedited?: boolean }, { outcome: "created" | "updated" | "unchanged" | "adopted" | "kept_edited" | "kept_removed" | "slug_taken", postId: Id<"posts"> | null }>,
+}
+,
 }
 ,
 "canonicalRsvp":
@@ -3671,6 +3678,11 @@ export declare const internal:
 "recordContractPaymentMethod": FunctionReference<"mutation", "internal", { contractId: Id<"commerce_subscriptions">, stripeCustomerId: string, paymentMethodId: string, summary?: { brand: string, last4: string, expMonth: number, expYear: number }, setupIntentId?: string }, { updated: boolean, retryScheduled: boolean }>,
 "recordPaymentMethodSummary": FunctionReference<"mutation", "internal", { contractId: Id<"commerce_subscriptions">, paymentMethodId: string, summary: { brand: string, last4: string, expMonth: number, expYear: number } }, null>,
 "resolveContractRef": FunctionReference<"query", "internal", { contractRef: string }, null | Id<"commerce_subscriptions">>,
+}
+,
+"pricingCards":
+{
+"setContentPage": FunctionReference<"mutation", "internal", { pageId: Id<"posts"> | null, actorId: Id<"users"> }, null>,
 }
 ,
 "proration":
@@ -4285,9 +4297,9 @@ export declare const internal:
 {
 "internals":
 {
-"autoAddPageToMenus": FunctionReference<"mutation", "internal", { pageId: string, pageTitle: string, pagePath?: string }, null>,
+"autoAddPageToMenus": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "duplicateMenu": FunctionReference<"mutation", "internal", { menuId: Id<"menus">, createdBy: string }, Id<"menus">>,
-"handleContentDeleted": FunctionReference<"mutation", "internal", { itemType: string, objectId: string }, null>,
+"handleContentDeleted": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "initializeMenuLocations": FunctionReference<"mutation", "internal", {  }, null>,
 "listMenusInternal": FunctionReference<"query", "internal", {  }, Array<{ assignedLocations: Array<string>, _id: Id<"menus">, _creationTime: number, wpSourceSiteId?: Id<"wordpressSites">, description?: string, wpTermId?: number, autoAddPages?: boolean, itemCount?: number, name: string, updatedAt: number, createdAt: number, slug: string, createdBy: string }>>,
 "orphanMenuItemsByObject": FunctionReference<"mutation", "internal", { itemType: string, objectId: string }, number>,

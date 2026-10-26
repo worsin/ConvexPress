@@ -18,6 +18,11 @@
  *   - `templateKey`       Card layout template identifier. Wave 2 ships
  *                         a single "default" template; Wave 4 may add
  *                         variants (e.g. "compact", "tabbed").
+ *   - `contentPageId`     A page whose content surrounds the plans: the
+ *                         plans follow its opening section, and its title
+ *                         and excerpt describe /pricing. Public readers see
+ *                         it only while the page is published for everyone
+ *                         (`getPricingContentPage`).
  *
  * Operations:
  *   - `getPricingCardConfig`   Public (plugin-gated) read. Returns the
@@ -37,7 +42,8 @@
 
 import { ConvexError, v, type Infer } from "convex/values";
 
-import { mutation, query, type QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
 import { getCurrentUser } from "../helpers/auth";
 import { requireCan } from "../helpers/permissions";
@@ -61,6 +67,7 @@ const defaultPricingCardConfigValidator = v.object({
   subheadline: v.optional(v.string()),
   templateKey: v.string(),
   signupFormId: v.optional(v.id("forms")),
+  contentPageId: v.optional(v.id("posts")),
   updatedAt: v.number(),
   updatedBy: v.null(),
 });
@@ -84,6 +91,23 @@ async function getSingletonRow(ctx: { db: QueryCtx["db"] }) {
     .query("commerce_subscription_pricing_card_config")
     .withIndex("by_singleton", (q) => q.eq("singletonKey", SINGLETON_KEY))
     .unique();
+}
+
+/** A page that can carry the pricing page's content: a canonical page, not in the trash. */
+async function requireContentPage(ctx: { db: QueryCtx["db"] }, pageId: Id<"posts">): Promise<Doc<"posts">> {
+  const page = await ctx.db.get(pageId);
+  if (!page || page.type !== "page" || page.status === "trash" || page.status === "auto-draft" || page.blocksVersion !== 2) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "The pricing page content must be an existing block-editor page.",
+    });
+  }
+  return page;
+}
+
+/** Published for everyone: anything else stays off the public pricing page. */
+function isPublicContentPage(page: Doc<"posts">): boolean {
+  return page.type === "page" && page.status === "publish" && page.visibility === "public" && page.blocksVersion === 2;
 }
 
 // ─── Queries ────────────────────────────────────────────────────────────────
@@ -116,6 +140,47 @@ export const getPricingCardConfig = query({
   },
 });
 
+/**
+ * The page shown with the plans on /pricing, while it is published for
+ * everyone; null otherwise. Its body is read like any page's (with its own
+ * access rules), so this returns only what the route needs to load it.
+ */
+export const getPricingContentPage = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({ _id: v.id("posts"), title: v.string(), excerpt: v.optional(v.string()), blocksVersion: v.literal(2) }),
+  ),
+  handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+    const row = await getSingletonRow(ctx);
+    const page = row?.contentPageId ? await ctx.db.get(row.contentPageId) : null;
+    if (!page || !isPublicContentPage(page)) return null;
+    return { _id: page._id, title: page.title, ...(page.excerpt ? { excerpt: page.excerpt } : {}), blocksVersion: 2 as const };
+  },
+});
+
+/** Pages an administrator can choose as the pricing page's content (block-editor pages, newest first). */
+export const listPricingContentPages = query({
+  args: {},
+  returns: v.array(v.object({ _id: v.id("posts"), title: v.string(), slug: v.string(), status: v.string(), isPublic: v.boolean() })),
+  handler: async (ctx) => {
+    await requireCan(ctx, "manage_options");
+    const pages: { _id: Id<"posts">; title: string; slug: string; status: string; isPublic: boolean }[] = [];
+    for (const status of ["publish", "future", "draft", "pending", "private"] as const) {
+      const rows = await ctx.db
+        .query("posts")
+        .withIndex("by_type_status", (q) => q.eq("type", "page").eq("status", status))
+        .order("desc")
+        .take(200);
+      for (const row of rows) {
+        if (row.blocksVersion === 2) pages.push({ _id: row._id, title: row.title, slug: row.slug, status: row.status, isPublic: isPublicContentPage(row) });
+      }
+    }
+    return pages.slice(0, 200);
+  },
+});
+
 // ─── Mutations ──────────────────────────────────────────────────────────────
 
 /**
@@ -138,6 +203,8 @@ export const updatePricingCardConfig = mutation({
     templateKey: v.optional(v.string()),
     /** The signup form cards link into; null clears it, absent keeps it. */
     signupFormId: v.optional(v.union(v.id("forms"), v.null())),
+    /** The page whose content surrounds the plans; null clears it, absent keeps it. */
+    contentPageId: v.optional(v.union(v.id("posts"), v.null())),
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
@@ -218,9 +285,12 @@ export const updatePricingCardConfig = mutation({
       }
     }
 
+    if (args.contentPageId) await requireContentPage(ctx, args.contentPageId);
+
     const now = Date.now();
     const existing = await getSingletonRow(ctx);
     const signupFormId = args.signupFormId === undefined ? existing?.signupFormId : (args.signupFormId ?? undefined);
+    const contentPageId = args.contentPageId === undefined ? existing?.contentPageId : (args.contentPageId ?? undefined);
 
     if (!existing) {
       await ctx.db.insert("commerce_subscription_pricing_card_config", {
@@ -231,6 +301,7 @@ export const updatePricingCardConfig = mutation({
         subheadline: args.subheadline,
         templateKey,
         signupFormId,
+        contentPageId,
         updatedAt: now,
         updatedBy: currentUser._id,
       });
@@ -242,11 +313,39 @@ export const updatePricingCardConfig = mutation({
         subheadline: args.subheadline,
         templateKey,
         signupFormId,
+        contentPageId,
         updatedAt: now,
         updatedBy: currentUser._id,
       });
     }
 
     return { success: true };
+  },
+});
+
+/**
+ * Site setup: choose (or clear) the pricing page's content page, as the named
+ * actor. Keeps every other pricing setting; creates the settings on first use.
+ */
+export const setContentPage = internalMutation({
+  args: { pageId: v.union(v.id("posts"), v.null()), actorId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx: MutationCtx, { pageId, actorId }) => {
+    if (pageId) await requireContentPage(ctx, pageId);
+    const existing = await getSingletonRow(ctx);
+    const now = Date.now();
+    if (existing) {
+      await patchDynamicWithMediaReferences(ctx, existing._id, { contentPageId: pageId ?? undefined, updatedAt: now, updatedBy: actorId });
+    } else {
+      await ctx.db.insert("commerce_subscription_pricing_card_config", {
+        singletonKey: SINGLETON_KEY,
+        orderedOfferIds: [],
+        templateKey: DEFAULT_TEMPLATE_KEY,
+        ...(pageId ? { contentPageId: pageId } : {}),
+        updatedAt: now,
+        updatedBy: actorId,
+      });
+    }
+    return null;
   },
 });

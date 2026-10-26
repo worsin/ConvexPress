@@ -3,6 +3,7 @@ import { PrimitiveProvider } from "../primitives";
 import { rendererLoader } from "../block-renderer/discovery";
 import {
 	prepareBlocks,
+	type BlockInsertion,
 	type RenderPolicy,
 	type RenderResources,
 } from "../block-renderer/model";
@@ -28,6 +29,7 @@ export function CanonicalDocumentView({
 	synced,
 	scope,
   composed,
+  insertion,
 }: {
 	tree: unknown;
 	policy: RenderPolicy;
@@ -37,6 +39,8 @@ export function CanonicalDocumentView({
 	synced?: SyncedDisplay;
 	scope?: DataScope;
   composed?: ComposedDataContext;
+  /** The page template's own content, placed among the document's top-level blocks. */
+  insertion?: BlockInsertion;
 }) {
 	if (!canonicalPreviewPackIds.includes(packId))
 		throw new Error(
@@ -45,7 +49,7 @@ export function CanonicalDocumentView({
 	if (synced && !scope) throw new Error("Reusable display requires the current website scope.");
 	const expanded = synced ? resolveSyncedDisplay(synced, tree, scope!, composed).resolverTree : undefined;
   const names = rendererLoader.preload(packId, expanded ? [tree, expanded] : [tree]);
-  const content = prepareBlocks(tree, rendererLoader.forPack(packId), policy, resources, data, packId, synced ? { source: synced, scope: scope! } : undefined, composed);
+  const content = prepareBlocks(tree, rendererLoader.forPack(packId), policy, resources, data, packId, synced ? { source: synced, scope: scope! } : undefined, composed, insertion);
 	return (
 		<PrimitiveProvider packId={packId} registry={canonicalPreviewPackParts}>
       <template data-canonical-pack={packId} data-canonical-blocks={names.join(" ")} />
