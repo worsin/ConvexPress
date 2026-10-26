@@ -25,6 +25,7 @@
  * SSR-safe: no `window`/`document` access at module load or render.
  */
 
+import { fieldInputHints, isFieldFormat } from "@convexpress-website/backend/generated/fieldFormats";
 import { useMemo } from "react";
 import { Check } from "lucide-react";
 import type { FunctionReturnType } from "convex/server";
@@ -74,6 +75,10 @@ interface Choice {
 
 interface FieldSettings {
   inputType?: "tel";
+  /** A named answer format (see backend extensions/forms/fieldFormats). */
+  format?: string;
+  /** An HTML autofill token, e.g. "given-name". */
+  autocomplete?: string;
   choices?: Choice[];
   multiple?: boolean;
   placeholder?: string;
@@ -243,6 +248,8 @@ export function FormFieldRenderer({
           <Input
             id={inputId}
             type="email"
+            inputMode="email"
+            autoComplete={fieldInputHints(undefined, settings.autocomplete ?? "email").autoComplete}
             value={value}
             placeholder={settings.placeholder}
             onChange={(e) => onChange(e.target.value)}
@@ -255,9 +262,16 @@ export function FormFieldRenderer({
           <Input
             id={inputId}
             type="url"
+            inputMode="url"
+            autoComplete={fieldInputHints(undefined, settings.autocomplete ?? "url").autoComplete}
             value={value}
             placeholder={settings.placeholder}
             onChange={(e) => onChange(e.target.value)}
+            // People type "example.com"; the answer is stored as a full address.
+            onBlur={(e) => {
+              const typed = e.target.value.trim();
+              if (typed && !/^[a-z][a-z0-9+.-]*:/i.test(typed)) onChange(`https://${typed}`);
+            }}
             {...aria}
           />
         );
@@ -353,17 +367,23 @@ export function FormFieldRenderer({
           />
         );
 
-      case "text":
+      case "text": {
+        // A format brings its keyboard and autofill (phone → tel, ZIP → numeric postal code).
+        const hints = fieldInputHints(isFieldFormat(settings.format) ? settings.format : undefined, settings.autocomplete);
         return (
           <Input
             id={inputId}
-            type={settings.inputType === "tel" ? "tel" : "text"}
+            type={settings.inputType === "tel" ? "tel" : hints.type}
+            inputMode={hints.inputMode}
+            autoComplete={hints.autoComplete}
+            maxLength={hints.maxLength}
             value={value}
             placeholder={settings.placeholder}
             onChange={(e) => onChange(e.target.value)}
             {...aria}
           />
         );
+      }
 
       case "calculation":
         // Read-only computed display (Form Calculation & Pricing System). The

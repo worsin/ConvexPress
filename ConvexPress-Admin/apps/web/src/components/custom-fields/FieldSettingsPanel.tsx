@@ -16,6 +16,7 @@ import { ConditionalLogicBuilder } from "@/components/custom-fields/ConditionalL
 import { FIELD_TYPE_LABELS } from "@/components/custom-fields/FieldTypeSelector";
 import { CalculationEditor } from "@/components/forms/CalculationEditor";
 import { getErrorMessage } from "@/lib/utils";
+import { AUTOCOMPLETE_TOKENS, FIELD_FORMATS, FIELD_FORMAT_LABELS } from "@backend/convex/extensions/forms/fieldFormats";
 
 interface FieldSettingsPanelProps {
   field: {
@@ -420,6 +421,46 @@ function TypeSpecificSettings({
               className="w-full h-7 rounded-none border border-border bg-background px-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
             />
           </div>
+          {type === "text" && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">
+                Format
+              </label>
+              <select
+                aria-label="Answer format"
+                value={typeof settings.format === "string" ? settings.format : ""}
+                onChange={(e) => onUpdate("format", e.target.value || undefined)}
+                className="w-full h-7 rounded-none border border-border bg-background px-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Any text</option>
+                {FIELD_FORMATS.map((format) => (
+                  <option key={format} value={format}>
+                    {FIELD_FORMAT_LABELS[format]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {(type === "text" || type === "email" || type === "url") && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">
+                Browser autofill
+              </label>
+              <select
+                aria-label="Browser autofill"
+                value={typeof settings.autocomplete === "string" ? settings.autocomplete : ""}
+                onChange={(e) => onUpdate("autocomplete", e.target.value || undefined)}
+                className="w-full h-7 rounded-none border border-border bg-background px-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Automatic</option>
+                {AUTOCOMPLETE_TOKENS.map((token) => (
+                  <option key={token} value={token}>
+                    {token}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {type === "text" && (
             <>
               <div>
