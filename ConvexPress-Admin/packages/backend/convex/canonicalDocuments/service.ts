@@ -13,6 +13,7 @@ import type { CanonicalTree } from "./foundation/generated/types";
 import type { ComposedDataContext } from "./foundation/planner";
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { syncDocumentContactForms } from "./contactDocuments";
+import type { ContactWriteAuthority } from "./contactForms";
 import { clearSyncedConsumerDirty } from "../syncedBlocks/consumerWrites";
 import { insertTermRelationship, deleteTermRelationship } from "../helpers/postDiscovery";
 import { makeFunctionReference } from "convex/server";
@@ -323,6 +324,7 @@ async function commit(
   publication?: CanonicalPublicationPatch,
   scheduled = false,
   migration?: { draftProjection: boolean; preserveUpdatedAt: boolean },
+  contactAuthority?: ContactWriteAuthority,
 ): Promise<CanonicalWriteReceipt> {
   const retainedAutoDraft = migration?.draftProjection && post.status === "auto-draft";
   if (!retainedAutoDraft && (publication?.status ?? post.status) !== "draft") assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
@@ -331,7 +333,7 @@ async function commit(
 	// A no-op still revalidates current policy and exact referenced resources.
 	await project(ctx, migration?.draftProjection ? {...post, status: "draft"} : post, budget, prepared, {}, retainedAutoDraft || (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
   await syncDocumentContactForms(ctx, { postId: post._id, title: prepared.title, blocks: prepared.blocks, scheduled,
-    ...(prepared.composedDefinitions ? { composed: { scope: prepared.composedDefinitions.scope, definitions: prepared.composedDefinitions } } : {}) }, budget);
+    ...(prepared.composedDefinitions ? { composed: { scope: prepared.composedDefinitions.scope, definitions: prepared.composedDefinitions } } : {}) }, budget, contactAuthority);
 	if (prepared.changed) {
 		const value: Partial<WithoutSystemFields<Doc<"posts">>> = {
 			...(restore ? liveAuthoringSnapshot(restoredAuthoring(restore)) : {}),
@@ -1526,6 +1528,11 @@ async function createForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 				: {}),
 		},
 		budget,
+		// The actor's own capabilities create the page's contact forms.
+		async (capability) => {
+			await requireApiCapability(ctx, user, capability);
+			return user;
+		},
 	);
 	await patchWithMediaReferences(
 		ctx,
@@ -1746,6 +1753,12 @@ async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 		budget,
 		undefined,
 		patch,
+		false,
+		undefined,
+		async (capability) => {
+			await authority.requireCapability(capability);
+			return user;
+		},
 	);
 	if (changed) {
 		if (publication.status === "future")

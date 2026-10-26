@@ -20,12 +20,13 @@ const modules = {
   "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
 };
 
-async function fixture() {
+async function fixture(options: { formRights?: boolean } = {}) {
   const t = convexTest({ schema, modules });
   const ids = await t.run(async (ctx) => {
     const role = await ctx.db.insert("roles", {
       name: "editor", slug: "editor", description: "Fixture", level: 80, type: "internal", isDefault: false, isProtected: false,
-      capabilities: ["post.create", "page.create", "post.update", "page.update", "post.publish", "page.publish"], pageAccess: [], status: "active", createdAt: 1, updatedAt: 1,
+      capabilities: ["post.create", "page.create", "post.update", "page.update", "post.publish", "page.publish", ...(options.formRights === false ? [] : ["form.create", "form.update"])],
+      pageAccess: [], status: "active", createdAt: 1, updatedAt: 1,
     });
     const author = await ctx.db.insert("users", { authSource: "local", email: "setup@example.invalid", emailVerified: true, roleId: role, status: "active", createdAt: 1, updatedAt: 1 });
     const management = await ctx.db.insert("users", { authSource: "management", email: "operator@example.invalid", emailVerified: true, roleId: role, status: "active", createdAt: 1, updatedAt: 1 });
@@ -34,7 +35,7 @@ async function fixture() {
       deploymentOrigin: "https://fixture.convex.cloud", managementOrigin: "https://fixture.convex.site", siteOrigin: "https://fixture.example.invalid",
       siteContractVersion: "1", schemaVersion: "1", engineVersion: "1", managementCapabilities: [], initializedAt: 1, updatedAt: 1,
     });
-    await ctx.db.insert("settings", { section: "plugins", values: { membershipEnabled: false }, updatedAt: 1, updatedBy: author });
+    await ctx.db.insert("settings", { section: "plugins", values: { formsEnabled: true, membershipEnabled: false }, updatedAt: 1, updatedBy: author });
     await ctx.db.insert("settings", {
       section: "appearance.template", values: { active: "core", overrides: {}, variants: {}, settings: {} },
       legacyAppearanceMigration: { version: 2, migratedAt: 1 }, updatedAt: 1, updatedBy: author,
@@ -123,4 +124,31 @@ test("refuses an author who can't write here and a slug that isn't canonical", a
   const f = await fixture();
   await expect(f.write(pricing(f, { authorId: f.ids.management }))).rejects.toThrow(/SETUP_AUTHOR_INVALID|active site user/);
   await expect(f.write(pricing(f, { slug: "Packages Page" }))).rejects.toThrow(/canonical slug|INVALID_SETUP_SLUG/);
+});
+
+const contact = (heading: string) => [{
+  id: "contact", name: "core/contact-form", version: 2,
+  attrs: { heading, fields: [{ name: "email", label: "Email", type: "email", required: true }], submitLabel: "Send", successMessage: "Thanks." },
+}];
+const contactPage = (f: Fixture, heading: string): SiteSetupDocumentArgs =>
+  pricing(f, { setupKey: "fixture:contact", title: "Contact", slug: "contact", blocks: contact(heading) });
+const contactForm = (f: Fixture, postId: Id<"posts">) =>
+  f.t.run(async (ctx) => await ctx.db.query("forms").withIndex("by_contact_source", (q) => q.eq("contactPostId", postId).eq("contactBlockId", "contact")).unique());
+
+test("a contact form on a setup document is created and refreshed under the author's own rights", async () => {
+  const f = await fixture();
+  const first = await f.write(contactPage(f, "Talk to us"));
+  expect(first.outcome).toBe("created");
+  const form = await contactForm(f, first.postId!);
+  expect(form).toMatchObject({ status: "published", title: "Talk to us", createdBy: f.ids.author });
+  const updated = await f.write(contactPage(f, "Ask the team"));
+  expect(updated).toEqual({ outcome: "updated", postId: first.postId });
+  expect(await contactForm(f, first.postId!)).toMatchObject({ _id: form!._id, status: "published", title: "Ask the team" });
+});
+
+test("an author without form rights can't add a contact form", async () => {
+  const f = await fixture({ formRights: false });
+  await expect(f.write(contactPage(f, "Talk to us"))).rejects.toThrow(/lacks the required content capability|FORBIDDEN/);
+  const pages = await f.t.run(async (ctx) => await ctx.db.query("posts").withIndex("by_type_slug", (q) => q.eq("type", "page").eq("slug", "contact")).collect());
+  expect(pages).toEqual([]);
 });
