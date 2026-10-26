@@ -12,10 +12,13 @@ import { publicMenuDocumentHref } from "../helpers/publicDocumentHref";
  *   autoAddPageToMenus         - Add a newly published page to menus with autoAddPages enabled
  *   initializeMenuLocations    - Create default menu locations from theme config
  *   handleContentDeleted       - Generic handler for content deletion events
+ *
+ * The two event handlers are event listeners: the dispatcher calls them with
+ * { eventId } and they read what they need from the event's payload.
  */
 
 import { internalMutation, internalQuery } from "../_generated/server";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { DEFAULT_MENU_LOCATIONS, MAX_DEPTH, MENU_TREE_LEVELS } from "./validators";
@@ -312,77 +315,80 @@ export const orphanMenuItemsByObject = internalMutation({
   },
 });
 
+// ─── Event payloads ─────────────────────────────────────────────────────────
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The event's code and decoded payload, or null when either is unusable. */
+async function readEvent(ctx: Pick<MutationCtx, "db">, eventId: Id<"events">): Promise<{ code: string; payload: Record<string, unknown> } | null> {
+  const event = await ctx.db.get("events", eventId);
+  if (!event) return null;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(event.payload);
+  } catch {
+    return null;
+  }
+  return isRecord(payload) ? { code: event.code, payload } : null;
+}
+
 // ─── Auto-Add Page to Menus ─────────────────────────────────────────────────
 
 /**
- * Automatically adds a newly published top-level page to all menus
- * that have `autoAddPages: true`.
+ * page.published listener: adds the page to every menu with
+ * `autoAddPages: true`, once, at the end of its top level.
  *
- * Only fires for top-level pages (pages with no parent).
- * Checks for existing menu items referencing the same objectId to avoid duplicates.
+ * Only top-level pages that are published when the handler runs are added.
  */
 export const autoAddPageToMenus = internalMutation({
-  args: {
-    pageId: v.string(),
-    pageTitle: v.string(),
-    pagePath: v.optional(v.string()),
-  },
+  args: { eventId: v.id("events") },
   returns: v.null(),
-  handler: async (ctx, args) => {
-    // Find all menus with autoAddPages enabled
-    const allMenus = await ctx.db.query("menus").collect();
-    const autoAddMenus = allMenus.filter((m) => m.autoAddPages === true);
+  handler: async (ctx, { eventId }) => {
+    const event = await readEvent(ctx, eventId);
+    const raw = event?.code === "page.published" ? event.payload.pageId : undefined;
+    const pageId = typeof raw === "string" ? ctx.db.normalizeId("posts", raw) : null;
+    const page = pageId ? await ctx.db.get("posts", pageId) : null;
+    if (!page || page.type !== "page" || page.status !== "publish" || page.parentId) return null;
 
-    if (autoAddMenus.length === 0) return;
+    const autoAddMenus = (await ctx.db.query("menus").collect()).filter((m) => m.autoAddPages === true);
+    if (autoAddMenus.length === 0) return null;
 
     const now = Date.now();
-    const url = args.pagePath ?? `/${args.pageTitle.toLowerCase().replace(/\s+/g, "-")}`;
+    const url = publicMenuDocumentHref({ type: "page", slug: page.slug, ...(page.path ? { path: page.path } : {}) });
+    const existingItems = await ctx.db
+      .query("menuItems")
+      .withIndex("by_object", (q) => q.eq("itemType", "page").eq("objectId", page._id))
+      .collect();
 
     for (const menu of autoAddMenus) {
-      // Check if page is already in this menu
-      const existingItems = await ctx.db
-        .query("menuItems")
-        .withIndex("by_object", (q) =>
-          q.eq("itemType", "page" as MenuItemType).eq("objectId", args.pageId),
-        )
-        .collect();
+      if (existingItems.some((item) => item.menuId === menu._id)) continue;
 
-      const alreadyInMenu = existingItems.some(
-        (item) => item.menuId.toString() === menu._id.toString(),
-      );
-
-      if (alreadyInMenu) continue;
-
-      // Get the next position (append to end of top-level items)
-      const topLevelItems = await ctx.db
+      // Append to the end of the menu's top-level items.
+      const items = await ctx.db
         .query("menuItems")
         .withIndex("by_menu", (q) => q.eq("menuId", menu._id))
         .collect();
+      const nextPosition = items.filter((item) => !item.parentItemId).length;
 
-      const topLevelOnly = topLevelItems.filter(
-        (item) => !item.parentItemId,
-      );
-      const nextPosition = topLevelOnly.length;
-
-      // Insert the new menu item
       await ctx.db.insert("menuItems", {
         menuId: menu._id,
         itemType: "page",
-        objectId: args.pageId,
-        label: args.pageTitle,
+        objectId: page._id,
+        label: page.title,
         url,
         position: nextPosition,
         depth: 0,
         createdAt: now,
         updatedAt: now,
       });
-
-      // Increment the menu's item count
       await ctx.db.patch("menus", menu._id, {
         itemCount: (menu.itemCount ?? 0) + 1,
         updatedAt: now,
       });
     }
+    return null;
   },
 });
 
@@ -422,27 +428,34 @@ export const initializeMenuLocations = internalMutation({
 
 // ─── Handle Content Deleted ─────────────────────────────────────────────────
 
+/** A deletion event's menu item type, and the payload field naming the deleted object. */
+const DELETED_CONTENT: Readonly<Record<string, { itemType: MenuItemType; idField: string }>> = {
+  "page.deleted": { itemType: "page", idField: "pageId" },
+  "post.deleted": { itemType: "post", idField: "postId" },
+  "taxonomy.category_deleted": { itemType: "category", idField: "termId" },
+  "taxonomy.tag_deleted": { itemType: "tag", idField: "termId" },
+};
+
 /**
- * Generic handler for when a content object is deleted.
- * Dispatched from event listeners for page.deleted, post.deleted,
- * taxonomy.category_deleted, taxonomy.tag_deleted.
+ * Listener for page.deleted, post.deleted, taxonomy.category_deleted and
+ * taxonomy.tag_deleted: marks the menu items linking to the deleted object
+ * as orphaned, so editors can see and fix them.
  */
 export const handleContentDeleted = internalMutation({
-  args: {
-    itemType: v.string(),
-    objectId: v.string(),
-  },
+  args: { eventId: v.id("events") },
   returns: v.null(),
-  handler: async (ctx, args) => {
+  handler: async (ctx, { eventId }) => {
+    const event = await readEvent(ctx, eventId);
+    const content = event ? DELETED_CONTENT[event.code] : undefined;
+    const objectId = content ? event?.payload[content.idField] : undefined;
+    if (!content || typeof objectId !== "string" || !objectId) return null;
+
     const items = await ctx.db
       .query("menuItems")
-      .withIndex("by_object", (q) =>
-        q.eq("itemType", args.itemType as MenuItemType).eq("objectId", args.objectId),
-      )
+      .withIndex("by_object", (q) => q.eq("itemType", content.itemType).eq("objectId", objectId))
       .collect();
 
     const now = Date.now();
-
     for (const item of items) {
       if (!item.isOrphaned) {
         await ctx.db.patch("menuItems", item._id, {
@@ -451,6 +464,7 @@ export const handleContentDeleted = internalMutation({
         });
       }
     }
+    return null;
   },
 });
 
