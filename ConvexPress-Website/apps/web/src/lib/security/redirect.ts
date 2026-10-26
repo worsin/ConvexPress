@@ -1,13 +1,20 @@
-const PRODUCTION_HOSTS = [
-  "convexpress.com",
-  "www.convexpress.com",
-  "admin.convexpress.com",
-];
-
-// Only allow localhost in development
+// A site may send people only to its own origin, to hosts it lists in
+// VITE_ALLOWED_REDIRECT_HOSTS (comma-separated; subdomains included) and, in
+// development, to localhost.
 const DEV_HOSTS = import.meta.env.DEV ? ["localhost", "127.0.0.1"] : [];
 
-const DEFAULT_ALLOWED_REDIRECT_HOSTS = [...PRODUCTION_HOSTS, ...DEV_HOSTS];
+const DEFAULT_ALLOWED_REDIRECT_HOSTS = [...DEV_HOSTS];
+
+/** Where people land after signing in when nothing else is asked for (VITE_AFTER_SIGN_IN_PATH, default /dashboard). */
+export function afterSignInPath(): string {
+  const configured = (import.meta.env.VITE_AFTER_SIGN_IN_PATH as string | undefined)?.trim();
+  return configured && configured.startsWith("/") && !/^\/[\\/]/.test(configured) ? configured : "/dashboard";
+}
+
+/** Go to a sanitized destination: same-site paths through the router, other allowed origins as a page load. */
+export function isAbsoluteDestination(destination: string): boolean {
+  return /^https?:\/\//i.test(destination);
+}
 
 const SAFE_PROTOCOLS = new Set(["http:", "https:"]);
 
@@ -57,7 +64,7 @@ export function sanitizeRedirectUrl(
   redirectUrl: string | null | undefined,
   options: SanitizeRedirectOptions = {},
 ): string {
-  const fallbackPath = options.fallbackPath ?? "/dashboard";
+  const fallbackPath = options.fallbackPath ?? afterSignInPath();
   if (!redirectUrl) return fallbackPath;
 
   const trimmed = redirectUrl.trim();
@@ -72,14 +79,15 @@ export function sanitizeRedirectUrl(
     options.baseOrigin ||
     (typeof window !== "undefined" ? window.location.origin : undefined);
   try {
-    const url = new URL(trimmed, baseOrigin || "https://convexpress.com");
+    const url = new URL(trimmed, baseOrigin || "https://invalid.example");
 
     if (!SAFE_PROTOCOLS.has(url.protocol)) {
       return fallbackPath;
     }
 
     const allowedHosts = options.allowedHosts || getAllowedRedirectHosts();
-    if (!isRedirectHostAllowed(url.hostname, allowedHosts)) {
+    const sameOrigin = baseOrigin !== undefined && url.origin === new URL(baseOrigin).origin;
+    if (!sameOrigin && !isRedirectHostAllowed(url.hostname, allowedHosts)) {
       return fallbackPath;
     }
 

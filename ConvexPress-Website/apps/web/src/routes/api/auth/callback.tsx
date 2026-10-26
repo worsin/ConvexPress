@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
 import { OAUTH_RETURN_TO_KEY } from "@/components/auth/OAuthButtons";
 import { AuthenticateWithRedirectCallback, useClerkActive } from "@/lib/auth/clerk";
-import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+import { afterSignInPath, sanitizeRedirectUrl } from "@/lib/security/redirect";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
 
 /**
@@ -22,12 +22,12 @@ export const Route = createFileRoute("/api/auth/callback")({
 
 function AuthCallback() {
   const active = useClerkActive();
-  const [returnTo, setReturnTo] = useState("/dashboard");
+  const [returnTo, setReturnTo] = useState(afterSignInPath);
 
   useEffect(() => {
     try {
       const stored = window.sessionStorage.getItem(OAUTH_RETURN_TO_KEY);
-      if (stored) setReturnTo(sanitizeRedirectUrl(stored, { fallbackPath: "/dashboard" }));
+      if (stored) setReturnTo(sanitizeRedirectUrl(stored));
     } catch {
       // storage unavailable
     }
