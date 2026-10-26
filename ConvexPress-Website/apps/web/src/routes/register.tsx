@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { z } from "zod";
 
-import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+import { isAbsoluteDestination, sanitizeRedirectUrl } from "@/lib/security/redirect";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
 import CoreAuthRegister, { type AuthRegisterSurfaceData } from "@/templates/packs/core/surfaces/auth.register";
 import { Surface } from "@/templates/sdk/Surface";
@@ -27,14 +27,13 @@ function RegisterComponent() {
   const navigate = useNavigate();
   const { token, returnTo } = Route.useSearch();
 
-  const safeReturnTo = sanitizeRedirectUrl(returnTo, {
-    fallbackPath: "/dashboard",
-  });
+  const safeReturnTo = sanitizeRedirectUrl(returnTo);
 
   // Redirect authenticated users
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      navigate({ to: safeReturnTo });
+      if (isAbsoluteDestination(safeReturnTo)) window.location.assign(safeReturnTo);
+      else navigate({ to: safeReturnTo });
     }
   }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
 

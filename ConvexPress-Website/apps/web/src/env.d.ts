@@ -21,6 +21,8 @@ interface ImportMetaEnv {
   readonly VITE_PUBLIC_APP_URL?: string;
   /** Comma-separated list of allowed redirect hosts */
   readonly VITE_ALLOWED_REDIRECT_HOSTS?: string;
+  /** Where people land after signing in when nothing else is asked for (default /dashboard). */
+  readonly VITE_AFTER_SIGN_IN_PATH?: string;
 }
 
 interface ImportMeta {

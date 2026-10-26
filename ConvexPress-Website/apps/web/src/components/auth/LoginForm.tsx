@@ -11,6 +11,7 @@
  * navigating, and "Create one" switches mode through `onSwitchToRegister`.
  */
 
+import { afterSignInPath } from "@/lib/security/redirect";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { Eye, EyeOff } from "lucide-react";
@@ -47,7 +48,7 @@ type Step =
   | { kind: "second_code"; strategy: "totp" | "phone_code" | "email_code" | "backup_code"; factor: FactorLike | null; alternatives: string[] }
   | { kind: "new_password" };
 
-export function LoginForm({ returnTo = "/dashboard", className, onSignedIn, onSwitchToRegister, initialIdentifier }: LoginFormProps) {
+export function LoginForm({ returnTo = afterSignInPath(), className, onSignedIn, onSwitchToRegister, initialIdentifier }: LoginFormProps) {
   const capabilities = useAuthCapabilities();
   const { signIn, setActive, isLoaded } = useSignIn();
   const recordFailedLogin = useMutation(api.authTracking.mutations.recordFailedLogin);
