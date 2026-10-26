@@ -12,7 +12,11 @@ mock.module("@/hooks/layout/useFooterConfig", () => ({ useFooterConfig: () => un
 mock.module("@/hooks/layout/useMenuForLocation", () => ({ useMenuForLocation: location => menus[location] }));
 mock.module("@/components/layout/SocialLinks", () => ({ SocialLinks: () => null }));
 const query = await import("@tanstack/react-query");
-mock.module("@tanstack/react-query", () => ({ ...query, useSuspenseQuery: options => { assert.equal(options.queryKey[1], "pages/queries:getTree"); assert.deepEqual(options.queryKey[2], { status: "publish" }); pageQueries++; return { data: pages }; } }));
+const { getFunctionName } = await import("convex/server");
+const { api } = await import("@convexpress-website/backend/generated/api");
+// The backend may mount ConvexPress under a namespace (CaseMedix: "convexpress/").
+const PAGE_TREE = getFunctionName(api.pages.queries.getTree);
+mock.module("@tanstack/react-query", () => ({ ...query, useSuspenseQuery: options => { assert.equal(options.queryKey[1], PAGE_TREE); assert.deepEqual(options.queryKey[2], { status: "publish" }); pageQueries++; return { data: pages }; } }));
 const convex = await import("convex/react");
 mock.module("convex/react", () => ({ ...convex, useMutation: () => async () => {} }));
 const router = await import("@tanstack/react-router");
