@@ -5737,9 +5737,19 @@ export const packBlockPresentation = {
   }
 } as const;
 export interface PackBlockPresentation { styles: Readonly<Record<string, readonly string[]>>; hidden: readonly string[] }
+/** A pack these tables don't list (a site's own pack, installed outside this
+ *  repository) presents blocks as Core does: it renders them with Core's renderers. */
 export function blockPresentationForPack(packId: string | undefined): PackBlockPresentation {
   const packs: Readonly<Record<string, PackBlockPresentation>> = packBlockPresentation;
-  return packId && Object.prototype.hasOwnProperty.call(packs, packId) ? packs[packId] : { styles: {}, hidden: [] };
+  if (!packId) return { styles: {}, hidden: [] };
+  if (Object.prototype.hasOwnProperty.call(packs, packId)) return packs[packId];
+  return Object.prototype.hasOwnProperty.call(packs, "core") ? packs.core : { styles: {}, hidden: [] };
+}
+/** Treatments a pack supports per block; an unlisted pack has Core's (see blockPresentationForPack). */
+export function treatmentsForPack(packId: string): Readonly<Record<string, readonly string[]>> {
+  const packs: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = packTreatmentSupport;
+  if (Object.prototype.hasOwnProperty.call(packs, packId)) return packs[packId];
+  return Object.prototype.hasOwnProperty.call(packs, "core") ? packs.core : {};
 }
 export function stylesForBlock(packId: string | undefined, name: string): readonly string[] {
   const descriptors: Readonly<Record<string, { supports: { styles: boolean } }>> = dependencyDescriptors;

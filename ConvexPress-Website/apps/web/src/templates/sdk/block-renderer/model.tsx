@@ -19,7 +19,7 @@ import type {
 import {
 	dependencyDescriptors,
 	anchorDescriptors,
-	packTreatmentSupport,
+	treatmentsForPack,
   resolveBlockStyle,
 } from "../block-data/portable/generated/metadata";
 import { collectCanonicalAnchors } from "../block-data/portable/generated/instance-runtime.mjs";
@@ -418,10 +418,7 @@ export function prepareBlocks(
 					"Treatment does not match the generated block contract",
 				);
 			}
-			const packs: Readonly<
-				Record<string, Readonly<Record<string, readonly string[]>>>
-			> = packTreatmentSupport;
-			if (!packId || !packs[packId]?.[name]?.includes(treatment.name))
+			if (!packId || !treatmentsForPack(packId)[name]?.includes(treatment.name))
 				return fail(
 					"PACK_TREATMENT_UNAVAILABLE",
 					"The current installed pack does not support this treatment",

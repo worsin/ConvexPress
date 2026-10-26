@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { aiCatalog as catalog } from "./generated/ai_catalog";
 import { blockSchemas, blockTreatmentSchemas, type BlockName } from "./generated/schemas";
-import { dependencyDescriptors, packTreatmentSupport } from "./generated/metadata";
+import { dependencyDescriptors, treatmentsForPack } from "./generated/metadata";
 import { validateCanonicalTree, canonicalNodeSchema, CANONICAL_TREE_LIMITS } from "./generated/instances";
 import { resolverArgs } from "./contracts";
 import { composedAttrsSchema, decodeComposedDefinition } from "./composedDefinitions";
@@ -76,7 +76,7 @@ export function createAiCatalog(context: AiCatalogContext) {
     if (spec.supports.anchor) properties.anchor = envelopeProperties.anchor;
     if (spec.supports.visibility) properties.visibility = envelopeProperties.visibility;
     if (spec.supports.styles) properties.style = { type: "string", enum: [...new Set(styles(spec.name))] };
-    const packTreatments = (packTreatmentSupport as Record<string, Record<string, readonly string[]>>)[context.packId]?.[spec.name] ?? [];
+    const packTreatments = treatmentsForPack(context.packId)[spec.name] ?? [];
     if (spec.treatments.length && packTreatments.length) {
       const schema = jsonSchema(spec.treatmentSchema());
       const choices = (Array.isArray(schema.anyOf) ? schema.anyOf : [schema]) as Schema[];
@@ -98,7 +98,7 @@ export function createAiCatalog(context: AiCatalogContext) {
     if (entry.supports.anchor) keys.add("anchor");
     if (entry.supports.visibility) keys.add("visibility");
     if (entry.supports.styles) keys.add("style");
-    const supported = (packTreatmentSupport as Record<string, Record<string, readonly string[]>>)[context.packId]?.[entry.name] ?? [];
+    const supported = treatmentsForPack(context.packId)[entry.name] ?? [];
     if (entry.treatments.some(treatment => supported.includes(treatment.name))) keys.add("treatment");
     return [`${entry.name}@${entry.version}`, keys] as const;
   }));
@@ -125,7 +125,7 @@ export function createAiCatalog(context: AiCatalogContext) {
       const tree = walk(parsed.blocks, 1);
       const blocks = registry ? registry.validateTree(tree) : validateCanonicalTree(tree);
       // The pack guard is separate from base treatment validation.
-      for (const node of flatten(blocks)) if (node.treatment && !((packTreatmentSupport as Record<string, Record<string, readonly string[]>>)[context.packId]?.[node.name] ?? []).includes(node.treatment.name)) throw Error("AI selected an unavailable template treatment.");
+      for (const node of flatten(blocks)) if (node.treatment && !(treatmentsForPack(context.packId)[node.name] ?? []).includes(node.treatment.name)) throw Error("AI selected an unavailable template treatment.");
       return { title: parsed.title, blocks };
     },
   };

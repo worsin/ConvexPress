@@ -52,7 +52,8 @@ test("original Hero alignment, media placeholder and newsletter preserve content
   for(const variant of ["inline","large"]){const dom=render(original("core/newsletter-signup",{variant},{heading:"Keep in touch",submitLabel:"Join"}),pack);expect(dom.querySelector(".cp-library-signup")?.getAttribute("data-original-variant")).toBe(variant);expect(dom.textContent).toContain("Join");expect(dom.querySelector('input[type="email"]')).not.toBeNull();}
  }
  expect(()=>render(original("core/hero-split",{mediaSide:"invented"}),"core")).toThrow();
- expect(()=>render(original("core/hero-text-only",{alignment:"center"}),"unknown")).toThrow();
+ // A site's own pack (not in the generated tables) renders Core's treatments as Core does.
+ expect(render(original("core/hero-text-only",{alignment:"center"}),"site-own-pack").innerHTML).toBe(render(original("core/hero-text-only",{alignment:"center"}),"core").innerHTML);
 });
 test("saved commerce columns survive data projection without replacing products or categories",async()=>{
  const current={scope:{websiteKey:"fixture",instanceKey:"fixture"},documentKey:"original",revision:"1",viewerKey:"reader"};

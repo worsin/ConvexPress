@@ -21,7 +21,7 @@ import {
 	dependencyDescriptors,
 	blockPresentationForPack,
 	stylesForBlock,
-	packTreatmentSupport,
+	treatmentsForPack,
 } from "../../../../../../../blocks/.generated/metadata";
 import { validateBlockTreatment } from "../../../../../../../blocks/.generated/schemas";
 import { validateCanonicalTree } from "../../../../../../../blocks/.generated/instances";
@@ -226,7 +226,7 @@ export function canonicalEditorAdapter(
 		(pattern) => pattern.packId === packId && allowedTree(pattern.blocks),
 	);
 	const treatments = (node: EditableBlock) => {
-		const support = packTreatmentSupport[packId as keyof typeof packTreatmentSupport] as Record<string, readonly string[]> | undefined;
+		const support = packId ? treatmentsForPack(packId) : {};
 		return (dependencyDescriptors[node.name as BlockName]?.treatments ?? [])
 			.filter(treatment => support?.[node.name]?.includes(treatment.name));
 	};

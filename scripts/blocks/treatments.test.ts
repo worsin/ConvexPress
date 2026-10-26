@@ -2,6 +2,7 @@ import {expect,test} from 'bun:test';
 import {readFile} from 'node:fs/promises';
 import {parseBlockSpec} from './schema.mjs';
 import {validateCanonicalTree,assertPackTreatments} from '../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/instances';
+import {treatmentsForPack,blockPresentationForPack} from '../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/metadata';
 import {validateBlockTreatment} from '../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas';
 const values={spacing:4,alignment:'left',ink:'foreground',font:'display'};
 const treatment={name:'editorial',values};
@@ -17,7 +18,11 @@ test('partial, unknown, raw CSS and wrong-block treatment refuses; style remains
   for(const invalid of [{name:'legacy-v1',values},{name:'editorial',values:{}},{name:'editorial',values:{...values,spacing:9}},{name:'editorial',values:{...values,spacing:0.5}},{name:'editorial',values:{...values,alignment:'end'}},{name:'editorial',values:{...values,className:'foo'}},{name:'editorial',values:{...values,ink:'red'}}])expect(()=>validateCanonicalTree([{...node,treatment:invalid}])).toThrow();
   expect(()=>validateCanonicalTree([{...node,name:'core/heading'}])).toThrow();
   expect(validateCanonicalTree([{...node,style:'default'}])[0].style).toBe('default');
-  expect(()=>assertPackTreatments(validateCanonicalTree([{id:'section',name:'core/section',version:1,attrs:{},children:[node]}]),'unknown')).toThrow('PACK_TREATMENT_UNAVAILABLE');
+  // A pack the generated tables don't list (a site's own pack) presents blocks as Core does.
+  const tree=validateCanonicalTree([{id:'section',name:'core/section',version:1,attrs:{},children:[node]}]);
+  expect(()=>assertPackTreatments(tree,'site-own-pack')).not.toThrow();
+  expect(treatmentsForPack('site-own-pack')).toEqual(treatmentsForPack('core'));
+  expect(blockPresentationForPack('site-own-pack')).toEqual(blockPresentationForPack('core'));
 });
 test('spec rejects unbounded, duplicate or invalid finite axes/defaults',async()=>{
   const spec=JSON.parse(await readFile(new URL('../../blocks/reference/field-guide/block.json',import.meta.url),'utf8'));
