@@ -18,6 +18,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
+    "start": "bun scripts/serve.mjs",
     "test": "bun run test:web && bun run test:orders && bun run test:tooling && bun run test:demo",
     "test:web": "bun test ./apps/web/src",
     "test:orders": "bun test ./apps/web/tests/orders",
