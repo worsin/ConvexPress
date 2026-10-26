@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "a0776fca2b2c35d0ca1c404f25a0e9ce5d0dd0fc4379749bf4415f7df1267aa7",
+    "ai-catalog.ts": "bed14ffa72398ac8d2b0bf85960d852af29c646c1b7c88ff438c1eddb4091b94",
     "block-spec.schema.json": "8d9493e9cfddb1b68eb7b275259b3585bb67f52ed382f7e0ca3b53ca6ea7cb8e",
-    "catalog.json": "bde319f2e847e51145c9789dfa0a0d55d66f0eddff8bf5bd99592273fd23c603",
+    "catalog.json": "4260fc1a1a8251e0aae933829d47ba6a376173cf0cca2477cdd1d88d64aacc31",
     "convex.ts": "a4abad47462f2970833041a03c0b992948487a541670df7e344eedec765e5a42",
     "coverage.json": "5c618dc11427f332f2602121572a8880f988a8858475678a93dc303f2ef543b5",
     "dependencies.json": "6fa3f925978184eaf7e87e0743d052b9ce0556233e90e00360b5e2387530d5ea",
-    "editor-metadata.ts": "48ac9d9841bda32c573bf8aaf5e550661797e36e903bfc7d89637c31a9c6663c",
-    "editors.json": "1a4e3eb9ad59fc56bbb1b8d945281f3a5eef13af34c4abee15c4dbad2fdb59aa",
+    "editor-metadata.ts": "1eb60569f355e621372c6bb0de2bfad0d64af3695a2820b0f31c39645cca992a",
+    "editors.json": "6635ae211a1233868bad7a93581511a81ee4681a3f70107ff0ce8f3dcc4d8d18",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -20,7 +20,7 @@
     "promotions.ts": "4548b1fdea34bc5f243b6a7b7473d0ee5e206ad6cf78add4abb9c308f42d00c3",
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
     "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
-    "schemas.ts": "828f41496e8eb513cb16cea4dbc53004cf547717d302cff97201f2f0d66f65ee",
+    "schemas.ts": "ab3ac74e2a142e7373d9eba5d088461845a44cd08e4b2cb376573c03c8e74f47",
     "search-text.ts": "2533eacd5a731f5900dc788fb93b2d1c795c6e7adc29669177490d9a2730e188",
     "spec-runtime.d.mts": "b5b77504d0fab42615079e9f49ac192ccb37be72d42c341e42f3cc8a66aae1f2",
     "spec-runtime.mjs": "f53dfa30e2e1a817d331f6a1c21c12ff1bca7d6e18946ab3e0571809f31d7bed",
@@ -262,7 +262,7 @@
       "source": "blocks/core/faq/block.json"
     },
     {
-      "sha256": "d7267645ab37ef7c5cd1c7991e775316c5ebcddbf6faee2d5aead2662c2e1bcb",
+      "sha256": "f9eb0d8a6c2faf3416d774d0eab87a04507544eb9286b207d4f38a1ff2bc4389",
       "source": "blocks/core/feature-grid/block.json"
     },
     {
@@ -506,7 +506,7 @@
       "source": "blocks/core/testimonials/block.json"
     },
     {
-      "sha256": "3ffa3980fbce6a9eda1619be28e1cce9cbc9943bef1be65678f739d7ea1a4fc3",
+      "sha256": "94e5671ed0ac72aebf4b3c5f2c6b632a071e39834fa27c1ac31a580ce260f9da",
       "source": "blocks/core/trust-badges/block.json"
     },
     {
