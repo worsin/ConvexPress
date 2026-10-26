@@ -127,6 +127,7 @@ test("all finite axes render only with explicit pack support and malformed treat
 			values: { spacing: 4, alignment: "left", ink: "primary", font: "body" },
 		},
 	};
+	// Without an installed pack there is no treatment support at all…
 	expect(() =>
 		prepareBlocks(
 			[node],
@@ -134,9 +135,20 @@ test("all finite axes render only with explicit pack support and malformed treat
 			policy,
 			{ media: {} },
 			undefined,
-			"unknown",
+			undefined,
 		),
 	).toThrow("does not support");
+	// …while a site's own pack (not in the generated tables) has Core's.
+	expect(() =>
+		prepareBlocks(
+			[node],
+			{ "reference/field-guide": fieldGuide },
+			policy,
+			{ media: {} },
+			undefined,
+			"site-own-pack",
+		),
+	).not.toThrow();
 	expect(() =>
 		prepareBlocks(
 			[

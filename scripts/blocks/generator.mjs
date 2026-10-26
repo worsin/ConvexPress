@@ -98,9 +98,19 @@ export function validateBlockField(name: string, path: readonly (string | number
     "metadata.ts": header + `export const dependencyDescriptors = ${json(metadata).trim()} as const;\nexport const anchorDescriptors = ${json(anchors).trim()} as const;\nexport const packTreatmentSupport = ${json(Object.fromEntries(packs.map(pack => [pack.id, pack.treatments ?? {}]))).trim()} as const;\n` + `
 export const packBlockPresentation = ${json(Object.fromEntries(packs.map(pack => [pack.id, { styles: pack.styles, hidden: pack.hidden }]))).trim()} as const;
 export interface PackBlockPresentation { styles: Readonly<Record<string, readonly string[]>>; hidden: readonly string[] }
+/** A pack these tables don't list (a site's own pack, installed outside this
+ *  repository) presents blocks as Core does: it renders them with Core's renderers. */
 export function blockPresentationForPack(packId: string | undefined): PackBlockPresentation {
   const packs: Readonly<Record<string, PackBlockPresentation>> = packBlockPresentation;
-  return packId && Object.prototype.hasOwnProperty.call(packs, packId) ? packs[packId] : { styles: {}, hidden: [] };
+  if (!packId) return { styles: {}, hidden: [] };
+  if (Object.prototype.hasOwnProperty.call(packs, packId)) return packs[packId];
+  return Object.prototype.hasOwnProperty.call(packs, "core") ? packs.core : { styles: {}, hidden: [] };
+}
+/** Treatments a pack supports per block; an unlisted pack has Core's (see blockPresentationForPack). */
+export function treatmentsForPack(packId: string): Readonly<Record<string, readonly string[]>> {
+  const packs: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = packTreatmentSupport;
+  if (Object.prototype.hasOwnProperty.call(packs, packId)) return packs[packId];
+  return Object.prototype.hasOwnProperty.call(packs, "core") ? packs.core : {};
 }
 export function stylesForBlock(packId: string | undefined, name: string): readonly string[] {
   const descriptors: Readonly<Record<string, { supports: { styles: boolean } }>> = dependencyDescriptors;
@@ -115,7 +125,7 @@ export function resolveBlockStyle(packId: string | undefined, name: string, save
 `,
     "instances.ts": header + `import { z } from "zod";
 import { validateBlockAttrs, validateBlockTreatment } from "./schemas";
-import { dependencyDescriptors, anchorDescriptors, packTreatmentSupport } from "./metadata";
+import { dependencyDescriptors, anchorDescriptors, treatmentsForPack } from "./metadata";
 import { createCanonicalNodeSchema, createCanonicalTreeSchema, validateCanonicalTree as validateTree, type CanonicalTreeContract } from "./instance-runtime.mjs";
 import type { CanonicalTree } from "./types";
 export { collectCanonicalAnchors, createCanonicalLayoutSchema, MENU_VISIBILITY_VALUES, CANONICAL_TREE_LIMITS } from "./instance-runtime.mjs";
@@ -126,9 +136,9 @@ export function validateCanonicalTree(value: unknown): CanonicalTree { return va
 type TreatmentNode = { name: string; treatment?: { name: string }; children?: TreatmentNode[] };
 /** Caller validates the tree against its Library or exact composed registry. */
 export function assertPackTreatments(tree: TreatmentNode[], packId: string): void {
-  const packs: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = packTreatmentSupport;
+  const support = treatmentsForPack(packId);
   const visit = (nodes: TreatmentNode[]): void => { for (const node of nodes) {
-    if (node.treatment && !packs[packId]?.[node.name]?.includes(node.treatment.name)) throw Error("PACK_TREATMENT_UNAVAILABLE: " + packId + "/" + node.name);
+    if (node.treatment && !support[node.name]?.includes(node.treatment.name)) throw Error("PACK_TREATMENT_UNAVAILABLE: " + packId + "/" + node.name);
     if (node.children) visit(node.children);
   } };
   visit(tree);

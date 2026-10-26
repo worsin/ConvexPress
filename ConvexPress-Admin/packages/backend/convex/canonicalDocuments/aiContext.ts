@@ -17,7 +17,7 @@ import { authoringRevision } from "./foundation/documentState";
 import { canonicalJson, sha256Hex } from "./foundation/shared/fingerprints";
 import { createAiCatalog } from "./foundation/aiCatalog";
 import { createComposedRegistry, type RuntimeCanonicalTree } from "./foundation/composedRegistry";
-import { packTreatmentSupport, blockPresentationForPack } from "./foundation/generated/metadata";
+import { blockPresentationForPack } from "./foundation/generated/metadata";
 import { aiCatalogRevision } from "./foundation/generated/ai_catalog";
 import { templatePatterns } from "./foundation/generated/patterns";
 import { canonicalStoredTreeValidator } from "./foundation/generated/storage";
@@ -69,8 +69,8 @@ export async function loadAiContext(ctx: QueryCtx, args: BaseArgs): Promise<Cont
   const authored = await readAuthoredDocument(ctx, post, budget);
   const display = await displayContext(ctx, budget);
   const packId = display.presentation.packId;
-  if (!Object.prototype.hasOwnProperty.call(packTreatmentSupport, packId))
-    fail("AI_TEMPLATE_UNAVAILABLE", "The active template is not installed in this site's block catalog.");
+  // A pack the block catalog doesn't list presents blocks as Core does (treatmentsForPack).
+  if (!packId) fail("AI_TEMPLATE_UNAVAILABLE", "No template is active for this site.");
 
   const definitions = await approvedAiDefinitions(ctx, scope, budget);
   // Existing approved pins remain available even when a newer preferred version
