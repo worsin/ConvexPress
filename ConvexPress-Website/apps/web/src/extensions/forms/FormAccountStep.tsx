@@ -21,8 +21,8 @@ export function FormAccountStep(props: FormAccountStepProps) {
   return (
     <AccountStep
       {...props}
-      intro="Your answers are saved. You'll use this account to manage your subscription and sign in later."
-      signedInIntro="Your answers are saved."
+      intro="Create the account you'll use to sign in and manage your subscription. Your answers stay with it."
+      signedInIntro="You're signed in. Your answers stay with this account."
       backLabel="Back to the form"
     />
   );

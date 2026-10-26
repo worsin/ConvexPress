@@ -433,6 +433,7 @@ export function FormWizard({
   const [stepIndex, setStepIndex] = useState(0);
   const [furthestStep, setFurthestStep] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [heldBackLabels, setHeldBackLabels] = useState<string[]>([]);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -589,7 +590,10 @@ export function FormWizard({
       submissionIdRef.current = res?.submissionId;
       // Prefer a server-returned token if/when the Submission System mints one.
       resumeTokenRef.current = res?.resumeToken ?? resumeTokenRef.current;
-      setSaveState("saved");
+      // The server keeps every valid answer and holds back invalid ones.
+      const heldBack = res?.heldBack ?? [];
+      setHeldBackLabels(heldBack.map((entry) => entry.label));
+      setSaveState(heldBack.length > 0 ? "held-back" : "saved");
       setSavedAt(Date.now());
     } catch {
       // Non-blocking: keep input working; retry on the next change / step.
@@ -1088,7 +1092,7 @@ export function FormWizard({
                 submitLabel={isFinal && needsAccountStep ? "Continue" : options?.submitLabel}
               />
 
-              <AutosaveIndicator saveState={saveState} savedAt={savedAt} />
+              <AutosaveIndicator saveState={saveState} savedAt={savedAt} heldBackLabels={heldBackLabels} />
             </>
           )}
         </>

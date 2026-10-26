@@ -551,6 +551,7 @@ function RadioControl({
             value={choice.value}
             checked={value === choice.value}
             onChange={() => onChange(choice.value)}
+            aria-label={choice.label}
             className="size-4 accent-primary"
           />
           <ChoiceLabel choice={choice} />
@@ -862,10 +863,12 @@ function PlanChoiceControl({
               value={choice.value}
               checked={selected}
               onChange={() => onChange(choice.value)}
+              // Named by the plan and its price, not every feature line in the card.
+              aria-labelledby={`${name}-${choice.value}-title${price ? ` ${name}-${choice.value}-price` : ""}`}
               className="sr-only"
             />
             <span className="flex items-start justify-between gap-2">
-              <span className="text-base font-semibold text-foreground">{offer?.title ?? choice.label}</span>
+              <span id={`${name}-${choice.value}-title`} className="text-base font-semibold text-foreground">{offer?.title ?? choice.label}</span>
               <span
                 aria-hidden="true"
                 className={cn(
@@ -877,7 +880,7 @@ function PlanChoiceControl({
               </span>
             </span>
             {price ? (
-              <span className="flex items-baseline gap-1">
+              <span id={`${name}-${choice.value}-price`} className="flex items-baseline gap-1">
                 <span className="text-2xl font-semibold tabular-nums text-foreground">{price.amount}</span>
                 <span className="text-sm text-muted-foreground">{price.cadence}</span>
               </span>
