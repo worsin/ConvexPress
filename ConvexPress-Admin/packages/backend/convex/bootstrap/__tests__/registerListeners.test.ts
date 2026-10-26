@@ -11,7 +11,31 @@ const modules = {
 const ensureRequired = makeFunctionReference<"mutation">("bootstrap/registerListeners:ensureRequired");
 const harness = () => convexTest({ schema: defineSchema(eventsTables), modules });
 
+/** Whether a registered Convex function can be called with just { eventId }, as the dispatcher calls listeners. */
+function acceptsEventId(fn: unknown): boolean {
+  const exportArgs = typeof fn === "function" || (typeof fn === "object" && fn !== null) ? Reflect.get(fn, "exportArgs") : undefined;
+  if (typeof exportArgs !== "function") return false;
+  const parsed: unknown = JSON.parse(String(Reflect.apply(exportArgs, fn, [])));
+  const fields = typeof parsed === "object" && parsed !== null ? Reflect.get(parsed, "value") : undefined;
+  if (typeof fields !== "object" || fields === null || !("eventId" in fields)) return false;
+  return Object.entries(fields).every(([name, field]) => name === "eventId" || (typeof field === "object" && field !== null && Reflect.get(field, "optional") === true));
+}
+
 describe("installation listener bootstrap", () => {
+  test("every default listener's handler takes the dispatcher's { eventId }", async () => {
+    const t = harness();
+    await t.mutation(ensureRequired, {});
+    const listeners = await t.run((ctx) => ctx.db.query("eventListeners").collect());
+    expect(listeners.length).toBeGreaterThan(0);
+    const mismatched: string[] = [];
+    for (const listener of listeners) {
+      const module: Record<string, unknown> = await import(`../../${listener.handlerModule}`);
+      if (!acceptsEventId(module[listener.handlerFunction]))
+        mismatched.push(`${listener.eventCode} → ${listener.handlerModule}:${listener.handlerFunction}`);
+    }
+    expect(mismatched).toEqual([]);
+  });
+
   test("registers fresh defaults and repeats without changing records", async () => {
     const t = harness();
     const first = await t.mutation(ensureRequired, {});
