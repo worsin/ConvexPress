@@ -98,7 +98,8 @@ export interface PageDetail {
   path: string;
   featuredImageUrl?: string;
   featuredImageAlt?: string;
-  template?: "default" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "landing" | "blank";
+  /** A core layout or one the active template pack adds (see template.json `pageTemplates`). */
+  template?: string;
   parentId?: string;
   menuOrder?: number;
   depth?: number;

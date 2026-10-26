@@ -221,7 +221,11 @@ export type CanonicalProductTermOptions = z.infer<typeof canonicalProductTermOpt
 
 /** Permalinks are not restored with content revisions; layout settings are. */
 export const canonicalLayoutSchema = z.strictObject({
-  pageTemplate: z.enum(["default", "full-width", "sidebar-left", "sidebar-right", "no-sidebar", "landing", "blank"]),
+  /** A core page layout (default, full-width, sidebar-left, sidebar-right,
+   *  no-sidebar, landing, blank) or one an installed template pack declares in
+   *  its template.json `pageTemplates`. Packs fall back to the default layout for
+   *  an id they do not draw. */
+  pageTemplate: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
   hideHeader: z.boolean(), hideFooter: z.boolean(),
 });
 export const canonicalDocumentSettingsSchema = z.strictObject({
