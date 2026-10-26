@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Materialize terminal consumer types; never import/execute backend handlers. */
 import ts from '../../ConvexPress-Admin/node_modules/typescript/lib/typescript.js';
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -27,11 +27,14 @@ if(!process.argv.includes('--single-pass')) {
   for(const out of outputs){if(process.argv.includes('--check')){if(readFileSync(out,'utf8')!==final)throw new Error(`Stale site API contracts: ${out}`);}else{mkdirSync(dirname(out),{recursive:true});writeFileSync(out,final);}}
   // Ship the exact pure checkout fingerprint implementation with the standalone Website.
   if(outputIndex<0){
-   const source=readFileSync(resolve(backend,'commerce/checkoutShippingGuards.ts'),'utf8');
-   const out=resolve(root,'ConvexPress-Website/packages/backend/generated/checkoutShippingGuards.ts');
-   const content='/* Generated from the site backend by generate-site-contracts.mjs. Do not edit. */\n'+source;
-   if(process.argv.includes('--check')){if(readFileSync(out,'utf8')!==content)throw new Error('Stale checkout fingerprint contract');}
-   else writeFileSync(out,content);
+   // …and the form field formats, so the browser checks answers exactly as the server does.
+   for(const [from,to,label] of [['commerce/checkoutShippingGuards.ts','checkoutShippingGuards.ts','checkout fingerprint'],['extensions/forms/fieldFormats.ts','fieldFormats.ts','form field format']]){
+    const source=readFileSync(resolve(backend,from),'utf8');
+    const out=resolve(root,'ConvexPress-Website/packages/backend/generated',to);
+    const content='/* Generated from the site backend by generate-site-contracts.mjs. Do not edit. */\n'+source;
+    if(process.argv.includes('--check')){if(!existsSync(out)||readFileSync(out,'utf8')!==content)throw new Error(`Stale ${label} contract`);}
+    else writeFileSync(out,content);
+   }
   }
   const reportIndex=process.argv.indexOf('--report-file');if(reportIndex>=0)writeFileSync(resolve(process.argv[reportIndex+1]),JSON.stringify(finalReport,null,2)+'\n');
   console.log(`Site API contracts ${process.argv.includes('--check')?'verified':'generated'}: ${finalReport.functions} functions, ${finalReport.dtoTypes} terminal DTOs; ${finalReport.untypedBoundaries.length} existing unknown boundaries.`);

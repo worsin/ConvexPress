@@ -7,6 +7,8 @@
  * Used by mutations.ts to validate values before persisting them.
  */
 
+import { fieldFormatError, isFieldFormat } from "../extensions/forms/fieldFormats";
+
 // ─── Validation Result ──────────────────────────────────────────────────────
 
 export interface ValidationResult {
@@ -130,6 +132,11 @@ function validateText(value: string, settings: Record<string, unknown>): Validat
   const maxLength = typeof settings.maxLength === "number" ? settings.maxLength : 0;
   if (maxLength > 0 && value.length > maxLength) {
     return fail(`Value must be ${maxLength} characters or fewer.`);
+  }
+  // A named format (phone, US state, ZIP, NPI, digits) is checked the same way the website checks it.
+  if (isFieldFormat(settings.format)) {
+    const error = fieldFormatError(settings.format, value);
+    if (error) return fail(error);
   }
   return OK;
 }

@@ -17,6 +17,7 @@
  * spam/captcha all layer onto this renderer without forking the field contract.
  */
 
+import { answerError, answerRules } from "@/components/forms/answerCheck";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/clerk";
 import { useAction, useMutation, useConvex } from "convex/react";
@@ -259,10 +260,14 @@ export function FormRenderer({
       if (LAYOUT_TYPES.has(field.type)) continue;
       // Computed fields are read-only + server-owned — never user-required.
       if (COMPUTED_TYPES.has(field.type)) continue;
-      if (!field.required) continue;
-      if (isEmptyForRequired(values[field.key])) {
+      const value = values[field.key];
+      if (field.required && isEmptyForRequired(value)) {
         errors[field.key] = `${field.label || "This field"} is required.`;
+        continue;
       }
+      // The same shape rules the server applies (format, email, URL, number range).
+      const shapeError = typeof value === "string" ? answerError(field.type, value, answerRules(field.settings)) : null;
+      if (shapeError) errors[field.key] = shapeError;
     }
     setFieldErrors(errors);
     const firstError = Object.keys(errors)[0];
