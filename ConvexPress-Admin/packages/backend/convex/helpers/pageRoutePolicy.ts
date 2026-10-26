@@ -1,8 +1,10 @@
+import { HOST_ROUTE_PATTERNS } from "./hostRoutes";
+
 /** Public route patterns from the Website route tree. Kept in sync by its contract test.
  * Shared pure policy: Admin warnings and server writes use the exact same matcher.
  * Static routes outrank pretty-page aliases; dynamic segments match one segment.
  */
-export const PUBLIC_ROUTE_PATTERNS: readonly string[] = [
+const CONVEXPRESS_ROUTE_PATTERNS: readonly string[] = [
   "/account/courses",
   "/account/courses/$slug",
   "/account/courses/$slug/$nodeId",
@@ -126,6 +128,8 @@ export const PUBLIC_ROUTE_PATTERNS: readonly string[] = [
   "/verify-email",
   "/wishlist/$token"
 ] as const;
+/** ConvexPress's routes and the host application's own (helpers/hostRoutes.ts), sorted. */
+export const PUBLIC_ROUTE_PATTERNS: readonly string[] = [...new Set([...CONVEXPRESS_ROUTE_PATTERNS, ...HOST_ROUTE_PATTERNS])].sort();
 export function normalizePageRoute(path: string): string {
   return '/' + path.split(/[?#]/)[0].split('/').filter(Boolean).join('/');
 }
