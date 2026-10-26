@@ -47,6 +47,7 @@ import {
   compileZodFromVisibleFields,
   type LogicFieldDef,
 } from "./formLogic";
+import { hostSubmitGuards } from "./hostGuards";
 import { relaxRequiredForDrafts } from "./draftValidation";
 // Form Calculation & Pricing System (server-authoritative). The submit path
 // recomputes every computed field in INTEGER CENTS before persisting answers, so
@@ -1299,6 +1300,26 @@ async function submitForm(
         message: "One or more fields are invalid.",
         errors: fieldErrors,
       });
+    }
+    // A host application's own checks on a final submission (none in
+    // ConvexPress; see hostGuards.ts), before anything is stored or charged.
+    if (isComplete) {
+      const visibleValues: Record<string, string> = {};
+      for (const def of visibleDefs) {
+        const value = valueMap[def.key];
+        if (value !== undefined) visibleValues[def.key] = value;
+      }
+      const refusals = await hostSubmitGuards(ctx, { form, values: visibleValues, identity: submitterIdentity ?? null });
+      if (refusals.length > 0) {
+        const formLevel = refusals.find((refusal) => !refusal.fieldKey);
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: formLevel?.error ?? "One or more fields are invalid.",
+          errors: refusals.flatMap(({ fieldKey, error }) =>
+            fieldKey ? [{ fieldKey, label: labelByKey.get(fieldKey) ?? fieldKey, error }] : [],
+          ),
+        });
+      }
     }
     // A draft keeps every valid answer. An invalid one is held back: it is not
     // written (its last valid answer, if any, stays) and is reported, so one
