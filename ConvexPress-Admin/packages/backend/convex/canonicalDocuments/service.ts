@@ -1953,6 +1953,76 @@ export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "
  return id;
 }
 
+// A host application's site setup writes the documents a site ships with. The
+// named author is the actor whose capabilities are checked. A receipt records
+// the revision setup last wrote, so a later run refreshes only a document no
+// editor has touched since; an edited or removed document stays as it is.
+import type { SiteSetupDocumentArgs, SiteSetupDocumentResult } from "./siteSetupContracts";
+const SITE_SETUP_RECEIPT_PREFIX = "_convexpress_site_setup:";
+type SiteSetupReceipt = { contract: "convexpress-site-setup-v1"; setupKey: string; requestDigest: string; acceptedRevision: number; acceptedUpdatedAt: number };
+function readSetupReceipt(value: string): SiteSetupReceipt | null {
+ try {
+  const parsed: unknown = JSON.parse(value);
+  if (!parsed || typeof parsed !== "object") return null;
+  const read = (key: string): unknown => Reflect.get(parsed, key);
+  const contract = read("contract"), setupKey = read("setupKey"), requestDigest = read("requestDigest"), acceptedRevision = read("acceptedRevision"), acceptedUpdatedAt = read("acceptedUpdatedAt");
+  return contract === "convexpress-site-setup-v1" && typeof setupKey === "string" && typeof requestDigest === "string" && typeof acceptedRevision === "number" && typeof acceptedUpdatedAt === "number"
+   ? { contract, setupKey, requestDigest, acceptedRevision, acceptedUpdatedAt } : null;
+ } catch { return null; }
+}
+export async function writeSiteSetupDocument(ctx: MutationCtx, args: SiteSetupDocumentArgs): Promise<SiteSetupDocumentResult> {
+ if (!/^[!-~]{1,200}$/u.test(args.setupKey)) refuse("INVALID_SETUP_KEY", "The setup key must be 1 to 200 printable characters without spaces.");
+ if (apiSlugify(args.slug) !== args.slug) refuse("INVALID_SETUP_SLUG", "Supply the document's canonical slug.");
+ if (args.type === "post" && args.pageTemplate !== undefined) refuse("DOCUMENT_LAYOUT_INVALID", "Page settings apply to pages.");
+ const author = await ctx.db.get("users", args.authorId);
+ if (!author || author.status !== "active" || author.authSource === "management")
+  refuse("SETUP_AUTHOR_INVALID", "The setup author must be an active site user.");
+ const { authorId, adoptUnedited, setupKey, ...content } = args;
+ let requestDigest: string;
+ try { requestDigest = sha256Hex(canonicalJson(content)); }
+ catch { refuse("SETUP_SOURCE_INVALID", "The setup document must contain only JSON values."); }
+ const input: DocumentInput = {
+  title: args.title, slug: args.slug, status: args.status, blocks: args.blocks,
+  ...(args.excerpt !== undefined ? { excerpt: args.excerpt } : {}),
+  ...(args.pageTemplate !== undefined ? { pageTemplate: args.pageTemplate } : {}),
+ };
+ const receiptKey = `${SITE_SETUP_RECEIPT_PREFIX}${setupKey}`;
+ const writeReceipt = async (postId: Id<"posts">, existing: Id<"postMeta"> | null) => {
+  const accepted = (await ctx.db.get("posts", postId))!;
+  const value = JSON.stringify({ contract: "convexpress-site-setup-v1", setupKey, requestDigest, acceptedRevision: authoringRevision(accepted), acceptedUpdatedAt: accepted.updatedAt } satisfies SiteSetupReceipt);
+  if (existing) await patchWithMediaReferences(ctx, "postMeta", existing, { value });
+  else await insertWithMediaReferences(ctx, "postMeta", { postId, key: receiptKey, value });
+ };
+ const update = async (post: Doc<"posts">) =>
+  (await updateForActor(ctx, args.type, { ...input, postId: post._id, expectedRevision: authoringRevision(post) }, author, { authorId: author._id })).postId;
+
+ const receiptRow = await ctx.db.query("postMeta").withIndex("by_key", q => q.eq("key", receiptKey)).unique();
+ if (receiptRow) {
+  const receipt = readSetupReceipt(receiptRow.value);
+  if (!receipt) refuse("SETUP_RECEIPT_INVALID", "The recorded setup receipt is unreadable.");
+  const post = await ctx.db.get("posts", receiptRow.postId);
+  if (!post || post.type !== args.type || post.status === "trash") return { outcome: "kept_removed", postId: post && post.status !== "trash" ? post._id : null };
+  if (receipt.requestDigest === requestDigest) return { outcome: "unchanged", postId: post._id };
+  if (authoringRevision(post) !== receipt.acceptedRevision || post.updatedAt !== receipt.acceptedUpdatedAt) return { outcome: "kept_edited", postId: post._id };
+  const postId = await update(post);
+  await writeReceipt(postId, receiptRow._id);
+  return { outcome: "updated", postId };
+ }
+ const occupant = await ctx.db.query("posts").withIndex("by_type_slug", q => q.eq("type", args.type).eq("slug", args.slug)).first();
+ if (occupant) {
+  // Revision 1 is the document as it was created or imported: nobody has saved it since.
+  if (!adoptUnedited || occupant.status === "trash" || authoringRevision(occupant) !== 1) return { outcome: "slug_taken", postId: occupant._id };
+  const postId = await update(occupant);
+  await writeReceipt(postId, null);
+  return { outcome: "adopted", postId };
+ }
+ const postId = await createForActor(ctx, args.type, input, author, { authorId: author._id });
+ const created = await ctx.db.get("posts", postId);
+ if (created?.slug !== args.slug) refuse("SETUP_SLUG_UNAVAILABLE", "Another document already uses this slug.");
+ await writeReceipt(postId, null);
+ return { outcome: "created", postId };
+}
+
 // Older ConvexPress sites store posts and pages in the legacy authoring shape.
 // A migration tool is a trusted server caller. The named author is also the
 // actor whose capabilities are checked, as for API keys and WordPress jobs.
