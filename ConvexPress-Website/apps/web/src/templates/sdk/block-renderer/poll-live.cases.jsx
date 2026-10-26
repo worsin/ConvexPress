@@ -4,7 +4,7 @@ import { act } from "react";
 import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ConvexProvider } from "convex/react";
-import { getFunctionName } from "convex/server";
+import { bareFunctionName as getFunctionName } from "./test-function-names";
 import { ProductionPollProvider, PollDraftScope } from "./poll-production";
 import { PollBody } from "./poll";
 import { parsePollDefinition, pollDefinitionVersion } from "../block-data/portable/pollContracts";

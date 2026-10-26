@@ -3,7 +3,7 @@ import {act} from "react";
 import {JSDOM} from "jsdom";
 import {renderToStaticMarkup} from "react-dom/server";
 import {ConvexProvider} from "convex/react";
-import {getFunctionName} from "convex/server";
+import { bareFunctionName as getFunctionName } from "./test-function-names";
 import {ProductionRsvpProvider,RsvpDraftScope} from "./rsvp-production";
 import {RsvpBody,RsvpView} from "./rsvp";
 import {rsvpIdentityKey,subscribeRsvp} from "./rsvp-client";

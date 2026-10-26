@@ -3,7 +3,7 @@ import { act } from "react";
 import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ConvexProvider } from "convex/react";
-import { getFunctionName } from "convex/server";
+import { bareFunctionName as getFunctionName } from "./test-function-names";
 import { ProductionFormEmbedProvider } from "./form-embed-production";
 import { ContactFormBody } from "./contact-form";
 import { parseContactDefinition } from "../block-data/portable/contactContracts";

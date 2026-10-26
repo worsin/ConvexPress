@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { getFunctionName } from "convex/server";
+import { bareFunctionName as getFunctionName } from "./test-function-names";
 import { api } from "../../../../../../packages/backend/generated/api.js";
 import { subscribeNewsletter } from "../../../../../../../ConvexPress-Admin/packages/backend/convex/emails/mutations";
 import {
