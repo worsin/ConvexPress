@@ -223,8 +223,8 @@ test("the authored kit pattern preserves its content through every actual pack r
 });
 `);
 	source.push(`
-import {CompositionView} from ${JSON.stringify(join(repo,"ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/composition.tsx"))};
-import {composedRenderFixture} from ${JSON.stringify(join(repo,"ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/composed.cases.tsx"))};
+import {CompositionView} from ${JSON.stringify(fileURLToPath(new URL("./composition.tsx", import.meta.url)))};
+import {composedRenderFixture} from ${JSON.stringify(fileURLToPath(new URL("./composed.cases.tsx", import.meta.url)))};
 test("composed routing uses actual installed primitive packs", () => {
  const fixture=composedRenderFixture();
  for(const packId of packIds) {
@@ -233,7 +233,7 @@ test("composed routing uses actual installed primitive packs", () => {
   if(packRegistry[packId]?.Heading) expect(html).toContain('data-pack-primitive="'+packId+':Heading"');
  }
 });
-import {compositionExample,compositionFixture} from ${JSON.stringify(join(repo,"ConvexPress-Website/apps/web/block-demo/composition-study.tsx"))};
+import {compositionExample,compositionFixture} from ${JSON.stringify(fileURLToPath(new URL("../../../../block-demo/composition-study.tsx", import.meta.url)))};
 test("runtime composition renders through all installed primitive treatments and rejects invalid data before output", () => {
   for(const packId of packIds) {
     const scope=compositionFixture(packId);
