@@ -3,6 +3,9 @@ import {createRequire} from "node:module";
 import {act} from "react";
 import {ConvexProvider} from "convex/react";
 import {getFunctionName} from "convex/server";
+import {api} from "@convexpress-website/backend/generated/api";
+// The backend may mount ConvexPress under a namespace (CaseMedix: "convexpress/").
+const fnName=(ref)=>getFunctionName(ref);
 import {SavedProductButton} from "./SavedProductButton";
 const require=createRequire(import.meta.url);
 const {JSDOM}=createRequire(require.resolve("isomorphic-dompurify"))("jsdom");
@@ -31,7 +34,7 @@ test("heart remains disabled through empty intermediate pages and removes the la
   expect(document.querySelector("button").disabled).toBe(true);expect(document.querySelector("button").getAttribute("aria-label")).toBe("Checking saved products");
   f.set("product-a","next",found);await act(async()=>f.notify());
   const button=document.querySelector("button");expect(button.disabled).toBe(false);expect(button.getAttribute("aria-pressed")).toBe("true");
-  await act(async()=>{button.click();button.click();});expect(f.writes).toHaveLength(1);expect(f.writes[0]).toEqual({name:"commerceWishlists/mutations:removeItem",args:{itemId:"item-a"}});
+  await act(async()=>{button.click();button.click();});expect(f.writes).toHaveLength(1);expect(f.writes[0]).toEqual({name:fnName(api.commerceWishlists.mutations.removeItem),args:{itemId:"item-a"}});
   await act(async()=>f.finish());
  });
 });
@@ -39,7 +42,7 @@ test("absence becomes actionable only after exhaustion, and product changes rese
  const f=fixture();f.set("product-a",null,empty());
  await inDom(async root=>{
   await act(async()=>root.render(f.view()));expect(document.querySelector("button").getAttribute("aria-label")).toBe("Add to wishlist");
-  await act(async()=>document.querySelector("button").click());expect(f.writes[0].name).toBe("commerceWishlists/mutations:addItem");
+  await act(async()=>document.querySelector("button").click());expect(f.writes[0].name).toBe(fnName(api.commerceWishlists.mutations.addItem));
   await act(async()=>root.render(f.view("product-b","session-b")));expect(document.querySelector("button").getAttribute("aria-label")).toBe("Checking saved products");
   await act(async()=>f.finish());expect(document.querySelector("button").disabled).toBe(true);expect(f.writes).toHaveLength(1);
  });
