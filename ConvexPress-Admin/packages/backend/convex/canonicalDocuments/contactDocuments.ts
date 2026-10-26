@@ -11,15 +11,18 @@ import { resolvePublishedOccurrences } from "../syncedBlocks/occurrences";
 import { reconcileSyncedConsumers } from "../syncedBlocks/consumers";
 import { collectContactDefinitions } from "./contactDefinitions";
 import { contactProjectionMatches } from "./contactProjection";
-import { syncContactForm } from "./contactForms";
+import { syncContactForm, type ContactWriteAuthority } from "./contactForms";
 
 /** Called only after canonical document authority/policy validation, within its
  * transaction. Removed blocks retain entries; source checks immediately deny
- * their public forms. Restore reuses the original per-document/block identity. */
+ * their public forms. Restore reuses the original per-document/block identity.
+ * A trusted server write (API key, import, site setup) passes its actor's
+ * authority; otherwise the signed-in caller's capabilities are checked. */
 export async function syncDocumentContactForms(
   ctx: MutationCtx,
   args: { postId: Id<"posts">; title: string; blocks: RuntimeCanonicalTree; scheduled?: boolean; composed?: ComposedDataContext },
   budget = new RequestReadLedger(),
+  authority?: ContactWriteAuthority,
 ): Promise<void> {
   // Validate the complete candidate before any projection writes.
   const authored = args.composed ? createComposedRegistry(args.composed.definitions, args.composed.scope).validateTree(args.blocks) : validateCanonicalTree(args.blocks);
@@ -44,7 +47,7 @@ export async function syncDocumentContactForms(
         throw new ConvexError({ code: "CONTACT_FORM_REQUIRES_SAVE", message: "Save the contact form again before publishing this document." });
       }
     } else {
-      const formId = await syncContactForm(ctx, { postId: args.postId, sourceTitle: args.title, ...contact }, budget);
+      const formId = await syncContactForm(ctx, { postId: args.postId, sourceTitle: args.title, ...contact }, budget, authority);
       // Source authorization still denies drafts, future/private pages, removed
       // blocks and revoked access, including direct form IDs and resume tokens.
       await ctx.db.patch("forms", formId, { status: "published" });
