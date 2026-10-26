@@ -1288,18 +1288,27 @@ async function submitForm(
     }
 
     const mergedErrors = { ...zodErrors, ...validation.errors };
-    if (Object.keys(mergedErrors).length > 0) {
-      const errors = Object.entries(mergedErrors).map(([fieldKey, error]) => ({
-        fieldKey,
-        label: labelByKey.get(fieldKey) ?? fieldKey,
-        error,
-      }));
+    const fieldErrors = Object.entries(mergedErrors).map(([fieldKey, error]) => ({
+      fieldKey,
+      label: labelByKey.get(fieldKey) ?? fieldKey,
+      error,
+    }));
+    if (isComplete && fieldErrors.length > 0) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "One or more fields are invalid.",
-        errors,
+        errors: fieldErrors,
       });
     }
+    // A draft keeps every valid answer. An invalid one is held back: it is not
+    // written (its last valid answer, if any, stays) and is reported, so one
+    // mistyped field never stops the rest of the progress from saving.
+    const heldBack = isComplete ? [] : fieldErrors;
+    const heldBackKeys = new Set(heldBack.map((entry) => entry.fieldKey));
+    for (const key of heldBackKeys) delete valueMap[key];
+    const submittedValues = heldBackKeys.size > 0
+      ? args.values.filter((entry) => !heldBackKeys.has(entry.fieldKey))
+      : args.values;
 
     // (e2) Authoritative calculation recompute (Form Calculation & Pricing PRD
     // §8). Runs AFTER validation, BEFORE persistence. We re-derive every computed
@@ -1346,8 +1355,8 @@ async function submitForm(
     // every computed field's value OVERWRITTEN by the server figure, plus any
     // computed field the client never sent (so a server-derived total is stored
     // even when the client omitted it).
-    const seenKeys = new Set(args.values.map((entry) => entry.fieldKey));
-    const effectiveValues: Array<{ fieldKey: string; value: string }> = args.values.map(
+    const seenKeys = new Set(submittedValues.map((entry) => entry.fieldKey));
+    const effectiveValues: Array<{ fieldKey: string; value: string }> = submittedValues.map(
       (entry) => {
         const serverValue = computedSerialized.get(entry.fieldKey);
         return serverValue !== undefined
@@ -1492,7 +1501,7 @@ async function submitForm(
       submissionId,
       isComplete,
       submittedAt: now,
-      valueCount: args.values.length,
+      valueCount: submittedValues.length,
       values: "<omitted-for-size>",
     });
 
@@ -1505,40 +1514,40 @@ async function submitForm(
       });
     }
 
-    return { submissionId, isComplete, resumeToken: effectiveResumeToken, confirmationToken };
+    return {
+      submissionId,
+      isComplete,
+      resumeToken: effectiveResumeToken,
+      confirmationToken,
+      ...(heldBack.length > 0 ? { heldBack } : {}),
+    };
 }
+
+/** What a save returns. `heldBack` lists draft answers that were not saved because they are invalid. */
+const submitResultValidator = v.object({
+  submissionId: v.id("form_submissions"),
+  isComplete: v.boolean(),
+  resumeToken: v.optional(v.string()),
+  confirmationToken: v.optional(v.string()),
+  heldBack: v.optional(v.array(v.object({ fieldKey: v.string(), label: v.string(), error: v.string() }))),
+});
 
 export const submit = mutation({
   args: submitArgsValidator,
-  returns: v.object({
-    submissionId: v.id("form_submissions"),
-    isComplete: v.boolean(),
-    resumeToken: v.optional(v.string()),
-    confirmationToken: v.optional(v.string()),
-  }),
+  returns: submitResultValidator,
   handler: async (ctx, args) => submitForm(ctx, args),
 });
 
 export const submitInternal = internalMutation({
   args: submitArgsValidator,
-  returns: v.object({
-    submissionId: v.id("form_submissions"),
-    isComplete: v.boolean(),
-    resumeToken: v.optional(v.string()),
-    confirmationToken: v.optional(v.string()),
-  }),
+  returns: submitResultValidator,
   handler: async (ctx, args) =>
     submitForm(ctx, args, { captchaVerified: true }),
 });
 
 export const submitWithCaptcha = action({
   args: submitArgsValidator,
-  returns: v.object({
-    submissionId: v.id("form_submissions"),
-    isComplete: v.boolean(),
-    resumeToken: v.optional(v.string()),
-    confirmationToken: v.optional(v.string()),
-  }),
+  returns: submitResultValidator,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "forms");
 

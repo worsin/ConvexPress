@@ -102,7 +102,11 @@ export function StepProgress({
                   {dot}
                 </button>
               ) : (
-                <span aria-label={segLabel}>{dot}</span>
+                // A generic span can't carry a name; screen readers read this text instead.
+                <span>
+                  {dot}
+                  <span className="sr-only">{segLabel}</span>
+                </span>
               )}
               {i < total - 1 ? (
                 <span

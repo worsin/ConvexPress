@@ -6,16 +6,19 @@
  * by icon + text (not color alone).
  */
 
-import { Check, CloudOff, Loader2 } from "lucide-react";
+import { AlertCircle, Check, CloudOff, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-export type SaveState = "idle" | "saving" | "saved" | "save-error";
+/** "held-back": saved, except answers the server refused (they keep their last valid value). */
+export type SaveState = "idle" | "saving" | "saved" | "held-back" | "save-error";
 
 interface AutosaveIndicatorProps {
   saveState: SaveState;
   /** Epoch ms of the last successful save (for the "Saved" relative label). */
   savedAt?: number | null;
+  /** Labels of the answers a "held-back" save did not keep. */
+  heldBackLabels?: readonly string[];
 }
 
 function relativeTime(savedAt: number | null | undefined): string {
@@ -27,7 +30,7 @@ function relativeTime(savedAt: number | null | undefined): string {
   return `${mins}m ago`;
 }
 
-export function AutosaveIndicator({ saveState, savedAt }: AutosaveIndicatorProps) {
+export function AutosaveIndicator({ saveState, savedAt, heldBackLabels = [] }: AutosaveIndicatorProps) {
   if (saveState === "idle") {
     return <div role="status" aria-live="polite" data-slot="autosave" className="h-4" />;
   }
@@ -40,7 +43,7 @@ export function AutosaveIndicator({ saveState, savedAt }: AutosaveIndicatorProps
       data-state={saveState}
       className={cn(
         "flex items-center gap-1.5 text-xs",
-        saveState === "save-error" ? "text-destructive" : "text-muted-foreground",
+        saveState === "save-error" || saveState === "held-back" ? "text-destructive" : "text-muted-foreground",
       )}
     >
       {saveState === "saving" ? (
@@ -52,6 +55,13 @@ export function AutosaveIndicator({ saveState, savedAt }: AutosaveIndicatorProps
         <>
           <Check className="size-3.5 text-primary" aria-hidden="true" />
           Saved {relativeTime(savedAt)}
+        </>
+      ) : saveState === "held-back" ? (
+        <>
+          <AlertCircle className="size-3.5" aria-hidden="true" />
+          {heldBackLabels.length === 1
+            ? `Saved, except ${heldBackLabels[0]}: check that answer`
+            : `Saved, except ${heldBackLabels.length} answers to check`}
         </>
       ) : (
         <>
