@@ -13,6 +13,7 @@ import type { PricingOffer } from "@/lib/pricingCardRenderer";
 import { cn } from "@/lib/utils";
 import type { PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
 import { OfferSignupLink } from "@/components/subscriptions/OfferSignupLink";
+import { PricingWithContent } from "@/templates/sdk/block-public/PricingWithContent";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, EmptyState, Eyebrow, SectionHeading, SmallCaps, buttonClasses } from "../parts";
@@ -53,9 +54,9 @@ export default function JournalPricing({ data }: SurfaceProps<PricingSurfaceData
   const sorted = sortOffers(offers ?? [], config?.orderedOfferIds ?? []);
   const columns = sorted.length >= 4 ? "md:grid-cols-2 lg:grid-cols-4" : sorted.length === 2 ? "md:grid-cols-2" : sorted.length === 1 ? "md:grid-cols-1 md:max-w-md md:mx-auto" : "md:grid-cols-3";
 
-  return (
+  const page = (lead: boolean) => (
     <Container as="section" data-slot="pricing-page" className="flex flex-col gap-14 py-6 md:gap-20 md:py-10">
-      <SectionHeading level={1} align="center" eyebrow="Plans" title={headline} lede={subheadline} />
+      {lead ? <SectionHeading level={1} align="center" eyebrow="Plans" title={headline} lede={subheadline} /> : null}
 
       {sorted.length === 0 ? (
         <EmptyState eyebrow="Nothing yet" title="No plans are currently available. Check back soon." />
@@ -68,6 +69,7 @@ export default function JournalPricing({ data }: SurfaceProps<PricingSurfaceData
       )}
     </Container>
   );
+  return data.content ? <PricingWithContent documentId={data.content.documentId} plans={page} /> : page(true);
 }
 
 function PlanColumn({ offer, featured }: { offer: PricingOffer; featured: boolean }) {

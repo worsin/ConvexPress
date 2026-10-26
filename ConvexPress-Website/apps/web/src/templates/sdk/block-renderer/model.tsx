@@ -1,5 +1,6 @@
 import {
 	createElement,
+	Fragment,
 	useSyncExternalStore,
 	type ComponentType,
 	type ReactNode,
@@ -286,6 +287,9 @@ function valuesAt(value: unknown, path: readonly string[]): unknown[] {
 		? valuesAt((value as Record<string, unknown>)[head], tail)
 		: [];
 }
+/** Content a template places among a document's top-level blocks, before the block at `at`. */
+export type BlockInsertion = { at: number; node: ReactNode };
+
 export function prepareBlocks(
 	input: unknown,
 	registry: RendererRegistry,
@@ -295,6 +299,7 @@ export function prepareBlocks(
 	packId?: string,
 	display?: { source: SyncedDisplay; scope: DataScope },
   composed?: ComposedDataContext,
+  insertion?: BlockInsertion,
 ) {
 	const encoded = JSON.stringify(input);
 	if (!encoded || new TextEncoder().encode(encoded).byteLength > 512 * 1024)
@@ -697,9 +702,12 @@ export function prepareBlocks(
 	};
 	const prepared = renderTree.map((item) => visit(item, 0));
 	const navigation = navigationTreeIndex(dataTree, composedRegistry ? { registry: composedRegistry, renderedAnchors: [...anchors] } : undefined);
+	const at = insertion ? Math.min(Math.max(0, Math.trunc(insertion.at)), prepared.length) : 0;
 	return (
 		<HeadingAnchorsContext.Provider value={navigation.headingAnchors}>
-			{prepared}
+			{insertion
+				? [...prepared.slice(0, at), <Fragment key="cp-template-insertion">{insertion.node}</Fragment>, ...prepared.slice(at)]
+				: prepared}
 		</HeadingAnchorsContext.Provider>
 	);
 }

@@ -49,6 +49,7 @@ function PricingCardsPage() {
   const offers = useQuery(api.commerceSubscriptions.offers.listOffers, {});
   const updateConfig = useMutation(api.commerceSubscriptions.pricingCards.updatePricingCardConfig);
   const signupForms = useQuery(api.commerceSubscriptions.adminCatalog.listSignupForms, {});
+  const contentPages = useQuery(api.commerceSubscriptions.pricingCards.listPricingContentPages, {});
 
   const [orderedOfferIds, setOrderedOfferIds] = useState<
     Array<Id<"commerce_subscription_offers">>
@@ -59,6 +60,7 @@ function PricingCardsPage() {
   const [headline, setHeadline] = useState("");
   const [subheadline, setSubheadline] = useState("");
   const [signupFormId, setSignupFormId] = useState<Id<"forms"> | "">("");
+  const [contentPageId, setContentPageId] = useState<Id<"posts"> | "">("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,7 @@ function PricingCardsPage() {
     setHeadline(config.headline ?? "");
     setSubheadline(config.subheadline ?? "");
     setSignupFormId(config.signupFormId ?? "");
+    setContentPageId(config.contentPageId ?? "");
   }, [config]);
 
   const pluginDisabled = config === null;
@@ -124,6 +127,7 @@ function PricingCardsPage() {
         subheadline: subheadline.trim() || undefined,
         templateKey: "default",
         signupFormId: signupFormId === "" ? null : signupFormId,
+        contentPageId: contentPageId === "" ? null : contentPageId,
       });
       toast.success("Pricing page saved");
     } catch (error) {
@@ -197,6 +201,41 @@ function PricingCardsPage() {
                   />
                 </div>
               </div>
+            </section>
+
+            {/* The page around the plans */}
+            <section className="space-y-3 rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Page content</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Make a page the pricing page: the plans follow its opening hero, and its other blocks surround them.
+                </p>
+              </div>
+              <select
+                value={contentPageId}
+                aria-label="Page shown with the plans"
+                onChange={(e) => {
+                  const chosen = (contentPages ?? []).find((page) => page._id === e.target.value);
+                  setContentPageId(chosen ? chosen._id : "");
+                }}
+                className={inputClass}
+              >
+                <option value="">No page: the headline and plans only</option>
+                {(contentPages ?? []).map((page) => (
+                  <option key={page._id} value={page._id}>
+                    {page.title}
+                    {page.status === "publish" ? "" : ` (${page.status === "future" ? "scheduled" : page.status})`}
+                  </option>
+                ))}
+              </select>
+              {(() => {
+                const chosen = (contentPages ?? []).find((page) => page._id === contentPageId);
+                return chosen && !chosen.isPublic ? (
+                  <p className="text-xs text-muted-foreground">
+                    “{chosen.title}” isn't published for everyone yet. The pricing page shows the plans alone until it is.
+                  </p>
+                ) : null;
+              })()}
             </section>
 
             {/* Where the buttons lead */}

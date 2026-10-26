@@ -33,6 +33,7 @@ import { usePublicViewer } from "@/lib/auth/usePublicViewer";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { useTemplateSettings } from "../useTemplateSettings";
 import { CanonicalDocumentView } from "../block-preview/CanonicalDocumentView";
+import type { BlockInsertion } from "../block-renderer/model";
 import { ProductionNewsletterProvider } from "../block-renderer/newsletter-production";
 import { ProductionFormEmbedProvider } from "../block-renderer/form-embed-production";
 import { ProductionPollProvider, PollDraftScope } from "../block-renderer/poll-production";
@@ -72,10 +73,14 @@ export function PublicCanonicalScope({
 		</Context.Provider>
 	);
 }
-/** Templates place their own title around the current authorized body. */
-export type PublicBodyLayout = (body: ReactNode, opensWithHero: boolean) => ReactNode;
+/** Templates place their own title around the current authorized body. `placed`
+ * says whether the body holds the template's insertion (see `insert`). */
+export type PublicBodyLayout = (body: ReactNode, opensWithHero: boolean, placed: boolean) => ReactNode;
+/** Where a template places its own content among the document's top-level
+ * blocks, chosen from the authorized display tree; null places nothing. */
+export type PlaceInsertion = (blocks: readonly { name: string }[]) => BlockInsertion | null;
 const defaultLayout: PublicBodyLayout = body => body;
-export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }: { documentId: string; renderLayout?: PublicBodyLayout }) {
+export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout, insert }: { documentId: string; renderLayout?: PublicBodyLayout; insert?: PlaceInsertion }) {
 	const scope = useContext(Context),
 		auth = usePublicViewer(),
 		convexAuth = useConvexAuth(),
@@ -106,7 +111,7 @@ export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }
 	);
 	const firstGeneration = useRef(generation);
 	if (!scope || scope.documentId !== documentId || !instanceKey || auth.unavailable)
-		return renderLayout(<Unavailable />, false);
+		return renderLayout(<Unavailable />, false, false);
 	const enabled = mounted && auth.isLoaded && !convexAuth.isLoading &&
 		Boolean(auth.isSignedIn) === convexAuth.isAuthenticated &&
 		(!auth.isSignedIn || Boolean(auth.userId)) && (!supportsHistory || history.ready);
@@ -116,6 +121,7 @@ export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }
 		<PublicBoundary key={generation} renderLayout={renderLayout}>
 			<ReactivePublicBody
         renderLayout={renderLayout}
+        insert={insert}
 				binding={{documentId, instanceKey, viewerSubject:auth.isSignedIn ? auth.userId ?? null : null,
 					generation, request:scope.request,
 					...(supportsHistory ? {recentlyViewedIds:history.ids} : {})}}
@@ -130,6 +136,7 @@ export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }
 }
 function ReactivePublicBody({
   renderLayout,
+  insert,
 	binding,
 	password,
 	enabled,
@@ -138,6 +145,7 @@ function ReactivePublicBody({
 	allowAnonymousSeed,
 }: {
   renderLayout: PublicBodyLayout;
+  insert?: PlaceInsertion;
 	binding: PublicDisplayBinding;
 	password?: string;
 	enabled: boolean;
@@ -185,22 +193,25 @@ function ReactivePublicBody({
 	const bootstrap = !consumedSeed.current && !seedExpired &&
 		(!mounted || (allowAnonymousSeed && !seed?.accessLease));
 	const visible = enabled && state ? state : bootstrap && seed ? {value:seed} : null;
+  const ready = !!visible && "value" in visible && visible.value?.state === "ready" ? visible.value : null;
+  const insertion = ready && insert ? insert(ready.document.blocks) : null;
   const body = !visible ? <Loading /> : "error" in visible ? <Unavailable /> :
-    <PublicResult value={visible.value} generation={binding.generation} password={password} />;
-  const hasHero = !!visible && "value" in visible && visible.value?.state === "ready" &&
-    opensWithHero(visible.value.document.blocks);
+    <PublicResult value={visible.value} generation={binding.generation} password={password} insertion={insertion ?? undefined} />;
+  const hasHero = !!ready && opensWithHero(ready.document.blocks);
   return <PollDraftScope key={binding.generation}><RsvpDraftScope>
-    {renderLayout(body, hasHero)}
+    {renderLayout(body, hasHero, insertion !== null)}
   </RsvpDraftScope></PollDraftScope>;
 }
 function PublicResult({
 	value,
 	generation,
   password,
+  insertion,
 }: {
 	value: PublicCanonicalDocument;
 	generation: string;
   password?: string;
+  insertion?: BlockInsertion;
 }) {
 	if (!value) return <Unavailable />;
 	if (value.state === "restricted")
@@ -221,6 +232,7 @@ function PublicResult({
 			value={value}
 			generation={generation}
       password={password}
+      insertion={insertion}
 		/>
     </Suspense>
 	);
@@ -229,10 +241,12 @@ function InstalledPublicDocument({
 	value,
 	generation,
   password,
+  insertion,
 }: {
 	value: PublicCanonicalReady;
 	generation: string;
   password?: string;
+  insertion?: BlockInsertion;
 }) {
 	const { packId, savedPackId } = useTemplateSettings();
 	const installed = useDisplayInstallation(value, generation);
@@ -258,6 +272,7 @@ function InstalledPublicDocument({
 			data={installed.data}
       composed={installed.composed}
 			packId={packId}
+      insertion={insertion}
 		/>
     </ProductionShoppingAssistantProvider>
     </ProductionCollectionCartProvider>
@@ -293,6 +308,6 @@ class PublicBoundary extends Component<
 		return { failed: true };
 	}
 	render() {
-		return this.state.failed ? this.props.renderLayout(<Unavailable />, false) : this.props.children;
+		return this.state.failed ? this.props.renderLayout(<Unavailable />, false, false) : this.props.children;
 	}
 }

@@ -564,6 +564,11 @@ export const commerceSubscriptionTables = {
      * `subscription` action). Unset: cards open the plain signup page.
      */
     signupFormId: v.optional(v.id("forms")),
+    /**
+     * A page whose content surrounds the plans on /pricing: the plans follow
+     * its opening section. Shown only while the page is published for everyone.
+     */
+    contentPageId: v.optional(v.id("posts")),
     updatedAt: v.number(),
     updatedBy: v.id("users"),
   }).index("by_singleton", ["singletonKey"]),
