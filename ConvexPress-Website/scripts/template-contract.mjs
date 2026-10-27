@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 const MODULES = new Set(["colors", "typography", "layout", "header", "footer", "menuLayout", "shop", "pageTemplates"]);
 const FIELD_TYPES = new Set(["color", "font", "select", "toggle", "text", "number", "image", "menuLocation", "range"]);
@@ -45,6 +45,15 @@ export function validateTemplateContract(directory, manifest, catalog) {
       if (/\b(?:api|internal)\.[a-zA-Z_$]+\.[a-zA-Z_$]+/.test(source)) issues.push(`${local}: backend API references belong in a route or SDK hook`);
       if (/#(?:[\da-f]{3}|[\da-f]{6}|[\da-f]{8})\b|\b(?:bg|text|border)-(?:zinc|slate|gray|neutral|stone|red|blue|green)-\d{2,3}\b/i.test(source)) issues.push(`${local}: use theme tokens instead of color literals`);
       if (local.startsWith("surfaces/") && !/export\s+default\b|export\s*\{[^}]*\bdefault\b/s.test(source)) issues.push(`${local}: surface must default-export a component`);
+      // Surfaces load lazily: only stylesheets in surfaces/ reach the server-rendered
+      // page (sdk/block-renderer/critical-styles.ts). Linking one with ?url is fine.
+      if (local.startsWith("surfaces/")) {
+        for (const [, specifier] of source.matchAll(/^\s*import\s+["']([^"'?]+\.css)["']/gm)) {
+          if (dirname(resolve(dirname(file), specifier)) !== join(directory, "surfaces")) {
+            issues.push(`${local}: imports ${specifier}, which the server-rendered page won't have; put the stylesheet next to the surface in surfaces/ or link it with "?url"`);
+          }
+        }
+      }
     }
   };
   visit(directory);
