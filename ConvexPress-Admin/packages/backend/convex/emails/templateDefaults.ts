@@ -1484,7 +1484,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     bodyHtml: wrapHtml(`
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your <strong>{offer_title}</strong> plan renews automatically on {next_billing_at}. {charge_note}</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">It renews {cadence} until you cancel. To change your plan or cancel, visit your account before {next_billing_at}. If you cancel, your plan stays active until then and you won't be charged again.</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Your plan is {amount} {cadence} and keeps renewing until you cancel. To change your plan or cancel, visit your account before {next_billing_at}. If you cancel, your plan stays active until then and you won't be charged again.</p>
       <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
     `),
     availableVariables: [

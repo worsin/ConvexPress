@@ -309,12 +309,12 @@ export const onSubscriptionRenewalUpcoming = internalMutation({
     // or moved its renewal date gets no stale notice.
     const renewsAt = payloadNumber(context.payload, "renewsAt");
     if (subscription.status !== "active" || subscription.cancelAtPeriodEnd || renewsAt !== subscription.nextBillingAt) return null;
-    const { amount, cadence, next_charge_amount: next } = variables;
+    const { amount, next_charge_amount: next } = variables;
     const card = subscription.paymentMethodSummary;
     const onCard = card ? `your ${card.brand} card ending in ${card.last4}` : "your card on file";
     variables.charge_note =
       next !== amount
-        ? `We'll charge ${next}, with your discount, to ${onCard}. Your plan is ${amount} ${cadence}.`
+        ? `We'll charge ${next}, with your discount, to ${onCard}.`
         : `We'll charge ${amount} to ${onCard}.`;
     await queue(ctx, args.eventId, "subscription-renewal-upcoming", context);
     return null;
