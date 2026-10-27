@@ -155,7 +155,7 @@ describe("the renewal notice email", () => {
     expect(email?.to).toBe("casey@example.invalid");
     expect(email?.subject).toBe("Your Practice Annual plan renews on November 13, 2026");
     expect(email?.text).toContain("Your Practice Annual plan renews automatically on November 13, 2026. We'll charge $2,990.00 to your Visa card ending in 4242.");
-    expect(email?.text).toContain("It renews per year until you cancel. To change your plan or cancel, visit your account before November 13, 2026.");
+    expect(email?.text).toContain("Your plan is $2,990.00 per year and keeps renewing until you cancel. To change your plan or cancel, visit your account before November 13, 2026.");
     expect(email?.html).toContain('href="https://clinic.example/dashboard/subscriptions"');
   });
 
