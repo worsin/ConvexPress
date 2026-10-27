@@ -27,6 +27,8 @@ function cleanFont(value: unknown): string | null {
 }
 
 function fontStack(name: string): string {
+  // Inter is the bundled body face (index.css serves it as "Inter Variable").
+  if (name === "Inter") return "'Inter Variable', system-ui, sans-serif";
   const generic = SERIF_HINTS.test(name) ? "Georgia, 'Times New Roman', serif" : "'Inter Variable', system-ui, sans-serif";
   return `'${name}', ${generic}`;
 }
