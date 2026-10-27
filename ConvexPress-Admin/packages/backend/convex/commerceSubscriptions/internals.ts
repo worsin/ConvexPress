@@ -1405,3 +1405,78 @@ export const emitTrialEndingEvents = internalMutation({
 		return { emitted };
 	},
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENEWAL NOTICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How long before a yearly (or longer) plan renews its customer is told.
+ * Automatic-renewal laws (California's, for one) ask for notice 15 to 45 days
+ * before a term of a year or more renews; 30 days sits inside that. */
+export const RENEWAL_NOTICE_DAYS = 30;
+
+/** Whether a billing period is a year or longer. Shorter plans are told at
+ * each charge, by its receipt. */
+export function billedYearlyOrLonger(
+	interval: Doc<"commerce_subscriptions">["billingInterval"],
+	count: number | undefined,
+): boolean {
+	const n = count && count > 0 ? count : 1;
+	switch (interval) {
+		case "year":
+			return true;
+		case "month":
+			return n >= 12;
+		case "week":
+			return n >= 52;
+		case "day":
+			return n >= 365;
+		default:
+			return false;
+	}
+}
+
+/**
+ * Emit `commerce.subscription_renewal_upcoming` for each active yearly (or
+ * longer) contract that renews in about RENEWAL_NOTICE_DAYS, once per renewal.
+ * The daily sweep reads a two-day window, so one missed day still sends. The
+ * contract records the renewal it was told about
+ * (`sourceMetadata.renewalNoticeFor`): a changed renewal date is told again,
+ * the same one never twice. A contract set to cancel, paused, or still in its
+ * trial (the trial notice covers that) isn't renewing and gets none.
+ */
+export const emitRenewalUpcomingEvents = internalMutation({
+	args: {},
+	returns: v.object({ emitted: v.number() }),
+	handler: async (ctx) => {
+		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return { emitted: 0 };
+		const now = Date.now();
+		const due = await ctx.db
+			.query("commerce_subscriptions")
+			.withIndex("by_nextBillingAt", (q) =>
+				q.gt("nextBillingAt", now + (RENEWAL_NOTICE_DAYS - 2) * DAY_MS).lte("nextBillingAt", now + RENEWAL_NOTICE_DAYS * DAY_MS),
+			)
+			.collect();
+
+		let emitted = 0;
+		for (const sub of due) {
+			if (sub.status !== "active" || sub.cancelAtPeriodEnd || sub.nextBillingAt === undefined) continue;
+			if (!billedYearlyOrLonger(sub.billingInterval, sub.billingIntervalCount)) continue;
+			if (sub.sourceMetadata?.renewalNoticeFor === sub.nextBillingAt) continue;
+
+			await emitEvent(ctx, SUBSCRIPTION_EVENTS.RENEWAL_UPCOMING, "commerce", {
+				subscriptionId: sub._id,
+				userId: sub.userId,
+				renewsAt: sub.nextBillingAt,
+			});
+			await ctx.db.patch("commerce_subscriptions", sub._id, {
+				sourceMetadata: { ...(sub.sourceMetadata ?? {}), renewalNoticeFor: sub.nextBillingAt },
+				updatedAt: now,
+			});
+			emitted++;
+		}
+		return { emitted };
+	},
+});

@@ -1476,6 +1476,34 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   },
 
   {
+    slug: "subscription-renewal-upcoming",
+    name: "Subscription Renewal Notice",
+    description: "Sent 30 days before a yearly (or longer) plan renews",
+    subjectTemplate: "Your {offer_title} plan renews on {next_billing_at}",
+    preheaderText: "It renews automatically unless you cancel",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your <strong>{offer_title}</strong> plan renews automatically on {next_billing_at}. {charge_note}</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">It renews {cadence} until you cancel. To change your plan or cancel, visit your account before {next_billing_at}. If you cancel, your plan stays active until then and you won't be charged again.</p>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
+    `),
+    availableVariables: [
+      { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
+      { name: "offer_title", description: "Plan name", required: true },
+      { name: "next_billing_at", description: "Renewal date", required: true },
+      { name: "charge_note", description: "What will be charged (with any discount) and to which card", required: false },
+      { name: "amount", description: "Plan price, formatted", required: false },
+      { name: "next_charge_amount", description: "The renewal charge, with any discount", required: false },
+      { name: "cadence", description: "per year, every 2 years, …", required: false },
+      { name: "portal_url", description: "Absolute link to the customer's subscriptions page", required: false, defaultValue: "/dashboard/subscriptions" },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "subscription",
+    eventCode: "commerce.subscription_renewal_upcoming",
+  },
+
+  {
     slug: "subscription-cancel-scheduled",
     name: "Subscription Cancellation Scheduled",
     description: "Confirms a cancellation at the end of the paid period",

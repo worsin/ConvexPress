@@ -14,6 +14,8 @@
  *   past_due         the charge failed: why, when we try again, how long
  *                    access lasts, and a link to update the card
  *   trial_ending     the trial ends on a date and the first charge follows
+ *   renewal_upcoming a yearly plan renews on a date: the charge, the card, how
+ *                    to cancel (the notice automatic-renewal laws ask for)
  *   cancel_scheduled it ends at the period end; access until then; keep link
  *   cancelled        it has ended (and why, when payments stopped it)
  *   paused/resumed   confirmation
@@ -292,6 +294,29 @@ export const onSubscriptionTrialEnding = internalMutation({
         ? `Your first charge, ${next} with your discount, runs that day. Your plan is ${amount} ${cadence}.`
         : `Your first charge of ${amount} runs that day, then ${amount} ${cadence}.`;
     await queue(ctx, args.eventId, "subscription-trial-ending", context);
+    return null;
+  },
+});
+
+export const onSubscriptionRenewalUpcoming = internalMutation({
+  args: { eventId: v.id("events") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const context = await loadContext(ctx, args.eventId);
+    if (!context) return null;
+    const { subscription, variables } = context;
+    // Told about one renewal only: a contract that has since cancelled, paused
+    // or moved its renewal date gets no stale notice.
+    const renewsAt = payloadNumber(context.payload, "renewsAt");
+    if (subscription.status !== "active" || subscription.cancelAtPeriodEnd || renewsAt !== subscription.nextBillingAt) return null;
+    const { amount, cadence, next_charge_amount: next } = variables;
+    const card = subscription.paymentMethodSummary;
+    const onCard = card ? `your ${card.brand} card ending in ${card.last4}` : "your card on file";
+    variables.charge_note =
+      next !== amount
+        ? `We'll charge ${next}, with your discount, to ${onCard}. Your plan is ${amount} ${cadence}.`
+        : `We'll charge ${amount} to ${onCard}.`;
+    await queue(ctx, args.eventId, "subscription-renewal-upcoming", context);
     return null;
   },
 });

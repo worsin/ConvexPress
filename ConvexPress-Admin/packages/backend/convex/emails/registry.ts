@@ -396,6 +396,13 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
     description: "Trial-ending reminder for subscriptions.",
   },
   {
+    slug: "subscription-renewal-upcoming",
+    category: "subscription",
+    triggerKind: "event",
+    canonicalEventCode: "commerce.subscription_renewal_upcoming",
+    description: "Renewal notice before a yearly (or longer) plan renews.",
+  },
+  {
     slug: "subscription-cancelled",
     category: "subscription",
     triggerKind: "event",
