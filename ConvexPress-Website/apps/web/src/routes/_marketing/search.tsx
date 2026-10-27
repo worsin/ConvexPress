@@ -12,6 +12,7 @@ import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 import { useLiveSearchResults } from "@/lib/blog/useLiveSearchResults";
 import CoreSearch from "@/templates/packs/core/surfaces/search";
 import { Surface } from "@/templates/sdk/Surface";
+import { pageParam } from "@/lib/page-param";
 
 /** Content type filter for search API */
 type SearchContentType = "post" | "page" | "media" | "course" | "product" | "comment";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/_marketing/search")({
   component: SearchPage,
   validateSearch: (search: Record<string, unknown>): SearchPageParams => ({
     q: typeof search.q === "string" ? search.q : undefined,
-    page: Number(search.page) || 1,
+    ...pageParam(search.page),
     type: typeof search.type === "string" ? search.type : undefined,
     sort: typeof search.sort === "string" ? search.sort : undefined,
   }),

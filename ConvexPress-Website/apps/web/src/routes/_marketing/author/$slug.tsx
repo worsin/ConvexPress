@@ -16,6 +16,7 @@ import { siteTitled } from "@/lib/seo/head";
 import CoreBlogAuthor from "@/templates/packs/core/surfaces/blog.author";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import { Surface } from "@/templates/sdk/Surface";
+import { pageParam } from "@/lib/page-param";
 
 interface AuthorSearchParams {
   page?: number;
@@ -23,9 +24,7 @@ interface AuthorSearchParams {
 
 export const Route = createFileRoute("/_marketing/author/$slug")({
   component: AuthorArchive,
-  validateSearch: (search: Record<string, unknown>): AuthorSearchParams => ({
-    page: Number(search.page) || 1,
-  }),
+  validateSearch: (search: Record<string, unknown>): AuthorSearchParams => pageParam(search.page),
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     // Pre-fetch author profile for SSR
     await queryClient.ensureQueryData(

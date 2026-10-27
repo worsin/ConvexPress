@@ -45,7 +45,7 @@ export default function DepotSearch({ data }: SurfaceProps<SearchSurfaceData>) {
   const navigate = useNavigate();
 
   const go = (next: { type?: string; sort?: string; page?: number }) => {
-    void navigate({ to: "/search", search: { q: query ?? "", type: next.type ?? type, sort: next.sort ?? sort, page: next.page ?? 1 } });
+    void navigate({ to: "/search", search: { q: query ?? "", type: next.type ?? type, sort: next.sort ?? sort, ...(next.page && next.page > 1 ? { page: next.page } : {}) } });
   };
 
   return (
