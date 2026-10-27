@@ -3,7 +3,7 @@ import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { useLayoutShell, useMobileNavTrigger } from "@/hooks/layout/useLayoutShell";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import type { HeaderConfig, LayoutConfig, ResolvedMenu, SiteIdentity } from "@/lib/layout/types";
 
@@ -30,7 +30,8 @@ interface SiteHeaderProps {
  * Falls back to standard layout when no config is stored.
  */
 export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: headerConfigProp }: SiteHeaderProps) {
-  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
+  const { searchOpen, closeSearch } = useLayoutShell();
+  const mobileNavTrigger = useMobileNavTrigger();
   const storedHeaderConfig = useHeaderConfig();
   const headerConfig = headerConfigProp ?? storedHeaderConfig;
 
@@ -84,7 +85,7 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
           mobileToggle={
             <button
               type="button"
-              onClick={toggleMobileNav}
+              {...mobileNavTrigger}
               className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
               data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
             >

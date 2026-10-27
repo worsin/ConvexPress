@@ -7,8 +7,12 @@ mock.module('@/templates/packs/core/surfaces/chrome.cartDrawer', () => ({ defaul
 mock.module('@/templates/sdk/registry', () => ({ DEFAULT_TEMPLATE_CONFIG:{active:'core',overrides:{},variants:{},settings:{}},TEMPLATE_PACKS:new Map(),getTemplatePack:()=>undefined,listTemplatePacks:()=>[],resolveSurface:()=>({packId:'core',component:null}),resolveVariant:()=>undefined,prepareTemplateHydration:async()=>{} }));
 export const identity = { title:'Brand title fixture', tagline:'Brand tagline fixture', logoUrl:'https://example.org/logo.svg', logoAlt:'Brand logo fixture' };
 const noop = () => {};
-export const shellState = { isScrolled:false,toggleMobileNav:noop,searchOpen:false,closeSearch:noop,toggleSearch:noop };
-mock.module('@/hooks/layout/useLayoutShell', () => ({ useLayoutShell: () => shellState }));
+export const shellState = { isScrolled:false,mobileNavOpen:false,toggleMobileNav:noop,searchOpen:false,closeSearch:noop,toggleSearch:noop };
+mock.module('@/hooks/layout/useLayoutShell', () => ({
+  MOBILE_NAV_ID: 'site-mobile-nav',
+  useLayoutShell: () => shellState,
+  useMobileNavTrigger: () => ({ onClick: (...args) => shellState.toggleMobileNav(...args), 'aria-expanded': shellState.mobileNavOpen, 'aria-haspopup': 'dialog', 'aria-controls': 'site-mobile-nav' }),
+}));
 mock.module('@/hooks/layout/useHeaderConfig', () => ({ useHeaderConfig: () => undefined }));
 mock.module('@/hooks/useCart', () => ({ useCart: () => ({ enabled:false,cart:null }) }));
 mock.module('@/hooks/useCommerceSessionToken', () => ({ useCommerceSessionToken: () => ({sessionToken:null,isReady:false}) }));

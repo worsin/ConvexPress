@@ -23,7 +23,7 @@ import { HeaderTopBar } from "@/components/layout/HeaderTopBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { WebsiteNotificationBell } from "@/components/layout/WebsiteNotificationBell";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { useLayoutShell, useMobileNavTrigger } from "@/hooks/layout/useLayoutShell";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/lib/auth/clerk";
 import { DROPDOWN_TIMING } from "@/lib/layout/constants";
@@ -39,7 +39,8 @@ import { Container } from "../parts";
 
 export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const { siteIdentity, menu, layoutConfig, headerConfig } = data;
-  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
+  const { searchOpen, closeSearch } = useLayoutShell();
+  const mobileNavTrigger = useMobileNavTrigger();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   const stickyMode = headerConfig.layout.sticky;
@@ -52,7 +53,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
 
   const mobileToggle = (<button
             type="button"
-            onClick={toggleMobileNav}
+            {...mobileNavTrigger}
             className="-ml-2 flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
             data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
           >
