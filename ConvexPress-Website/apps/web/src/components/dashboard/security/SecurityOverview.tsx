@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { AccountProtection } from "@/components/dashboard/security/AccountProtection";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -115,7 +116,17 @@ function DeviceIcon({
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
+/** Two-step verification and signed-in devices (with Clerk), then the sign-in history. */
 export function SecurityOverview() {
+  return (
+    <div className="space-y-6">
+      <AccountProtection />
+      <SignInHistory />
+    </div>
+  );
+}
+
+function SignInHistory() {
   const securityData = useQuery(
     api.authTracking.queries.getSecurityOverview,
     { loginLimit: 20, failedLimit: 10 },
