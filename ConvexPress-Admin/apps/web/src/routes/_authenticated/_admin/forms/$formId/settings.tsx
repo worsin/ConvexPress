@@ -35,6 +35,7 @@ interface FormSettings {
   requireLogin?: boolean | null;
   loginRequired?: boolean | null;
   requireAccountToSubmit?: boolean | null;
+  reviewStep?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -54,6 +55,7 @@ const ACCOUNT_MODES: ReadonlyArray<{ value: AccountMode; title: string; descript
 interface SettingsDraft {
   disabled: boolean;
   accountMode: AccountMode;
+  reviewStep: boolean;
   orderFormEnabled: boolean;
   showOrderSummary: boolean;
   orderSummaryTitle: string;
@@ -96,6 +98,7 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   const [draft, setDraft] = useState<SettingsDraft>({
     disabled: false,
     accountMode: "none",
+    reviewStep: false,
     orderFormEnabled: false,
     showOrderSummary: true,
     orderSummaryTitle: "Order summary",
@@ -122,6 +125,7 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
           : parsed.requireAccountToSubmit === true
             ? "at_end"
             : "none",
+      reviewStep: parsed.reviewStep === true,
       orderFormEnabled: orderForm.enabled,
       showOrderSummary: orderForm.showSummary,
       orderSummaryTitle: orderForm.summaryTitle,
@@ -264,6 +268,20 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
                 </label>
               ))}
             </fieldset>
+
+            <label className="flex items-start gap-3 rounded-lg border border-border p-4 md:col-span-2">
+              <Checkbox
+                checked={draft.reviewStep}
+                onCheckedChange={(checked) => setDraft((prev) => ({ ...prev, reviewStep: checked === true }))}
+                disabled={!canUpdate || isSaving}
+              />
+              <span className="grid gap-1">
+                <span className="text-sm font-medium text-foreground">Review before submitting</span>
+                <span className="text-xs text-muted-foreground">
+                  After the last page, show every answer with an Edit link to its page, so visitors can check them before they submit (and pay).
+                </span>
+              </span>
+            </label>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -448,6 +466,8 @@ function buildSettings(base: FormSettings, draft: SettingsDraft): FormSettings {
 
   if (draft.disabled) next.disabled = true;
   else delete next.disabled;
+  if (draft.reviewStep) next.reviewStep = true;
+  else delete next.reviewStep;
 
   const start = fromDateTimeLocal(draft.scheduleStart);
   const end = fromDateTimeLocal(draft.scheduleEnd);

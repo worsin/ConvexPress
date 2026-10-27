@@ -108,6 +108,8 @@ export interface FormSettings {
    * the form itself, before payment. Ignored when `requireLogin` is set.
    */
   requireAccountToSubmit?: boolean | null;
+  /** The website shows every answer for review, with an Edit link per page, before the final submit. */
+  reviewStep?: boolean | null;
   confirmationRef?: string | null;
   notificationRefs?: string[] | null;
   [key: string]: unknown;
@@ -177,13 +179,13 @@ export function formRequiresLogin(settings: FormSettings): boolean {
 
 /**
  * The settings a public form read may expose: what the website renders from
- * (availability, sign-in requirements, order-form copy). Notification and
+ * (availability, sign-in requirements, the review step, order-form copy). Notification and
  * confirmation references and any other administrative key stay private.
  * Extracted key by key, so one malformed legacy value never hides the rest.
  */
 export function publicFormSettingsJson(settings: FormSettings): string {
   const out: Record<string, unknown> = {};
-  for (const key of ["disabled", "requireLogin", "loginRequired", "requireAccountToSubmit"] as const) {
+  for (const key of ["disabled", "requireLogin", "loginRequired", "requireAccountToSubmit", "reviewStep"] as const) {
     if (typeof settings[key] === "boolean") out[key] = settings[key];
   }
   for (const key of ["scheduleStart", "scheduleEnd"] as const) {
@@ -277,7 +279,7 @@ function validateFormSettings(parsed: unknown): string | null {
   }
   const settings = parsed as FormSettings;
 
-  const boolKeys = ["disabled", "requireLogin", "loginRequired", "requireAccountToSubmit"] as const;
+  const boolKeys = ["disabled", "requireLogin", "loginRequired", "requireAccountToSubmit", "reviewStep"] as const;
   for (const key of boolKeys) {
     const value = settings[key];
     if (value !== undefined && value !== null && typeof value !== "boolean") {
