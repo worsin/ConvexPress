@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { brotliDecompressSync, gunzipSync } from "node:zlib";
 
 import {
   clerkFrontendApi,
+  compressedFiles,
+  compressible,
   contentSecurityPolicy,
   cspReportLogger,
   cspViolations,
   readConfig as readSiteConfig,
+  preferredEncoding,
   securityHeaders,
   staticFile,
 } from "./serve.mjs";
@@ -118,5 +122,39 @@ describe("self-hosted website runtime", () => {
     clock += 31 * 60 * 1000;
     log([violation]);
     expect(lines).toHaveLength(2);
+  });
+});
+
+describe("compressed static assets", () => {
+  test("sends Brotli when the browser takes it, else gzip, else the file as stored", () => {
+    expect(preferredEncoding("gzip, deflate, br, zstd")).toBe("br");
+    expect(preferredEncoding("gzip, deflate")).toBe("gzip");
+    expect(preferredEncoding("br;q=0, gzip;q=0.8")).toBe("gzip");
+    expect(preferredEncoding("identity")).toBeNull();
+    expect(preferredEncoding(null)).toBeNull();
+  });
+
+  test("compresses text formats of 1 KiB and up, not images or fonts", () => {
+    expect(compressible("/assets/main-abc.css", 470_000)).toBe(true);
+    expect(compressible("/assets/main-abc.js", 2_000)).toBe(true);
+    expect(compressible("/logo.svg", 5_000)).toBe(true);
+    expect(compressible("/assets/tiny.js", 600)).toBe(false);
+    expect(compressible("/assets/photo.jpg", 400_000)).toBe(false);
+    expect(compressible("/assets/inter.woff2", 50_000)).toBe(false);
+  });
+
+  test("each file is compressed once per encoding and decompresses to the original", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "serve-compress-"));
+    const path = join(dir, "app.js");
+    const source = "export const greeting = 'hello';\n".repeat(400);
+    writeFileSync(path, source);
+    const compressed = compressedFiles();
+    const stat = statSync(path);
+    const br = await compressed(path, "br", stat);
+    const gz = await compressed(path, "gzip", stat);
+    expect(brotliDecompressSync(br).toString()).toBe(source);
+    expect(gunzipSync(gz).toString()).toBe(source);
+    expect(br.byteLength).toBeLessThan(source.length / 10);
+    expect(compressed(path, "br", stat)).toBe(compressed(path, "br", stat));
   });
 });
