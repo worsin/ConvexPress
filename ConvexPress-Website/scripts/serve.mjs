@@ -22,6 +22,9 @@
 //   plus whatever the site declares under "start" in apps/web/site-env.json
 //
 // GET /healthz answers 200 without touching the backend.
+// POST /__csp-report takes the browser's Content-Security-Policy violation
+// reports (the policy's report-uri) and logs each distinct one once an hour,
+// with no query strings, so a site can see what enforcing would break.
 // ============================================================================
 
 import { existsSync, statSync } from "node:fs";
@@ -108,13 +111,14 @@ export function contentSecurityPolicy(config) {
   const directives = {
     "default-src": ["'self'"],
     // TanStack Start streams inline hydration scripts; nonces are a follow-up.
-    "script-src": ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://challenges.cloudflare.com", ...(clerk ? [clerk] : [])],
+    "script-src": ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://*.js.stripe.com", "https://challenges.cloudflare.com", ...(clerk ? [clerk] : [])],
     "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
     "img-src": ["'self'", "data:", "blob:", "https:"],
     "media-src": ["'self'", "blob:", "https:"],
     "connect-src": ["'self'", ...convex, ...convexSite, "https://api.stripe.com", "https://*.stripe.com", ...(clerk ? [clerk] : []), "https://clerk-telemetry.com"],
-    "frame-src": ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://challenges.cloudflare.com", ...(clerk ? [clerk] : [])],
+    // Stripe.js's documented hosts: its frames come from js.stripe.com and *.js.stripe.com.
+    "frame-src": ["'self'", "https://js.stripe.com", "https://*.js.stripe.com", "https://hooks.stripe.com", "https://challenges.cloudflare.com", ...(clerk ? [clerk] : [])],
     "worker-src": ["'self'", "blob:"],
     "form-action": ["'self'", ...(clerk ? [clerk] : [])],
     "base-uri": ["'self'"],
@@ -128,10 +132,83 @@ export function contentSecurityPolicy(config) {
   }
   const render = (names) => names.map((name) => `${name} ${[...new Set(directives[name])].join(" ")}`).join("; ");
   const always = ["frame-ancestors", "base-uri", "object-src"];
+  const report = `; report-uri ${CSP_REPORT_PATH}`;
   return {
-    enforced: render(config.cspEnforce ? Object.keys(directives) : always),
-    reportOnly: config.cspEnforce ? undefined : render(Object.keys(directives).filter((name) => !always.includes(name))),
+    enforced: render(config.cspEnforce ? Object.keys(directives) : always) + report,
+    reportOnly: config.cspEnforce ? undefined : render(Object.keys(directives).filter((name) => !always.includes(name))) + report,
   };
+}
+
+export const CSP_REPORT_PATH = "/__csp-report";
+const MAX_REPORT_BYTES = 16 * 1024;
+const REPORT_QUIET_MS = 60 * 60 * 1000;
+
+/** A URL as an origin and path only: reports never log query strings or fragments. */
+function withoutQuery(value) {
+  if (typeof value !== "string" || value === "") return "";
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(value)) return value.slice(0, 40);
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? `${url.origin}${url.pathname}` : url.protocol.replace(/:$/, "");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * The violations in a report body: report-uri sends {"csp-report": {...}};
+ * the Reporting API sends [{type: "csp-violation", body: {...}}].
+ */
+export function cspViolations(body) {
+  const entries = Array.isArray(body) ? body.filter((entry) => entry?.type === "csp-violation").map((entry) => entry.body) : [body?.["csp-report"]];
+  return entries
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry) => ({
+      disposition: entry.disposition === "enforce" ? "enforce" : "report",
+      directive: String(entry["effective-directive"] ?? entry.effectiveDirective ?? entry["violated-directive"] ?? "").slice(0, 60),
+      blocked: withoutQuery(entry["blocked-uri"] ?? entry.blockedURL),
+      page: (() => {
+        const page = withoutQuery(entry["document-uri"] ?? entry.documentURL);
+        try {
+          return new URL(page).pathname;
+        } catch {
+          return page;
+        }
+      })(),
+      source: withoutQuery(entry["source-file"] ?? entry.sourceFile),
+    }))
+    .filter((violation) => violation.directive !== "");
+}
+
+/** Logs each distinct violation at most once per quiet period; returns the lines it logged. */
+export function cspReportLogger(log = console.warn, now = () => Date.now()) {
+  const lastLogged = new Map();
+  return (violations) => {
+    const lines = [];
+    for (const violation of violations) {
+      const line = `[csp] ${violation.disposition} ${violation.directive} blocked ${violation.blocked || "(inline)"} on ${violation.page}${violation.source ? ` from ${violation.source}` : ""}`;
+      const last = lastLogged.get(line);
+      if (last !== undefined && now() - last < REPORT_QUIET_MS) continue;
+      if (lastLogged.size > 500) lastLogged.clear();
+      lastLogged.set(line, now());
+      log(line);
+      lines.push(line);
+    }
+    return lines;
+  };
+}
+
+/** Read a CSP report request: JSON under the size limit, or nothing. */
+export async function readCspReport(request) {
+  const length = Number(request.headers.get("content-length") ?? 0);
+  if (length > MAX_REPORT_BYTES) return [];
+  const text = await request.text();
+  if (text.length > MAX_REPORT_BYTES) return [];
+  try {
+    return cspViolations(JSON.parse(text));
+  } catch {
+    return [];
+  }
 }
 
 export function securityHeaders(config) {
@@ -183,6 +260,7 @@ async function main() {
   }
   const { default: app } = await import(pathToFileURL(SERVER_ENTRY).href);
   const headers = securityHeaders(config);
+  const logCspReport = cspReportLogger();
 
   const server = Bun.serve({
     hostname: config.host,
@@ -191,6 +269,11 @@ async function main() {
       const url = new URL(request.url);
       if (url.pathname === "/healthz") {
         return new Response("ok\n", { headers: { "Content-Type": "text/plain", "Cache-Control": "no-store", ...headers } });
+      }
+      if (url.pathname === CSP_REPORT_PATH) {
+        if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST", ...headers } });
+        logCspReport(await readCspReport(request));
+        return new Response(null, { status: 204, headers: { "Cache-Control": "no-store", ...headers } });
       }
       if (request.method === "GET" || request.method === "HEAD") {
         const file = url.pathname === "/" ? null : staticFile(CLIENT_DIR, url.pathname);
