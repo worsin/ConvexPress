@@ -84,8 +84,11 @@ export function LoginForm({ returnTo = afterSignInPath(), className, onSignedIn,
           : /too_many|rate/i.test(codeName)
             ? "rate_limited"
             : "unknown";
+    // Attempts are kept by email; a phone number or username isn't one.
+    const email = identifier.trim();
+    if (!email.includes("@")) return;
     void recordFailedLogin({
-      email: identifier.trim() || "unknown",
+      email,
       reason,
       app: "website" as const,
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,

@@ -62,7 +62,6 @@ export const recordFailedLoginArgs = {
   email: v.string(),
   reason: failureReasonValidator,
   app: appIdentifierValidator,
-  ip: v.optional(v.string()),
   userAgent: v.optional(v.string()),
   description: v.optional(v.string()),
 };
