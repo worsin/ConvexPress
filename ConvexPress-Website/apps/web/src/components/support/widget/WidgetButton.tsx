@@ -26,6 +26,8 @@ export function WidgetButton({
     <button
       type="button"
       onClick={onClick}
+      data-slot="support-widget-launcher"
+      data-state={isOpen ? "open" : "closed"}
       aria-label={isOpen ? "Close support widget" : "Open support widget"}
       className={cn(
         "fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg",
