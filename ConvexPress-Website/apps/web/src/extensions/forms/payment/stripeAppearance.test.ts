@@ -25,7 +25,7 @@ describe("stripeAppearance", () => {
 describe("stripeFonts", () => {
   test("loads the body font from Google Fonts inside Stripe's frame", () => {
     expect(stripeFonts("Inter")).toEqual([{ cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" }]);
-    expect(stripeFonts("Source Sans 3")[0]?.cssSrc).toContain("family=Source+Sans+3:");
+    expect(stripeFonts("Source Sans 3")).toEqual([{ cssSrc: "https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600&display=swap" }]);
   });
   test("nothing for a missing or unusual family name", () => {
     expect(stripeFonts(undefined)).toEqual([]);
