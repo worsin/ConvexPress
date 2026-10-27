@@ -21,6 +21,8 @@ const modules = {
   "./convex/commerceSubscriptions/offers.ts": () => import("../../commerceSubscriptions/offers"),
   "./convex/commerceSubscriptions/mutations.ts": () => import("../../commerceSubscriptions/mutations"),
   "./convex/commerceSubscriptions/templates.ts": () => import("../../commerceSubscriptions/templates"),
+  "./convex/commerceSubscriptions/adminContracts.ts": () => import("../../commerceSubscriptions/adminContracts"),
+  "./convex/commerceSubscriptions/coupons.ts": () => import("../../commerceSubscriptions/coupons"),
 };
 
 const CAPABILITIES = [
@@ -112,4 +114,52 @@ test("the admin's editors can show the note, and the site can hand a record back
   expect(await f.t.mutation(internal.managedRecords.internals.clearManaged, { tableName: "form", recordId: f.ids.form })).toEqual({ changed: true });
   await f.admin.mutation(api.extensions.forms.mutations.update, { id: f.ids.form, title: "Renamed" });
   expect((await f.t.run(async (ctx) => ctx.db.get("forms", f.ids.form)))?.title).toBe("Renamed");
+});
+
+async function billingFixture() {
+  const f = await fixture();
+  const ids = await f.t.run(async (ctx) => {
+    const customer = await ctx.db.insert("users", { email: "doctor@example.invalid", authSource: "local", status: "active", emailVerified: true, createdAt: 1, updatedAt: 1 });
+    const subscription = await ctx.db.insert("commerce_subscriptions", {
+      userId: customer, sourceChannel: "direct_form", templateId: f.ids.template, status: "active", currencyCode: "USD", recurringAmount: 29_900,
+      billingInterval: "month", billingIntervalCount: 1, currentPeriodStartAt: 1, currentPeriodEndAt: 2_000_000_000_000, nextBillingAt: 2_000_000_000_000,
+      createdAt: 1, updatedAt: 1,
+    });
+    await ctx.db.insert("commerce_subscription_items", {
+      subscriptionId: subscription, sourceOfferId: f.ids.offer, titleSnapshot: "Practice", quantity: 1, unitAmount: 29_900, currencyCode: "USD",
+      status: "active", createdAt: 1, updatedAt: 1,
+    });
+    const invoice = await ctx.db.insert("commerce_subscription_invoices", {
+      subscriptionId: subscription, status: "paid", invoiceNumber: "INV-000001", kind: "renewal", currencyCode: "USD", subtotalAmount: 29_900,
+      taxAmount: 0, totalAmount: 29_900, paymentTransactionId: "pi_paid", paidAt: 1, createdAt: 1, updatedAt: 1,
+    });
+    return { customer, subscription, invoice };
+  });
+  const customer = f.t.withIdentity({ subject: ids.customer, tokenIdentifier: `https://convexpress-admin.local|${ids.customer}` });
+  await f.t.mutation(internal.managedRecords.internals.setManaged, {
+    tableName: "area", recordId: "subscriberBilling", system: "the CaseMedix CRM", note: "Open the subscriber in the CRM.",
+  });
+  return { ...f, billing: ids, customer };
+}
+
+test("when another system handles subscriber billing, staff can't change a subscriber's billing here", async () => {
+  const f = await billingFixture();
+  const { subscription, invoice } = f.billing;
+  const elsewhere = /Subscriber billing is managed by the CaseMedix CRM, so it can't be changed here\. Open the subscriber in the CRM\./;
+  const refused = [
+    () => f.admin.mutation(api.commerceSubscriptions.adminContracts.refundInvoice, { invoiceId: invoice, reason: "Goodwill" }),
+    () => f.admin.mutation(api.commerceSubscriptions.adminContracts.retryPayment, { subscriptionId: subscription }),
+    () => f.admin.mutation(api.commerceSubscriptions.adminContracts.changePlan, { subscriptionId: subscription, toOfferId: f.ids.offer }),
+    () => f.admin.mutation(api.commerceSubscriptions.mutations.pause, { subscriptionId: subscription }),
+    () => f.admin.mutation(api.commerceSubscriptions.mutations.scheduleCancel, { subscriptionId: subscription }),
+    () => f.admin.mutation(api.commerceSubscriptions.mutations.cancelNow, { subscriptionId: subscription }),
+    () => f.admin.mutation(api.commerceSubscriptions.mutations.grantEntitlement, { subscriptionId: subscription, entitlementCode: "extra" }),
+    () => f.admin.mutation(api.commerceSubscriptions.coupons.redeemCouponForContract, { contractId: subscription, couponCode: "WELCOME" }),
+  ];
+  for (const attempt of refused) await expect(attempt()).rejects.toThrow(elsewhere);
+  expect((await f.t.run((ctx) => ctx.db.get("commerce_subscriptions", subscription)))?.status).toBe("active");
+
+  // The subscriber still manages their own subscription.
+  await f.customer.mutation(api.commerceSubscriptions.mutations.scheduleCancel, { subscriptionId: subscription });
+  expect((await f.t.run((ctx) => ctx.db.get("commerce_subscriptions", subscription)))?.status).toBe("pending_cancel");
 });

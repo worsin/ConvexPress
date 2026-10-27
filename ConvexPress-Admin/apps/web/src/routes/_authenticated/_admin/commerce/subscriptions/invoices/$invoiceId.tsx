@@ -13,6 +13,8 @@ import { api } from "@backend/convex/_generated/api";
 import { asId, cn } from "@/lib/utils";
 import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { RefundForm } from "@/components/subscriptions/RefundForm";
+import { ManagedRecordNotice } from "@/components/shared/ManagedRecord";
+import { useSubscriberBillingElsewhere } from "@/components/shared/useManagedRecord";
 import {
   describeFailure,
   formatDate,
@@ -34,6 +36,7 @@ function InvoiceDetailPage() {
   const invoice = useQuery(api.commerceSubscriptions.adminContracts.getInvoiceDetail, { invoiceId });
   useBreadcrumbTitle(rawId, invoice?.invoiceNumber);
   const [refunding, setRefunding] = useState(false);
+  const billingElsewhere = useSubscriberBillingElsewhere();
 
   if (invoice === undefined) {
     return (
@@ -131,7 +134,7 @@ function InvoiceDetailPage() {
           <section className="space-y-3 rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Refunds</h2>
-              {invoice.refundableAmount > 0 && !refunding ? (
+              {!billingElsewhere && invoice.refundableAmount > 0 && !refunding ? (
                 <button
                   type="button"
                   onClick={() => setRefunding(true)}
@@ -141,6 +144,9 @@ function InvoiceDetailPage() {
                 </button>
               ) : null}
             </div>
+            {billingElsewhere && invoice.refundableAmount > 0 ? (
+              <ManagedRecordNotice managed={billingElsewhere} what="Subscriber billing" className="rounded-xl p-3" />
+            ) : null}
             {refunding ? (
               <RefundForm invoiceId={invoice._id} refundableAmount={invoice.refundableAmount} currencyCode={invoice.currencyCode} onClose={() => setRefunding(false)} />
             ) : null}

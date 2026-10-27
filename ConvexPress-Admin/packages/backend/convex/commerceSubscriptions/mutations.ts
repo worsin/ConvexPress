@@ -47,7 +47,7 @@ import {
 } from "./pricing";
 import { subscriptionIntervalValidator } from "./validators";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
-import { assertNotManaged } from "../managedRecords/helpers";
+import { assertAreaNotManaged, assertNotManaged } from "../managedRecords/helpers";
 import {
 	addBillingPeriod,
 	addDays,
@@ -592,6 +592,7 @@ export const create = mutation({
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const actor = await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		const sourceMetadata = parseOptionalJsonObjectArgument(args.sourceMetadataJson, "sourceMetadataJson");
 
 		const correlationId = createCorrelationId();
@@ -862,6 +863,8 @@ export const pause = mutation({
 				message: "Access denied.",
 			});
 		}
+		// Staff acting for a subscriber; a subscriber's own changes stay theirs.
+		if (subscription.userId !== user._id) await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		assertOwnerMayTransition(isAdmin, subscription.status, OWNER_PAUSABLE, "pause");
 
 		return transitionSubscription(ctx, {
@@ -917,6 +920,8 @@ export const resume = mutation({
 				message: "Access denied.",
 			});
 		}
+		// Staff acting for a subscriber; a subscriber's own changes stay theirs.
+		if (subscription.userId !== user._id) await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		assertOwnerMayTransition(isAdmin, subscription.status, OWNER_RESUMABLE, "resume");
 
 		const now = Date.now();
@@ -981,6 +986,8 @@ export const scheduleCancel = mutation({
 				message: "Access denied.",
 			});
 		}
+		// Staff acting for a subscriber; a subscriber's own changes stay theirs.
+		if (subscription.userId !== user._id) await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		assertOwnerMayTransition(
 			isAdmin,
 			subscription.status,
@@ -1045,6 +1052,8 @@ export const cancelNow = mutation({
 				message: "Access denied.",
 			});
 		}
+		// Staff acting for a subscriber; a subscriber's own changes stay theirs.
+		if (subscription.userId !== user._id) await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 
 		return transitionSubscription(ctx, {
 			subscription,
@@ -1072,6 +1081,7 @@ export const updateSubscription = mutation({
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const actor = await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 
 		const subscription = await ctx.db.get(args.subscriptionId);
 		if (!subscription) {
@@ -1124,6 +1134,7 @@ export const grantEntitlement = mutation({
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 
 		const subscription = await ctx.db.get(args.subscriptionId);
 		if (!subscription) {
@@ -1166,6 +1177,7 @@ export const revokeEntitlement = mutation({
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
 		await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 
 		const entitlement = await ctx.db.get(args.entitlementId);
 		if (!entitlement) {

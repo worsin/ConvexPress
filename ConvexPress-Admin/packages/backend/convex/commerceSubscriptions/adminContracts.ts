@@ -25,6 +25,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { assertAreaNotManaged } from "../managedRecords/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import {
 	commerceSubscriptionInvoiceStatusValidator,
@@ -704,6 +705,7 @@ export const refundInvoice = mutation({
 	handler: async (ctx, args): Promise<{ refundKey: string; amount: number }> => {
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const user = await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		const reason = args.reason.trim();
 		if (reason.length === 0) throw new ConvexError({ code: "VALIDATION_ERROR", message: "A reason is required." });
 		return await ctx.runMutation(internal.commerceSubscriptions.operator.requestInvoiceRefund, {
@@ -722,6 +724,7 @@ export const retryPayment = mutation({
 	handler: async (ctx, args): Promise<{ scheduled: boolean }> => {
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const user = await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		return await ctx.runMutation(internal.commerceSubscriptions.operator.retryPaymentNow, {
 			subscriptionId: args.subscriptionId,
 			actorRef: actorRef(user._id),
@@ -739,6 +742,7 @@ export const changePlan = mutation({
 	handler: async (ctx, args): Promise<{ mode: "upgrade" | "downgrade"; invoiceId?: Id<"commerce_subscription_invoices"> }> => {
 		await requireCommerceSubscriptionsEnabled(ctx);
 		const user = await requireCan(ctx, "manage_options");
+		await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
 		const contract = await ctx.db.get(args.subscriptionId);
 		if (!contract) throw new ConvexError({ code: "NOT_FOUND", message: "Subscription not found." });
 		const plan = await currentPlan(ctx, contract);

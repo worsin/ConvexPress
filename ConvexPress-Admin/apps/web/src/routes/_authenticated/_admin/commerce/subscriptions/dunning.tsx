@@ -4,7 +4,8 @@
  * Every past-due contract: what is owed, why the card failed, when the next
  * automatic retry runs and how long the customer keeps access. "Retry now"
  * charges the card on file immediately (useful once the customer says they
- * fixed it). Below, the log of recent payment attempts.
+ * fixed it); it is hidden when another system handles subscriber billing.
+ * Below, the log of recent payment attempts.
  *
  * Data: `adminContracts.listDunningQueue`, `adminContracts.retryPayment` and
  * `adminContracts.listRecentAttempts`.
@@ -19,6 +20,8 @@ import { CheckCircle2, ChevronRight, RefreshCw } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { cn, getErrorMessage } from "@/lib/utils";
+import { ManagedRecordNotice } from "@/components/shared/ManagedRecord";
+import { useSubscriberBillingElsewhere } from "@/components/shared/useManagedRecord";
 import {
   describeFailure,
   formatDate,
@@ -43,6 +46,7 @@ const ATTEMPT_TONE: Record<"scheduled" | "processing" | "failed" | "succeeded" |
 function FailedPaymentsPage() {
   const queue = useQuery(api.commerceSubscriptions.adminContracts.listDunningQueue, {});
   const attempts = useQuery(api.commerceSubscriptions.adminContracts.listRecentAttempts, { limit: 50 });
+  const billingElsewhere = useSubscriberBillingElsewhere();
   const owed = (queue ?? []).reduce((sum, row) => sum + (row.billingIssue?.amountDue ?? 0), 0);
 
   return (
@@ -68,11 +72,14 @@ function FailedPaymentsPage() {
             <CheckCircle2 className="h-5 w-5 text-emerald-600" /> No subscription is past due.
           </div>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            {queue.map((row) => (
-              <PastDueRow key={row._id} row={row} />
-            ))}
-          </ul>
+          <>
+            {billingElsewhere ? <ManagedRecordNotice managed={billingElsewhere} what="Subscriber billing" /> : null}
+            <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+              {queue.map((row) => (
+                <PastDueRow key={row._id} row={row} canRetry={!billingElsewhere} />
+              ))}
+            </ul>
+          </>
         )}
       </section>
 
@@ -129,7 +136,7 @@ function FailedPaymentsPage() {
   );
 }
 
-function PastDueRow({ row }: { row: ContractRow }) {
+function PastDueRow({ row, canRetry }: { row: ContractRow; canRetry: boolean }) {
   const retry = useMutation(api.commerceSubscriptions.adminContracts.retryPayment);
   const [busy, setBusy] = useState(false);
   const issue = row.billingIssue;
@@ -166,14 +173,16 @@ function PastDueRow({ row }: { row: ContractRow }) {
           {issue?.accessEndsAt ? ` · access until ${formatDate(issue.accessEndsAt)}` : ""}
         </p>
       </div>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void retryNow(row._id)}
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
-        <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} /> Retry now
-      </button>
+      {canRetry ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void retryNow(row._id)}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} /> Retry now
+        </button>
+      ) : null}
     </li>
   );
 }

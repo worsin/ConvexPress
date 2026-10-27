@@ -1945,7 +1945,7 @@ export declare const api:
 {
 "queries":
 {
-"forRecord": FunctionReference<"query", "public", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate", recordId: string }, null | { system: string, note: string }>,
+"forRecord": FunctionReference<"query", "public", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area", recordId: string }, null | { system: string, note: string }>,
 }
 ,
 }
@@ -4186,8 +4186,8 @@ export declare const internal:
 {
 "internals":
 {
-"clearManaged": FunctionReference<"mutation", "internal", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate", recordId: string }, { changed: boolean }>,
-"setManaged": FunctionReference<"mutation", "internal", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate", recordId: string, system: string, note: string }, { changed: boolean }>,
+"clearManaged": FunctionReference<"mutation", "internal", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area", recordId: string }, { changed: boolean }>,
+"setManaged": FunctionReference<"mutation", "internal", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area", recordId: string, system: string, note: string }, { changed: boolean }>,
 }
 ,
 }

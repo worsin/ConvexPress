@@ -1,12 +1,17 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
-/** Kinds of record a site's own code can manage (forms, field groups, subscription offers and templates). */
+/**
+ * Kinds of record a site's own code can manage: forms, field groups,
+ * subscription offers and templates, or a whole `area` of the admin, keyed by
+ * name (MANAGED_AREAS in managedRecords/helpers.ts).
+ */
 export const managedTableValidator = v.union(
   v.literal("form"),
   v.literal("fieldGroup"),
   v.literal("subscriptionOffer"),
   v.literal("subscriptionTemplate"),
+  v.literal("area"),
 );
 
 /**
