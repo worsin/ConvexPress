@@ -4,7 +4,6 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { StrictMode } from "react";
 import {
-  HeadContent,
   Outlet,
   Scripts,
   createRootRouteWithContext,
@@ -37,10 +36,11 @@ import "../index.css";
 import "../templates/sdk/block-renderer/critical-styles";
 // The body face's Latin file, the one page text uses (index.css self-hosts it).
 import bodyFontLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
-import { effectiveRobots, rememberSearchVisibility, resolveSiteName, rememberSiteName, siteTitled } from "@/lib/seo/head";
+import { effectiveRobots, rememberSearchVisibility, resolveSiteName, rememberSiteName } from "@/lib/seo/head";
 import { loadSiteShare } from "@/lib/seo/loadSiteShare";
 import { siteShareHead, type SiteShareHead } from "@/lib/seo/siteShare";
 import { SiteNameBootstrap } from "@/components/layout/SiteNameBootstrap";
+import { SiteHeadContent } from "@/components/layout/SiteHeadContent";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
@@ -97,11 +97,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     }
     return { authConfig, shareHead };
   },
-  head: ({ loaderData, matches }) => {
+  head: ({ loaderData }) => {
     const share = loaderData?.shareHead ?? siteShareHead(null);
-    // A page that isn't there says so in its title and isn't indexed. Routes
-    // name their own title and robots only when they found their content.
-    const missing = matches.some((match) => match.status === "notFound");
     return {
     meta: [
       {
@@ -112,14 +109,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: missing ? siteTitled("Page not found") : resolveSiteName(),
+        title: resolveSiteName(),
       },
       ...(share.meta.some((tag) => tag.name === "description")
         ? []
         : [{ name: "description", content: `${resolveSiteName()} website` }]),
       {
         name: "robots",
-        content: effectiveRobots(missing ? "noindex, follow" : undefined),
+        content: effectiveRobots(undefined),
       },
       // Open Graph site-wide defaults (overridden by child routes)
       {
@@ -212,7 +209,7 @@ function RootDocument() {
               {/* The client evaluates route heads before settings load; give it the name the server used. */}
               <SiteNameBootstrap />
               <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}})()` }} />
-              <HeadContent />
+              <SiteHeadContent />
             </head>
             <body className="min-h-svh" suppressHydrationWarning>
               <WebsiteOperatorNotice />
