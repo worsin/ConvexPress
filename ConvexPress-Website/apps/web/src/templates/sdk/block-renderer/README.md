@@ -10,6 +10,8 @@ A template declares an override in `template.json` under `blocks.renderers`, for
 
 `PrimitiveProvider` supplies the active pack identity. `installPackRenderers` uses that pack's declared view, or the Library view when there is no override. It never inherits another template's renderer. Selection changes presentation without rewriting the saved block tree or changing policy, media validation, resolver grants or viewer authorization. Own CSS must be scoped to the pack. Product Showcase and Category Tiles share SDK behavior with their canonical Library entries so template styling preserves pricing, stock, cart-host behavior and unavailable states.
 
+A block that reads or writes live data (a form, poll, newsletter, the cart...) renders through its family's host context here, and its production host (`<family>-production.tsx`) supplies the live implementation. On a public page the body mounts a host only when a block it serves is on the page: list the block under its host in `../block-public/live-hosts.tsx`. `live-hosts.test.ts` walks every renderer's imports and fails when a block reaches a host it isn't listed under. A block never imports a production host itself.
+
 `owned-treatments.pw.ts` verifies actual override selection and unchanged canonical content across Journal, Depot and Core. `owned-interactions.pw.ts` checks category empty/restore, product pricing/destinations and keyboard FAQ interaction. Form preview steps have separate coverage. These fixture checks do not prove saved-site template switching or live cart/form submission.
 
 ## Named styles and hidden blocks

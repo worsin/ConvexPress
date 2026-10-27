@@ -1,4 +1,4 @@
-import {createContext,useContext,useEffect,useMemo,useRef,useState,type ReactNode} from "react";
+import {useEffect,useMemo,useRef,useState,type ReactNode} from "react";
 import {useConvex} from "convex/react";
 import {api} from "@convexpress-website/backend/generated/api";
 import type {Id} from "@convexpress-website/backend/generated/dataModel";
@@ -8,20 +8,14 @@ import {rsvpIdentityKey,subscribeRsvp,rsvpResponseError,isDefinitiveRsvpFailure}
 import {readPollVisitor,ensurePollVisitorAcrossTabs} from "./poll-client";
 import {retryPollWrite} from "../block-data/portable/pollRetry";
 import {FormSecurityControls} from "../../../extensions/forms/SecurityControls";
-type Contact={name:string;email:string};
-type Pending={fingerprint:string;requestKey:string;operation:"register"|"cancel";expectedRevision:number;definitionVersion:string};
-type Draft={contact:Contact;pending?:Pending};
-const Drafts=createContext<Map<string,Draft>|null>(null);
-/** Contact drafts stay in memory only and are discarded on document/session
- * generation changes. The map survives short authorization-lease renewals. */
-export function RsvpDraftScope({children}:{children:ReactNode}){const [drafts]=useState(()=>new Map<string,Draft>());return <Drafts value={drafts}>{children}</Drafts>;}
+import {useRsvpDrafts,type RsvpContact as Contact,type RsvpDraft as Draft} from "./drafts";
 export function ProductionRsvpProvider({instanceKey,generation,postId,signedIn,password,children}:{instanceKey:string;generation:string;postId:string;signedIn:boolean;password?:string;children:ReactNode}){
  const client=useConvex(),[ready,setReady]=useState(false);useEffect(()=>{setReady(true);},[]);
  const value=useMemo(()=>({render:ready?(snapshot:RsvpSnapshot)=>snapshot.postId!==postId?null:<LiveRsvp key={JSON.stringify([client.url,instanceKey,generation,signedIn,password,postId,snapshot.blockId,snapshot.eventId,snapshot.providerId??"events"])} initial={snapshot} instanceKey={instanceKey} signedIn={signedIn} password={password}/>:null}),[client,ready,instanceKey,generation,postId,signedIn,password]);
  return <RsvpProvider value={value}>{children}</RsvpProvider>;
 }
 function LiveRsvp({initial,instanceKey,signedIn,password}:{initial:RsvpSnapshot;instanceKey:string;signedIn:boolean;password?:string}){
- const client=useConvex(),drafts=useContext(Drafts),key=rsvpIdentityKey(client.url,instanceKey,initial.eventId),draftKey=JSON.stringify([key,initial.postId,initial.blockId]);
+ const client=useConvex(),drafts=useRsvpDrafts(),key=rsvpIdentityKey(client.url,instanceKey,initial.eventId),draftKey=JSON.stringify([key,initial.postId,initial.blockId]);
  const draft=useRef<Draft>(drafts?.get(draftKey)??{contact:{name:"",email:""}}),[contact,setContact]=useState(draft.current.contact);
  const [snapshot,setSnapshot]=useState<RsvpSnapshot|null|undefined>(),[visitor,setVisitor]=useState<string|undefined>(),[refresh,setRefresh]=useState(0);
  const [captchaToken,setCaptchaToken]=useState(""),[captchaError,setCaptchaError]=useState<string|null>(null),[honeypot,setHoneypot]=useState(""),[challenge,setChallenge]=useState(0);

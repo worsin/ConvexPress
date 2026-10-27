@@ -15,6 +15,12 @@ import {
 	canonicalPreviewPackIds,
 	canonicalPreviewPackParts,
 } from "./pack-parts";
+/** Start loading the renderers these trees use, before anything above the view
+ * suspends (a page body's live hosts). An optimization only: the view still
+ * loads and validates whatever it renders. */
+export function preloadDocumentRenderers(packId: string, trees: readonly unknown[]) {
+	if (canonicalPreviewPackIds.includes(packId)) rendererLoader.preload(packId, trees);
+}
 /** Actual Website renderer. Its caller owns verified native DTO installation and
  * lease lifecycle. This component never reads a token, fixture or backend query.
  * Current site TemplateSettingsInjector supplies the real active pack tokens.
