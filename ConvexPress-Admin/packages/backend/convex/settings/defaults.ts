@@ -144,6 +144,11 @@ export interface GeneralSettings {
   adminEmail: string;
   membershipEnabled: boolean;
   registrationMode: "invite_only" | "closed";
+  /**
+   * Where people without an account start, as a path on this site (a signup
+   * form, a pricing page). Blank: the registration form at /register.
+   */
+  signUpPath: string;
   defaultRole: string;
   siteLanguage: string;
   timezone: string;
@@ -967,6 +972,7 @@ export const GENERAL_DEFAULTS: GeneralSettings = {
   adminEmail: "",
   membershipEnabled: false,
   registrationMode: "invite_only",
+  signUpPath: "",
   defaultRole: "subscriber",
   siteLanguage: "en-US",
   timezone: "America/New_York",

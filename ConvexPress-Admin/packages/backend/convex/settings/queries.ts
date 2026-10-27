@@ -62,6 +62,7 @@ import type { Capability } from "../types/capabilities";
 
 import { v, type Infer } from "convex/values";
 import { settingsRecord } from "../helpers/settingsReader";
+import { isSitePathOrBlank } from "./validation";
 import { settingsDocs } from "../schema/settings.docs.generated";
 const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> = {
   email: "settings.update_email",
@@ -277,6 +278,8 @@ export const publicSettingsValidator = v.object({
   logoUrl: v.optional(v.string()),
   siteLogo: v.optional(v.string()),
   membershipEnabled: v.boolean(),
+  /** Where people without an account start; blank means /register. */
+  signUpPath: v.string(),
   siteLanguage: v.string(),
   timezone: v.string(),
   dateFormat: v.string(),
@@ -390,6 +393,7 @@ export const getPublic = query({
       logoUrl: general.logoUrl,
       siteLogo: general.siteLogo,
       membershipEnabled: general.membershipEnabled,
+      signUpPath: isSitePathOrBlank(general.signUpPath) ? general.signUpPath : "",
       siteLanguage: general.siteLanguage,
       timezone: general.timezone,
       dateFormat: general.dateFormat,

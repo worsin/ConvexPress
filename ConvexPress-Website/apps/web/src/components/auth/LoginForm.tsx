@@ -12,6 +12,7 @@
  */
 
 import { afterSignInPath } from "@/lib/security/redirect";
+import { useSignUpPath } from "@/lib/auth/signUpPath";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { Eye, EyeOff } from "lucide-react";
@@ -50,6 +51,7 @@ type Step =
 
 export function LoginForm({ returnTo = afterSignInPath(), className, onSignedIn, onSwitchToRegister, initialIdentifier }: LoginFormProps) {
   const capabilities = useAuthCapabilities();
+  const signUpPath = useSignUpPath();
   const { signIn, setActive, isLoaded } = useSignIn();
   const recordFailedLogin = useMutation(api.authTracking.mutations.recordFailedLogin);
 
@@ -439,7 +441,7 @@ export function LoginForm({ returnTo = afterSignInPath(), className, onSignedIn,
             Create one
           </button>
         ) : (
-          <AuthLink to="/register">Create one</AuthLink>
+          <AuthLink to={signUpPath}>Create one</AuthLink>
         )}
       </div>
     </form>

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { HeaderSearchTrigger } from "./HeaderSearch";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { useSettings } from "@/contexts/SettingsContext";
+import { siteSignUpPath } from "@/lib/auth/signUpPath";
 import type { HeaderConfig } from "@/lib/layout/types";
 import CoreCartDrawer from "@/templates/packs/core/surfaces/chrome.cartDrawer";
 import { Surface } from "@/templates/sdk/Surface";
@@ -107,7 +108,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
                 </Link>
                 {guestDisplay === "login-register" && (
                   <Link
-                    data-customize="header.userMenu.guestDisplay" to="/register"
+                    data-customize="header.userMenu.guestDisplay" to={siteSignUpPath(settings?.signUpPath)}
                     className="inline-flex size-8 shrink-0 items-center justify-center bg-foreground text-xs font-medium text-background transition-colors hover:bg-foreground/90 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                   >
                     <UserPlus className="size-4 sm:hidden" aria-hidden="true" />

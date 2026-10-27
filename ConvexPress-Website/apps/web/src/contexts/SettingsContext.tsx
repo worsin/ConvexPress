@@ -25,27 +25,16 @@ import { SiteTimeZoneProvider } from "./SiteTimeZoneContext";
  *   const { siteTitle, tagline, dateFormat } = useSettings();
  */
 
-import { createContext, useContext, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { convexQuery } from "@convex-dev/react-query";
 
 import { rememberSiteName } from "@/lib/seo/head";
 import { useQuery } from "@tanstack/react-query";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "@convexpress-website/backend/generated/api";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { SettingsContext } from "./SettingsValue";
 
-/**
- * Public settings values exposed to the website frontend: exactly what the
- * `settings.queries.getPublic` query returns (its return validator is the
- * contract). Sensitive fields (adminEmail, moderationWordList, etc.) are
- * excluded by that query.
- */
-export type PublicSettings = FunctionReturnType<typeof api.settings.queries.getPublic>;
-
-// ─── Context ─────────────────────────────────────────────────────────────────
-
-const SettingsContext = createContext<PublicSettings | null>(null);
+export { useSetting, useSettings, type PublicSettings } from "./SettingsValue";
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
@@ -72,32 +61,4 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       </SiteTimeZoneProvider>
     </SettingsContext>
   );
-}
-
-// ─── Hook ────────────────────────────────────────────────────────────────────
-
-/**
- * Access the public settings from any component within the SettingsProvider.
- *
- * Returns null while settings are loading (Convex query in flight).
- * Components should handle the null case with a loading state or defaults.
- *
- * @returns Public settings object or null if loading
- */
-export function useSettings(): PublicSettings | null {
-  return useContext(SettingsContext);
-}
-
-/**
- * Access a single settings value by key.
- * Returns undefined if settings are not loaded yet.
- *
- * @param key - The settings key to access
- * @returns The setting value or undefined
- */
-export function useSetting<K extends keyof PublicSettings>(
-  key: K,
-): PublicSettings[K] | undefined {
-  const settings = useContext(SettingsContext);
-  return settings?.[key];
 }

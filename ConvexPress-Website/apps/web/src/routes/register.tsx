@@ -1,7 +1,11 @@
 import { useEffect } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { api } from "@convexpress-website/backend/generated/api";
 import { useAuth } from "@/lib/auth/clerk";
 import { z } from "zod";
+
+import { REGISTER_PATH, siteSignUpPath } from "@/lib/auth/signUpPath";
 
 import { isAbsoluteDestination, sanitizeRedirectUrl } from "@/lib/security/redirect";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
@@ -19,6 +23,17 @@ export const Route = createFileRoute("/register")({
     path: "/register",
   }),
   validateSearch: searchSchema,
+  // Someone arriving without an invitation or a flow to return to starts on
+  // the site's own sign-up page, when it names one.
+  loaderDeps: ({ search }) => ({ invited: Boolean(search.token), returning: Boolean(search.returnTo) }),
+  loader: async ({ context: { queryClient }, deps }) => {
+    if (deps.invited || deps.returning) return;
+    const settings = await queryClient
+      .ensureQueryData(convexQuery(api.settings.queries.getPublic, {}))
+      .catch(() => null);
+    const signUpPath = siteSignUpPath(settings?.signUpPath);
+    if (signUpPath !== REGISTER_PATH) throw redirect({ href: signUpPath, replace: true });
+  },
   component: RegisterComponent,
 });
 
