@@ -185,15 +185,9 @@ export const EMAIL_DEFAULTS = {
 // ─── Template Rendering ──────────────────────────────────────────────────────
 
 /**
- * Replace {variable_name} placeholders in a template string with actual values.
- *
- * Variables are enclosed in curly braces: {site_name}, {user_email}, etc.
- * Unresolved variables with a default value use the default.
- * Unresolved required variables are replaced with empty string.
- *
- * @param template - The template string with {variable} placeholders
- * @param variables - Key-value map of variable values
- * @returns The rendered string with variables replaced
+ * Replace {variable_name} placeholders in a plain-text template (a subject, a
+ * text body) with their values, as they are. Unresolved placeholders are left
+ * as-is (see withDeclaredDefaults, which gives every declared one a value).
  */
 export function renderTemplate(
   template: string,
@@ -204,6 +198,39 @@ export function renderTemplate(
       return variables[varName];
     }
     return match; // Leave unresolved variables as-is
+  });
+}
+
+/** Escape the five HTML metacharacters, for text placed in markup or an attribute. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Variables whose value the server builds as markup, escaping what it
+ * contains (the weekly digest's list of posts). Every other value is text.
+ */
+export const HTML_TEMPLATE_VARIABLES: ReadonlySet<string> = new Set(["post_list"]);
+
+/**
+ * Replace {variable_name} placeholders in an HTML template. Values are text,
+ * so they are escaped: a name, a ticket subject or a form answer can't add
+ * markup, links or scripts to the email. Only HTML_TEMPLATE_VARIABLES are
+ * inserted as markup.
+ */
+export function renderHtmlTemplate(
+  template: string,
+  variables: Record<string, string>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (match, varName) => {
+    if (!(varName in variables)) return match;
+    const value = variables[varName];
+    return HTML_TEMPLATE_VARIABLES.has(varName) ? value : escapeHtml(value);
   });
 }
 
@@ -715,7 +742,7 @@ export async function queueEmailForEvent(
     template.subjectTemplate,
     allVariables,
   );
-  const renderedHtml = renderTemplate(template.bodyHtml, allVariables);
+  const renderedHtml = renderHtmlTemplate(template.bodyHtml, allVariables);
   const renderedText = template.bodyText
     ? renderTemplate(template.bodyText, allVariables)
     : stripHtmlToText(renderedHtml);

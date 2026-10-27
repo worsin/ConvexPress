@@ -37,6 +37,8 @@ import {
   resolveRecipients,
   stripHtmlToText,
   renderTemplate,
+  renderHtmlTemplate,
+  escapeHtml,
   injectGlobalVariables,
   isSecurityEmail,
   checkUnsubscribed,
@@ -522,7 +524,7 @@ export const queueTemplateTestEmail = internalMutation({
     };
 
     const subject = renderTemplate(template.subjectTemplate, variables);
-    const bodyHtml = renderTemplate(template.bodyHtml, variables);
+    const bodyHtml = renderHtmlTemplate(template.bodyHtml, variables);
     const bodyText = template.bodyText
       ? renderTemplate(template.bodyText, variables)
       : stripHtmlToText(bodyHtml);
@@ -1003,7 +1005,7 @@ export const generateDigest = internalMutation({
       // Build the post list for the digest
       const postList = postsThisWeek
         .slice(0, 20)
-        .map((p) => `<li><a href="${buildWebsiteUrl(settings.siteUrl, `/blog/${p.slug}`)}">${p.title}</a></li>`)
+        .map((p) => `<li><a href="${escapeHtml(buildWebsiteUrl(settings.siteUrl, `/blog/${p.slug}`))}">${escapeHtml(p.title)}</a></li>`)
         .join("\n");
 
       // Get the weekly digest template
@@ -1046,7 +1048,7 @@ export const generateDigest = internalMutation({
             digestTemplate.subjectTemplate,
             variables,
           );
-          const bodyHtml = renderTemplate(digestTemplate.bodyHtml, variables);
+          const bodyHtml = renderHtmlTemplate(digestTemplate.bodyHtml, variables);
           const bodyText = stripHtmlToText(bodyHtml);
 
           await ctx.db.insert("emailQueue", {
@@ -1148,7 +1150,7 @@ export const generateDigest = internalMutation({
           commentDigestTemplate.subjectTemplate,
           variables,
         );
-        const bodyHtml = renderTemplate(commentDigestTemplate.bodyHtml, variables);
+        const bodyHtml = renderHtmlTemplate(commentDigestTemplate.bodyHtml, variables);
         const bodyText = stripHtmlToText(bodyHtml);
 
         await ctx.db.insert("emailQueue", {
