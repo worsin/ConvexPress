@@ -736,6 +736,17 @@ http.route({
         case "refund.updated":
         case "refund.failed": {
           const refund = event.data.object;
+          // A subscription invoice refund (commerceSubscriptions/refunds.ts) names its invoice.
+          if (refund.metadata?.kind === "subscription_invoice_refund" && refund.metadata.invoiceId && refund.metadata.refundKey) {
+            await ctx.runMutation(internal.commerceSubscriptions.operator.reconcileInvoiceRefund, {
+              invoiceId: refund.metadata.invoiceId,
+              refundKey: refund.metadata.refundKey,
+              providerStatus: refund.status ?? "pending",
+              providerRefundId: refund.id,
+              error: refund.failure_reason ?? undefined,
+            });
+            break;
+          }
           await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
             provider: "stripe", providerRefundId: refund.id, providerStatus: refund.status ?? "pending",
             refundId: (refund.metadata?.refundId || undefined) as Id<"commerce_payment_refunds"> | undefined,
@@ -747,6 +758,16 @@ http.route({
         case "charge.refunded": {
           const charge = event.data.object;
           for (const refund of charge.refunds?.data ?? []) {
+            if (refund.metadata?.kind === "subscription_invoice_refund" && refund.metadata.invoiceId && refund.metadata.refundKey) {
+              await ctx.runMutation(internal.commerceSubscriptions.operator.reconcileInvoiceRefund, {
+                invoiceId: refund.metadata.invoiceId,
+                refundKey: refund.metadata.refundKey,
+                providerStatus: refund.status ?? "pending",
+                providerRefundId: refund.id,
+                error: refund.failure_reason ?? undefined,
+              });
+              continue;
+            }
             await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
               provider: "stripe", providerRefundId: refund.id, providerStatus: refund.status ?? "pending",
               refundId: (refund.metadata?.refundId || undefined) as Id<"commerce_payment_refunds"> | undefined,

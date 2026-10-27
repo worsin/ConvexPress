@@ -253,58 +253,113 @@ export const getInvoiceRefund = internalQuery({
 });
 
 /** Record Stripe's answer to a refund request. A failure releases the reservation. */
+type RefundOutcome = "pending" | "succeeded" | "failed";
+
+/**
+ * Record what Stripe said about a reserved refund. Settled refunds stay as
+ * they are (a webhook may repeat what the request already recorded). A failed
+ * one releases its reservation and raises INVOICE_REFUND_FAILED, so staff hear
+ * of it; a succeeded one raises INVOICE_REFUNDED.
+ */
+async function settleInvoiceRefund(
+	ctx: MutationCtx,
+	args: { invoiceId: Id<"commerce_subscription_invoices">; refundKey: string; status: RefundOutcome; providerRefundId?: string; error?: string },
+): Promise<void> {
+	const invoice = await ctx.db.get(args.invoiceId);
+	if (!invoice) return;
+	const current = invoice.refunds?.find((entry) => entry.key === args.refundKey);
+	if (!current || current.status === "succeeded" || current.status === "failed") return;
+	if (args.status === "pending" && (!args.providerRefundId || args.providerRefundId === current.providerRefundId)) return;
+	const now = Date.now();
+	const refunds = (invoice.refunds ?? []).map((entry) =>
+		entry.key === args.refundKey
+			? {
+					...entry,
+					status: args.status,
+					providerRefundId: args.providerRefundId ?? entry.providerRefundId,
+					error: args.error,
+					completedAt: args.status === "pending" ? undefined : now,
+				}
+			: entry,
+	);
+	await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
+		refunds,
+		refundedAmount: reservedRefunds({ ...invoice, refunds }),
+		updatedAt: now,
+	});
+	if (args.status === "pending") return;
+	await writeHistory(ctx, {
+		subscriptionId: invoice.subscriptionId,
+		eventType: args.status === "failed" ? "subscription.refund_failed" : "subscription.refunded",
+		reason: args.error,
+		data: { invoiceId: invoice._id, amount: current.amount, refundKey: args.refundKey, providerRefundId: args.providerRefundId },
+	});
+	await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
+		invoiceId: invoice._id,
+		eventType: args.status === "failed" ? "subscription_invoice_refund_failed" : "subscription_invoice_refunded",
+		metadata: { refundKey: args.refundKey, amount: current.amount, providerRefundId: args.providerRefundId },
+	});
+	const contract = await ctx.db.get(invoice.subscriptionId);
+	await emitEvent(ctx, args.status === "failed" ? SUBSCRIPTION_EVENTS.INVOICE_REFUND_FAILED : SUBSCRIPTION_EVENTS.INVOICE_REFUNDED, "commerce", {
+		subscriptionId: invoice.subscriptionId,
+		userId: contract?.userId,
+		invoiceId: invoice._id,
+		invoiceNumber: invoice.invoiceNumber,
+		amount: current.amount,
+		currencyCode: invoice.currencyCode,
+		...(args.status === "failed" ? { error: args.error ?? "The payment provider refused the refund." } : {}),
+	});
+}
+
+const refundOutcomeValidator = v.union(v.literal("pending"), v.literal("succeeded"), v.literal("failed"));
+
 export const completeInvoiceRefund = internalMutation({
 	args: {
 		invoiceId: v.id("commerce_subscription_invoices"),
 		refundKey: v.string(),
-		status: v.union(v.literal("pending"), v.literal("succeeded"), v.literal("failed")),
+		status: refundOutcomeValidator,
 		providerRefundId: v.optional(v.string()),
 		error: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const invoice = await ctx.db.get(args.invoiceId);
-		if (!invoice) return null;
-		const current = invoice.refunds?.find((entry) => entry.key === args.refundKey);
-		if (!current || current.status === "succeeded" || current.status === "failed") return null;
-		const now = Date.now();
-		const refunds = (invoice.refunds ?? []).map((entry) =>
-			entry.key === args.refundKey
-				? {
-						...entry,
-						status: args.status,
-						providerRefundId: args.providerRefundId ?? entry.providerRefundId,
-						error: args.error,
-						completedAt: args.status === "pending" ? undefined : now,
-					}
-				: entry,
-		);
-		await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
-			refunds,
-			refundedAmount: reservedRefunds({ ...invoice, refunds }),
-			updatedAt: now,
+		await settleInvoiceRefund(ctx, args);
+		return null;
+	},
+});
+
+/** A Stripe refund's state, as its status names it. */
+export function refundOutcome(providerStatus: string): RefundOutcome {
+	if (providerStatus === "succeeded") return "succeeded";
+	if (providerStatus === "failed" || providerStatus === "canceled") return "failed";
+	return "pending";
+}
+
+/**
+ * A Stripe refund webhook for a subscription invoice refund (its metadata
+ * names the invoice and the refund): a refund Stripe answered "pending"
+ * settles here when Stripe settles it.
+ */
+export const reconcileInvoiceRefund = internalMutation({
+	args: {
+		invoiceId: v.string(),
+		refundKey: v.string(),
+		providerStatus: v.string(),
+		providerRefundId: v.string(),
+		error: v.optional(v.string()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const invoiceId = ctx.db.normalizeId("commerce_subscription_invoices", args.invoiceId);
+		if (!invoiceId) return null;
+		const status = refundOutcome(args.providerStatus);
+		await settleInvoiceRefund(ctx, {
+			invoiceId,
+			refundKey: args.refundKey,
+			status,
+			providerRefundId: args.providerRefundId,
+			...(status === "failed" ? { error: args.error ?? `Refund ${args.providerStatus}` } : {}),
 		});
-		await writeHistory(ctx, {
-			subscriptionId: invoice.subscriptionId,
-			eventType: args.status === "failed" ? "subscription.refund_failed" : "subscription.refunded",
-			reason: args.error,
-			data: { invoiceId: invoice._id, amount: current.amount, refundKey: args.refundKey, providerRefundId: args.providerRefundId },
-		});
-		await ctx.runMutation(internal.purchases.internals.syncSubscriptionInvoice, {
-			invoiceId: invoice._id,
-			eventType: args.status === "failed" ? "subscription_invoice_refund_failed" : "subscription_invoice_refunded",
-			metadata: { refundKey: args.refundKey, amount: current.amount, providerRefundId: args.providerRefundId },
-		});
-		if (args.status === "succeeded") {
-			const contract = await ctx.db.get(invoice.subscriptionId);
-			await emitEvent(ctx, SUBSCRIPTION_EVENTS.INVOICE_REFUNDED, "commerce", {
-				subscriptionId: invoice.subscriptionId,
-				userId: contract?.userId,
-				invoiceId: invoice._id,
-				amount: current.amount,
-				currencyCode: invoice.currencyCode,
-			});
-		}
 		return null;
 	},
 });
