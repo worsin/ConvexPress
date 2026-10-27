@@ -23,6 +23,7 @@ const CONVEXPRESS_ROUTE_PATTERNS: readonly string[] = [
   "/api/feed/rss2",
   "/api/lead-magnets/$leaseId",
   "/api/public-files/$storageId",
+  "/api/request-context",
   "/api/robots",
   "/api/sitemap-$type-$page/xml",
   "/api/sitemap-style/xsl",

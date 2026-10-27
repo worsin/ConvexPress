@@ -41,6 +41,7 @@ import { Route as DashboardCoursesRouteImport } from './routes/dashboard/courses
 import { Route as DashboardCommentsRouteImport } from './routes/dashboard/comments'
 import { Route as DashboardAddressesRouteImport } from './routes/dashboard/addresses'
 import { Route as ApiRobotsRouteImport } from './routes/api/robots'
+import { Route as ApiRequestContextRouteImport } from './routes/api/request-context'
 import { Route as AccountCoursesRouteImport } from './routes/account.courses'
 import { Route as MarketingSupportRouteImport } from './routes/_marketing/support'
 import { Route as MarketingSearchRouteImport } from './routes/_marketing/search'
@@ -293,6 +294,11 @@ const DashboardAddressesRoute = DashboardAddressesRouteImport.update({
 const ApiRobotsRoute = ApiRobotsRouteImport.update({
   id: '/api/robots',
   path: '/api/robots',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRequestContextRoute = ApiRequestContextRouteImport.update({
+  id: '/api/request-context',
+  path: '/api/request-context',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountCoursesRoute = AccountCoursesRouteImport.update({
@@ -818,6 +824,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof MarketingSearchRoute
   '/support': typeof MarketingSupportRouteWithChildren
   '/account/courses': typeof AccountCoursesRouteWithChildren
+  '/api/request-context': typeof ApiRequestContextRoute
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
@@ -933,6 +940,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof MarketingPricingRoute
   '/search': typeof MarketingSearchRoute
   '/account/courses': typeof AccountCoursesRouteWithChildren
+  '/api/request-context': typeof ApiRequestContextRoute
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
@@ -1061,6 +1069,7 @@ export interface FileRoutesById {
   '/_marketing/search': typeof MarketingSearchRoute
   '/_marketing/support': typeof MarketingSupportRouteWithChildren
   '/account/courses': typeof AccountCoursesRouteWithChildren
+  '/api/request-context': typeof ApiRequestContextRoute
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
@@ -1191,6 +1200,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/support'
     | '/account/courses'
+    | '/api/request-context'
     | '/api/robots'
     | '/dashboard/addresses'
     | '/dashboard/comments'
@@ -1306,6 +1316,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/search'
     | '/account/courses'
+    | '/api/request-context'
     | '/api/robots'
     | '/dashboard/addresses'
     | '/dashboard/comments'
@@ -1433,6 +1444,7 @@ export interface FileRouteTypes {
     | '/_marketing/search'
     | '/_marketing/support'
     | '/account/courses'
+    | '/api/request-context'
     | '/api/robots'
     | '/dashboard/addresses'
     | '/dashboard/comments'
@@ -1547,6 +1559,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   AccountCoursesRoute: typeof AccountCoursesRouteWithChildren
+  ApiRequestContextRoute: typeof ApiRequestContextRoute
   ApiRobotsRoute: typeof ApiRobotsRoute
   SignupOfferIdRoute: typeof SignupOfferIdRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
@@ -1796,6 +1809,13 @@ declare module '@tanstack/react-router' {
       path: '/api/robots'
       fullPath: '/api/robots'
       preLoaderRoute: typeof ApiRobotsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/request-context': {
+      id: '/api/request-context'
+      path: '/api/request-context'
+      fullPath: '/api/request-context'
+      preLoaderRoute: typeof ApiRequestContextRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/courses': {
@@ -2812,6 +2832,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   AccountCoursesRoute: AccountCoursesRouteWithChildren,
+  ApiRequestContextRoute: ApiRequestContextRoute,
   ApiRobotsRoute: ApiRobotsRoute,
   SignupOfferIdRoute: SignupOfferIdRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,

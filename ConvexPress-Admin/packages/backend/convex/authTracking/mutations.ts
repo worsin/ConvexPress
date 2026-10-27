@@ -25,6 +25,7 @@ import { mutation, type MutationCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
+import { openRequestContext } from "../helpers/requestContext";
 import { AUTH_EVENTS, SYSTEM } from "../events/constants";
 import {
   authMethodValidator,
@@ -34,7 +35,6 @@ import {
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 const MAX_EMAIL_LENGTH = 320;
-const MAX_IP_LENGTH = 45;
 const MAX_USER_AGENT_LENGTH = 1000;
 const MAX_DESCRIPTION_LENGTH = 500;
 
@@ -67,14 +67,14 @@ async function getOrCreateCurrentUserForLogin(ctx: MutationCtx) {
  *
  * @param method - Authentication method used ("email", "oauth", "passkey")
  * @param app - Which app the login occurred from ("admin" or "website")
- * @param ip - Optional IP address (from client or server)
- * @param userAgent - Optional user agent string
+ * @param requestContext - The website server's sealed address and browser (helpers/requestContext.ts)
+ * @param userAgent - The browser's own user agent, kept when there is no sealed context
  */
 export const recordLogin = mutation({
   args: {
     method: v.optional(authMethodValidator),
     app: v.optional(appIdentifierValidator),
-    ip: v.optional(v.string()),
+    requestContext: v.optional(v.string()),
     userAgent: v.optional(v.string()),
   },
   returns: v.union(v.null(), v.object({ success: v.boolean(), userId: v.id("users"), eventId: v.id("events") })),
@@ -82,8 +82,11 @@ export const recordLogin = mutation({
     const user = await getOrCreateCurrentUserForLogin(ctx);
     if (!user) return null;
 
-    const ip = truncateOptional(args.ip, MAX_IP_LENGTH);
-    const userAgent = truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
+    // The address comes only from the server's sealed context: a browser
+    // could state any address it liked.
+    const request = await openRequestContext(args.requestContext);
+    const ip = request?.ip;
+    const userAgent = request?.userAgent ?? truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
     const now = Date.now();
 
     // Update lastLoginAt timestamp
@@ -170,7 +173,8 @@ export const recordLogout = mutation({
  * @param email - Email address used in the attempt
  * @param reason - Failure reason code
  * @param app - Which app the attempt came from
- * @param userAgent - Optional user agent string
+ * @param userAgent - The browser's own user agent, kept when there is no sealed context
+ * @param requestContext - The website server's sealed address and browser (helpers/requestContext.ts)
  * @param description - Optional human-readable description
  */
 type FailedLoginArgs = {
@@ -178,6 +182,7 @@ type FailedLoginArgs = {
   reason: Infer<typeof failureReasonValidator>;
   app: Infer<typeof appIdentifierValidator>;
   userAgent?: string;
+  requestContext?: string;
   description?: string;
 };
 type FailedLoginResult = { success: boolean; error?: string; attemptId?: Id<"failedLoginAttempts"> };
@@ -187,6 +192,7 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
     reason: failureReasonValidator,
     app: appIdentifierValidator,
     userAgent: v.optional(v.string()),
+    requestContext: v.optional(v.string()),
     description: v.optional(v.string()),
   },
   returns: v.union(v.object({ success: v.boolean(), error: v.string(), attemptId: v.optional(v.null()) }), v.object({
@@ -199,7 +205,9 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
     // This mutation is unauthenticated (the user failed to log in).
     // Cap string lengths to prevent data pollution / storage abuse.
     const email = args.email.trim().toLowerCase().slice(0, MAX_EMAIL_LENGTH); // RFC 5321 max email length
-    const userAgent = truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
+    const request = await openRequestContext(args.requestContext);
+    const ip = request?.ip;
+    const userAgent = request?.userAgent ?? truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
     const description = truncateOptional(args.description, MAX_DESCRIPTION_LENGTH);
 
     // Basic email format validation - reject obviously invalid inputs
@@ -240,6 +248,7 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
     // Insert the failed attempt record
     const attemptId = await ctx.db.insert("failedLoginAttempts", {
       email,
+      ...(ip ? { ip } : {}),
       userAgent,
       reason: args.reason,
       description,
@@ -265,8 +274,10 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
           userId: user?._id,
           attemptId,
           attemptedAt: now,
+          ...(ip ? { ip } : {}),
         },
-        // No actor options: the user isn't authenticated and the caller's IP isn't known.
+        // The user isn't authenticated: the address, when sealed, is the only actor detail.
+        ip ? { actorIp: ip } : undefined,
       );
     } catch {
       // Event emission failure should not prevent the attempt from being recorded

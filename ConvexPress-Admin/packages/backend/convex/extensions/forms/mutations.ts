@@ -33,6 +33,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan, getUserIdentifier, getCurrentUser } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
+import { openRequestContext } from "../../helpers/requestContext";
 import { emitEvent } from "../../helpers/events";
 import { validateFieldValue } from "../../helpers/customFieldValidation";
 import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
@@ -1118,6 +1119,9 @@ const submitArgsValidator = {
   // Time-trap stamp (ms epoch) set by the Forms Renderer when the form first
   // mounts; the spam guard rejects sub-`minFillMs` and stale submissions.
   startedAt: v.optional(v.number()),
+  // The visitor's address and browser, sealed by the website server
+  // (helpers/requestContext.ts). Never an address the browser states itself.
+  requestContext: v.optional(v.string()),
 };
 
 type SubmitArgs = {
@@ -1130,6 +1134,7 @@ type SubmitArgs = {
   captchaToken?: string;
   honeypot?: string;
   startedAt?: number;
+  requestContext?: string;
 };
 
 async function submitForm(
@@ -1429,6 +1434,14 @@ async function submitForm(
       throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
     }
 
+    // The request that sent this save: the completing one is what a signed
+    // agreement's evidence records.
+    const request = await openRequestContext(args.requestContext);
+    const requestFields = {
+      ...(request?.ip ? { ip: request.ip } : {}),
+      ...(request?.userAgent ? { userAgent: request.userAgent } : {}),
+    };
+
     if (existing) {
       submissionId = existing._id;
       // Merge the recomputed pricing into any existing meta bag so we don't
@@ -1445,20 +1458,21 @@ async function submitForm(
         resumeToken: effectiveResumeToken,
         currentStep: currentStep ?? existing.currentStep,
         meta: mergedMeta,
+        ...requestFields,
         updatedAt: now,
       });
     } else {
-      // Server-derived request metadata (ip/userAgent/referrer) is not available
-      // from a Convex mutation ctx, so it is left undefined here; an HTTP-action
-      // front door can populate it later. read/starred default to false.
+      // A Convex mutation has no request: the address and browser come only
+      // from the website server's sealed request context (or stay unset).
+      // read/starred default to false.
       submissionId = await insertCountedFormSubmission(ctx, {
         ...confirmationProof,
         formId: args.formId,
         status: isComplete ? ("complete" as const) : ("partial" as const),
         submittedAt: now,
         completedAt: isComplete ? now : undefined,
-        ip: undefined,
-        userAgent: undefined,
+        ip: requestFields.ip,
+        userAgent: requestFields.userAgent,
         referrer: undefined,
         userId: submitterUserId,
         resumeToken: effectiveResumeToken,

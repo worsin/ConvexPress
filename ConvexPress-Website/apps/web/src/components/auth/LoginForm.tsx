@@ -25,6 +25,7 @@ import { useAuthCapabilities } from "@/contexts/AuthConfigContext";
 import { clerkErrorCode, clerkErrorMessage, useSignIn } from "@/lib/auth/clerk";
 import { identifierLabel, signInIdentifierKinds } from "@/lib/auth/capabilities";
 import { codePromptCopy, nextSignInStep, normalizeIdentifier, type FactorLike, type SignInNext } from "@/lib/auth/clerk-flow";
+import { fetchRequestContext } from "@/lib/request-context";
 import { cn } from "@/lib/utils";
 
 import { AuthError } from "./AuthError";
@@ -87,13 +88,18 @@ export function LoginForm({ returnTo = afterSignInPath(), className, onSignedIn,
     // Attempts are kept by email; a phone number or username isn't one.
     const email = identifier.trim();
     if (!email.includes("@")) return;
-    void recordFailedLogin({
-      email,
-      reason,
-      app: "website" as const,
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-      description: clerkErrorMessage(cause, "Sign in failed"),
-    }).catch(() => {});
+    void fetchRequestContext()
+      .then((requestContext) =>
+        recordFailedLogin({
+          email,
+          reason,
+          app: "website" as const,
+          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+          ...(requestContext ? { requestContext } : {}),
+          description: clerkErrorMessage(cause, "Sign in failed"),
+        }),
+      )
+      .catch(() => {});
   };
 
   const prepareFirstCode = async (factor: FactorLike, strategy: "email_code" | "phone_code" | "email_link") => {

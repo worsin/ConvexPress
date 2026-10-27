@@ -42,7 +42,7 @@ async function fixture() {
       title: "Signup", slug: "signup", status: "published", fieldGroupId: group, settings: "{}", createdBy: user, createdAt: 1, updatedAt: 1,
     });
   });
-  const submit = (signature: string) =>
+  const submit = (signature: string, requestContext?: string) =>
     t.mutation(api.extensions.forms.mutations.submit, {
       formId: form,
       isComplete: true,
@@ -52,8 +52,9 @@ async function fixture() {
         { fieldKey: "last_name", value: "Quinn" },
         { fieldKey: "signature", value: signature },
       ],
+      ...(requestContext ? { requestContext } : {}),
     });
-  return { submit };
+  return { t, submit };
 }
 
 describe("signature fields", () => {
@@ -62,6 +63,32 @@ describe("signature fields", () => {
     await expect(f.submit("x")).rejects.toThrow("One or more fields are invalid.");
     await expect(f.submit("Avery Quin")).rejects.toThrow("One or more fields are invalid.");
     expect((await f.submit("  avery   QUINN. ")).submissionId).toBeTruthy();
+  });
+
+  test("a signed submission keeps the address and browser the website server sealed (PR 081)", async () => {
+    const f = await fixture();
+    const previous = process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET;
+    process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET = "test-secret-0123456789-abcdefghijklmnop";
+    try {
+      const encoder = new TextEncoder();
+      const now = Date.now();
+      const body = btoa(JSON.stringify({ ip: "203.0.113.9", ua: "Mozilla/5.0 (Test)", iat: now, exp: now + 60_000 })).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/u, "");
+      const key = await crypto.subtle.importKey("raw", encoder.encode(process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(`convexpress:request-context:v1:${body}`)));
+      const sealed = `v1.${body}.${Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+      const kept = await f.submit("Avery Quinn", sealed);
+      const unsealed = await f.submit("Avery Quinn", "v1.forged.0000");
+      const rows = await f.t.run(async (ctx) => ({
+        kept: await ctx.db.get("form_submissions", kept.submissionId),
+        unsealed: await ctx.db.get("form_submissions", unsealed.submissionId),
+      }));
+      expect(rows.kept).toMatchObject({ ip: "203.0.113.9", userAgent: "Mozilla/5.0 (Test)" });
+      expect(rows.unsealed?.ip).toBeUndefined();
+      expect(rows.unsealed?.userAgent).toBeUndefined();
+    } finally {
+      if (previous === undefined) delete process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET;
+      else process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET = previous;
+    }
   });
 
   test("the check itself", () => {
