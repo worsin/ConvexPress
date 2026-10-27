@@ -714,18 +714,22 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     slug: "ticket_reply_notification",
     name: "Ticket Reply Notification",
     description: "Sent to ticket submitter when support replies to their ticket",
-    subjectTemplate: "New reply on ticket {{ticketNumber}}",
+    subjectTemplate: "New reply on ticket {ticket_id}: {subject}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">New Reply on Your Ticket</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">We replied to your ticket</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        <strong>{senderName}</strong> replied to your ticket: <strong>{ticketNumber}</strong> - {subject}
+        Hi {user_name}, there's a new reply on <strong>{ticket_id}</strong>: {subject}
       </p>
+      <blockquote style="margin:0 0 24px;padding:12px 16px;border-left:4px solid #e5e7eb;background-color:#f9fafb;font-size:15px;color:#374151;line-height:1.6;">{reply_excerpt}</blockquote>
+      <a href="{ticket_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View the conversation</a>
     `),
     preheaderText: "You have a new reply on your support ticket",
     availableVariables: [
-      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+      { name: "user_name", description: "Name of the person who opened the ticket", required: false, defaultValue: "there" },
+      { name: "ticket_id", description: "Ticket number", required: true },
       { name: "subject", description: "Ticket subject", required: true },
-      { name: "senderName", description: "Name of the person who replied", required: false },
+      { name: "reply_excerpt", description: "The start of the reply", required: false },
+      { name: "ticket_url", description: "Link to the ticket", required: false, defaultValue: "/dashboard/tickets" },
     ],
     priority: "immediate",
     recipientType: "customer",
@@ -737,17 +741,23 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     slug: "ticket_user_reply",
     name: "Ticket User Reply",
     description: "Sent to support agents when a customer replies to their ticket",
-    subjectTemplate: "Customer replied to {{ticketNumber}}",
+    subjectTemplate: "Customer replied to {ticket_id}: {subject}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Customer Replied</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Customer replied</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        <strong>{userName}</strong> replied to ticket <strong>{ticketNumber}</strong>.
+        Hi {agent_name}, <strong>{user_name}</strong> replied to <strong>{ticket_id}</strong>: {subject}
       </p>
+      <blockquote style="margin:0 0 24px;padding:12px 16px;border-left:4px solid #e5e7eb;background-color:#f9fafb;font-size:15px;color:#374151;line-height:1.6;">{reply_excerpt}</blockquote>
+      <a href="{ticket_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Open the ticket</a>
     `),
     preheaderText: "A customer has replied to a support ticket",
     availableVariables: [
-      { name: "ticketNumber", description: "Ticket number/ID", required: true },
-      { name: "userName", description: "Name of the customer who replied", required: false },
+      { name: "agent_name", description: "Name of the assigned agent", required: false, defaultValue: "there" },
+      { name: "user_name", description: "Name of the customer who replied", required: false, defaultValue: "The customer" },
+      { name: "ticket_id", description: "Ticket number", required: true },
+      { name: "subject", description: "Ticket subject", required: true },
+      { name: "reply_excerpt", description: "The start of the reply", required: false },
+      { name: "ticket_url", description: "Link to the ticket", required: false },
     ],
     priority: "immediate",
     recipientType: "employee",
@@ -759,17 +769,23 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     slug: "ticket_assigned",
     name: "Ticket Assigned",
     description: "Sent to an agent when a ticket is assigned to them",
-    subjectTemplate: "Ticket {{ticketNumber}} assigned to you",
+    subjectTemplate: "Ticket {ticket_id} assigned to you: {subject}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Ticket Assigned to You</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Ticket assigned to you</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        You've been assigned to ticket: <strong>{ticketNumber}</strong> - {subject}
+        Hi {agent_name}, <strong>{ticket_id}</strong> is yours: {subject}
       </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Priority: {priority} · Category: {category}</p>
+      <a href="{ticket_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Open the ticket</a>
     `),
     preheaderText: "A support ticket has been assigned to you",
     availableVariables: [
-      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+      { name: "agent_name", description: "Name of the assigned agent", required: false, defaultValue: "there" },
+      { name: "ticket_id", description: "Ticket number", required: true },
       { name: "subject", description: "Ticket subject", required: true },
+      { name: "priority", description: "Ticket priority", required: false, defaultValue: "Normal" },
+      { name: "category", description: "Ticket category", required: false, defaultValue: "General" },
+      { name: "ticket_url", description: "Link to the ticket", required: false },
     ],
     priority: "immediate",
     recipientType: "employee",
@@ -781,16 +797,22 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     slug: "ticket_resolved",
     name: "Ticket Resolved",
     description: "Sent to the ticket submitter when their ticket is resolved",
-    subjectTemplate: "Your ticket {{ticketNumber}} has been resolved",
+    subjectTemplate: "Your ticket {ticket_id} has been resolved",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Ticket Resolved</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Your ticket is resolved</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        Your support ticket has been resolved. Thank you for reaching out.
+        Hi {user_name}, we've marked <strong>{ticket_id}</strong> ({subject}) as resolved. Thank you for reaching out.
       </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">If something still isn't right, reply on the ticket and it reopens.</p>
+      <a href="{rating_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Rate our help</a>
     `),
     preheaderText: "Your support ticket has been resolved",
     availableVariables: [
-      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+      { name: "user_name", description: "Name of the person who opened the ticket", required: false, defaultValue: "there" },
+      { name: "ticket_id", description: "Ticket number", required: true },
+      { name: "subject", description: "Ticket subject", required: true },
+      { name: "rating_url", description: "Link to rate the support", required: false, defaultValue: "/dashboard/tickets" },
+      { name: "ticket_url", description: "Link to the ticket", required: false, defaultValue: "/dashboard/tickets" },
     ],
     priority: "immediate",
     recipientType: "customer",
@@ -801,17 +823,22 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   {
     slug: "kb_workflow_step_ready",
     name: "KB Workflow Step Ready",
-    description: "Sent when a knowledge base article is ready for review",
-    subjectTemplate: "Article ready for review: {{articleTitle}}",
+    description: "Sent to a reviewer when an article is ready for their workflow step",
+    subjectTemplate: "Article ready for review: {article_title}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Article Ready for Review</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">An article needs your review</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        An article needs your review: <strong>{articleTitle}</strong>
+        Hi {reviewer_name}, <strong>{article_title}</strong> by {author_name} is ready for {step_name}.
       </p>
+      <a href="{article_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Review the article</a>
     `),
-    preheaderText: "A knowledge base article is awaiting your review",
+    preheaderText: "A knowledge base article is ready for your review",
     availableVariables: [
-      { name: "articleTitle", description: "Title of the article", required: true },
+      { name: "reviewer_name", description: "Name of the reviewer", required: false, defaultValue: "there" },
+      { name: "article_title", description: "Title of the article", required: true },
+      { name: "article_url", description: "Link to the article", required: false },
+      { name: "step_name", description: "Workflow step", required: false, defaultValue: "review" },
+      { name: "author_name", description: "Name of the author", required: false, defaultValue: "its author" },
     ],
     priority: "immediate",
     recipientType: "employee",
@@ -822,17 +849,22 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   {
     slug: "kb_workflow_approved",
     name: "KB Article Approved",
-    description: "Sent when a knowledge base article is approved and published",
-    subjectTemplate: "Your article has been approved: {{articleTitle}}",
+    description: "Sent to the author when their article is approved",
+    subjectTemplate: "Your article has been approved: {article_title}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Article Approved</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Your article was approved</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        Your article <strong>{articleTitle}</strong> has been approved and published.
+        Hi {author_name}, {reviewer_name} approved <strong>{article_title}</strong>. Next: {next_step}.
       </p>
+      <a href="{article_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View the article</a>
     `),
     preheaderText: "Your knowledge base article has been approved",
     availableVariables: [
-      { name: "articleTitle", description: "Title of the article", required: true },
+      { name: "author_name", description: "Name of the author", required: false, defaultValue: "there" },
+      { name: "article_title", description: "Title of the article", required: true },
+      { name: "article_url", description: "Link to the article", required: false },
+      { name: "reviewer_name", description: "Name of the reviewer", required: false, defaultValue: "A reviewer" },
+      { name: "next_step", description: "What happens next", required: false, defaultValue: "Published" },
     ],
     priority: "immediate",
     recipientType: "employee",
@@ -843,17 +875,23 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   {
     slug: "kb_workflow_rejected",
     name: "KB Article Needs Revisions",
-    description: "Sent when a knowledge base article is rejected and needs revisions",
-    subjectTemplate: "Article needs revisions: {{articleTitle}}",
+    description: "Sent to the author when their article needs revisions",
+    subjectTemplate: "Article needs revisions: {article_title}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Article Needs Revisions</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Your article needs revisions</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        Your article <strong>{articleTitle}</strong> was not approved and needs revisions.
+        Hi {author_name}, {reviewer_name} sent <strong>{article_title}</strong> back for changes.
       </p>
+      <blockquote style="margin:0 0 24px;padding:12px 16px;border-left:4px solid #e5e7eb;background-color:#f9fafb;font-size:15px;color:#374151;line-height:1.6;">{rejection_reason}</blockquote>
+      <a href="{article_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Revise the article</a>
     `),
     preheaderText: "Your knowledge base article needs revisions",
     availableVariables: [
-      { name: "articleTitle", description: "Title of the article", required: true },
+      { name: "author_name", description: "Name of the author", required: false, defaultValue: "there" },
+      { name: "article_title", description: "Title of the article", required: true },
+      { name: "article_url", description: "Link to the article", required: false },
+      { name: "reviewer_name", description: "Name of the reviewer", required: false, defaultValue: "A reviewer" },
+      { name: "rejection_reason", description: "What the reviewer asked for", required: false },
     ],
     priority: "immediate",
     recipientType: "employee",
@@ -864,24 +902,30 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   {
     slug: "kb_comment_notification",
     name: "KB Comment Notification",
-    description: "Sent when someone comments on a knowledge base article",
-    subjectTemplate: "New comment on {{articleTitle}}",
+    description: "Sent to the author when someone comments on their article",
+    subjectTemplate: "New comment on {article_title}",
     bodyHtml: wrapHtml(`
-      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">New Comment on Your Article</h2>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">New comment on your article</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
-        <strong>{commenterName}</strong> commented on your article: <strong>{articleTitle}</strong>
+        Hi {recipient_name}, <strong>{comment_author}</strong> commented on <strong>{article_title}</strong>:
       </p>
+      <blockquote style="margin:0 0 24px;padding:12px 16px;border-left:4px solid #e5e7eb;background-color:#f9fafb;font-size:15px;color:#374151;line-height:1.6;">{comment_excerpt}</blockquote>
+      <a href="{article_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View the comment</a>
     `),
     preheaderText: "Someone commented on your knowledge base article",
     availableVariables: [
-      { name: "articleTitle", description: "Title of the article", required: true },
-      { name: "commenterName", description: "Name of the commenter", required: false },
+      { name: "recipient_name", description: "Name of the author", required: false, defaultValue: "there" },
+      { name: "article_title", description: "Title of the article", required: true },
+      { name: "article_url", description: "Link to the article", required: false },
+      { name: "comment_author", description: "Name of the commenter", required: false, defaultValue: "Someone" },
+      { name: "comment_excerpt", description: "The start of the comment", required: false },
     ],
     priority: "immediate",
     recipientType: "employee",
     category: "knowledge_base",
     eventCode: "kb.comment_created",
   },
+
 
   // ═══ Purchase Core ══════════════════════════════════════════════════════════
 

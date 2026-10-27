@@ -61,35 +61,6 @@ export const TICKET_CAPABILITIES = [
   { slug: "ticket.viewInternalNotes",    label: "View Internal Notes",           description: "Read agent-only internal notes on tickets" },
 ] as const;
 
-// ─── Email Templates ──────────────────────────────────────────────────────────
-
-export const TICKET_EMAIL_TEMPLATES = [
-  {
-    slug: "ticket_reply_notification",
-    subject: "Re: [Ticket #{{ticketId}}] {{subject}}",
-    description: "Sent to the ticket submitter when a support agent posts a reply",
-    variables: ["userName", "ticketId", "subject", "replyExcerpt", "ticketUrl"],
-  },
-  {
-    slug: "ticket_user_reply",
-    subject: "User replied: [Ticket #{{ticketId}}] {{subject}}",
-    description: "Sent to the assigned agent when the user posts a reply",
-    variables: ["agentName", "ticketId", "subject", "userName", "replyExcerpt", "ticketUrl"],
-  },
-  {
-    slug: "ticket_assigned",
-    subject: "Ticket assigned to you: [#{{ticketId}}] {{subject}}",
-    description: "Sent to an agent when a ticket is assigned to them",
-    variables: ["agentName", "ticketId", "subject", "priority", "category", "ticketUrl"],
-  },
-  {
-    slug: "ticket_resolved",
-    subject: "Your support request has been resolved: [#{{ticketId}}]",
-    description: "Sent to the ticket submitter when their ticket is resolved; prompts for satisfaction rating",
-    variables: ["userName", "ticketId", "subject", "ratingUrl", "ticketUrl"],
-  },
-] as const;
-
 // ─── Audit Actions ────────────────────────────────────────────────────────────
 
 export const TICKET_AUDIT_ACTIONS = [
