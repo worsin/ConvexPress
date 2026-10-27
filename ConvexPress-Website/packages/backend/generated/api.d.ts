@@ -3351,8 +3351,8 @@ export type PublicApi = {
 };
   "mutations": {
   "markFailedLoginReviewed": FunctionReference<"mutation", "public", { "attemptId": GenericId<"failedLoginAttempts">; }, Dto253>;
-  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "userAgent"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
-  "recordLogin": FunctionReference<"mutation", "public", { "method"?: (undefined | "email" | "unknown" | "oauth" | "passkey"); "app"?: (undefined | "website" | "admin" | "unknown"); "ip"?: (undefined | string); "userAgent"?: (undefined | string); }, (null | Dto256)>;
+  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "userAgent"?: (undefined | string); "requestContext"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
+  "recordLogin": FunctionReference<"mutation", "public", { "method"?: (undefined | "email" | "unknown" | "oauth" | "passkey"); "app"?: (undefined | "website" | "admin" | "unknown"); "requestContext"?: (undefined | string); "userAgent"?: (undefined | string); }, (null | Dto256)>;
   "recordLogout": FunctionReference<"mutation", "public", { "app"?: (undefined | "website" | "admin" | "unknown"); }, (null | Dto257)>;
 };
   "queries": {
@@ -3368,8 +3368,8 @@ export type PublicApi = {
 };
   "authTracking/mutations": {
   "markFailedLoginReviewed": FunctionReference<"mutation", "public", { "attemptId": GenericId<"failedLoginAttempts">; }, Dto253>;
-  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "userAgent"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
-  "recordLogin": FunctionReference<"mutation", "public", { "method"?: (undefined | "email" | "unknown" | "oauth" | "passkey"); "app"?: (undefined | "website" | "admin" | "unknown"); "ip"?: (undefined | string); "userAgent"?: (undefined | string); }, (null | Dto256)>;
+  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "userAgent"?: (undefined | string); "requestContext"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
+  "recordLogin": FunctionReference<"mutation", "public", { "method"?: (undefined | "email" | "unknown" | "oauth" | "passkey"); "app"?: (undefined | "website" | "admin" | "unknown"); "requestContext"?: (undefined | string); "userAgent"?: (undefined | string); }, (null | Dto256)>;
   "recordLogout": FunctionReference<"mutation", "public", { "app"?: (undefined | "website" | "admin" | "unknown"); }, (null | Dto257)>;
 };
   "authTracking/queries": {
@@ -5059,8 +5059,8 @@ export type PublicApi = {
   "duplicate": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, (null | Dto1547)>;
   "publish": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, (null | Dto1547)>;
   "remove": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, Dto1550>;
-  "submit": FunctionReference<"mutation", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); }, Dto1552>;
-  "submitWithCaptcha": FunctionReference<"action", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); }, Dto1552>;
+  "submit": FunctionReference<"mutation", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); "requestContext"?: (undefined | string); }, Dto1552>;
+  "submitWithCaptcha": FunctionReference<"action", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); "requestContext"?: (undefined | string); }, Dto1552>;
   "unpublish": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, (null | Dto1547)>;
   "update": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; "title"?: (undefined | string); "description"?: (undefined | string); "slug"?: (undefined | string); "settings"?: (undefined | string); "status"?: (undefined | "draft" | "archived" | "published"); }, (null | Dto1547)>;
   "updateEntry": FunctionReference<"mutation", "public", { "id": GenericId<"form_submissions">; "formId"?: (undefined | GenericId<"forms">); "read"?: (undefined | false | true); "starred"?: (undefined | false | true); "status"?: (undefined | "partial" | "spam" | "complete" | "deleted"); "values"?: (undefined | Array<Dto1554>); }, (null | Dto1555)>;
@@ -5182,8 +5182,8 @@ export type PublicApi = {
   "duplicate": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, (null | Dto1547)>;
   "publish": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, (null | Dto1547)>;
   "remove": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, Dto1550>;
-  "submit": FunctionReference<"mutation", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); }, Dto1552>;
-  "submitWithCaptcha": FunctionReference<"action", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); }, Dto1552>;
+  "submit": FunctionReference<"mutation", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); "requestContext"?: (undefined | string); }, Dto1552>;
+  "submitWithCaptcha": FunctionReference<"action", "public", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); "requestContext"?: (undefined | string); }, Dto1552>;
   "unpublish": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; }, (null | Dto1547)>;
   "update": FunctionReference<"mutation", "public", { "id": GenericId<"forms">; "title"?: (undefined | string); "description"?: (undefined | string); "slug"?: (undefined | string); "settings"?: (undefined | string); "status"?: (undefined | "draft" | "archived" | "published"); }, (null | Dto1547)>;
   "updateEntry": FunctionReference<"mutation", "public", { "id": GenericId<"form_submissions">; "formId"?: (undefined | GenericId<"forms">); "read"?: (undefined | false | true); "starred"?: (undefined | false | true); "status"?: (undefined | "partial" | "spam" | "complete" | "deleted"); "values"?: (undefined | Array<Dto1554>); }, (null | Dto1555)>;
@@ -8531,7 +8531,7 @@ export type InternalApi = {
   "resolveColumns": FunctionReference<"query", "internal", { "formId": GenericId<"forms">; "fields"?: (undefined | Array<string>); }, Dto1544>;
 };
   "mutations": {
-  "submitInternal": FunctionReference<"mutation", "internal", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); }, Dto1552>;
+  "submitInternal": FunctionReference<"mutation", "internal", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); "requestContext"?: (undefined | string); }, Dto1552>;
 };
   "notifications": {
   "_claimProgressNotification": FunctionReference<"mutation", "internal", { "submissionId": GenericId<"form_submissions">; }, Dto1557>;
@@ -8607,7 +8607,7 @@ export type InternalApi = {
   "resolveColumns": FunctionReference<"query", "internal", { "formId": GenericId<"forms">; "fields"?: (undefined | Array<string>); }, Dto1544>;
 };
   "extensions/forms/mutations": {
-  "submitInternal": FunctionReference<"mutation", "internal", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); }, Dto1552>;
+  "submitInternal": FunctionReference<"mutation", "internal", { "contactPassword"?: (undefined | string); "formId": GenericId<"forms">; "values": Array<Dto1551>; "isComplete"?: (undefined | false | true); "resumeToken"?: (undefined | string); "currentStep"?: (undefined | number); "captchaToken"?: (undefined | string); "honeypot"?: (undefined | string); "startedAt"?: (undefined | number); "requestContext"?: (undefined | string); }, Dto1552>;
 };
   "extensions/forms/notifications": {
   "_claimProgressNotification": FunctionReference<"mutation", "internal", { "submissionId": GenericId<"form_submissions">; }, Dto1557>;

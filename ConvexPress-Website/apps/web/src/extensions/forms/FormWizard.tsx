@@ -26,6 +26,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth, useUser } from "@/lib/auth/clerk";
+import { fetchRequestContext } from "@/lib/request-context";
 import { useAction, useConvex, useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -780,6 +781,8 @@ export function FormWizard({
       const submitComplete = captchaIsRequired(form.security)
         ? submitWithCaptcha
         : submit;
+      // The completing request's address and browser, sealed by the server.
+      const requestContext = await fetchRequestContext();
       const res = await submitComplete({
         formId: form._id,
         contactPassword,
@@ -793,6 +796,7 @@ export function FormWizard({
           startedAt: startedAtRef.current,
           isComplete: true,
         }),
+        ...(requestContext ? { requestContext } : {}),
       });
 
       let trustedPricing: PricingResult | null = null;

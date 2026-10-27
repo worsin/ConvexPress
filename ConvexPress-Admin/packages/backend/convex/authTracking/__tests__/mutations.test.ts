@@ -68,7 +68,7 @@ function withLocalIdentity(t: ReturnType<typeof createHarness>, userId: string) 
 }
 
 describe("auth tracking mutations", () => {
-  test("bounds successful login metadata before writing the auth event", async () => {
+  test("bounds successful login metadata, and takes no address from the browser (PR 081)", async () => {
     const t = createHarness();
     const { userId } = await seedActiveUser(t);
     const authenticated = withLocalIdentity(t, userId);
@@ -78,7 +78,6 @@ describe("auth tracking mutations", () => {
       {
         method: "email",
         app: "admin",
-        ip: "1".repeat(100),
         userAgent: "A".repeat(2000),
       },
     );
@@ -92,14 +91,19 @@ describe("auth tracking mutations", () => {
         .first();
     });
 
-    expect(event?.actorIp).toHaveLength(45);
+    // Without the website server's sealed context there is no address at all.
+    expect(event?.actorIp).toBeUndefined();
 
     const payload = JSON.parse(event?.payload ?? "{}") as {
       ip?: string;
       userAgent?: string;
     };
-    expect(payload.ip).toHaveLength(45);
+    expect(payload.ip).toBeUndefined();
     expect(payload.userAgent).toHaveLength(1000);
+
+    // A browser stating an address is refused, not believed.
+    const withAddress = { method: "email" as const, app: "admin" as const, ip: "203.0.113.9" };
+    await expect(authenticated.mutation(api.authTracking.mutations.recordLogin, withAddress)).rejects.toThrow();
   });
 });
 
@@ -120,6 +124,34 @@ describe("failed sign-in records (upstream PR 068)", () => {
     // An older client still sending an address is refused, not believed.
     const withAddress = { email: "doctor@example.invalid", reason: "invalid_credentials" as const, app: "website" as const, ip: "203.0.113.9" };
     await expect(t.mutation(api.authTracking.mutations.recordFailedLogin, withAddress)).rejects.toThrow();
+  });
+
+  test("the address sealed by the website server is kept, and only that one (PR 081)", async () => {
+    const t = createHarness();
+    const previous = process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET;
+    process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET = "test-secret-0123456789-abcdefghijklmnop";
+    try {
+      const encoder = new TextEncoder();
+      const now = Date.now();
+      const body = btoa(JSON.stringify({ ip: "203.0.113.9", ua: "Sealed browser", iat: now, exp: now + 60_000 })).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/u, "");
+      const key = await crypto.subtle.importKey("raw", encoder.encode(process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(`convexpress:request-context:v1:${body}`)));
+      const requestContext = `v1.${body}.${Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+      await t.mutation(api.authTracking.mutations.recordFailedLogin, {
+        email: "doctor@example.invalid", reason: "invalid_credentials", app: "website", userAgent: "browser says", requestContext,
+      });
+      await t.mutation(api.authTracking.mutations.recordFailedLogin, {
+        email: "doctor@example.invalid", reason: "invalid_credentials", app: "website", userAgent: "browser says", requestContext: `${requestContext.slice(0, -1)}0`,
+      });
+      const attempts = await t.run(async (ctx) => await ctx.db.query("failedLoginAttempts").collect());
+      expect(attempts.map((attempt) => [attempt.ip ?? null, attempt.userAgent])).toEqual([
+        ["203.0.113.9", "Sealed browser"],
+        [null, "browser says"],
+      ]);
+    } finally {
+      if (previous === undefined) delete process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET;
+      else process.env.CONVEXPRESS_REQUEST_CONTEXT_SECRET = previous;
+    }
   });
 
   test("a phone number or placeholder isn't recorded as an email", async () => {

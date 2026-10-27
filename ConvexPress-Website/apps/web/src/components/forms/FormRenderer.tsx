@@ -21,6 +21,7 @@ import { answerError, answerRules } from "@/components/forms/answerCheck";
 import { signatureErrors } from "@convexpress-website/backend/generated/fieldFormats";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/clerk";
+import { fetchRequestContext } from "@/lib/request-context";
 import { useAction, useMutation, useConvex } from "convex/react";
 import DOMPurify from "@/lib/html-sanitizer";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -333,11 +334,13 @@ export function FormRenderer({
       const submitComplete = captchaIsRequired(form.security)
         ? submitWithCaptcha
         : submit;
+      const requestContext = await fetchRequestContext();
       const res = await submitComplete({
         formId: form._id,
         values: payloadValues,
         isComplete: true,
         ...securityEnvelope,
+        ...(requestContext ? { requestContext } : {}),
       });
 
       // Resolve the configured confirmation (message / redirect / page). Any

@@ -18,6 +18,7 @@ import { useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { useAuth } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
+import { fetchRequestContext } from "@/lib/request-context";
 
 const SESSION_KEY = "sh-login-tracked";
 
@@ -41,12 +42,16 @@ export function useLoginTracker() {
 
     hasTracked.current = true;
 
-    // Record the login event (best-effort)
-    recordLogin({
-      method: "unknown",
-      app: "website",
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-    })
+    // Record the login event (best-effort), with the server's sealed address
+    fetchRequestContext()
+      .then((requestContext) =>
+        recordLogin({
+          method: "unknown",
+          app: "website",
+          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+          ...(requestContext ? { requestContext } : {}),
+        }),
+      )
       .then(() => {
         // Mark as tracked in sessionStorage
         if (typeof window !== "undefined") {
