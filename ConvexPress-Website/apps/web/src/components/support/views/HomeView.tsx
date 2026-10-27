@@ -13,7 +13,8 @@ import { Search, MessageSquare, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HomeViewProps {
-  greeting: string;
+  /** Omitted when it would only repeat the panel's title. */
+  greeting?: string;
   subtitle?: string;
   showKbSearch?: boolean;
   showTicketHistory?: boolean;
@@ -48,8 +49,8 @@ export function HomeView({
     <div className="flex flex-col gap-6 p-4">
       {/* Greeting */}
       <div className="text-center">
-        <p className="text-lg font-semibold text-foreground">{greeting}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        {greeting ? <p className="text-lg font-semibold text-foreground">{greeting}</p> : null}
+        <p className={greeting ? "mt-1 text-sm text-muted-foreground" : "text-sm text-muted-foreground"}>
           {subtitle ??
             (showKbSearch
               ? "Search our help center or create a support ticket."

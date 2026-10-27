@@ -57,7 +57,10 @@ export function WidgetPanel({
         position === "bottomRight"
           ? "bottom-24 right-6 origin-bottom-right"
           : "bottom-24 left-6 origin-bottom-left",
-        "h-[min(600px,calc(100vh-8rem))]",
+        // As tall as its view needs, and never taller than the room between the
+        // launcher and the site's sticky header (--site-header-offset), so the
+        // panel's own header and close button stay in sight on a phone.
+        "max-h-[min(600px,calc(100dvh_-_7rem_-_var(--site-header-offset,0px)))]",
       )}
       role="dialog"
       aria-label="Support widget"

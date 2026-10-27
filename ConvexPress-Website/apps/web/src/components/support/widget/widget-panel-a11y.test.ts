@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { WidgetPanel } from "./WidgetPanel";
+import { homeGreeting } from "./SupportWidget";
 
 describe("support widget panel accessibility", () => {
   function render(isOpen: boolean) {
@@ -20,5 +21,24 @@ describe("support widget panel accessibility", () => {
     expect(html).toContain('aria-label="Search support"');
     expect(html).toContain('aria-label="Close support widget"');
     expect(html).not.toContain('aria-modal');
+  });
+});
+
+describe("support widget fit", () => {
+  test("the panel is as tall as its view, and leaves room for the site's sticky header", () => {
+    const html = renderToStaticMarkup(createElement(WidgetPanel, {
+      isOpen: true, position: "bottomRight", title: "Support", showBack: false,
+      onBack() {}, onClose() {}, children: createElement("p", null, "Home"),
+    }));
+    expect(html).toContain("max-h-[min(600px,calc(100dvh_-_7rem_-_var(--site-header-offset,0px)))]");
+    expect(html.includes(" h-[min(600px")).toBe(false);
+  });
+
+  test("a greeting that repeats the panel's title is left out; any other is kept", () => {
+    expect(homeGreeting("Support", "Support")).toBeUndefined();
+    expect(homeGreeting(" support ", "Support")).toBeUndefined();
+    expect(homeGreeting("Questions? We're here.", "Support")).toBe("Questions? We're here.");
+    expect(homeGreeting(undefined, "Support")).toBe("Hi! How can we help?");
+    expect(homeGreeting("", "Support")).toBe("Hi! How can we help?");
   });
 });
