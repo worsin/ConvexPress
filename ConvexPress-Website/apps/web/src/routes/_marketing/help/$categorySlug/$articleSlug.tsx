@@ -1,11 +1,12 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent, notFound, redirect } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { helpPageTitle } from "@/lib/help-trail";
+import { helpArticlePath, helpPageTitle } from "@/lib/help-trail";
+import { buildIndexablePageHead } from "@/lib/seo/head";
 import CoreHelpArticle, {
   type HelpArticleSurfaceData,
   type KbArticle,
@@ -23,18 +24,28 @@ export const Route = createFileRoute(
       convexQuery(api.settings.queries.getPublic, {}),
     );
 
-    if (!isPublicPluginEnabled("kb", publicSettings)) {
-      return { title: null };
-    }
+    // No help center, or no such article: the page answers 404.
+    if (!isPublicPluginEnabled("kb", publicSettings)) throw notFound();
 
     const article = await queryClient.ensureQueryData(
       convexQuery(api.kb.queries.getBySlug, { slug: params.articleSlug }),
     );
-    return { title: article?.title ?? null };
+    if (!article) throw notFound();
+    // An article has one address, under its own category.
+    const path = helpArticlePath(article);
+    if (path !== `/help/${params.categorySlug}/${params.articleSlug}`) {
+      throw redirect({
+        to: "/help/$categorySlug/$articleSlug",
+        params: { categorySlug: article.category?.slug ?? "uncategorized", articleSlug: article.slug },
+        replace: true,
+      });
+    }
+    return {
+      title: article.title,
+      seoHead: buildIndexablePageHead({ path, title: helpPageTitle(article.title, article.slug), description: article.excerpt || undefined, ogType: "article" }),
+    };
   },
-  head: ({ params, loaderData }) => ({
-    meta: [{ title: helpPageTitle(loaderData?.title, params.articleSlug) }],
-  }),
+  head: ({ loaderData }) => loaderData?.seoHead ?? {},
 });
 
 function ArticleReader() {

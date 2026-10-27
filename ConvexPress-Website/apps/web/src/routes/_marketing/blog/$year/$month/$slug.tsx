@@ -15,7 +15,8 @@
  * to shared components from the blog system.
  */
 
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
+import { createFileRoute, Navigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -25,13 +26,14 @@ import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/blog/$year/$month/$slug")({
   component: MonthAndNamePost,
-  head: ({ params }) => ({
-    meta: [
-      {
-        title: siteTitled(`${params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`),
-      },
-    ],
-  }),
+  // No such post: the page answers 404. The date is checked by the page,
+  // which links a post at another date to its own address.
+  loader: async ({ context: { queryClient }, params }) => {
+    const post = await queryClient.ensureQueryData(convexQuery(api.posts.queries.getPublished, { slug: params.slug }));
+    if (!post) throw notFound();
+    return { title: post.title };
+  },
+  head: ({ loaderData }) => (loaderData ? { meta: [{ title: siteTitled(loaderData.title) }] } : {}),
 });
 
 function MonthAndNamePost() {

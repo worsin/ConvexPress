@@ -22,6 +22,11 @@ export function slugWords(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+/** An article's own address: under its category, or "uncategorized" without one. */
+export function helpArticlePath(article: { slug: string; category: { slug: string } | null }): string {
+  return `/help/${article.category?.slug ?? "uncategorized"}/${article.slug}`;
+}
+
 /** "<name> - Help Center | Site", from the loaded name when there is one. */
 export function helpPageTitle(name: string | null | undefined, slug: string, section?: string): string {
   const heading = name?.trim() || slugWords(slug);

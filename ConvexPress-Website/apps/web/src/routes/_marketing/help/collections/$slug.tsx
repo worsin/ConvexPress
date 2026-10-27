@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { helpPageTitle } from "@/lib/help-trail";
@@ -18,18 +18,16 @@ export const Route = createFileRoute("/_marketing/help/collections/$slug")({
       convexQuery(api.settings.queries.getPublic, {}),
     );
 
-    if (!isPublicPluginEnabled("kb", publicSettings)) {
-      return { name: null };
-    }
+    // No help center, or no such collection: the page answers 404.
+    if (!isPublicPluginEnabled("kb", publicSettings)) throw notFound();
 
     const collection = await queryClient.ensureQueryData(
       convexQuery(api.kb.collections.getBySlug, { slug: params.slug }),
     );
-    return { name: collection?.name ?? null };
+    if (!collection) throw notFound();
+    return { name: collection.name };
   },
-  head: ({ params, loaderData }) => ({
-    meta: [{ title: helpPageTitle(loaderData?.name, params.slug, "Collections") }],
-  }),
+  head: ({ params, loaderData }) => (loaderData ? { meta: [{ title: helpPageTitle(loaderData.name, params.slug, "Collections") }] } : {}),
 });
 
 function CollectionView() {

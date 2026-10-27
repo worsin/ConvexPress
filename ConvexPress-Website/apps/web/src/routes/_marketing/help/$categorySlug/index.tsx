@@ -1,7 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";
-import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { helpCategoryParams } from "@/lib/help-search-params";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
@@ -30,13 +30,13 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
       convexQuery(api.settings.queries.getPublic, {}),
     );
 
-    if (!isPublicPluginEnabled("kb", publicSettings)) {
-      return { name: null };
-    }
+    // No help center, or no such category: the page answers 404.
+    if (!isPublicPluginEnabled("kb", publicSettings)) throw notFound();
 
     const category = await queryClient.ensureQueryData(
       convexQuery(api.kb.categories.getBySlug, { slug: params.categorySlug }),
     );
+    if (!category) throw notFound();
     // Pre-fetch articles to eliminate the data waterfall (H6)
     if (category?._id) {
       await queryClient.ensureQueryData(
@@ -46,11 +46,9 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
         }),
       );
     }
-    return { name: category?.name ?? null };
+    return { name: category.name };
   },
-  head: ({ params, loaderData }) => ({
-    meta: [{ title: helpPageTitle(loaderData?.name, params.categorySlug) }],
-  }),
+  head: ({ params, loaderData }) => (loaderData ? { meta: [{ title: helpPageTitle(loaderData.name, params.categorySlug) }] } : {}),
 });
 
 function CategoryPage() {

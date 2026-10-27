@@ -1,6 +1,5 @@
-import { useEffect } from "react";
 import { convexQuery } from "@convex-dev/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
@@ -12,7 +11,7 @@ import type {
   PostCard as PostCardType,
 } from "@/lib/blog/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { siteTitled } from "@/lib/seo/head";
+import { buildIndexablePageHead, siteTitled } from "@/lib/seo/head";
 import CoreBlogAuthor from "@/templates/packs/core/surfaces/blog.author";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import { Surface } from "@/templates/sdk/Surface";
@@ -26,18 +25,19 @@ export const Route = createFileRoute("/_marketing/author/$slug")({
   component: AuthorArchive,
   validateSearch: (search: Record<string, unknown>): AuthorSearchParams => pageParam(search.page),
   loader: async ({ context: { queryClient }, params: { slug } }) => {
-    // Pre-fetch author profile for SSR
-    await queryClient.ensureQueryData(
+    // Pre-fetch author profile for SSR. No such author: the page answers 404.
+    const author = await queryClient.ensureQueryData(
       convexQuery(api.profiles.queries.getUserBySlug, { slug }),
     );
+    if (!author) throw notFound();
+    return {
+      seoHead: buildIndexablePageHead({ path: `/author/${slug}`, title: siteTitled(`Author: ${author.displayName || slug}`), description: author.bio || undefined }),
+    };
   },
-  head: ({ params }) => ({
-    meta: [
-      // Initial title uses slug as a fallback; the component updates
-      // document.title with the author's display name once data loads.
-      { title: siteTitled(`Author: ${params.slug}`) },
-    ],
+  head: ({ params, loaderData }) => ({
+    ...loaderData?.seoHead,
     links: [
+      ...(loaderData?.seoHead.links ?? []),
       {
         rel: "alternate",
         type: "application/rss+xml",
@@ -61,14 +61,6 @@ function AuthorArchive() {
 
   // Fetch author profile by slug (public, no auth required)
   const author = useQuery(api.profiles.queries.getUserBySlug, { slug });
-
-  // Fix #23: Update document title with the author's actual display name
-  // once data is loaded, replacing the slug-based fallback from head().
-  useEffect(() => {
-    if (author?.displayName) {
-      document.title = siteTitled(`Author: ${author.displayName}`);
-    }
-  }, [author?.displayName]);
 
   // Fetch published posts by this author (only when author is loaded)
   const postsData = useQuery(

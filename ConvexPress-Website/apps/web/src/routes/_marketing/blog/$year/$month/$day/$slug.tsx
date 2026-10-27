@@ -11,7 +11,8 @@
  *   4. If post not found, show 404
  */
 
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
+import { createFileRoute, Navigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -23,13 +24,14 @@ export const Route = createFileRoute(
   "/_marketing/blog/$year/$month/$day/$slug",
 )({
   component: DayAndNamePost,
-  head: ({ params }) => ({
-    meta: [
-      {
-        title: siteTitled(`${params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`),
-      },
-    ],
-  }),
+  // No such post: the page answers 404. The date is checked by the page,
+  // which links a post at another date to its own address.
+  loader: async ({ context: { queryClient }, params }) => {
+    const post = await queryClient.ensureQueryData(convexQuery(api.posts.queries.getPublished, { slug: params.slug }));
+    if (!post) throw notFound();
+    return { title: post.title };
+  },
+  head: ({ loaderData }) => (loaderData ? { meta: [{ title: siteTitled(loaderData.title) }] } : {}),
 });
 
 function DayAndNamePost() {
