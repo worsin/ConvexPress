@@ -105,6 +105,8 @@ export interface DeviceSession {
   device: string;
   /** "Provo, US", or null when Clerk doesn't know. */
   place: string | null;
+  /** A phone or tablet. */
+  mobile: boolean;
   lastActiveAt: number;
 }
 

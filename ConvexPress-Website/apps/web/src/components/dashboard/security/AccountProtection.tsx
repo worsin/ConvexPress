@@ -309,7 +309,7 @@ export function DeviceSessionsCard({ security }: { security: AccountSecurity }) 
           {sessions.map((session) => (
             <li key={session.id} className="flex flex-wrap items-center gap-3 border-b border-border/50 py-3 last:border-b-0">
               <span className="flex size-8 shrink-0 items-center justify-center bg-muted text-muted-foreground">
-                <Monitor className="size-4" aria-hidden="true" />
+                {session.mobile ? <Smartphone className="size-4" aria-hidden="true" /> : <Monitor className="size-4" aria-hidden="true" />}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">
