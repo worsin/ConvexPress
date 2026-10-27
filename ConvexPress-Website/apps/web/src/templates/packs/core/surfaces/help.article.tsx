@@ -3,6 +3,8 @@ import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Link } from "@tanstack/react-router";
 import type React from "react";
 
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { helpTrail } from "@/lib/help-trail";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -202,26 +204,13 @@ export default function CoreHelpArticle({ data }: SurfaceProps<HelpArticleSurfac
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link to="/help" className="hover:text-foreground transition-colors">
-          Help Center
-        </Link>
-        <span className="mx-2">/</span>
-        {art.category && (
-          <>
-            <Link
-              to="/help/$categorySlug"
-              params={{ categorySlug }}
-              className="hover:text-foreground transition-colors"
-            >
-              {art.category.name}
-            </Link>
-            <span className="mx-2">/</span>
-          </>
+      <Breadcrumbs
+        className="mb-6"
+        segments={helpTrail(
+          ...(art.category ? [{ label: art.category.name, to: `/help/${categorySlug}` }] : []),
+          { label: art.title },
         )}
-        <span className="text-foreground">{art.title}</span>
-      </nav>
+      />
 
       {/* Article header */}
       <header className="mb-8">

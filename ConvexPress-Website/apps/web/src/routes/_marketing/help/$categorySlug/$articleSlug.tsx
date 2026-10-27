@@ -5,7 +5,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { siteTitled } from "@/lib/seo/head";
+import { helpPageTitle } from "@/lib/help-trail";
 import CoreHelpArticle, {
   type HelpArticleSurfaceData,
   type KbArticle,
@@ -24,19 +24,16 @@ export const Route = createFileRoute(
     );
 
     if (!isPublicPluginEnabled("kb", publicSettings)) {
-      return;
+      return { title: null };
     }
 
-    await queryClient.ensureQueryData(
+    const article = await queryClient.ensureQueryData(
       convexQuery(api.kb.queries.getBySlug, { slug: params.articleSlug }),
     );
+    return { title: article?.title ?? null };
   },
-  head: ({ params }) => ({
-    meta: [
-      {
-        title: siteTitled(`${params.articleSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center`),
-      },
-    ],
+  head: ({ params, loaderData }) => ({
+    meta: [{ title: helpPageTitle(loaderData?.title, params.articleSlug) }],
   }),
 });
 

@@ -1,6 +1,8 @@
 /** Core · help.collection — an ordered knowledge base collection (series / learning path). */
 import { Link } from "@tanstack/react-router";
 
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { helpTrail } from "@/lib/help-trail";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export type KbCollectionArticle = {
@@ -56,18 +58,7 @@ export default function CoreHelpCollection({ data }: SurfaceProps<HelpCollection
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link to="/help" className="hover:text-foreground transition-colors">
-          Help Center
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="hover:text-foreground transition-colors">
-          Collections
-        </span>
-        <span className="mx-2">/</span>
-        <span className="text-foreground">{col.name}</span>
-      </nav>
+      <Breadcrumbs className="mb-6" segments={helpTrail({ label: "Collections" }, { label: col.name })} />
 
       {/* Collection header */}
       <header className="mb-8">

@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { siteTitled } from "@/lib/seo/head";
+import { helpPageTitle } from "@/lib/help-trail";
 import CoreHelpCollection, {
   type HelpCollectionSurfaceData,
   type KbCollection,
@@ -19,19 +19,16 @@ export const Route = createFileRoute("/_marketing/help/collections/$slug")({
     );
 
     if (!isPublicPluginEnabled("kb", publicSettings)) {
-      return;
+      return { name: null };
     }
 
-    await queryClient.ensureQueryData(
+    const collection = await queryClient.ensureQueryData(
       convexQuery(api.kb.collections.getBySlug, { slug: params.slug }),
     );
+    return { name: collection?.name ?? null };
   },
-  head: ({ params }) => ({
-    meta: [
-      {
-        title: siteTitled(`${params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Collections - Help Center`),
-      },
-    ],
+  head: ({ params, loaderData }) => ({
+    meta: [{ title: helpPageTitle(loaderData?.name, params.slug, "Collections") }],
   }),
 });
 

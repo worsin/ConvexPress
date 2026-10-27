@@ -5,7 +5,7 @@ import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { helpCategoryParams } from "@/lib/help-search-params";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { siteTitled } from "@/lib/seo/head";
+import { helpPageTitle } from "@/lib/help-trail";
 import CoreHelpCategory, {
   type HelpCategorySurfaceData,
   type KbArticleItem,
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
     );
 
     if (!isPublicPluginEnabled("kb", publicSettings)) {
-      return;
+      return { name: null };
     }
 
     const category = await queryClient.ensureQueryData(
@@ -46,13 +46,10 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
         }),
       );
     }
+    return { name: category?.name ?? null };
   },
-  head: ({ params }) => ({
-    meta: [
-      {
-        title: siteTitled(`${params.categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center`),
-      },
-    ],
+  head: ({ params, loaderData }) => ({
+    meta: [{ title: helpPageTitle(loaderData?.name, params.categorySlug) }],
   }),
 });
 
