@@ -4078,6 +4078,12 @@ export declare const internal:
 "meilisearchIndex": FunctionReference<"query", "internal", {  }, string>,
 }
 ,
+"siteSetup":
+{
+"writeArticle": FunctionReference<"mutation", "internal", { setupKey: string, title: string, slug: string, excerpt: string, content: string, categoryId: Id<"kb_categories">, keywords?: Array<string>, sortOrder: number, isFeatured?: boolean, actorId: Id<"users"> }, { outcome: "created" | "updated" | "unchanged" | "kept_edited" | "kept_removed" | "slug_taken", articleId: Id<"kb_articles"> | null }>,
+"writeCategory": FunctionReference<"mutation", "internal", { setupKey: string, name: string, slug: string, description?: string, icon?: string, order: number, actorId: Id<"users"> }, { outcome: "created" | "updated" | "unchanged" | "kept_edited" | "kept_removed" | "slug_taken", categoryId: Id<"kb_categories"> | null }>,
+}
+,
 "trustedConsumers":
 {
 "recordHelpfulFeedback": FunctionReference<"mutation", "internal", { articleId: Id<"kb_articles">, sessionId: string, isHelpful: boolean, comment?: string }, { feedbackId: Id<"kb_articleFeedback"> }>,

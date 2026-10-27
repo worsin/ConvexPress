@@ -472,4 +472,21 @@ export const kbTables = {
   })
     .index("by_article", ["articleId"])
     .index("by_article_slug", ["articleSlug"]),
+
+  /**
+   * kb_setupReceipts - What a site's setup wrote (kb/siteSetup.ts)
+   *
+   * One row per setup key: the record it wrote, the digest of what was
+   * requested, and the digest of the record's editable fields as setup left
+   * them. A record whose fields differ now was edited, and setup keeps it.
+   */
+  kb_setupReceipts: defineTable({
+    kind: v.union(v.literal("category"), v.literal("article")),
+    setupKey: v.string(),
+    recordId: v.string(),
+    requestDigest: v.string(),
+    acceptedDigest: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_kind_key", ["kind", "setupKey"]),
 };

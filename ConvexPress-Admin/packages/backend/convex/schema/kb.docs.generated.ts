@@ -22,6 +22,7 @@ export const kbDocs = {
   kb_relatedArticles: docValidator("kb_relatedArticles", kbTables.kb_relatedArticles.validator),
   kb_searchQueries: docValidator("kb_searchQueries", kbTables.kb_searchQueries.validator),
   kb_search_jobs: docValidator("kb_search_jobs", kbTables.kb_search_jobs.validator),
+  kb_setupReceipts: docValidator("kb_setupReceipts", kbTables.kb_setupReceipts.validator),
   kb_tags: docValidator("kb_tags", kbTables.kb_tags.validator),
   kb_templates: docValidator("kb_templates", kbTables.kb_templates.validator),
   kb_userProgress: docValidator("kb_userProgress", kbTables.kb_userProgress.validator),
