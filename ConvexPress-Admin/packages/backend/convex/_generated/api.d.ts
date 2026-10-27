@@ -3828,6 +3828,7 @@ export declare const internal:
 "onUserInvited": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onUserRegistered": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
 "onWebhookTriggered": FunctionReference<"mutation", "internal", { eventId: Id<"events"> }, null>,
+"previewTemplate": FunctionReference<"query", "internal", { templateSlug: string, recipientName?: string, variableOverrides?: string }, { subject: string, bodyHtml: string, bodyText: string, fromName: string, fromAddress: string }>,
 "processBatchedEmails": FunctionReference<"mutation", "internal", {  }, null>,
 "queueEmail": FunctionReference<"mutation", "internal", { templateSlug: string, variables: string, recipientEmail: string, recipientName?: string, recipientUserId?: string, eventId?: Id<"events">, correlationId?: string, scheduledFor?: number }, null | Id<"emailQueue">>,
 "queueRenderedEmail": FunctionReference<"mutation", "internal", { recipientEmail: string, recipientName?: string, recipientUserId?: string, subject: string, bodyHtml: string, bodyText?: string, templateSlug: string, templateVariables: string, priority?: "immediate" | "batched" | "digest", eventId?: Id<"events">, correlationId?: string, isTest?: boolean, testLabel?: string, testMetadata?: string }, Id<"emailQueue">>,
