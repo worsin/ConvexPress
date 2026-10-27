@@ -86,6 +86,15 @@ describe("email branding", () => {
     expect((await s.welcome()).bodyHtml).toBe("<p>Hi Casey</p>");
   });
 
+  test("a template previews as it would be sent, without queuing anything", async () => {
+    const s = await site({ email: { accentColor: "#1e4262" } });
+    const preview = await s.t.query(internal.emails.internals.previewTemplate, { templateSlug: "welcome-email", recipientName: "Casey" });
+    expect(preview.subject).toBe("Welcome to Smith & Co!");
+    expect(preview.bodyHtml).toContain("background-color:#1e4262;");
+    expect(preview.bodyText).toContain("Welcome, Casey!");
+    expect(await s.t.run(async (ctx) => (await ctx.db.query("emailQueue").collect()).length)).toBe(0);
+  });
+
   test("settings are checked when saved", () => {
     const email = (values: Record<string, unknown>) => validateSectionValues("email", values).map((error) => error.field);
     expect(email({ logoUrl: "https://cdn.example/logo.png", logoWidth: 160, accentColor: "#1E4262", footerText: "ok" })).toEqual([]);

@@ -487,6 +487,65 @@ export const getTemplateForTesting = internalQuery({
   },
 });
 
+/**
+ * A template as the site would send it, with sample values for its own
+ * variables and the site's real name, links and look.
+ */
+async function renderSampleEmail(
+  ctx: DbCtx,
+  args: { templateSlug: string; recipientName?: string; variableOverrides?: string },
+) {
+  const template = await getTemplateRecord(ctx, args.templateSlug);
+  if (!template) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: `Email template "${args.templateSlug}" was not found.`,
+    });
+  }
+
+  const parsedOverrides = args.variableOverrides
+    ? parseTemplateVariables(args.variableOverrides) ?? undefined
+    : undefined;
+
+  const settings = await getEmailSettings(ctx);
+  // Sample values fill the template's own variables; the site's name and
+  // links are real, so a test looks like what customers receive.
+  const variables = {
+    ...injectGlobalVariables(
+      buildTemplateSampleVariables(template.availableVariables, parsedOverrides),
+      {},
+      args.recipientName,
+    ),
+    site_name: settings.siteName,
+    site_url: settings.siteUrl,
+    unsubscribe_url: settings.unsubscribeUrl,
+    ...parsedOverrides,
+    // The site's real look: a test shows what customers receive.
+    ...emailBrandVariables(settings.branding, settings),
+  };
+
+  const subject = renderTemplate(template.subjectTemplate, variables);
+  const bodyHtml = renderHtmlTemplate(template.bodyHtml, variables);
+  const bodyText = template.bodyText
+    ? renderTemplate(template.bodyText, variables)
+    : stripHtmlToText(bodyHtml);
+  return { template, settings, variables, subject, bodyHtml, bodyText };
+}
+
+/** Render a template as it would be sent, without sending (reviews, galleries). */
+export const previewTemplate = internalQuery({
+  args: {
+    templateSlug: v.string(),
+    recipientName: v.optional(v.string()),
+    variableOverrides: v.optional(v.string()),
+  },
+  returns: v.object({ subject: v.string(), bodyHtml: v.string(), bodyText: v.string(), fromName: v.string(), fromAddress: v.string() }),
+  handler: async (ctx, args) => {
+    const { settings, subject, bodyHtml, bodyText } = await renderSampleEmail(ctx, args);
+    return { subject, bodyHtml, bodyText, fromName: settings.fromName, fromAddress: settings.fromAddress };
+  },
+});
+
 export const queueTemplateTestEmail = internalMutation({
   args: {
     templateSlug: v.string(),
@@ -497,40 +556,7 @@ export const queueTemplateTestEmail = internalMutation({
   },
   returns: v.id("emailQueue"),
   handler: async (ctx, args) => {
-    const template = await getTemplateRecord(ctx, args.templateSlug);
-    if (!template) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: `Email template "${args.templateSlug}" was not found.`,
-      });
-    }
-
-    const parsedOverrides = args.variableOverrides
-      ? parseTemplateVariables(args.variableOverrides) ?? undefined
-      : undefined;
-
-    const settings = await getEmailSettings(ctx);
-    // Sample values fill the template's own variables; the site's name and
-    // links are real, so a test looks like what customers receive.
-    const variables = {
-      ...injectGlobalVariables(
-        buildTemplateSampleVariables(template.availableVariables, parsedOverrides),
-        {},
-        args.recipientName,
-      ),
-      site_name: settings.siteName,
-      site_url: settings.siteUrl,
-      unsubscribe_url: settings.unsubscribeUrl,
-      ...parsedOverrides,
-      // The site's real look: a test shows what customers receive.
-      ...emailBrandVariables(settings.branding, settings),
-    };
-
-    const subject = renderTemplate(template.subjectTemplate, variables);
-    const bodyHtml = renderHtmlTemplate(template.bodyHtml, variables);
-    const bodyText = template.bodyText
-      ? renderTemplate(template.bodyText, variables)
-      : stripHtmlToText(bodyHtml);
+    const { template, settings, variables, subject, bodyHtml, bodyText } = await renderSampleEmail(ctx, args);
 
     const queueId = await ctx.db.insert("emailQueue", {
       to: args.recipientEmail,
