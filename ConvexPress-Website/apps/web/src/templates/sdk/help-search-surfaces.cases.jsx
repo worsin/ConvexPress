@@ -41,3 +41,30 @@ for (const [packId, Surface] of Object.entries(surfaces)) {
     } finally { await act(async () => root.unmount()); }
   });
 }
+
+const homes = {
+  core: (await import('../packs/core/surfaces/help.home')).default,
+  journal: (await import('../packs/journal/surfaces/help.home')).default,
+  depot: (await import('../packs/depot/surfaces/help.home')).default,
+  'aster-house': (await import('../packs/aster-house/surfaces/help.home')).default,
+};
+const homeData = {
+  categories: [{ _id: 'c', name: 'Getting started', slug: 'start-here', articleCount: 3 }],
+  featured: [{ _id: 'f', title: 'Signing your BAA', slug: 'signing-your-baa', categorySlug: 'start-here' }],
+  actions: { search() {} },
+};
+for (const [packId, Home] of Object.entries(homes)) {
+  test(`${packId}: the help home's search box is labelled inside a search landmark`, async () => {
+    const route = createRootRoute({ component: () => <Home data={homeData} packId={packId} /> });
+    const router = createRouter({ routeTree: route, history: createMemoryHistory({ initialEntries: ['/help'] }) });
+    const root = createRoot(document.getElementById('root'));
+    try {
+      await act(async () => { await router.load(); root.render(<RouterProvider router={router} />); });
+      expect(document.querySelectorAll('h1')).toHaveLength(1);
+      const box = document.querySelector('form[role="search"] input[name="q"]');
+      expect(box).not.toBeNull();
+      const named = box.getAttribute('aria-label') || (box.id && document.querySelector(`label[for="${box.id}"]`)?.textContent?.trim());
+      expect(Boolean(named)).toBe(true);
+    } finally { await act(async () => root.unmount()); }
+  });
+}
