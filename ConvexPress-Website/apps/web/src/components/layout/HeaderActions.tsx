@@ -1,23 +1,22 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
-import { LogIn, ShoppingCart, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { LogIn, UserPlus } from "lucide-react";
+import { lazy, Suspense } from "react";
 
 import { cn } from "@/lib/utils";
 import { HeaderSearchTrigger } from "./HeaderSearch";
-import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { useSettings } from "@/contexts/SettingsContext";
 import { siteSignUpPath } from "@/lib/auth/signUpPath";
 import type { HeaderConfig } from "@/lib/layout/types";
-import CoreCartDrawer from "@/templates/packs/core/surfaces/chrome.cartDrawer";
-import { Surface } from "@/templates/sdk/Surface";
 
 import { UserMenu } from "./UserMenu";
-import { WebsiteNotificationBell } from "./WebsiteNotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+
+// The cart is the storefront's: its code loads only where the storefront is on.
+const HeaderCart = lazy(() => import("./HeaderCart"));
+// Notifications are for signed-in members: visitors never download them.
+const WebsiteNotificationBell = lazy(async () => ({ default: (await import("./WebsiteNotificationBell")).WebsiteNotificationBell }));
 
 interface HeaderActionsProps {
   className?: string;
@@ -30,15 +29,9 @@ interface HeaderActionsProps {
  */
 export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const { isSignedIn, isLoaded } = useAuth();
-  const [cartOpen, setCartOpen] = useState(false);
   const settings = useSettings();
   // The cart belongs to the storefront; a subscription-only site has none.
   const commerceEnabled = isPublicPluginEnabled("commerceStorefront", settings);
-  const { sessionToken, isReady } = useCommerceSessionToken();
-  const cart: { itemCount?: number } | null | undefined = useQuery(
-    api.commerce.cart.getMine,
-    commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
-  );
 
   // Config-driven visibility (defaults to showing everything if no config)
   const showDarkMode = headerConfig?.darkModeToggle?.enabled !== false;
@@ -54,26 +47,10 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       <HeaderSearchTrigger config={headerConfig?.search} />
 
       {commerceEnabled && (
-        <>
-          <button
-            type="button"
-            onClick={() => setCartOpen(true)}
-            className="relative flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={`Cart${cart?.itemCount ? `, ${cart.itemCount} ${cart.itemCount === 1 ? "item" : "items"}` : ""}`}
-          >
-            <ShoppingCart className="size-4" aria-hidden="true" />
-            {cart?.itemCount ? (
-              <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
-                {cart.itemCount > 99 ? "99+" : cart.itemCount}
-              </span>
-            ) : null}
-          </button>
-          <Surface
-            name="chrome.cartDrawer"
-            data={{ open: cartOpen, onOpenChange: setCartOpen }}
-            fallback={CoreCartDrawer}
-          />
-        </>
+        // Holds the button's place while the cart's code loads.
+        <Suspense fallback={<span className="size-8" aria-hidden="true" />}>
+          <HeaderCart />
+        </Suspense>
       )}
 
       {/* CTA button */}
@@ -93,7 +70,9 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
         <>
           {isSignedIn ? (
             <>
-              <WebsiteNotificationBell />
+              <Suspense fallback={<span className="size-8" aria-hidden="true" />}>
+                <WebsiteNotificationBell />
+              </Suspense>
               <UserMenu />
             </>
           ) : (

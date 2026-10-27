@@ -29,7 +29,7 @@ import { useAuth } from "@/lib/auth/clerk";
 import { DROPDOWN_TIMING } from "@/lib/layout/constants";
 import type { HeaderConfig, ResolvedMenuItem, SiteIdentity } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
-import CoreCartDrawer from "@/templates/packs/core/surfaces/chrome.cartDrawer";
+import { LazyCoreCartDrawer } from "@/components/commerce/LazyCartDrawer";
 import type { HeaderSurfaceData } from "@/templates/packs/core/surfaces/chrome.header";
 import CoreSearchOverlay from "@/templates/packs/core/surfaces/chrome.searchOverlay";
 import { Surface } from "@/templates/sdk/Surface";
@@ -298,7 +298,7 @@ function CartButton() {
           </span>
         ) : null}
       </button>
-      <Surface name="chrome.cartDrawer" data={{ open, onOpenChange: setOpen }} fallback={CoreCartDrawer} />
+      <Surface name="chrome.cartDrawer" data={{ open, onOpenChange: setOpen }} fallback={LazyCoreCartDrawer} />
     </>
   );
 }

@@ -1,5 +1,6 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 
 const clientAssetsDir = path.resolve("dist/client/assets");
 const maxChunkBytes = Number.parseInt(process.env.BUNDLE_MAX_CHUNK_BYTES ?? "550000", 10);
@@ -45,6 +46,63 @@ if (mainChunk && mainChunk.size > maxMainBytes) {
 console.log("Client chunk summary:");
 for (const asset of jsAssets.slice(0, 10)) {
   console.log(`- ${asset.file}: ${formatBytes(asset.size)}`);
+}
+
+// ─── Route budgets ─────────────────────────────────────────────────────────
+// What a first visit to a route downloads before it can run: the JavaScript
+// the server tells the browser to preload for the route and every layout
+// above it (TanStack Start's manifest), gzipped. Clerk's own script comes from
+// its CDN and isn't counted. Storefront code never preloads on a marketing
+// page: the cart, product cards and pricing load only where the storefront is
+// on (components/layout/HeaderCart.tsx, components/commerce/LazyCartDrawer.ts).
+const STOREFRONT_CHUNK = /\/(?:chrome\.cartDrawer|CartDrawer|cartLine|useCart|ProductMiniCard|RelatedProducts|useProductCardPricing|useCommerceSessionToken|HeaderCart)-[\w-]+\.js$/;
+const ROUTE_BUDGETS = [
+  // The public form page carries signups, including paid ones: no storefront code.
+  { route: "/_marketing/forms/$slug", maxGzipBytes: Number.parseInt(process.env.BUNDLE_FORM_ROUTE_GZIP_BYTES ?? "600000", 10), noStorefront: true },
+  // A page body still wraps every block family's live-data provider (block-public/
+  // PublicCanonicalBody.tsx), storefront ones included; this holds it where it is.
+  { route: "/_marketing/", maxGzipBytes: Number.parseInt(process.env.BUNDLE_PAGE_ROUTE_GZIP_BYTES ?? "720000", 10), noStorefront: false },
+];
+
+async function readStartManifest() {
+  const serverAssets = path.resolve("dist/server/assets");
+  const file = (await readdir(serverAssets)).find((name) => name.startsWith("_tanstack-start-manifest"));
+  if (!file) return null;
+  const source = await readFile(path.join(serverAssets, file), "utf8");
+  return JSON.parse(source.slice(source.indexOf("({") + 1, source.lastIndexOf("})") + 1));
+}
+
+const manifest = await readStartManifest();
+if (!manifest?.routes) {
+  failures.push("The TanStack Start manifest (dist/server/assets/_tanstack-start-manifest_*.js) wasn't found or has no routes.");
+} else {
+  const parentOf = new Map();
+  for (const [id, entry] of Object.entries(manifest.routes)) {
+    for (const child of entry.children ?? []) parentOf.set(child, id);
+  }
+  console.log("\nRoute budgets (preloaded JavaScript, gzipped):");
+  for (const budget of ROUTE_BUDGETS) {
+    if (!manifest.routes[budget.route]) {
+      failures.push(`Route ${budget.route} isn't in the build's route manifest.`);
+      continue;
+    }
+    const preloads = new Set();
+    for (let id = budget.route; id; id = parentOf.get(id)) {
+      for (const preload of manifest.routes[id]?.preloads ?? []) preloads.add(preload);
+    }
+    let gzipBytes = 0;
+    for (const preload of preloads) {
+      gzipBytes += gzipSync(await readFile(path.resolve("dist/client", `.${preload}`))).length;
+    }
+    const storefront = [...preloads].filter((preload) => STOREFRONT_CHUNK.test(preload));
+    console.log(`- ${budget.route}: ${preloads.size} files, ${formatBytes(gzipBytes)} (limit ${formatBytes(budget.maxGzipBytes)})`);
+    if (gzipBytes > budget.maxGzipBytes) {
+      failures.push(`${budget.route} preloads ${formatBytes(gzipBytes)} of JavaScript (gzipped); limit is ${formatBytes(budget.maxGzipBytes)}.`);
+    }
+    if (budget.noStorefront && storefront.length > 0) {
+      failures.push(`${budget.route} preloads storefront code: ${storefront.join(", ")}. Load it only where the storefront is on.`);
+    }
+  }
 }
 
 if (failures.length > 0) {
