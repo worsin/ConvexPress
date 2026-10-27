@@ -81,9 +81,9 @@ describe("signed-in devices", () => {
 
   test("lists this device first, then the most recent", () => {
     const sessions = [
-      { id: "a", current: false, device: "A", place: null, lastActiveAt: 1 },
-      { id: "b", current: false, device: "B", place: null, lastActiveAt: 3 },
-      { id: "c", current: true, device: "C", place: null, lastActiveAt: 2 },
+      { id: "a", current: false, device: "A", place: null, mobile: false, lastActiveAt: 1 },
+      { id: "b", current: false, device: "B", place: null, mobile: false, lastActiveAt: 3 },
+      { id: "c", current: true, device: "C", place: null, mobile: false, lastActiveAt: 2 },
     ];
     expect(orderSessions(sessions).map((session) => session.id)).toEqual(["c", "b", "a"]);
   });

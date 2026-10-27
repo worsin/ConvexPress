@@ -140,6 +140,7 @@ export function useAccountSecurity(): AccountSecurity | null {
           current: session.id === currentId,
           device: describeDevice(session.latestActivity),
           place: describePlace(session.latestActivity),
+          mobile: session.latestActivity?.isMobile === true,
           lastActiveAt: session.lastActiveAt.getTime(),
         })),
       signOutSession: async (sessionId) => {

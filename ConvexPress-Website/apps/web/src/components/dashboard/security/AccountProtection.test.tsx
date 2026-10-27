@@ -167,8 +167,8 @@ describe("two-step verification on the Security page", () => {
     const signOutOtherSessions = recorded(async () => 1);
     const fake = security({
       loadSessions: recorded(async () => [
-        { id: "sess_2", current: false, device: "Safari on iPhone", place: "Provo, US", lastActiveAt: now - 3 * 3_600_000 },
-        { id: "sess_1", current: true, device: "Chrome on Macintosh", place: null, lastActiveAt: now },
+        { id: "sess_2", current: false, device: "Safari on iPhone", place: "Provo, US", mobile: true, lastActiveAt: now - 3 * 3_600_000 },
+        { id: "sess_1", current: true, device: "Chrome on Macintosh", place: null, mobile: false, lastActiveAt: now },
       ]),
       signOutOtherSessions,
     });
