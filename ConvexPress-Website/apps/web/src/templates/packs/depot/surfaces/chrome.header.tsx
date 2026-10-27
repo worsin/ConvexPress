@@ -25,7 +25,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { WebsiteNotificationBell } from "@/components/layout/WebsiteNotificationBell";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { useLayoutShell, useMobileNavTrigger } from "@/hooks/layout/useLayoutShell";
 import { useCart } from "@/hooks/useCart";
 import { useDashboardPath } from "@/hooks/useDashboardConfig";
 import { useAuth } from "@/lib/auth/clerk";
@@ -42,7 +42,8 @@ import { Container, Label, buttonClasses } from "../parts";
 
 export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const { siteIdentity, menu, layoutConfig, headerConfig } = data;
-  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
+  const { searchOpen, closeSearch } = useLayoutShell();
+  const mobileNavTrigger = useMobileNavTrigger();
 
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
@@ -55,7 +56,7 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
 
   const mobileToggle = (<button
           type="button"
-          onClick={toggleMobileNav}
+          {...mobileNavTrigger}
           className="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
           data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
         >

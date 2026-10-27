@@ -21,3 +21,21 @@ export function useLayoutShell(): UseLayoutShellResult {
   }
   return context;
 }
+
+/** The id of the site's mobile navigation drawer (components/layout/MobileNav.tsx). */
+export const MOBILE_NAV_ID = "site-mobile-nav";
+
+/**
+ * Props for a header's menu button: it opens the mobile navigation dialog and
+ * says whether it is open, so assistive technology announces "collapsed" or
+ * "expanded" and can reach the drawer it controls.
+ */
+export function useMobileNavTrigger() {
+  const { mobileNavOpen, toggleMobileNav } = useLayoutShell();
+  return {
+    onClick: toggleMobileNav,
+    "aria-expanded": mobileNavOpen,
+    "aria-haspopup": "dialog",
+    "aria-controls": MOBILE_NAV_ID,
+  } as const;
+}

@@ -6,7 +6,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { useSignUpPath } from "@/lib/auth/signUpPath";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { MOBILE_NAV_ID, useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import type { HeaderConfig, ResolvedMenu, SiteIdentity } from "@/lib/layout/types";
 
 import { MobileNavItem } from "./MobileNavItem";
@@ -137,6 +137,7 @@ export function MobileNav({ menu, siteIdentity, config, userMenu, open, onClose 
       <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden lg:hidden">
       <div
         ref={panelRef}
+          id={MOBILE_NAV_ID}
           data-slot="mobile-nav"
         data-variant={geometry.variant}
         style={geometry.style}
