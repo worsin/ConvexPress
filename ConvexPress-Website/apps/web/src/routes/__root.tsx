@@ -35,6 +35,8 @@ import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 // and lets Vite update it without a second, independently timestamped head link.
 import "../index.css";
 import "../templates/sdk/block-renderer/critical-styles";
+// The body face's Latin file, the one page text uses (index.css self-hosts it).
+import bodyFontLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import { rememberSearchVisibility, resolveSiteName, rememberSiteName } from "@/lib/seo/head";
 import { loadSiteShare } from "@/lib/seo/loadSiteShare";
 import { siteShareHead, type SiteShareHead } from "@/lib/seo/siteShare";
@@ -138,18 +140,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     ],
     links: [
       ...share.links,
+      // Fetched with the stylesheet rather than after it is parsed, so the first
+      // paint is already in the body face: no text reflows when it arrives.
       {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
+        rel: "preload",
+        href: bodyFontLatin,
+        as: "font",
+        type: "font/woff2",
         crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap",
       },
       {
         rel: "alternate",

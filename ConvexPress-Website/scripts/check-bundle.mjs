@@ -159,6 +159,39 @@ if (manifest?.routes) {
   }
 }
 
+// ─── The body face at first paint ──────────────────────────────────────────
+// A self-hosted font is found only once the stylesheet naming it is parsed,
+// which is after the page first paints: the text then reflows into it and the
+// page shifts. The body face's Latin file (what page text is set in) must be
+// preloaded by the server-rendered page (routes/__root.tsx). The Latin face's
+// range starts at U+0000-00FF, which minifiers write as U+??.
+{
+  const mainCss = assets.find((file) => /^main-[\w-]+\.css$/.test(file));
+  const css = mainCss ? await readFile(path.join(clientAssetsDir, mainCss), "utf8") : "";
+  const family = css.match(/--font-sans:\s*["']?([^"',;}]+)/)?.[1]?.trim();
+  const faces = family
+    ? [...css.matchAll(/@font-face\s*\{[^}]*\}/g)]
+        .map(([face]) => face)
+        .filter((face) => new RegExp(`font-family:\\s*["']?${family}["']?\\s*[;}]`).test(face) && /unicode-range:\s*U\+(?:0+-0*FF|0*\?\?)(?=[\s,;}])/i.test(face))
+    : [];
+  const files = faces.map((face) => face.match(/url\(["']?\/assets\/([\w.-]+\.woff2)/)?.[1]).filter((file) => typeof file === "string");
+  if (files.length > 0) {
+    const serverAssets = path.resolve("dist/server/assets");
+    const server = (
+      await Promise.all(
+        (await readdir(serverAssets)).filter((file) => file.endsWith(".js")).map((file) => readFile(path.join(serverAssets, file), "utf8")),
+      )
+    ).join("\n");
+    console.log(`\nBody face: ${family}, Latin file ${files.join(", ")}${files.every((file) => server.includes(`/assets/${file}`)) ? " preloaded" : ""}.`);
+    for (const file of files.filter((file) => !server.includes(`/assets/${file}`))) {
+      failures.push(
+        `The body face's Latin file (${family}, ${file}) isn't preloaded by the server-rendered page, so it arrives after the first paint and the text reflows. ` +
+          "Preload it in routes/__root.tsx (an ?url import of the font file).",
+      );
+    }
+  }
+}
+
 if (failures.length > 0) {
   console.error("\nBundle budget check failed:");
   for (const failure of failures) {

@@ -18,6 +18,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { preconnect } from "react-dom";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import {
@@ -204,6 +205,8 @@ export function TemplateSettingsInjector() {
   const href = fonts.length
     ? `https://fonts.googleapis.com/css2?${fonts.map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}:wght@400;500;600;700`).join("&")}&display=swap`
     : null;
+  // The font files come from Google's file host once its stylesheet is read.
+  if (href) preconnect("https://fonts.gstatic.com", { crossOrigin: "anonymous" });
   return (
     <>
       {href && <link rel="stylesheet" href={href} />}
