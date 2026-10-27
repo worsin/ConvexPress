@@ -6,6 +6,7 @@ import { StartClient } from "@tanstack/react-start/client";
 import { prepareTemplateHydration } from "./templates/sdk/registry";
 import { prepareCanonicalBlockHydration } from "./templates/sdk/block-preview/hydration";
 import { prepareLiveHostHydration } from "./templates/sdk/block-public/live-hosts-hydration";
+import { restoreServerText } from "./lib/hydration/restore-server-text";
 
 // Wait for streamed surface markers too. Native links and disclosures remain
 // usable while their selected template modules load; no placeholder replaces SSR.
@@ -15,6 +16,8 @@ async function hydrate() {
       document.addEventListener("DOMContentLoaded", () => resolve(), { once: true });
     });
   }
+  // A CDN's email decoder (Cloudflare) splits the server's text; merge it back.
+  restoreServerText(document.body);
   await Promise.all([
     prepareTemplateHydration(document),
     prepareCanonicalBlockHydration(document),
