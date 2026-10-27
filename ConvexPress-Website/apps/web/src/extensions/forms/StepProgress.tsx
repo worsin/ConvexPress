@@ -60,7 +60,8 @@ export function StepProgress({
           <span className="text-foreground"> · {currentStep.title}</span>
         ) : null}
       </p>
-      <ol className="flex items-center gap-1.5">
+      {/* Seven steps fit a 320px phone: the connectors shrink before anything overflows. */}
+      <ol className="flex min-w-0 items-center gap-1 sm:gap-1.5">
         {activeSteps.map((step, i) => {
           const isCurrent = i === currentIndex;
           const isVisited = i < currentIndex || i <= furthestIndex;
@@ -89,7 +90,7 @@ export function StepProgress({
           return (
             <li
               key={step.index}
-              className="flex items-center gap-1.5"
+              className="flex min-w-0 shrink items-center gap-1 sm:gap-1.5"
               aria-current={isCurrent ? "step" : undefined}
             >
               {canJump ? (
@@ -112,7 +113,7 @@ export function StepProgress({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "h-px w-4 sm:w-8",
+                    "h-px w-4 min-w-1 shrink sm:w-8",
                     isComplete ? "bg-primary/40" : "bg-border",
                   )}
                 />
