@@ -20,6 +20,7 @@ import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useHeaderMenu } from "@/hooks/layout/useHeaderMenu";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
+import { chromeMenuLocations } from "@/lib/layout/chrome-menus";
 import { checkRouteAccess } from "@/lib/routeRestriction";
 import type { RouteAccessResult } from "@/lib/routeRestriction";
 import CoreFooter from "@/templates/packs/core/surfaces/chrome.footer";
@@ -27,6 +28,7 @@ import CoreHeader from "@/templates/packs/core/surfaces/chrome.header";
 import CoreMobileNav from "@/templates/packs/core/surfaces/chrome.mobileNav";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
+import { getTemplatePack } from "@/templates/sdk/registry";
 import { Surface } from "@/templates/sdk/Surface";
 import { FormRouteAuthRecovery } from "@/extensions/forms/FormRouteNotFound";
 
@@ -35,10 +37,18 @@ export const Route = createFileRoute("/_marketing")({
     // SSR route restriction: check if this pathname is membership-gated.
     // Fails softly (returns allowed:true) on any error so existing pages
     // are never accidentally broken by the restriction check.
-    const [routeAccess] = await Promise.all([
+    const [routeAccess, settings] = await Promise.all([
       checkRouteAccess(queryClient, location.pathname),
       queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {})),
     ]);
+    // The header's and footer's menus, so they render in the first flush
+    // (lib/layout/chrome-menus.ts). A failed read leaves that menu to load on demand.
+    const preview = "template" in location.search ? location.search.template : undefined;
+    await Promise.all(
+      chromeMenuLocations(settings, preview, (packId) => getTemplatePack(packId)?.manifest).map((locationSlug) =>
+        queryClient.ensureQueryData(convexQuery(api.menus.queries.getMenuForLocation, { locationSlug })).catch(() => null),
+      ),
+    );
     return { routeAccess };
   },
   component: MarketingLayout,
