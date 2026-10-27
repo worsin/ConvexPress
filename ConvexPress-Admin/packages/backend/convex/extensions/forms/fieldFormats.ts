@@ -144,3 +144,70 @@ export type AutocompleteToken = (typeof AUTOCOMPLETE_TOKENS)[number];
 export function isAutocompleteToken(value: unknown): value is AutocompleteToken {
   return typeof value === "string" && (AUTOCOMPLETE_TOKENS as readonly string[]).includes(value);
 }
+
+// ─── Signatures ─────────────────────────────────────────────────────────────
+
+/**
+ * A typed signature compares equal to the name it signs regardless of case,
+ * spacing and punctuation: "Dr.  Avery Quinn," signs "dr avery quinn".
+ */
+export function normalizeSignature(text: string): string {
+  return text
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[.,'’]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** The field keys a signature field's settings name (`signatureOf`), whose answers it must spell. */
+export function signatureFieldKeys(settings: unknown): string[] {
+  if (!settings || typeof settings !== "object") return [];
+  const keys: unknown = Reflect.get(settings, "signatureOf");
+  return Array.isArray(keys) ? keys.filter((key): key is string => typeof key === "string" && key.length > 0) : [];
+}
+
+/** The name a signature must match: the named fields' answers, in order. */
+export function expectedSignature(keys: readonly string[], values: Readonly<Record<string, unknown>>): string {
+  return keys
+    .map((key) => values[key])
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** Why a typed signature doesn't sign the expected name, or null. Empty answers are the required rule's concern. */
+export function signatureError(value: string, expected: string): string | null {
+  if (value.trim() === "" || expected === "") return null;
+  return normalizeSignature(value) === normalizeSignature(expected) ? null : `Type your full name as you entered it: ${expected}.`;
+}
+
+/**
+ * Signature errors across a form's answers: for each visible field whose
+ * settings name `signatureOf` fields, the typed answer must match them.
+ */
+export function signatureErrors(
+  fields: ReadonlyArray<{ key: string; settings?: unknown }>,
+  values: Readonly<Record<string, unknown>>,
+  isVisible: (key: string) => boolean,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const field of fields) {
+    if (!isVisible(field.key)) continue;
+    const keys = signatureFieldKeys(typeof field.settings === "string" ? parseSettingsObject(field.settings) : field.settings);
+    if (keys.length === 0) continue;
+    const value = values[field.key];
+    const error = typeof value === "string" ? signatureError(value, expectedSignature(keys, values)) : null;
+    if (error) errors[field.key] = error;
+  }
+  return errors;
+}
+
+function parseSettingsObject(settings: string): unknown {
+  try {
+    return JSON.parse(settings);
+  } catch {
+    return null;
+  }
+}

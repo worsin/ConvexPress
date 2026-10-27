@@ -16,7 +16,7 @@ import { ConditionalLogicBuilder } from "@/components/custom-fields/ConditionalL
 import { FIELD_TYPE_LABELS } from "@/components/custom-fields/FieldTypeSelector";
 import { CalculationEditor } from "@/components/forms/CalculationEditor";
 import { getErrorMessage } from "@/lib/utils";
-import { AUTOCOMPLETE_TOKENS, FIELD_FORMATS, FIELD_FORMAT_LABELS } from "@backend/convex/extensions/forms/fieldFormats";
+import { AUTOCOMPLETE_TOKENS, FIELD_FORMATS, FIELD_FORMAT_LABELS, signatureFieldKeys } from "@backend/convex/extensions/forms/fieldFormats";
 
 interface FieldSettingsPanelProps {
   field: {
@@ -490,6 +490,12 @@ function TypeSpecificSettings({
                   className="w-full h-7 rounded-none border border-border bg-background px-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
                 />
               </div>
+              <SignatureOfSetting
+                value={signatureFieldKeys(settings)}
+                fieldKey={fieldKey}
+                siblingFields={siblingFields}
+                onChange={(keys) => onUpdate("signatureOf", keys.length > 0 ? keys : undefined)}
+              />
             </>
           )}
         </div>
@@ -714,6 +720,7 @@ function TypeSpecificSettings({
             placeholder="Displayed next to the toggle"
             className="w-full h-7 rounded-none border border-border bg-background px-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
           />
+          <AgreementDocumentSetting value={settings.document} onChange={(document) => onUpdate("document", document)} />
         </div>
       );
 
@@ -1139,4 +1146,89 @@ function TypeSpecificSettings({
         </div>
       );
   }
+}
+
+const settingInputClass =
+  "w-full h-7 rounded-none border border-border bg-background px-2 text-xs focus:outline-hidden focus:ring-1 focus:ring-ring";
+
+/**
+ * A signature field: the typed name must match the answers of the fields
+ * picked here (first and last name, in order), checked in the browser and
+ * on the server.
+ */
+function SignatureOfSetting({
+  value,
+  fieldKey,
+  siblingFields,
+  onChange,
+}: {
+  value: string[];
+  fieldKey: string;
+  siblingFields: TypeSpecificSettingsProps["siblingFields"];
+  onChange: (keys: string[]) => void;
+}) {
+  const candidates = siblingFields.filter((field) => field.type === "text" && field.key !== fieldKey);
+  if (candidates.length === 0) return null;
+  return (
+    <fieldset className="md:col-span-3">
+      <legend className="block text-xs text-muted-foreground mb-1">Signature of (the typed name must match these answers, in order)</legend>
+      <div className="flex flex-wrap gap-3">
+        {candidates.map((field) => (
+          <label key={field.key} className="inline-flex items-center gap-1.5 text-xs">
+            <input
+              type="checkbox"
+              checked={value.includes(field.key)}
+              onChange={(e) => onChange(e.target.checked ? [...value, field.key] : value.filter((key) => key !== field.key))}
+            />
+            {field.label || field.name}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** An agreement's document: a site page the visitor can read in a dialog without leaving the form. */
+function AgreementDocumentSetting({
+  value,
+  onChange,
+}: {
+  value: unknown;
+  onChange: (document: { page: string; label: string } | undefined) => void;
+}) {
+  const page = value && typeof value === "object" ? Reflect.get(value, "page") : undefined;
+  const label = value && typeof value === "object" ? Reflect.get(value, "label") : undefined;
+  const current = { page: typeof page === "string" ? page : "", label: typeof label === "string" ? label : "" };
+  const update = (next: { page: string; label: string }) =>
+    onChange(next.page.trim() || next.label.trim() ? next : undefined);
+  return (
+    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1" htmlFor="agreement-document-page">
+          Document page (e.g. /terms)
+        </label>
+        <input
+          id="agreement-document-page"
+          type="text"
+          value={current.page}
+          onChange={(e) => update({ ...current, page: e.target.value })}
+          placeholder="/terms"
+          className={settingInputClass}
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1" htmlFor="agreement-document-label">
+          Document name (shown as "Read the …")
+        </label>
+        <input
+          id="agreement-document-label"
+          type="text"
+          value={current.label}
+          onChange={(e) => update({ ...current, label: e.target.value })}
+          placeholder="Terms of Service"
+          className={settingInputClass}
+        />
+      </div>
+    </div>
+  );
 }

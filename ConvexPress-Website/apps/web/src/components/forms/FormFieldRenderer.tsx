@@ -32,6 +32,8 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn } from "@/lib/utils";
+import { FormDocumentLink } from "@/components/forms/FormDocument";
+import { formDocument } from "@/components/forms/agreementDocument";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -210,6 +212,8 @@ export function FormFieldRenderer({
   }
 
   const control = renderControl();
+  // An agreement's document opens in a dialog, so the form keeps its answers.
+  const agreementDocument = field.type === "true_false" ? formDocument(settings) : null;
 
   return (
     <div
@@ -220,6 +224,7 @@ export function FormFieldRenderer({
       {field.type === "true_false" ? null : labelNode}
       {control}
       {instructionsNode}
+      {agreementDocument ? <FormDocumentLink document={agreementDocument} /> : null}
     </div>
   );
 
