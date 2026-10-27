@@ -214,6 +214,8 @@ export interface GeneralSettings {
   adminEmail: string;
   membershipEnabled: boolean;
   registrationMode: "invite_only" | "closed";
+  /** Where people without an account start; blank means /register. */
+  signUpPath: string;
   defaultRole: string;
   siteLanguage: string;
   timezone: string;

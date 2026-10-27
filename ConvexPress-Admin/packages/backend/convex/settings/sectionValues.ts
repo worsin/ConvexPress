@@ -76,6 +76,7 @@ export const generalSettingsValidator = v.object({
   adminEmail: v.string(),
   membershipEnabled: v.boolean(),
   registrationMode: v.union(v.literal("invite_only"), v.literal("closed")),
+  signUpPath: v.string(),
   defaultRole: v.string(),
   siteLanguage: v.string(),
   timezone: v.string(),

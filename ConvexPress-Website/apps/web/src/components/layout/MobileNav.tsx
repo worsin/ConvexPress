@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useSignUpPath } from "@/lib/auth/signUpPath";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import type { HeaderConfig, ResolvedMenu, SiteIdentity } from "@/lib/layout/types";
 
@@ -40,6 +41,7 @@ export function MobileNav({ menu, siteIdentity, config, userMenu, open, onClose 
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();
+  const signUpPath = useSignUpPath();
   const routerState = useRouterState();
   const prevPathRef = React.useRef(routerState.location.pathname);
   const panelRef = React.useRef<HTMLDivElement>(null);
@@ -251,7 +253,7 @@ export function MobileNav({ menu, siteIdentity, config, userMenu, open, onClose 
                   Sign In
                 </Link>
                 {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link
-                  to="/register"
+                  to={signUpPath}
                   onClick={closeMobileNav}
                   className="mt-2 block w-full border border-border bg-background px-3 py-2 text-center text-xs font-medium text-foreground transition-colors hover:bg-muted"
                 >Register</Link>}

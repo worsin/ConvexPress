@@ -68,6 +68,11 @@ const SECRET_SENTINEL = "__set__";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Blank, or a path on this site such as "/get-started" (no query or fragment). */
+export function isSitePathOrBlank(value: string): boolean {
+  return value === "" || (value.length <= 200 && /^\/(?![/\\])[^\s\\?#]*$/.test(value));
+}
+
 function isString(v: unknown): v is string {
   return typeof v === "string";
 }
@@ -204,6 +209,10 @@ function validateGeneral(values: Record<string, unknown>): ValidationError[] {
     values.registrationMode !== "closed"
   ) {
     errors.push({ field: "registrationMode", message: "Registration mode must be invite-only or closed." });
+  }
+
+  if (values.signUpPath !== undefined && !(isString(values.signUpPath) && isSitePathOrBlank(values.signUpPath))) {
+    errors.push({ field: "signUpPath", message: "The sign-up page must be blank or a path on this site, such as /get-started." });
   }
 
   // defaultRole: valid role

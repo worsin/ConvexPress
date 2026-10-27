@@ -254,6 +254,19 @@ function GeneralSettingsPage() {
           )}
         </form.Field>
 
+        <form.Field name="signUpPath">
+          {(field) => (
+            <SettingsField
+              label="Sign-up Page"
+              htmlFor="signUpPath"
+              description="Where people without an account start: “Create account” links and /register go here. Leave blank for the registration form. Invitations, and sign-ups part-way through a form, still use the registration form."
+              error={getFieldError(field.state.meta.errors)}
+            >
+              <TextField field={field} placeholder="/get-started" />
+            </SettingsField>
+          )}
+        </form.Field>
+
         <form.Field name="defaultRole">
           {(field) => (
             <SettingsField

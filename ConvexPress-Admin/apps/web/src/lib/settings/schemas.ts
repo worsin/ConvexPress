@@ -44,6 +44,15 @@ export const generalSettingsSchema = z.object({
     ),
   membershipEnabled: z.boolean().default(false),
   registrationMode: z.enum(["invite_only", "closed"]).default("invite_only"),
+  signUpPath: z
+    .string()
+    .trim()
+    .max(200, "Keep the sign-up page under 200 characters.")
+    .refine(
+      (value) => value === "" || /^\/(?![/\\])[^\s\\?#]*$/.test(value),
+      "Enter a path on this site, such as /get-started, or leave it blank.",
+    )
+    .default(""),
   defaultRole: z.string().min(1, "Default role is required."),
   siteLanguage: z.string().min(1, "Language is required."),
   timezone: z.string().min(1, "Timezone is required."),
@@ -315,6 +324,7 @@ export const generalDefaults: GeneralSettingsSchema = {
   adminEmail: "",
   membershipEnabled: false,
   registrationMode: "invite_only",
+  signUpPath: "",
   defaultRole: "subscriber",
   siteLanguage: "en-US",
   timezone: "America/New_York",
