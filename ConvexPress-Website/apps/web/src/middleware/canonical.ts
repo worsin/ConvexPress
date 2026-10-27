@@ -10,9 +10,11 @@
  *   3. Remove index files: /index.html -> /
  *   4. Remove a listing's page 1: /blog/page/1 -> /blog (a page whose slug is
  *      "1", /page/1, is left alone)
- *   5. Remove the trailing slash: /about/ -> /about (301 redirect). Every
- *      address the site names (links, menus, canonical links, the sitemap)
- *      has none, so the one a visitor reaches is the one it names.
+ *   5. No trailing slash is added. Every address the site names (links,
+ *      menus, canonical links, the sitemap) has none. An address with one is
+ *      served as it is, and its canonical link names the form without:
+ *      redirecting it would loop for every browser that cached the 301 this
+ *      middleware used to send the other way (/about -> /about/).
  *
  * Exceptions (no normalization applied):
  *   - URLs with file extensions (.png, .css, .js, .xml, .txt, .woff2, etc.)
@@ -189,9 +191,9 @@ export function getCanonicalUrl(url: string): CanonicalResult {
   // Rule 4: Remove a listing's page 1 (not the page whose slug is "1")
   normalized = normalized.replace(/^(\/.+)\/page\/1\/?$/, "$1");
 
-  // Rule 5: Remove the trailing slash (not from the root)
+  // Rule 5: Collapse repeated trailing slashes to one; never add or remove it.
   if (normalized !== "/") {
-    normalized = normalized.replace(/\/+$/, "") || "/";
+    normalized = normalized.replace(/\/{2,}$/, "/");
   }
 
   // ─── Compare and decide ───────────────────────────────────────────────

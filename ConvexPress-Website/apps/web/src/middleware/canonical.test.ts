@@ -8,17 +8,14 @@ const redirectsTo = (url: string) => {
 };
 
 describe("a page's canonical address", () => {
-  test("has no trailing slash: the form every link, canonical link and sitemap entry names", () => {
+  test("is never sent to a trailing-slash form, and a slashed address isn't redirected", () => {
+    // Browsers cached the 301 to "/page/contact/" this middleware used to
+    // send; redirecting back would loop for them. Its canonical link names
+    // the form without the slash.
     expect(redirectsTo("/page/contact")).toBeNull();
-    expect(redirectsTo("/page/contact/")).toBe("/page/contact");
-    expect(redirectsTo("/help/start-here/signing-up/")).toBe("/help/start-here/signing-up");
-    expect(redirectsTo("/pricing//")).toBe("/pricing");
-    expect(redirectsTo("/")).toBeNull();
-  });
-
-  test("keeps the query string", () => {
-    expect(redirectsTo("/pricing/?plan=practice")).toBe("/pricing?plan=practice");
+    expect(redirectsTo("/page/contact/")).toBeNull();
     expect(redirectsTo("/pricing?plan=practice")).toBeNull();
+    expect(redirectsTo("/")).toBeNull();
   });
 
   test("is lowercase, without doubled slashes", () => {
@@ -29,6 +26,7 @@ describe("a page's canonical address", () => {
   test("drops a listing's page 1, but not a page whose slug is 1", () => {
     expect(redirectsTo("/blog/page/1")).toBe("/blog");
     expect(redirectsTo("/blog/page/1/")).toBe("/blog");
+    expect(redirectsTo("/Pricing/")).toBe("/pricing/");
     expect(redirectsTo("/page/1")).toBeNull();
   });
 
