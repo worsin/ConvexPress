@@ -12,6 +12,8 @@ import { subscribeCatalogDisplay } from "./catalog-continuation";
 import {
 	Component,
 	createContext,
+	memo,
+	startTransition,
 	useContext,
 	useEffect,
 	useMemo,
@@ -170,10 +172,16 @@ function ReactivePublicBody({
 			...(password ? { password } : {}),
 		});
 		return subscribeCatalogDisplay(watch, binding, next => {
-			consumedSeed.current = true;
-			setState(next);
+			// A newly authorized body can need renderers or live hosts that haven't
+			// loaded yet. Apply it as a transition, so what's shown stays until they
+			// have instead of the body blanking. A restricted, missing or failed read
+			// has nothing to load and stays immediate, as does every clearing.
+			if ("value" in next && next.value?.state === "ready") startTransition(() => setState(next));
+			else { consumedSeed.current = true; setState(next); }
 		}, () => { consumedSeed.current = true; setState(null); setRefresh(value => value + 1); });
 	}, [convex, binding.generation, refresh, enabled]);
+  // The seed never returns once a live read is shown.
+  useEffect(() => { if (state) consumedSeed.current = true; }, [state]);
   useEffect(()=>{
     const delay=state && "value" in state ? publicDocumentRefreshDelay(state.value,Date.now()):null;
     if(delay===null)return;
@@ -184,7 +192,7 @@ function ReactivePublicBody({
 		(!mounted || (allowAnonymousSeed && !seed?.accessLease));
 	const visible = enabled && state ? state : bootstrap && seed ? {value:seed} : null;
   const ready = !!visible && "value" in visible && visible.value?.state === "ready" ? visible.value : null;
-  const insertion = ready && insert ? insert(ready.document.blocks) : null;
+  const insertion = useMemo(() => ready && insert ? insert(ready.document.blocks) : null, [ready, insert]);
   const body = !visible ? <Loading /> : "error" in visible ? <Unavailable /> :
     <PublicResult value={visible.value} generation={binding.generation} password={password} insertion={insertion ?? undefined} />;
   const hasHero = !!ready && opensWithHero(ready.document.blocks);
@@ -192,7 +200,9 @@ function ReactivePublicBody({
     {renderLayout(body, hasHero, insertion !== null)}
   </RsvpDraftScope></PollDraftScope>;
 }
-function PublicResult({
+/** Memoized: a parent re-render with the same document (the first mount, the
+ * viewer's sign-in state loading) leaves the document's tree alone. */
+const PublicResult = memo(function PublicResult({
 	value,
 	generation,
   password,
@@ -226,7 +236,7 @@ function PublicResult({
 		/>
     </Suspense>
 	);
-}
+});
 function InstalledPublicDocument({
 	value,
 	generation,

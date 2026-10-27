@@ -3,30 +3,10 @@ import { usePrimitivePackId } from "../primitives";
 import { dependencyDescriptors } from "../block-data/portable/generated/metadata";
 import type { RendererDefinition, RendererRegistry, RenderInput } from "./model";
 import type { BlockPackManifest } from "./pack-registry";
+import { suspenseResource } from "./suspense-resource";
 
 type Loader = () => Promise<RendererDefinition>;
-/** A cached Suspense resource. Preloads consume failures; the next read reports
- * the same error to the document boundary instead of retrying a missing chunk. */
-function resource(load: Loader) {
-  let state: "idle" | "pending" | "ready" | "failed" = "idle";
-  let value: RendererDefinition, error: unknown, pending: Promise<void>;
-  const start = () => {
-    if (state === "idle") {
-      state = "pending";
-      pending = Promise.resolve().then(load).then(
-        result => { value = result; state = "ready"; },
-        reason => { error = reason; state = "failed"; },
-      );
-    }
-    return pending;
-  };
-  return {
-    start,
-    async get() { await start(); if (state === "failed") throw error; return value; },
-    read() { start(); if (state === "pending") throw pending; if (state === "failed") throw error; return value; },
-  };
-}
-
+const resource = (load: Loader) => suspenseResource(load);
 /** Validate the installed paths eagerly, but load a definition only when its
  * document needs it. Each pack keeps its own registry; Library resources are
  * shared across packs and views. No component is selected by authored code. */
