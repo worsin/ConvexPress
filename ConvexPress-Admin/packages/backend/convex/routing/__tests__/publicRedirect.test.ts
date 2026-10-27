@@ -37,3 +37,17 @@ test("the resolved id records a hit", async () => {
   await t.mutation(api.routing.public.recordRedirectHit, { redirectId: exact!._id });
   expect((await t.run(ctx => ctx.db.get("redirects", ids.exact)))?.hitCount).toBe(8);
 });
+
+test("a rule matches its address with or without a trailing slash", async () => {
+  const { t, ids } = await fixture();
+  // "/old" was saved without one; "/docs/" with one.
+  expect((await t.query(api.routing.public.resolveRedirect, { url: "/old/" }))?._id).toBe(ids.exact);
+  expect((await t.query(api.routing.public.resolveRedirect, { url: "/docs" }))?._resolvedTargetUrl).toBe("/help/");
+  expect((await t.query(api.routing.public.resolveRedirect, { url: "/docs/setup?ref=mail" }))?._resolvedTargetUrl).toBe("/help/setup?ref=mail");
+  // A rule saved with one still matches the address the site now serves.
+  await t.run(async (ctx) => {
+    await ctx.db.insert("redirects", { source: "permalink_change", enabled: true, hitCount: 0, createdAt: 1, updatedAt: 1, sourceUrl: "/2024/01/hello/", targetUrl: "/blog/hello", statusCode: 301, matchType: "exact" });
+  });
+  expect((await t.query(api.routing.public.resolveRedirect, { url: "/2024/01/hello" }))?.targetUrl).toBe("/blog/hello");
+  expect(await t.query(api.routing.public.resolveRedirect, { url: "/off/" })).toBeNull();
+});

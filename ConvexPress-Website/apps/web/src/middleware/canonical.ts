@@ -5,11 +5,14 @@
  * equivalent of WordPress's redirect_canonical() function.
  *
  * Normalization rules (in order):
- *   1. Remove double slashes: /blog//post/ -> /blog/post/
- *   2. Lowercase path: /About-Us/ -> /about-us/
+ *   1. Remove double slashes: /blog//post -> /blog/post
+ *   2. Lowercase path: /About-Us -> /about-us
  *   3. Remove index files: /index.html -> /
- *   4. Remove pagination page 1: /blog/page/1/ -> /blog/
- *   5. Enforce trailing slash: /about -> /about/ (301 redirect)
+ *   4. Remove a listing's page 1: /blog/page/1 -> /blog (a page whose slug is
+ *      "1", /page/1, is left alone)
+ *   5. Remove the trailing slash: /about/ -> /about (301 redirect). Every
+ *      address the site names (links, menus, canonical links, the sitemap)
+ *      has none, so the one a visitor reaches is the one it names.
  *
  * Exceptions (no normalization applied):
  *   - URLs with file extensions (.png, .css, .js, .xml, .txt, .woff2, etc.)
@@ -183,12 +186,12 @@ export function getCanonicalUrl(url: string): CanonicalResult {
   // Rule 3: Remove index files
   normalized = normalized.replace(/\/index\.(html?|php)$/i, "/");
 
-  // Rule 4: Remove pagination page 1
-  normalized = normalized.replace(/\/page\/1\/?$/, "/");
+  // Rule 4: Remove a listing's page 1 (not the page whose slug is "1")
+  normalized = normalized.replace(/^(\/.+)\/page\/1\/?$/, "$1");
 
-  // Rule 5: Enforce trailing slash (if not root, not already trailing)
-  if (normalized !== "/" && !normalized.endsWith("/")) {
-    normalized = normalized + "/";
+  // Rule 5: Remove the trailing slash (not from the root)
+  if (normalized !== "/") {
+    normalized = normalized.replace(/\/+$/, "") || "/";
   }
 
   // ─── Compare and decide ───────────────────────────────────────────────
