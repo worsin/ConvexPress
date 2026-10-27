@@ -11,6 +11,8 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
+import { ManagedRecordGate } from "@/components/shared/ManagedRecord";
+import { useSupportDeskElsewhere } from "@/components/shared/useManagedRecord";
 import { toast } from "sonner";
 import { Plus, Save, Trash2 } from "lucide-react";
 
@@ -25,7 +27,9 @@ export const Route = createFileRoute(
 function TicketSettingsPage() {
   return (
     <RoutePermissionGuard requiredAccess="/admin/tickets">
-      <TicketSettingsForm />
+      <ManagedRecordGate managed={useSupportDeskElsewhere()} what="The support desk">
+        <TicketSettingsForm />
+      </ManagedRecordGate>
     </RoutePermissionGuard>
   );
 }

@@ -12,6 +12,8 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
+import { ManagedRecordGate } from "@/components/shared/ManagedRecord";
+import { useSupportDeskElsewhere } from "@/components/shared/useManagedRecord";
 import { toast } from "sonner";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { Plus, Pencil, Trash2, X, Save } from "lucide-react";
@@ -52,7 +54,9 @@ const EMPTY_FORM: FormState = {
 function CannedResponsesPage() {
   return (
     <RoutePermissionGuard requiredAccess="/admin/tickets">
-      <CannedResponsesManager />
+      <ManagedRecordGate managed={useSupportDeskElsewhere()} what="The support desk">
+        <CannedResponsesManager />
+      </ManagedRecordGate>
     </RoutePermissionGuard>
   );
 }

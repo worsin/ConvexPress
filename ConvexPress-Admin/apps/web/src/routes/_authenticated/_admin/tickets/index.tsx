@@ -14,6 +14,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
+import { ManagedRecordNotice } from "@/components/shared/ManagedRecord";
+import { useSupportDeskElsewhere } from "@/components/shared/useManagedRecord";
 import { formatTimeAgo } from "@/lib/utils";
 import { MessageSquare } from "lucide-react";
 
@@ -127,8 +129,10 @@ function PriorityBadge({ priority }: { priority: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function TicketsPage() {
+  const deskElsewhere = useSupportDeskElsewhere();
   return (
     <RoutePermissionGuard requiredAccess="/admin/tickets">
+      {deskElsewhere ? <ManagedRecordNotice managed={deskElsewhere} what="The support desk" className="mb-4" /> : null}
       <TicketListTable />
     </RoutePermissionGuard>
   );

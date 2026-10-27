@@ -71,6 +71,7 @@ import {
   MAX_ATTACHMENTS,
 } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { assertSupportDeskHere } from "../managedRecords/helpers";
 
 import { v } from "convex/values";
 type TicketUserNameFields = {
@@ -406,6 +407,7 @@ export const adminReply: RegisteredMutation<"public", ObjectType<typeof adminRep
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
+    await assertSupportDeskHere(ctx);
 
     // ── Validate ticket exists ──────────────────────────────────────────
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -515,6 +517,7 @@ export const updateStatus = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.updateStatus");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
@@ -571,6 +574,7 @@ export const updatePriority = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.updatePriority");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
@@ -607,6 +611,7 @@ export const assign = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.assign");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
@@ -653,6 +658,7 @@ export const unassign = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.assign");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
@@ -687,6 +693,7 @@ export const close = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.close");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
@@ -742,6 +749,7 @@ export const reopen = mutation({
     // Ticket owner can reopen their own ticket; staff need updateStatus cap
     if (ticket.userId !== user._id) {
       await requireCan(ctx, "ticket.updateStatus");
+      await assertSupportDeskHere(ctx);
     }
 
     const now = Date.now();
@@ -841,6 +849,7 @@ export const addTags = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
@@ -882,6 +891,7 @@ export const removeTags = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {

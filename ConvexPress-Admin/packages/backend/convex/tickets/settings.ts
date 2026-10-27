@@ -43,6 +43,7 @@ import {
   type SettingsSpec,
 } from "../helpers/settingsReader";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { assertSupportDeskHere } from "../managedRecords/helpers";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── getTicketSettings ───────────────────────────────────────────────────────
@@ -204,6 +205,7 @@ export const updateTicketSettings = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "manage_options");
+    await assertSupportDeskHere(ctx);
     return { updatedSections: await writeTicketSettings(ctx, args, { userId: user._id }) };
   },
 });

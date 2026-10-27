@@ -13,6 +13,8 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
+import { ManagedRecordNotice } from "@/components/shared/ManagedRecord";
+import { useSupportDeskElsewhere } from "@/components/shared/useManagedRecord";
 import { toast } from "sonner";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import {
@@ -79,6 +81,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
     includeInternal: true,
   });
 
+  const deskElsewhere = useSupportDeskElsewhere();
   const adminReply = useMutation(api.tickets.mutations.adminReply);
   const updateStatus = useMutation(api.tickets.mutations.updateStatus);
   const updatePriority = useMutation(api.tickets.mutations.updatePriority);
@@ -192,6 +195,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
         </div>
       </div>
 
+      {deskElsewhere ? <ManagedRecordNotice managed={deskElsewhere} what="The support desk" /> : null}
+
       <div className="grid grid-cols-3 gap-6">
         {/* Message Thread (2/3) */}
         <div className="col-span-2 space-y-4">
@@ -253,8 +258,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
             ))}
           </div>
 
-          {/* Reply Box */}
-          {ticket.status !== "closed" && (
+          {/* Reply Box: answered elsewhere when another system has the desk */}
+          {ticket.status !== "closed" && !deskElsewhere && (
             <div className="rounded-lg border border-border p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <button
@@ -303,8 +308,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
           )}
         </div>
 
-        {/* Sidebar (1/3) */}
-        <div className="space-y-4">
+        {/* Sidebar (1/3): read-only when another system has the desk */}
+        <fieldset disabled={Boolean(deskElsewhere)} className="min-w-0 space-y-4">
           {/* Status */}
           <div className="rounded-lg border border-border p-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground/70">Status</h3>
@@ -439,7 +444,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
               )}
             </div>
           )}
-        </div>
+        </fieldset>
       </div>
     </div>
   );

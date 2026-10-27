@@ -35,6 +35,7 @@ import {
   MAX_ATTACHMENTS,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { assertSupportDeskHere } from "../managedRecords/helpers";
 
 import { v } from "convex/values";
 import { ticketsDocs } from "../schema/tickets.docs.generated";
@@ -230,6 +231,7 @@ export const edit: RegisteredMutation<"public", ObjectType<typeof editMessageArg
     } else {
       // Non-owner needs ticket.respond capability
       await requireCan(ctx, "ticket.respond");
+      await assertSupportDeskHere(ctx);
     }
 
     await ctx.db.patch("ticket_messages", args.messageId, {
@@ -253,6 +255,7 @@ export const remove: RegisteredMutation<"public", ObjectType<typeof removeMessag
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
+    await assertSupportDeskHere(ctx);
 
     const message = await ctx.db.get("ticket_messages", args.messageId);
     if (!message) {
@@ -292,6 +295,7 @@ export const addInternalNote: RegisteredMutation<"public", ObjectType<typeof add
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.viewInternalNotes");
+    await assertSupportDeskHere(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
