@@ -323,10 +323,12 @@ export const listPublished: RegisteredQuery<"public", {
     }
     budget.beforeRead();
     // Visibility leads both ranges, so internal articles never consume a page.
+    // A category reads in its set order (position, then oldest first); the
+    // whole help center reads newest first.
     const query = args.categoryId
-      ? ctx.db.query("kb_articles").withIndex("by_visibility_category_status_views", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("categoryId", args.categoryId!).eq("status", "published"))
-      : ctx.db.query("kb_articles").withIndex("by_visibility_status_published", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("status", "published"));
-    const result = await query.order("desc").paginate({
+      ? ctx.db.query("kb_articles").withIndex("by_visibility_category_status_order", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("categoryId", args.categoryId!).eq("status", "published")).order("asc")
+      : ctx.db.query("kb_articles").withIndex("by_visibility_status_published", q => q.eq("visibility", PUBLIC_VISIBILITY_KEY).eq("status", "published")).order("desc");
+    const result = await query.paginate({
       ...args.paginationOpts, numItems: limit, maximumRowsRead: 100, maximumBytesRead: 512 * 1024,
     });
     const page: PublicKbSummary[] = [];

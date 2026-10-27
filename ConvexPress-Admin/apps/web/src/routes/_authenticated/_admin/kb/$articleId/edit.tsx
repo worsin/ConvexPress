@@ -49,6 +49,7 @@ type KBArticle = {
   metaDescription?: string;
   keywords?: string[];
   readingTimeMinutes?: number;
+  sortOrder: number;
   viewCount: number;
   version: number;
   publishedAt?: number;
@@ -71,6 +72,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   const [excerpt, setExcerpt] = useState("");
   const [slug, setSlug] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [position, setPosition] = useState("0");
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -91,6 +93,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     setExcerpt(art.excerpt ?? "");
     setSlug(art.slug ?? "");
     setCategoryId(art.categoryId ?? "");
+    setPosition(String(art.sortOrder ?? 0));
     setMetaTitle(art.metaTitle ?? "");
     setMetaDescription(art.metaDescription ?? "");
     setKeywords((art.keywords ?? []).join(", "));
@@ -103,25 +106,38 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     setIsDirty(true);
   }
 
+  /** The form as an update, or null (with a message) when the position isn't a whole number from 0 to 9,999. */
+  function articleUpdate() {
+    const sortOrder = Number(position);
+    if (!Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 9999) {
+      toast.error("Position in category must be a whole number from 0 to 9,999.");
+      return null;
+    }
+    const kwArray = keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    return {
+      articleId: articleId as Id<"kb_articles">,
+      title: title.trim(),
+      content: content || undefined,
+      excerpt: excerpt || undefined,
+      categoryId: (categoryId as Id<"kb_categories">) || undefined,
+      sortOrder,
+      metaTitle: metaTitle || undefined,
+      metaDescription: metaDescription || undefined,
+      keywords: kwArray.length > 0 ? kwArray : undefined,
+      visibility,
+      audiences,
+    };
+  }
+
   async function handleSave() {
+    const update = articleUpdate();
+    if (!update) return;
     setIsSaving(true);
     try {
-      const kwArray = keywords
-        .split(",")
-        .map((k) => k.trim())
-        .filter(Boolean);
-      await updateArticle({
-        articleId: articleId as Id<"kb_articles">,
-        title: title.trim(),
-        content: content || undefined,
-        excerpt: excerpt || undefined,
-        categoryId: (categoryId as Id<"kb_categories">) || undefined,
-        metaTitle: metaTitle || undefined,
-        metaDescription: metaDescription || undefined,
-        keywords: kwArray.length > 0 ? kwArray : undefined,
-        visibility,
-        audiences,
-      });
+      await updateArticle(update);
       toast.success("Article saved");
       setIsDirty(false);
     } catch (err: unknown) {
@@ -132,22 +148,12 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   }
 
   async function handlePublish() {
+    const update = articleUpdate();
+    if (!update) return;
     setIsPublishing(true);
     try {
       // Save first
-      const kwArray = keywords.split(",").map((k) => k.trim()).filter(Boolean);
-      await updateArticle({
-        articleId: articleId as Id<"kb_articles">,
-        title: title.trim(),
-        content: content || undefined,
-        excerpt: excerpt || undefined,
-        categoryId: (categoryId as Id<"kb_categories">) || undefined,
-        metaTitle: metaTitle || undefined,
-        metaDescription: metaDescription || undefined,
-        keywords: kwArray.length > 0 ? kwArray : undefined,
-        visibility,
-        audiences,
-      });
+      await updateArticle(update);
       await publishArticle({ articleId: articleId as Id<"kb_articles"> });
       toast.success("Article published");
       setIsDirty(false);
@@ -331,6 +337,21 @@ function ArticleEditor({ articleId }: { articleId: string }) {
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="kb-position" className="block text-xs font-medium text-foreground/70 mb-1">Position in category</label>
+              <input
+                id="kb-position"
+                type="number"
+                min={0}
+                max={9999}
+                step={1}
+                value={position}
+                onChange={(e) => { setPosition(e.target.value); markDirty(); }}
+                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
+              />
+              <p className="text-xs text-foreground/40 mt-0.5">The category page lists lower numbers first; equal numbers list the oldest article first.</p>
             </div>
 
             {art?.readingTimeMinutes && (

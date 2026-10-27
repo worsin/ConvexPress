@@ -173,6 +173,8 @@ export const kbTables = {
     .index("by_visibility_status_published", ["visibility", "status", "publishedAt"])
     .index("by_visibility_featured_status_order", ["visibility", "isFeatured", "status", "sortOrder"])
     .index("by_visibility_category_status_views", ["visibility", "categoryId", "status", "viewCount"])
+    // A category's own page lists its articles in the order editors set.
+    .index("by_visibility_category_status_order", ["visibility", "categoryId", "status", "sortOrder"])
     .index("by_visibility", ["visibility"])
     .index("by_meilisearch_sync", ["meilisearchSynced"])
     .index("by_rag_sync", ["ragSynced"])

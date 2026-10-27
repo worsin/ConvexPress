@@ -497,3 +497,26 @@ test("a document the provider accepted just before the article became internal i
     if (oldUrl === undefined) delete process.env.CONVEX_CLOUD_URL; else process.env.CONVEX_CLOUD_URL = oldUrl;
   }
 });
+
+test("a category lists its articles in their set order, the oldest first within a position (PR 080)", async () => {
+  const f = await fixture();
+  const write = async (title: string, sortOrder: number, viewCount: number) => {
+    const articleId = await f.editor.mutation(api.kb.mutations.create, {
+      title, content: BODY, contentPlainText: `${title} body`, categoryId: f.ids.category, visibility: "public",
+    });
+    await f.editor.mutation(api.kb.mutations.update, { articleId, sortOrder });
+    await f.editor.mutation(api.kb.mutations.publish, { articleId });
+    await f.t.run(ctx => ctx.db.patch(articleId, { viewCount }));
+    return articleId;
+  };
+  // The fixture's public guide sits at position 0; the most viewed article is placed last.
+  const third = await write("Third step", 3, 900);
+  const first = await write("First step", 1, 5);
+  const second = await write("Second step", 2, 50);
+  const alsoFirst = await write("Also first", 1, 0);
+  const page = await f.reader.query(api.kb.queries.listPublished, { categoryId: f.ids.category, paginationOpts: { numItems: 10, cursor: null } });
+  expect(page.page.map(a => a._id)).toEqual([f.ids.publicId, first, alsoFirst, second, third]);
+  // The whole help center still reads newest first.
+  const all = await f.reader.query(api.kb.queries.listPublished, { paginationOpts: { numItems: 10, cursor: null } });
+  expect(all.page[0]?._id).toBe(alsoFirst);
+});
