@@ -7,3 +7,8 @@ import type { ManagedInfo, ManagedTable } from "./ManagedRecord";
 export function useManagedRecord(tableName: ManagedTable, recordId: string | undefined): ManagedInfo | null | undefined {
   return useQuery(api.managedRecords.queries.forRecord, recordId ? { tableName, recordId } : "skip");
 }
+
+/** Whether another system handles subscribers' billing: staff billing actions are hidden, with its note. */
+export function useSubscriberBillingElsewhere(): ManagedInfo | null | undefined {
+  return useManagedRecord("area", "subscriberBilling");
+}

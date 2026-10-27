@@ -39,6 +39,7 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { findCouponByCode, initializeRedemption, normalizeCouponCode, validateCoupon } from "../helpers/coupons";
 import { requireCan } from "../helpers/permissions";
+import { assertAreaNotManaged } from "../managedRecords/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 
@@ -421,6 +422,7 @@ export const redeemCouponForContract = mutation({
     if (!isOwner) {
       // Will throw if caller lacks the capability — no second check needed.
       await requireCan(ctx, "manage_options");
+      await assertAreaNotManaged(ctx, "subscriberBilling", "Subscriber billing");
     }
 
     // Determine the current offer for this contract from its first

@@ -5855,11 +5855,11 @@ export type PublicApi = {
 };
   "managedRecords": {
   "queries": {
-  "forRecord": FunctionReference<"query", "public", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate"); "recordId": string; }, (null | Dto1879)>;
+  "forRecord": FunctionReference<"query", "public", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area"); "recordId": string; }, (null | Dto1879)>;
 };
 };
   "managedRecords/queries": {
-  "forRecord": FunctionReference<"query", "public", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate"); "recordId": string; }, (null | Dto1879)>;
+  "forRecord": FunctionReference<"query", "public", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area"); "recordId": string; }, (null | Dto1879)>;
 };
   "media": {
   "actions": {
@@ -8874,13 +8874,13 @@ export type InternalApi = {
 };
   "managedRecords": {
   "internals": {
-  "clearManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate"); "recordId": string; }, Dto1877>;
-  "setManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate"); "recordId": string; "system": string; "note": string; }, Dto1878>;
+  "clearManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area"); "recordId": string; }, Dto1877>;
+  "setManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area"); "recordId": string; "system": string; "note": string; }, Dto1878>;
 };
 };
   "managedRecords/internals": {
-  "clearManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate"); "recordId": string; }, Dto1877>;
-  "setManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate"); "recordId": string; "system": string; "note": string; }, Dto1878>;
+  "clearManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area"); "recordId": string; }, Dto1877>;
+  "setManaged": FunctionReference<"mutation", "internal", { "tableName": ("form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate" | "area"); "recordId": string; "system": string; "note": string; }, Dto1878>;
 };
   "management": {
   "sessionExpiry": {

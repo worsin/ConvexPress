@@ -4,7 +4,8 @@
  * Header: customer, plan, status. Left column: billing (payment problem with
  * retry schedule, card on file, periods), payments with refunds (refund in
  * place), entitlements, items, and the full timeline with who acted. Right
- * rail: `ContractActions`, offering exactly what the contract's state allows.
+ * rail: `ContractActions`, offering exactly what the contract's state allows,
+ * or, when another system handles subscriber billing, its note instead.
  *
  * Data: `queries.getById` (the contract and its rows) and
  * `adminContracts.getContractBilling` (billing view and allowed actions).
@@ -20,6 +21,8 @@ import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { ContractActions } from "@/components/subscriptions/ContractActions";
 import { ContractStatusBadge } from "@/components/subscriptions/ContractStatusBadge";
 import { RefundForm } from "@/components/subscriptions/RefundForm";
+import { ManagedRecordNotice } from "@/components/shared/ManagedRecord";
+import { useSubscriberBillingElsewhere } from "@/components/shared/useManagedRecord";
 import {
   describeFailure,
   eventLabel,
@@ -56,6 +59,7 @@ function ContractDetailPage() {
   const subscriptionId = asId<"commerce_subscriptions">(contractId);
   const contract = useQuery(api.commerceSubscriptions.queries.getById, subscriptionId ? { subscriptionId } : "skip");
   const billing = useQuery(api.commerceSubscriptions.adminContracts.getContractBilling, subscriptionId ? { subscriptionId } : "skip");
+  const billingElsewhere = useSubscriberBillingElsewhere();
   useBreadcrumbTitle(contractId, billing ? (billing.customerName ?? billing.customerEmail) : undefined);
 
   if (!subscriptionId || contract === null || billing === null) {
@@ -171,7 +175,7 @@ function ContractDetailPage() {
             ) : (
               <ul className="divide-y divide-border">
                 {billing.invoices.map((invoice) => (
-                  <InvoiceRow key={invoice._id} invoice={invoice} />
+                  <InvoiceRow key={invoice._id} invoice={invoice} canRefund={!billingElsewhere} />
                 ))}
               </ul>
             )}
@@ -236,7 +240,9 @@ function ContractDetailPage() {
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Actions</h2>
-            {anyAction ? (
+            {billingElsewhere ? (
+              <ManagedRecordNotice managed={billingElsewhere} what="Subscriber billing" className="rounded-xl p-3" />
+            ) : anyAction ? (
               <ContractActions contract={contract} billing={billing} />
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -268,7 +274,7 @@ function ContractDetailPage() {
   );
 }
 
-function InvoiceRow({ invoice }: { invoice: AdminInvoice }) {
+function InvoiceRow({ invoice, canRefund }: { invoice: AdminInvoice; canRefund: boolean }) {
   const [refunding, setRefunding] = useState(false);
   return (
     <li className="space-y-2 py-3 text-sm">
@@ -287,7 +293,7 @@ function InvoiceRow({ invoice }: { invoice: AdminInvoice }) {
         <div className="flex items-center gap-3">
           <span className="font-semibold">{formatMoney(invoice.totalAmount, invoice.currencyCode)}</span>
           <span className="text-xs text-muted-foreground">{invoiceStatusText(invoice)}</span>
-          {invoice.refundableAmount > 0 && !refunding ? (
+          {canRefund && invoice.refundableAmount > 0 && !refunding ? (
             <button
               type="button"
               onClick={() => setRefunding(true)}
