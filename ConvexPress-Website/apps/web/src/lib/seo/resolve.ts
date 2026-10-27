@@ -13,6 +13,7 @@
  */
 
 import type { ResolvedSeoData } from "./types";
+import { effectiveRobots } from "./head";
 
 // ─── Types for raw query data ────────────────────────────────────────────────
 
@@ -499,7 +500,7 @@ export function buildMetaTags(
   }
 
   // Robots
-  tags.push({ name: "robots", content: seo.robots });
+  tags.push({ name: "robots", content: effectiveRobots(seo.robots) });
 
   // Canonical is handled via <link> not <meta>, but include for reference
   // The canonical link should be added separately in the head() links array

@@ -8,6 +8,7 @@ import {
   getSitemapIndexResponse,
   getSubSitemapResponse,
 } from "@/lib/seo/crawlers";
+import { searchEnginesDiscouraged } from "@/lib/seo/head";
 import { getCanonicalUrl, isExcludedPath, isStaticFile } from "@/middleware/canonical";
 import {
   buildRedirectResponse,
@@ -148,11 +149,31 @@ const documentNotFoundMiddleware = createMiddleware().server(async ({ next }) =>
   };
 });
 
+/**
+ * Settings › Reading › "Discourage search engines": every page also says
+ * noindex, nofollow in its response headers. The root route learned the
+ * setting while rendering this response (`rememberSearchVisibility`).
+ */
+const searchVisibilityMiddleware = createMiddleware().server(async ({ next }) => {
+  const result = await next();
+  const response = result.response;
+  if (!searchEnginesDiscouraged() || !(response.headers.get("Content-Type") ?? "").includes("text/html")) {
+    return result;
+  }
+  const headers = new Headers(response.headers);
+  headers.set("X-Robots-Tag", "noindex, nofollow");
+  return {
+    ...result,
+    response: new Response(response.body, { status: response.status, statusText: response.statusText, headers }),
+  };
+});
+
 export const startInstance = createStart(() => ({
   requestMiddleware: [
     crawlerMiddleware,
     canonicalMiddleware,
     redirectMiddleware,
     documentNotFoundMiddleware,
+    searchVisibilityMiddleware,
   ],
 }));

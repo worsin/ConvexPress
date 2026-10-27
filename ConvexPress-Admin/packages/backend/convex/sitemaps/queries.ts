@@ -40,6 +40,8 @@ import {
 } from "./validators";
 import type { SitemapType } from "./validators";
 import { readSitemapSettings } from "./helpers/settings";
+import { readMergedSettingsSection } from "../settings/read";
+import type { QueryCtx } from "../_generated/server";
 
 import { v } from "convex/values";
 import { sitemapDocs } from "../schema/sitemap.docs.generated";
@@ -97,10 +99,25 @@ export const getSettings = query({
  *
  * Public query - no authentication required.
  */
+/**
+ * Settings › Reading › "Discourage search engines" (`searchEngineVisibility`
+ * off): robots.txt disallows everything and the sitemaps list nothing, while
+ * the website marks every page noindex. For staging and preview copies.
+ */
+async function searchEnginesDiscouraged(ctx: QueryCtx): Promise<boolean> {
+  const reading = await readMergedSettingsSection(ctx, "reading");
+  return reading.searchEngineVisibility === false;
+}
+
+const EMPTY_SITEMAP_INDEX = '<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>';
+const EMPTY_URLSET = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+
 export const getIndex = query({
   args: getIndexArgs,
   returns: v.union(v.null(), v.object({ xml: v.string(), generatedAt: v.number(), urlCount: v.number() })),
   handler: async (ctx) => {
+    if (await searchEnginesDiscouraged(ctx)) return { xml: EMPTY_SITEMAP_INDEX, generatedAt: 0, urlCount: 0 };
+
     // Check if sitemaps are enabled
     const settings = await readSitemapSettings(ctx);
     if (!settings.enabled) return null;
@@ -141,6 +158,7 @@ export const getSubSitemap = query({
   handler: async (ctx, args) => {
     // Validate page number
     if (args.page < 1) return null;
+    if (await searchEnginesDiscouraged(ctx)) return { xml: EMPTY_URLSET };
 
     // Check if sitemaps are enabled
     const settings = await readSitemapSettings(ctx);
@@ -304,6 +322,8 @@ export const getRobotsContent = query({
   args: getRobotsContentArgs,
   returns: v.string(),
   handler: async (ctx) => {
+    if (await searchEnginesDiscouraged(ctx)) return "User-agent: *\nDisallow: /\n";
+
     // Read sitemap settings
     const settings = await readSitemapSettings(ctx);
 
