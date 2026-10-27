@@ -51,11 +51,16 @@ export function resolveSiteName(explicit?: string | null): string {
   return trimmed || knownSiteName || bootstrappedSiteName() || FALLBACK_SITE_NAME;
 }
 
-/** "Shop" → "Shop – Northstar Coffee". Never repeats the site name. */
+/**
+ * "Shop" → "Shop – Northstar Coffee". Never repeats the site name: a title
+ * that already names the site ("Contact Northstar Coffee") is used as it is.
+ */
 export function siteTitled(base: string, siteName?: string | null): string {
   const name = resolveSiteName(siteName);
   const trimmed = base.trim();
-  return trimmed && trimmed !== name ? `${trimmed} – ${name}` : name;
+  if (!trimmed) return name;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i").test(trimmed) ? trimmed : `${trimmed} – ${name}`;
 }
 const DEFAULT_LOCAL_SITE_URL = "http://localhost:4106";
 
