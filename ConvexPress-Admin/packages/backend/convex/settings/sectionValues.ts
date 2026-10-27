@@ -171,6 +171,10 @@ export const emailSettingsValidator = v.object({
   digestDay: v.number(),
   digestHour: v.number(),
   includeUnsubscribeLink: v.boolean(),
+  logoUrl: v.string(),
+  logoWidth: v.number(),
+  accentColor: v.string(),
+  footerText: v.string(),
 });
 
 export const mediaSettingsValidator = v.object({

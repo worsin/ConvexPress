@@ -51,6 +51,7 @@ export function EmailTemplateEditorPage() {
     from: "/_authenticated/_admin/settings/email_/templates/$templateSlug",
   });
   const template = useQuery(api.emails.queries.getTemplate, { templateSlug });
+  const branding = useQuery(api.emails.queries.getEmailBranding, {});
   const updateTemplate = useMutation(api.emails.mutations.updateTemplate);
   const resetTemplate = useMutation(api.emails.mutations.resetTemplate);
   const sendTemplateTestEmail = useAction(api.emails.actions.sendTemplateTestEmail);
@@ -427,6 +428,7 @@ export function EmailTemplateEditorPage() {
                   bodyHtml={effectiveBody}
                   subjectTemplate={effectiveSubject}
                   templateSlug={templateSlug}
+                  branding={branding}
                 />
               )}
             </CardContent>

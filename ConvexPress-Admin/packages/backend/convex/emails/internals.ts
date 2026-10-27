@@ -39,6 +39,7 @@ import {
   renderTemplate,
   renderHtmlTemplate,
   escapeHtml,
+  emailBrandVariables,
   injectGlobalVariables,
   isSecurityEmail,
   checkUnsubscribed,
@@ -521,6 +522,8 @@ export const queueTemplateTestEmail = internalMutation({
       site_url: settings.siteUrl,
       unsubscribe_url: settings.unsubscribeUrl,
       ...parsedOverrides,
+      // The site's real look: a test shows what customers receive.
+      ...emailBrandVariables(settings.branding, settings),
     };
 
     const subject = renderTemplate(template.subjectTemplate, variables);
@@ -1037,6 +1040,7 @@ export const generateDigest = internalMutation({
                 siteName: settings.siteName,
                 siteUrl: settings.siteUrl,
                 unsubscribeUrl: settings.unsubscribeUrl,
+                branding: settings.branding,
               },
               user.name,
             ),
@@ -1139,6 +1143,7 @@ export const generateDigest = internalMutation({
               siteName: settings.siteName,
               siteUrl: settings.siteUrl,
               unsubscribeUrl: settings.unsubscribeUrl,
+              branding: settings.branding,
             },
             employee.name,
           ),

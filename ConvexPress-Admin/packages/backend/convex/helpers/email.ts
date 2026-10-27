@@ -19,6 +19,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { EMAIL_DEFAULTS as SETTINGS_EMAIL_DEFAULTS, type EmailSettings } from "../settings/defaults";
+import { isEmailImageUrlOrBlank, isHexColor } from "../settings/validation";
 import { getUserIdentifier } from "./permissions";
 import {
   flagSetting,
@@ -213,9 +214,10 @@ export function escapeHtml(value: string): string {
 
 /**
  * Variables whose value the server builds as markup, escaping what it
- * contains (the weekly digest's list of posts). Every other value is text.
+ * contains: the weekly digest's list of posts and the layout's branded header
+ * and footer (emailBrandVariables). Every other value is text.
  */
-export const HTML_TEMPLATE_VARIABLES: ReadonlySet<string> = new Set(["post_list"]);
+export const HTML_TEMPLATE_VARIABLES: ReadonlySet<string> = new Set(["post_list", "email_header", "email_footer"]);
 
 /**
  * Replace {variable_name} placeholders in an HTML template. Values are text,
@@ -245,17 +247,22 @@ export function injectGlobalVariables(
     siteName?: string;
     siteUrl?: string;
     unsubscribeUrl?: string;
+    /** The site's look; its layout variables can't be overridden by a caller. */
+    branding?: EmailBranding;
   },
   recipientName?: string,
 ): Record<string, string> {
   const now = new Date();
+  const siteName = settings.siteName ?? "ConvexPress";
+  const siteUrl = settings.siteUrl ?? "";
   return {
-    site_name: settings.siteName ?? "ConvexPress",
-    site_url: settings.siteUrl ?? "",
+    site_name: siteName,
+    site_url: siteUrl,
     current_year: String(now.getFullYear()),
     unsubscribe_url: settings.unsubscribeUrl ?? EMAIL_DEFAULTS.unsubscribe_url,
     ...(recipientName ? { recipient_name: recipientName } : {}),
     ...variables,
+    ...(settings.branding ? emailBrandVariables(settings.branding, { siteName, siteUrl }) : {}),
   };
 }
 
@@ -568,7 +575,63 @@ const EMAIL_SETTINGS_SPEC: SettingsSpec<EmailSettings> = {
   digestDay: numberSetting,
   digestHour: numberSetting,
   includeUnsubscribeLink: flagSetting,
+  logoUrl: textSetting,
+  logoWidth: numberSetting,
+  accentColor: textSetting,
+  footerText: textSetting,
 };
+
+/** How every email looks: the site's logo (or name), its accent colour, and its footer lines. */
+export interface EmailBranding {
+  logoUrl: string | null;
+  logoWidth: number;
+  accentColor: string;
+  footerLines: string[];
+}
+
+/** The first logo a mail client can show: the email setting, else the site's brand or general logo. */
+function emailLogo(...candidates: unknown[]): string | null {
+  for (const candidate of candidates) {
+    const value = textSetting(candidate, "").trim();
+    if (value && isEmailImageUrlOrBlank(value)) return value;
+  }
+  return null;
+}
+
+/** The email footer's lines, else the site footer's contact details while it shows them. */
+function emailFooterLines(footerText: string, footer: Record<string, unknown>): string[] {
+  const own = footerText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (own.length > 0) return own.slice(0, 6);
+  const contact = settingsRecord(footer.contactInfo);
+  if (contact.enabled === false) return [];
+  const address = textSetting(contact.address, "").trim();
+  const reach = [textSetting(contact.phone, "").trim(), textSetting(contact.email, "").trim()].filter(Boolean).join(" · ");
+  return [address, reach].filter(Boolean);
+}
+
+/**
+ * The layout's branded parts as template variables: `email_header` and
+ * `email_footer` are markup built here, with every value escaped
+ * (HTML_TEMPLATE_VARIABLES); `accent_color` is a validated #rrggbb.
+ */
+export function emailBrandVariables(
+  branding: EmailBranding,
+  site: { siteName: string; siteUrl: string },
+): Record<"accent_color" | "email_header" | "email_footer", string> {
+  const name = escapeHtml(site.siteName);
+  const accent = branding.accentColor;
+  const mark = branding.logoUrl
+    ? `<img src="${escapeHtml(branding.logoUrl)}" alt="${name}" width="${branding.logoWidth}" style="display:block;width:${branding.logoWidth}px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">`
+    : `<h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:600;">${name}</h1>`;
+  const linked = site.siteUrl ? `<a href="${escapeHtml(site.siteUrl)}" style="text-decoration:none;">${mark}</a>` : mark;
+  const header = branding.logoUrl
+    ? `<td style="padding:28px 40px;background-color:#ffffff;border-bottom:4px solid ${accent};">${linked}</td>`
+    : `<td style="padding:32px 40px;background-color:${accent};">${linked}</td>`;
+  const footer = branding.footerLines.length
+    ? `<p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;">${branding.footerLines.map(escapeHtml).join("<br>")}</p>`
+    : "";
+  return { accent_color: accent, email_header: header, email_footer: footer };
+}
 
 /** `path` on the site: absolute links work in every mail client; a bare path works in none. */
 export function absoluteSiteUrl(siteUrl: string, path: string): string {
@@ -604,6 +667,7 @@ export async function getEmailSettings(
   digestDay: number;
   digestHour: number;
   includeUnsubscribeLink: boolean;
+  branding: EmailBranding;
 }> {
   const section = async (name: Doc<"settings">["section"]) =>
     settingsRecord(
@@ -611,6 +675,8 @@ export async function getEmailSettings(
     );
   const general = await section("general");
   const dashboard = await section("dashboard");
+  const brand = await section("brand");
+  const footer = await section("footer");
   const email = readSettingsGroup(EMAIL_SETTINGS_SPEC, SETTINGS_EMAIL_DEFAULTS, await section("email"));
 
   const siteName = textSetting(general.siteTitle, "").trim() || "ConvexPress";
@@ -642,6 +708,12 @@ export async function getEmailSettings(
     digestDay: email.digestDay,
     digestHour: email.digestHour,
     includeUnsubscribeLink: email.includeUnsubscribeLink,
+    branding: {
+      logoUrl: emailLogo(email.logoUrl, brand.logoUrl, general.logoUrl),
+      logoWidth: Number.isInteger(email.logoWidth) && email.logoWidth >= 40 && email.logoWidth <= 600 ? email.logoWidth : SETTINGS_EMAIL_DEFAULTS.logoWidth,
+      accentColor: isHexColor(email.accentColor) ? email.accentColor : SETTINGS_EMAIL_DEFAULTS.accentColor,
+      footerLines: emailFooterLines(email.footerText, footer),
+    },
   };
 }
 
@@ -731,6 +803,7 @@ export async function queueEmailForEvent(
         siteName: settings.siteName,
         siteUrl: settings.siteUrl,
         unsubscribeUrl: settings.unsubscribeUrl,
+        branding: settings.branding,
       },
       options.recipientName,
     ),

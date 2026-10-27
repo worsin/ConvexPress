@@ -39,6 +39,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+/** A stored text value, read without trusting the record's shape. */
+function storedText(values: unknown, key: string, fallback: string): string {
+  if (!values || typeof values !== "object") return fallback;
+  const value: unknown = Reflect.get(values, key);
+  return typeof value === "string" ? value : fallback;
+}
+
+function storedNumber(values: unknown, key: string, fallback: number): number {
+  if (!values || typeof values !== "object") return fallback;
+  const value: unknown = Reflect.get(values, key);
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 export function EmailSettingsForm() {
   const emailSettings = useQuery(api.settings.queries.getBySection, {
     section: "email",
@@ -51,6 +64,10 @@ export function EmailSettingsForm() {
   const [webhookSecret, setWebhookSecret] = useState("");
   const [fromAddress, setFromAddress] = useState("");
   const [fromName, setFromName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [logoWidth, setLogoWidth] = useState("160");
+  const [accentColor, setAccentColor] = useState("#18181b");
+  const [footerText, setFooterText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isRepairing, setIsRepairing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -66,6 +83,10 @@ export function EmailSettingsForm() {
       setWebhookSecret((values.webhookSecret as string) ?? "");
       setFromAddress((values.fromAddress as string) ?? "noreply@convexpress.com");
       setFromName((values.fromName as string) ?? "ConvexPress");
+      setLogoUrl(storedText(emailSettings, "logoUrl", ""));
+      setLogoWidth(String(storedNumber(emailSettings, "logoWidth", 160)));
+      setAccentColor(storedText(emailSettings, "accentColor", "#18181b"));
+      setFooterText(storedText(emailSettings, "footerText", ""));
       setInitialized(true);
     }
   }, [emailSettings, initialized]);
@@ -97,6 +118,10 @@ export function EmailSettingsForm() {
           webhookSecret,
           fromAddress,
           fromName,
+          logoUrl: logoUrl.trim(),
+          logoWidth: Number(logoWidth),
+          accentColor: accentColor.trim(),
+          footerText,
         },
       });
       toast.success("Email settings saved.");
@@ -107,7 +132,7 @@ export function EmailSettingsForm() {
     } finally {
       setIsSaving(false);
     }
-  }, [emailSettings, updateSettings, resendApiKey, webhookSecret, fromAddress, fromName]);
+  }, [emailSettings, updateSettings, resendApiKey, webhookSecret, fromAddress, fromName, logoUrl, logoWidth, accentColor, footerText]);
 
   const handleRepair = useCallback(async () => {
     setIsRepairing(true);
@@ -281,6 +306,66 @@ export function EmailSettingsForm() {
               />
               <p className="text-[10px] text-muted-foreground">
                 Display name shown to email recipients alongside the from address.
+              </p>
+            </div>
+
+            {/* Look of every email (templates that follow the shipped layout) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email-logo-url">Logo</Label>
+              <Input
+                id="email-logo-url"
+                type="url"
+                value={logoUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogoUrl(e.target.value)}
+                placeholder="https://yoursite.com/email-logo.png"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                An https address of a PNG, JPEG or GIF (mail clients don't show SVG). Blank uses the
+                site's logo, or its name.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="email-logo-width">Logo width (px)</Label>
+                <Input
+                  id="email-logo-width"
+                  type="number"
+                  min={40}
+                  max={600}
+                  value={logoWidth}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogoWidth(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="email-accent-color">Accent colour</Label>
+                <Input
+                  id="email-accent-color"
+                  type="text"
+                  value={accentColor}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAccentColor(e.target.value)}
+                  placeholder="#18181b"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              The accent colours buttons and the line under the logo; choose a dark #rrggbb so white
+              button text stays readable.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="email-footer-text">Footer</Label>
+              <textarea
+                id="email-footer-text"
+                value={footerText}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFooterText(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder={"Your Company · 123 Main St, City, ST 00000\n(555) 555-0100 · support@yoursite.com"}
+                className="w-full resize-y border border-input bg-transparent p-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-hidden focus:ring-1 focus:ring-ring/50"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Lines at the foot of every email: your postal address and how to reach you. Blank uses
+                the site footer's contact details. Templates you edited keep their own layout until
+                reset.
               </p>
             </div>
 

@@ -15,7 +15,10 @@
 
 /**
  * Wraps email content in a consistent HTML email structure.
- * Uses inline styles for email client compatibility.
+ * Uses inline styles for email client compatibility. The site's look is
+ * filled in at send time from its email settings (helpers/email.ts
+ * emailBrandVariables): {email_header} (logo or name), {email_footer}
+ * (address and contact lines) and {accent_color} (buttons).
  */
 function wrapHtml(content: string): string {
   return `<!DOCTYPE html>
@@ -31,9 +34,7 @@ function wrapHtml(content: string): string {
       <td align="center" style="padding:40px 20px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           <tr>
-            <td style="padding:32px 40px;background-color:#18181b;">
-              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:600;">{site_name}</h1>
-            </td>
+            {email_header}
           </tr>
           <tr>
             <td style="padding:32px 40px;">
@@ -42,6 +43,7 @@ function wrapHtml(content: string): string {
           </tr>
           <tr>
             <td style="padding:24px 40px;background-color:#f9fafb;border-top:1px solid #e5e7eb;">
+              {email_footer}
               <p style="margin:0;font-size:12px;color:#6b7280;text-align:center;">
                 This email was sent by {site_name}.
                 <a href="{unsubscribe_url}" style="color:#6b7280;text-decoration:underline;">Manage email preferences</a>
@@ -109,7 +111,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         Get started by exploring our latest content or updating your profile.
       </p>
-      <a href="{site_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Visit {site_name}</a>
+      <a href="{site_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Visit {site_name}</a>
     `),
     preheaderText: "Your account has been created successfully",
     availableVariables: [
@@ -138,7 +140,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         Click the button below to verify:
       </p>
-      <a href="{verification_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Verify Email</a>
+      <a href="{verification_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Verify Email</a>
       <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">If you didn't create this account, you can safely ignore this email.</p>
     `),
     preheaderText: "Please verify your email address",
@@ -187,7 +189,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
         {inviter_name} has invited you to join {site_name} as a {role}.
       </p>
-      <a href="{invite_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Accept Invitation</a>
+      <a href="{invite_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Accept Invitation</a>
     `),
     preheaderText: "You've been invited to join us",
     availableVariables: [
@@ -272,7 +274,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
         Hi {recipient_name}, we received a request to reset your password. Click the button below to set a new password:
       </p>
-      <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Reset Password</a>
+      <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Reset Password</a>
       <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">This link expires in {expiry_hours} hours. If you didn't request this, you can safely ignore this email.</p>
     `),
     preheaderText: "Reset your password",
@@ -325,7 +327,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
         Congratulations {recipient_name}! Your post "<strong>{title}</strong>" has been published on {site_name}.
       </p>
-      <a href="{post_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Post</a>
+      <a href="{post_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Post</a>
     `),
     preheaderText: "Your post has been published",
     availableVariables: [
@@ -350,7 +352,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       </p>
       <h3 style="margin:0 0 8px;font-size:18px;color:#18181b;">{title}</h3>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">{excerpt}</p>
-      <a href="{post_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Read More</a>
+      <a href="{post_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Read More</a>
     `),
     preheaderText: "New content has been published",
     availableVariables: [
@@ -402,7 +404,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <blockquote style="margin:0 0 24px;padding:16px;background-color:#f9fafb;border-left:4px solid #18181b;border-radius:0 4px 4px 0;">
         <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">{comment_excerpt}</p>
       </blockquote>
-      <a href="{post_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Comment</a>
+      <a href="{post_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Comment</a>
     `),
     availableVariables: [
       { name: "post_title", description: "Title of the commented post", required: true },
@@ -451,7 +453,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
         Hi {recipient_name}, your comment on "<strong>{post_title}</strong>" has been approved and is now visible.
       </p>
-      <a href="{comment_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Comment</a>
+      <a href="{comment_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Comment</a>
     `),
     availableVariables: [
       { name: "post_title", description: "Title of the post", required: true },
@@ -476,7 +478,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <blockquote style="margin:0 0 24px;padding:16px;background-color:#f9fafb;border-left:4px solid #18181b;border-radius:0 4px 4px 0;">
         <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">{reply_excerpt}</p>
       </blockquote>
-      <a href="{comment_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Reply</a>
+      <a href="{comment_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Reply</a>
     `),
     availableVariables: [
       { name: "replier_name", description: "Name of the person who replied", required: false },
@@ -666,7 +668,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
         The sitemap for {site_name} has been regenerated with {url_count} URLs.
       </p>
-      <a href="{sitemap_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Sitemap</a>
+      <a href="{sitemap_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View Sitemap</a>
     `),
     availableVariables: [
       { name: "url_count", description: "Number of URLs in the sitemap", required: false },
@@ -897,7 +899,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
         <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Source:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{sourceLabel}</td></tr>
         <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Total:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{total}</td></tr>
       </table>
-      <a href="{orderUrl}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View purchase</a>
+      <a href="{orderUrl}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View purchase</a>
     `),
     preheaderText: "Your payment has been received",
     availableVariables: [
@@ -927,7 +929,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
         <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Customer:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{customerEmail}</td></tr>
         <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Total:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{total}</td></tr>
       </table>
-      <a href="{adminUrl}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Open ledger</a>
+      <a href="{adminUrl}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Open ledger</a>
     `),
     preheaderText: "A paid purchase needs admin visibility",
     availableVariables: [
@@ -953,7 +955,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
         We could not complete payment for <strong>{orderNumber}</strong>. You can review the purchase and try again if payment is still required.
       </p>
-      <a href="{orderUrl}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Review purchase</a>
+      <a href="{orderUrl}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Review purchase</a>
     `),
     preheaderText: "There was a payment issue",
     availableVariables: [
@@ -1277,7 +1279,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       </p>
       <p style="margin:0 0 8px;font-size:14px;color:#6b7280;"><strong>{post_count}</strong> new posts published:</p>
       <ul style="margin:0 0 24px;padding-left:20px;">{post_list}</ul>
-      <a href="{site_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Visit {site_name}</a>
+      <a href="{site_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Visit {site_name}</a>
     `),
     availableVariables: [
       { name: "post_count", description: "Number of new posts", required: false },
@@ -1301,7 +1303,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Welcome, {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your subscription to <strong>{offer_title}</strong> is active.</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">{billing_note}</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1329,7 +1331,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Thanks, {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your subscription to <strong>{offer_title}</strong> renewed. We charged {amount_charged} to your card on file.</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Invoice {invoice_number} · Next charge on {next_billing_at}.</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View invoices</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View invoices</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1355,7 +1357,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">You're all set, {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your payment of {amount_charged} for <strong>{offer_title}</strong> went through, and your subscription is in good standing again.</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Invoice {invoice_number} · Next charge on {next_billing_at}.</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View your subscription</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View your subscription</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1381,7 +1383,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#b91c1c;">Your payment didn't go through</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Hi {recipient_name}, we couldn't charge {amount_due} for <strong>{offer_title}</strong>. {failure_reason}</p>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">{retry_note} {access_note}</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Update your card</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Update your card</a>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;"><br>Updating your card retries the payment right away.</p>
     `),
     availableVariables: [
@@ -1411,7 +1413,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your free trial of <strong>{offer_title}</strong> ends on {trial_ends_at}. {charge_note}</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Nothing to do if you'd like to continue. You can change plans or cancel before then.</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1439,7 +1441,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">We've scheduled your <strong>{offer_title}</strong> subscription to end on {access_until}. You keep full access until then, and you won't be charged again.</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Changed your mind? You can keep your subscription from your account any time before {access_until}.</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Keep my subscription</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Keep my subscription</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1483,7 +1485,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     bodyHtml: wrapHtml(`
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Your subscription to <strong>{offer_title}</strong> is paused. We won't charge you while it's paused, and you can resume any time.</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Resume subscription</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Resume subscription</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1505,7 +1507,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     bodyHtml: wrapHtml(`
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Good to have you, {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">{resume_note}</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Manage your subscription</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1531,7 +1533,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Hi {recipient_name}</h2>
       <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">{refund_note}</p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Refunds usually take 5 to 10 business days to appear on your statement.</p>
-      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View your invoices</a>
+      <a href="{portal_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View your invoices</a>
     `),
     availableVariables: [
       { name: "recipient_name", description: "Customer first name", required: false, defaultValue: "there" },
@@ -1562,7 +1564,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         Start with the first lesson whenever you're ready.
       </p>
-      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Start course</a>
+      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Start course</a>
     `),
     preheaderText: "Your course enrollment is active",
     availableVariables: [
@@ -1589,7 +1591,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         If this seems incorrect, contact the site administrator.
       </p>
-      <a href="{course_public_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+      <a href="{course_public_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
     `),
     preheaderText: "Your course access changed",
     availableVariables: [
@@ -1616,7 +1618,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         You can review the course page or contact the site team if you need access restored.
       </p>
-      <a href="{course_public_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+      <a href="{course_public_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
     `),
     preheaderText: "Your course access has expired",
     availableVariables: [
@@ -1645,7 +1647,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         Review the course any time from your learning dashboard.
       </p>
-      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
     `),
     preheaderText: "You completed a course",
     availableVariables: [
@@ -1671,7 +1673,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
         Congratulations, {recipient_name}. Your certificate for <strong>{course_title}</strong> has been issued.
       </p>
       <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Serial: {serial}</p>
-      <a href="{certificate_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View certificate</a>
+      <a href="{certificate_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View certificate</a>
     `),
     preheaderText: "Your course certificate has been issued",
     availableVariables: [
@@ -1699,7 +1701,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
         Visit the course to review your current completion status.
       </p>
-      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:{accent_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
     `),
     preheaderText: "A certificate status changed",
     availableVariables: [

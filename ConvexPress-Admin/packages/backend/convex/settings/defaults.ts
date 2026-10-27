@@ -415,6 +415,20 @@ export interface EmailSettings {
   digestHour: number;
   /** Include unsubscribe link in all emails */
   includeUnsubscribeLink: boolean;
+  /**
+   * Logo at the top of every email: an absolute https URL to a PNG, JPEG or
+   * GIF (mail clients don't show SVG). Blank: the site's logo, else its name.
+   */
+  logoUrl: string;
+  /** The logo's width in pixels (its height follows), 40-600. */
+  logoWidth: number;
+  /** Buttons, the line under the logo, and the header band without one: a dark #rrggbb. */
+  accentColor: string;
+  /**
+   * Lines at the foot of every email: the sender's postal address and how to
+   * reach them. Blank: the site footer's contact details.
+   */
+  footerText: string;
 }
 
 export interface SearchSettings {
@@ -1153,6 +1167,10 @@ export const EMAIL_DEFAULTS: EmailSettings = {
   digestDay: 1,
   digestHour: 8,
   includeUnsubscribeLink: true,
+  logoUrl: "",
+  logoWidth: 160,
+  accentColor: "#18181b",
+  footerText: "",
 };
 
 export const SEARCH_DEFAULTS: SearchSettings = {
