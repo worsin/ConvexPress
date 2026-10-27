@@ -36,8 +36,8 @@ for (const pack of ["core", "journal", "depot", "aster-house"]) {
   for (const legal of ["privacy-terms", "privacy-only", "custom", "none"]) check(`${pack}/${legal}`, () => {
     const c = config(); c.bottomBar.legalLinks = legal;
     render(c, d => {
-      assert.equal(!!d.querySelector('a[href="/privacy"]'), legal === "privacy-terms" || legal === "privacy-only");
-      assert.equal(!!d.querySelector('a[href="/terms"]'), legal === "privacy-terms");
+      assert.equal(!!d.querySelector('a[href="/page/privacy"]'), legal === "privacy-terms" || legal === "privacy-only");
+      assert.equal(!!d.querySelector('a[href="/page/terms"]'), legal === "privacy-terms");
       assert.equal(!!d.querySelector('a[href="/custom-policy"]'), legal === "custom");
       if (legal === "custom") assert.equal(d.querySelector('a[href="/custom-policy"]').getAttribute("target"), "_blank");
       assert.equal(!!d.querySelector('nav[aria-label="Legal links"]'), legal !== "none");
