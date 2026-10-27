@@ -1436,3 +1436,47 @@ export const getFirstChargeConfirmAccess = internalQuery({
 		};
 	},
 });
+
+/** The longest renewal terms a checkout records: the disclosure beside the pay button. */
+const MAX_RENEWAL_TERMS_LENGTH = 2000;
+
+/**
+ * Record the buyer's consent to the automatic-renewal terms shown beside the
+ * pay button, with the exact words, before the card is charged. Only the
+ * checkout's own buyer can consent; a checkout that is already paid, failed
+ * or expired can't. A later consent on the same checkout (the buyer went back
+ * and saw new terms) replaces the earlier one.
+ */
+export const recordRenewalConsent = mutation({
+	args: {
+		checkoutIntentRef: v.string(),
+		text: v.string(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await requirePluginEnabled(ctx, "commerceSubscriptions");
+		await requireCommerceSubscriptionsEnabled(ctx);
+		const intentId = ctx.db.normalizeId("commerce_subscription_checkout_intents", args.checkoutIntentRef);
+		const intent = intentId ? await ctx.db.get(intentId) : null;
+		if (!intent) throw new ConvexError({ code: "NOT_FOUND", message: "Checkout not found." });
+		if (intent.userId) {
+			const user = await getCurrentUser(ctx);
+			if (!user || user._id !== intent.userId || user.status !== "active") {
+				throw new ConvexError({ code: "FORBIDDEN", message: "This checkout belongs to another account." });
+			}
+		}
+		if (intent.status !== "draft" && intent.status !== "payment_pending") {
+			throw new ConvexError({ code: "CONFLICT", message: "This checkout can no longer be changed." });
+		}
+		const text = args.text.trim();
+		if (!text || text.length > MAX_RENEWAL_TERMS_LENGTH) {
+			throw new ConvexError({ code: "VALIDATION_ERROR", message: "The renewal terms are missing or too long." });
+		}
+		const now = Date.now();
+		await ctx.db.patch("commerce_subscription_checkout_intents", intent._id, {
+			renewalConsent: { acceptedAt: now, text },
+			updatedAt: now,
+		});
+		return null;
+	},
+});

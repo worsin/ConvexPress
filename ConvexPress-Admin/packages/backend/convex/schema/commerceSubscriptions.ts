@@ -210,6 +210,12 @@ export const commerceSubscriptionTables = {
     expiresAt: v.optional(v.number()),
     // v.any(): event metadata whose keys differ by writer; stored rows are unaudited, so no one validator is known to hold.
     metadata: v.optional(v.any()),
+    /**
+     * The buyer's consent to the automatic-renewal terms, as shown beside the
+     * pay button: when, and the exact words. Recorded before the card is
+     * charged; evidence for automatic-renewal laws.
+     */
+    renewalConsent: v.optional(v.object({ acceptedAt: v.number(), text: v.string() })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

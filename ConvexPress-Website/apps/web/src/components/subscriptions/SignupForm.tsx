@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormStripePaymentForm } from "@/extensions/forms/payment/FormStripePaymentForm";
+import { renewalConsent, renewalTermsText } from "./renewalTerms";
 import { useConfirmFirstCharge } from "@/extensions/forms/payment/useConfirmFirstCharge";
 import {
   confirmationFromClientSecret,
@@ -338,6 +339,7 @@ function SignupCheckout({
   );
   useConfirmFirstCharge(state, dispatch, intentId);
   const view = useQuery(api.commerceSubscriptions.checkout.getMyCheckout, { intentId });
+  const recordRenewalConsent = useMutation(api.commerceSubscriptions.checkout.recordRenewalConsent);
 
   // After a redirect, keep only the checkout id in the address bar.
   useEffect(() => {
@@ -377,6 +379,13 @@ function SignupCheckout({
             }
             onError={(message) => dispatch({ type: "card_error", message })}
             onConfirmed={() => dispatch({ type: "stripe_confirmed", confirmation: cardConfirmation })}
+            consent={
+              view?.summary && view.recurringAmount > 0
+                ? renewalConsent(renewalTermsText(view.summary, view.currency), (text) =>
+                    recordRenewalConsent({ checkoutIntentRef: String(intentId), text }),
+                  )
+                : undefined
+            }
           />
         </div>
       );

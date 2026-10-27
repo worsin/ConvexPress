@@ -7,7 +7,8 @@
  *
  * What a customer is told, by event:
  *   created          welcome: what they bought, the receipt for the first
- *                    charge, what it costs and when it charges next
+ *                    charge, what it costs and when it charges next, that
+ *                    it renews automatically, and how to cancel
  *   renewed          receipt (invoice, amount, next charge); after a failed
  *                    payment, "your payment went through" instead
  *   past_due         the charge failed: why, when we try again, how long
@@ -214,7 +215,9 @@ export const onSubscriptionCreated = internalMutation({
             : `You pay ${amount} ${cadence}. Your next charge is on ${nextAt}.`
           : `You pay ${amount} ${cadence}.`;
     const receipt = await firstChargeReceipt(ctx, subscription, timeZone);
-    variables.billing_note = receipt ? `${receipt} ${terms}` : terms;
+    // The acknowledgment automatic-renewal laws require: how it renews and how to cancel.
+    const renewal = `It renews automatically ${cadence} until you cancel. You can cancel any time from your account at ${variables.portal_url}; your plan stays active until the end of the period you've paid for.`;
+    variables.billing_note = [receipt, terms, renewal].filter(Boolean).join(" ");
     await queue(ctx, args.eventId, "subscription-welcome", context);
     return null;
   },

@@ -22,7 +22,7 @@
  *     back to `returnUrl`, where the same server verification runs.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js/pure";
 import type { Stripe } from "@stripe/stripe-js";
 import {
@@ -32,6 +32,18 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+
+/**
+ * Automatic-renewal consent for a subscription checkout: the terms are shown
+ * right above a checkbox and the pay button; the button stays disabled until
+ * the box is ticked, and `record` stores the consent before the card is
+ * charged (a failure stops the payment).
+ */
+export interface RenewalConsent {
+  terms: string;
+  label: string;
+  record: () => Promise<void>;
+}
 
 /** The Stripe object Elements confirmed without leaving the page. */
 export interface ConfirmedStripeObject {
@@ -49,6 +61,8 @@ interface Props {
   /** Opt in to in-page confirmation; see the module comment. */
   onConfirmed?: (confirmed: ConfirmedStripeObject) => void;
   submitLabel?: string;
+  /** Required for a subscription that renews: see `RenewalConsent`. */
+  consent?: RenewalConsent;
 }
 
 export function FormStripePaymentForm(props: Props) {
@@ -69,6 +83,7 @@ export function FormStripePaymentForm(props: Props) {
         onError={props.onError}
         onConfirmed={props.onConfirmed}
         submitLabel={props.submitLabel}
+        consent={props.consent}
       />
     </Elements>
   );
@@ -80,15 +95,31 @@ function PaymentFormInner(props: {
   onError: (m: string) => void;
   onConfirmed?: (confirmed: ConfirmedStripeObject) => void;
   submitLabel?: string;
+  consent?: RenewalConsent;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const termsId = useId();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!stripe || !elements) return;
+    if (props.consent && !agreed) {
+      props.onError("Please agree to the renewal terms to continue.");
+      return;
+    }
     setSubmitting(true);
+    if (props.consent) {
+      try {
+        await props.consent.record();
+      } catch {
+        props.onError("We couldn't record your agreement to the renewal terms. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+    }
     const localReturnPath = sanitizeRedirectUrl(props.returnUrl, {
       baseOrigin: window.location.origin,
       fallbackPath: window.location.pathname,
@@ -149,9 +180,27 @@ function PaymentFormInner(props: {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
+      {props.consent ? (
+        <div data-slot="renewal-consent" className="flex flex-col gap-3 rounded-md border border-border bg-muted/40 p-4">
+          <p id={termsId} data-slot="renewal-terms" className="text-sm text-foreground">
+            {props.consent.terms}
+          </p>
+          <label className="flex items-start gap-3 text-sm font-medium text-foreground">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(event) => setAgreed(event.target.checked)}
+              aria-describedby={termsId}
+              required
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span>{props.consent.label}</span>
+          </label>
+        </div>
+      ) : null}
       <button
         type="submit"
-        disabled={!stripe || submitting}
+        disabled={!stripe || submitting || (props.consent !== undefined && !agreed)}
         className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
         {submitting ? "Processing…" : (props.submitLabel ?? "Complete payment")}
