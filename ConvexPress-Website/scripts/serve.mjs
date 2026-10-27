@@ -19,6 +19,7 @@
 //   CONVEXPRESS_CSP_EXTRA         extra CSP sources, as "directive source …; directive source …"
 //   CONVEXPRESS_CSP_ENFORCE       "true" enforces the full policy; otherwise it is report-only
 //                                 (frame-ancestors, base-uri and object-src are always enforced)
+//   plus whatever the site declares under "start" in apps/web/site-env.json
 //
 // GET /healthz answers 200 without touching the backend.
 // ============================================================================
@@ -27,13 +28,25 @@ import { existsSync, statSync } from "node:fs";
 import { join, normalize, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { readSiteEnvSpec, siteEnvProblems } from "../apps/web/required-env.mjs";
+
 const ROOT = resolve(import.meta.dir, "..");
+const APP_DIR = join(ROOT, "apps/web");
 const CLIENT_DIR = join(ROOT, "apps/web/dist/client");
 const SERVER_ENTRY = join(ROOT, "apps/web/dist/server/server.js");
 
+/** The site's own "start" environment (apps/web/site-env.json); a broken file is a problem too. */
+export function siteStartProblems(env = process.env, appDir = APP_DIR) {
+  try {
+    return siteEnvProblems(readSiteEnvSpec(appDir), "start", env);
+  } catch (error) {
+    return [error instanceof Error ? error.message : String(error)];
+  }
+}
+
 /** Parse and check the configuration; exit before listening when it is wrong. */
-export function readConfig(env = process.env) {
-  const problems = [];
+export function readConfig(env = process.env, appDir = APP_DIR) {
+  const problems = [...siteStartProblems(env, appDir)];
   const url = (name, { required }) => {
     const raw = env[name];
     if (!raw) {
