@@ -42,11 +42,17 @@ export default function CoreHelpSearch({ data }: SurfaceProps<HelpSearchSurfaceD
     <div className="mx-auto max-w-3xl px-4 py-12">
       <Breadcrumbs className="mb-6" segments={helpTrail({ label: "Search" })} />
 
+      <h1 className="mb-6 text-3xl font-bold">Search articles</h1>
+
       {/* Search form */}
-      <form className="mb-8 flex gap-2" onSubmit={handleSearchSubmit}>
+      <form role="search" className="mb-8 flex gap-2" onSubmit={handleSearchSubmit}>
+        <label className="sr-only" htmlFor="help-search-input">
+          Search help articles
+        </label>
         <input
+          id="help-search-input"
           name="q"
-          type="text"
+          type="search"
           defaultValue={q ?? ""}
           placeholder="Search articles..."
           className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
@@ -79,7 +85,7 @@ export default function CoreHelpSearch({ data }: SurfaceProps<HelpSearchSurfaceD
             }}
             className="block rounded-lg border border-border bg-card p-5 transition hover:border-primary/50 hover:shadow-sm"
           >
-            <h3 className="font-medium">{article.title}</h3>
+            <h2 className="font-medium">{article.title}</h2>
             {article.categoryName && (
               <p className="mt-1 text-xs text-primary">{article.categoryName}</p>
             )}
