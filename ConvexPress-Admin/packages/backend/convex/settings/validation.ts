@@ -73,6 +73,23 @@ export function isSitePathOrBlank(value: string): boolean {
   return value === "" || (value.length <= 200 && /^\/(?![/\\])[^\s\\?#]*$/.test(value));
 }
 
+/** A #rrggbb colour. */
+export function isHexColor(value: string): boolean {
+  return /^#[0-9a-f]{6}$/i.test(value);
+}
+
+/** Blank, or an https image a mail client shows (not SVG). */
+export function isEmailImageUrlOrBlank(value: string): boolean {
+  if (value === "") return true;
+  if (value.length > 500) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !/\.svgz?$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 function isString(v: unknown): v is string {
   return typeof v === "string";
 }
@@ -452,6 +469,19 @@ function validateEmail(values: Record<string, unknown>): ValidationError[] {
   // fromAddress: valid email
   if (isString(values.fromAddress) && values.fromAddress.length > 0 && !isValidEmail(values.fromAddress)) {
     errors.push({ field: "fromAddress", message: "From address must be a valid email." });
+  }
+
+  if (values.logoUrl !== undefined && !(isString(values.logoUrl) && isEmailImageUrlOrBlank(values.logoUrl))) {
+    errors.push({ field: "logoUrl", message: "The email logo must be blank or an https address of a PNG, JPEG or GIF image." });
+  }
+  if (values.logoWidth !== undefined && !intInRange(values.logoWidth, 40, 600)) {
+    errors.push({ field: "logoWidth", message: "The email logo width must be 40-600 pixels." });
+  }
+  if (values.accentColor !== undefined && !(isString(values.accentColor) && isHexColor(values.accentColor))) {
+    errors.push({ field: "accentColor", message: "The email accent colour must be a #rrggbb colour." });
+  }
+  if (values.footerText !== undefined && !(isString(values.footerText) && values.footerText.length <= 500)) {
+    errors.push({ field: "footerText", message: "The email footer must be 500 characters or less." });
   }
 
   // fromName: max 200

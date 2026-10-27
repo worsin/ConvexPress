@@ -16,6 +16,8 @@ interface EmailTemplatePreviewProps {
   subjectTemplate: string;
   /** Template slug for loading sample variables */
   templateSlug: string;
+  /** The site's email look (api.emails.queries.getEmailBranding), when loaded. */
+  branding?: Record<string, string>;
 }
 
 /**
@@ -37,12 +39,13 @@ export function EmailTemplatePreview({
   bodyHtml,
   subjectTemplate,
   templateSlug,
+  branding,
 }: EmailTemplatePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const sampleVars = useMemo(
-    () => getSampleVariables(templateSlug, bodyHtml, subjectTemplate),
-    [templateSlug, bodyHtml, subjectTemplate],
+    () => ({ ...getSampleVariables(templateSlug, bodyHtml, subjectTemplate), ...branding }),
+    [templateSlug, bodyHtml, subjectTemplate, branding],
   );
 
   const renderedSubject = useMemo(

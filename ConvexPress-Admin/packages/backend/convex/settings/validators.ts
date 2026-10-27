@@ -231,6 +231,10 @@ export const emailValuesValidator = v.object({
   digestDay: v.number(),
   digestHour: v.number(),
   includeUnsubscribeLink: v.boolean(),
+  logoUrl: v.string(),
+  logoWidth: v.number(),
+  accentColor: v.string(),
+  footerText: v.string(),
 });
 
 /**

@@ -31,6 +31,7 @@ import {
   getUserPreferencesArgs,
 } from "./validators";
 import { EMAIL_TEMPLATE_REGISTRY_BY_SLUG, type EmailTemplateTriggerKind } from "./registry";
+import { emailBrandVariables, getEmailSettings } from "../helpers/email";
 
 import { v } from "convex/values";
 const TEMPLATE_REGISTRY: Record<
@@ -653,5 +654,25 @@ export const getUserPreferences = query({
       })),
       categories,
     };
+  },
+});
+
+// ─── getEmailBranding ────────────────────────────────────────────────────────
+
+/**
+ * The site's email look as the layout's variables (accent colour, branded
+ * header and footer), so the template editor previews what customers get.
+ */
+export const getEmailBranding = query({
+  args: {},
+  returns: v.object({
+    accent_color: v.string(),
+    email_header: v.string(),
+    email_footer: v.string(),
+  }),
+  handler: async (ctx) => {
+    await requireCan(ctx, "settings.update_email");
+    const settings = await getEmailSettings(ctx);
+    return emailBrandVariables(settings.branding, settings);
   },
 });
