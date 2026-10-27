@@ -3325,7 +3325,7 @@ export type PublicApi = {
 };
   "mutations": {
   "markFailedLoginReviewed": FunctionReference<"mutation", "public", { "attemptId": GenericId<"failedLoginAttempts">; }, Dto253>;
-  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "ip"?: (undefined | string); "userAgent"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
+  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "userAgent"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
   "recordLogin": FunctionReference<"mutation", "public", { "method"?: (undefined | "email" | "unknown" | "oauth" | "passkey"); "app"?: (undefined | "website" | "admin" | "unknown"); "ip"?: (undefined | string); "userAgent"?: (undefined | string); }, (null | Dto256)>;
   "recordLogout": FunctionReference<"mutation", "public", { "app"?: (undefined | "website" | "admin" | "unknown"); }, (null | Dto257)>;
 };
@@ -3342,7 +3342,7 @@ export type PublicApi = {
 };
   "authTracking/mutations": {
   "markFailedLoginReviewed": FunctionReference<"mutation", "public", { "attemptId": GenericId<"failedLoginAttempts">; }, Dto253>;
-  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "ip"?: (undefined | string); "userAgent"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
+  "recordFailedLogin": FunctionReference<"mutation", "public", { "email": string; "reason": ("invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown"); "app": ("website" | "admin" | "unknown"); "userAgent"?: (undefined | string); "description"?: (undefined | string); }, (Dto254 | Dto255)>;
   "recordLogin": FunctionReference<"mutation", "public", { "method"?: (undefined | "email" | "unknown" | "oauth" | "passkey"); "app"?: (undefined | "website" | "admin" | "unknown"); "ip"?: (undefined | string); "userAgent"?: (undefined | string); }, (null | Dto256)>;
   "recordLogout": FunctionReference<"mutation", "public", { "app"?: (undefined | "website" | "admin" | "unknown"); }, (null | Dto257)>;
 };

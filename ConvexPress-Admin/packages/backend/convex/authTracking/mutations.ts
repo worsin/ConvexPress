@@ -159,7 +159,9 @@ export const recordLogout = mutation({
  * Records a failed login attempt.
  *
  * Called by the client when an authentication error occurs.
- * This does NOT require authentication (the user failed to authenticate).
+ * This does NOT require authentication (the user failed to authenticate),
+ * so nothing the caller says about itself is trusted: an IP address is not
+ * accepted from it, and the email is only a claim.
  *
  * Records the attempt in the failedLoginAttempts table and emits an
  * `auth.login_failed` event into the Event Dispatcher for admin
@@ -168,7 +170,6 @@ export const recordLogout = mutation({
  * @param email - Email address used in the attempt
  * @param reason - Failure reason code
  * @param app - Which app the attempt came from
- * @param ip - Optional IP address
  * @param userAgent - Optional user agent string
  * @param description - Optional human-readable description
  */
@@ -176,7 +177,6 @@ type FailedLoginArgs = {
   email: string;
   reason: Infer<typeof failureReasonValidator>;
   app: Infer<typeof appIdentifierValidator>;
-  ip?: string;
   userAgent?: string;
   description?: string;
 };
@@ -186,7 +186,6 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
     email: v.string(),
     reason: failureReasonValidator,
     app: appIdentifierValidator,
-    ip: v.optional(v.string()),
     userAgent: v.optional(v.string()),
     description: v.optional(v.string()),
   },
@@ -199,8 +198,7 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
     // ─── Input Sanitization (CRITICAL-1 fix) ──────────────────────────
     // This mutation is unauthenticated (the user failed to log in).
     // Cap string lengths to prevent data pollution / storage abuse.
-    const email = args.email.slice(0, MAX_EMAIL_LENGTH); // RFC 5321 max email length
-    const ip = truncateOptional(args.ip, MAX_IP_LENGTH); // IPv6 max length
+    const email = args.email.trim().toLowerCase().slice(0, MAX_EMAIL_LENGTH); // RFC 5321 max email length
     const userAgent = truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
     const description = truncateOptional(args.description, MAX_DESCRIPTION_LENGTH);
 
@@ -213,7 +211,7 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
 
     // ─── Rate Limiting (Finding #46 fix) ──────────────────────────────
     // Prevent flooding the failedLoginAttempts table. Reject if >20
-    // attempts from the same email or IP in the last 5 minutes.
+    // attempts for the same email in the last 5 minutes.
     const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
     const RATE_LIMIT_MAX = 20;
     const windowStart = now - RATE_LIMIT_WINDOW_MS;
@@ -230,19 +228,6 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
       return { success: false, error: "Rate limit exceeded" };
     }
 
-    // Check per-IP rate limit (if IP is provided)
-    if (ip) {
-      const recentByIp = await ctx.db
-        .query("failedLoginAttempts")
-        .withIndex("by_ip", (q) =>
-          q.eq("ip", ip).gt("attemptedAt", windowStart),
-        )
-        .take(RATE_LIMIT_MAX + 1);
-
-      if (recentByIp.length > RATE_LIMIT_MAX) {
-        return { success: false, error: "Rate limit exceeded" };
-      }
-    }
     // 90-day retention for failed login records (compliance-relevant)
     const expiresAt = now + 90 * 24 * 60 * 60 * 1000;
 
@@ -255,7 +240,6 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
     // Insert the failed attempt record
     const attemptId = await ctx.db.insert("failedLoginAttempts", {
       email,
-      ip,
       userAgent,
       reason: args.reason,
       description,
@@ -275,7 +259,6 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
         SYSTEM.AUTH,
         {
           email,
-          ip,
           reason: args.reason,
           description,
           app: args.app,
@@ -283,10 +266,7 @@ export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, Fa
           attemptId,
           attemptedAt: now,
         },
-        {
-          // No actorId since the user is not authenticated
-          actorIp: ip,
-        },
+        // No actor options: the user isn't authenticated and the caller's IP isn't known.
       );
     } catch {
       // Event emission failure should not prevent the attempt from being recorded

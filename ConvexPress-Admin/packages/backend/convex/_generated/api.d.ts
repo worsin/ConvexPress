@@ -196,7 +196,7 @@ export declare const api:
 "mutations":
 {
 "markFailedLoginReviewed": FunctionReference<"mutation", "public", { attemptId: Id<"failedLoginAttempts"> }, { success: boolean }>,
-"recordFailedLogin": FunctionReference<"mutation", "public", { email: string, reason: "invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown", app: "admin" | "website" | "unknown", ip?: string, userAgent?: string, description?: string }, { success: boolean, error: string, attemptId?: null } | { success: boolean, attemptId: Id<"failedLoginAttempts">, error?: null }>,
+"recordFailedLogin": FunctionReference<"mutation", "public", { email: string, reason: "invalid_credentials" | "account_locked" | "account_deactivated" | "account_banned" | "mfa_failed" | "rate_limited" | "unknown", app: "admin" | "website" | "unknown", userAgent?: string, description?: string }, { success: boolean, error: string, attemptId?: null } | { success: boolean, attemptId: Id<"failedLoginAttempts">, error?: null }>,
 "recordLogin": FunctionReference<"mutation", "public", { method?: "email" | "oauth" | "passkey" | "unknown", app?: "admin" | "website" | "unknown", ip?: string, userAgent?: string }, null | { success: boolean, userId: Id<"users">, eventId: Id<"events"> }>,
 "recordLogout": FunctionReference<"mutation", "public", { app?: "admin" | "website" | "unknown" }, null | { success: boolean, userId: Id<"users">, eventId: Id<"events"> }>,
 }

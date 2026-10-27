@@ -102,3 +102,34 @@ describe("auth tracking mutations", () => {
     expect(payload.userAgent).toHaveLength(1000);
   });
 });
+
+describe("failed sign-in records (upstream PR 068)", () => {
+  test("an attempt is kept by its email, and no caller-supplied address is trusted", async () => {
+    const t = createHarness();
+    const result = await t.mutation(api.authTracking.mutations.recordFailedLogin, {
+      email: "  Doctor@Example.Invalid ",
+      reason: "invalid_credentials",
+      app: "website",
+      userAgent: "test-agent",
+    });
+    expect(result.success).toBe(true);
+    const [attempt] = await t.run(async (ctx) => await ctx.db.query("failedLoginAttempts").collect());
+    expect(attempt).toMatchObject({ email: "doctor@example.invalid", reason: "invalid_credentials", app: "website", userAgent: "test-agent" });
+    expect(attempt?.ip).toBeUndefined();
+
+    // An older client still sending an address is refused, not believed.
+    const withAddress = { email: "doctor@example.invalid", reason: "invalid_credentials" as const, app: "website" as const, ip: "203.0.113.9" };
+    await expect(t.mutation(api.authTracking.mutations.recordFailedLogin, withAddress)).rejects.toThrow();
+  });
+
+  test("a phone number or placeholder isn't recorded as an email", async () => {
+    const t = createHarness();
+    for (const email of ["unknown", "+15555550100"]) {
+      expect(await t.mutation(api.authTracking.mutations.recordFailedLogin, { email, reason: "unknown", app: "website" })).toEqual({
+        success: false,
+        error: "Invalid email format",
+      });
+    }
+    expect(await t.run(async (ctx) => (await ctx.db.query("failedLoginAttempts").collect()).length)).toBe(0);
+  });
+});
