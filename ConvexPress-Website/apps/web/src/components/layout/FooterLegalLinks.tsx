@@ -13,8 +13,8 @@ export function FooterLegalLinks({ choice }: { choice: FooterConfig["bottomBar"]
   return (
     <nav aria-label="Legal links">
       <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <li><Link to="/$slug" params={{ slug: "privacy" }} className={linkClass}>Privacy Policy</Link></li>
-        {choice === "privacy-terms" && <li><Link to="/$slug" params={{ slug: "terms" }} className={linkClass}>Terms of Service</Link></li>}
+        <li><Link to="/page/$" params={{ _splat: "privacy" }} className={linkClass}>Privacy Policy</Link></li>
+        {choice === "privacy-terms" && <li><Link to="/page/$" params={{ _splat: "terms" }} className={linkClass}>Terms of Service</Link></li>}
       </ul>
     </nav>
   );
