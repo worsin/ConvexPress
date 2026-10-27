@@ -15,6 +15,11 @@ export const siteSetupDocumentArgs = {
   authorId: v.id("users"),
   excerpt: v.optional(v.string()),
   pageTemplate: v.optional(v.string()),
+  /** A page only: the setup key of the page it sits under, so it is served at
+   * the parent's path plus its slug (`/services/billing`). While that page is
+   * missing or removed, the document is written at the top level, and moves
+   * under it on the run after it comes back. */
+  parentSetupKey: v.optional(v.string()),
   blocks: canonicalBlocksTransportValidator,
   /** Take over a document already at this slug that nobody has edited since it
    * was created (an imported page): its content becomes a revision. */

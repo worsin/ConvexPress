@@ -25,7 +25,7 @@ async function fixture(options: { formRights?: boolean } = {}) {
   const ids = await t.run(async (ctx) => {
     const role = await ctx.db.insert("roles", {
       name: "editor", slug: "editor", description: "Fixture", level: 80, type: "internal", isDefault: false, isProtected: false,
-      capabilities: ["post.create", "page.create", "post.update", "page.update", "post.publish", "page.publish", ...(options.formRights === false ? [] : ["form.create", "form.update"])],
+      capabilities: ["post.create", "page.create", "post.update", "page.update", "post.publish", "page.publish", "page.set_parent", ...(options.formRights === false ? [] : ["form.create", "form.update"])],
       pageAccess: [], status: "active", createdAt: 1, updatedAt: 1,
     });
     const author = await ctx.db.insert("users", { authSource: "local", email: "setup@example.invalid", emailVerified: true, roleId: role, status: "active", createdAt: 1, updatedAt: 1 });
@@ -124,6 +124,34 @@ test("refuses an author who can't write here and a slug that isn't canonical", a
   const f = await fixture();
   await expect(f.write(pricing(f, { authorId: f.ids.management }))).rejects.toThrow(/SETUP_AUTHOR_INVALID|active site user/);
   await expect(f.write(pricing(f, { slug: "Packages Page" }))).rejects.toThrow(/canonical slug|INVALID_SETUP_SLUG/);
+});
+
+test("a page named under a parent setup page is served under the parent's path", async () => {
+  const f = await fixture();
+  const services = await f.write(pricing(f, { setupKey: "fixture:services", title: "Services", slug: "services", blocks: hero("Services") }));
+  const billing = pricing(f, { setupKey: "fixture:billing", title: "Billing", slug: "billing", parentSetupKey: "fixture:services", blocks: hero("Billing") });
+  const first = await f.write(billing);
+  expect(first.outcome).toBe("created");
+  expect(await f.post(first.postId!)).toMatchObject({ parentId: services.postId, path: "/services/billing" });
+  await expect(f.write(billing)).resolves.toEqual({ outcome: "unchanged", postId: first.postId });
+});
+
+test("a page whose parent isn't there yet is written at the top level, and moves under the parent once it is", async () => {
+  const f = await fixture();
+  const billing = pricing(f, { setupKey: "fixture:billing", title: "Billing", slug: "billing", parentSetupKey: "fixture:services", blocks: hero("Billing") });
+  const first = await f.write(billing);
+  expect(first.outcome).toBe("created");
+  expect(await f.post(first.postId!)).toMatchObject({ path: "/billing" });
+  expect((await f.post(first.postId!)).parentId).toBeUndefined();
+  const services = await f.write(pricing(f, { setupKey: "fixture:services", title: "Services", slug: "services", blocks: hero("Services") }));
+  await expect(f.write(billing)).resolves.toEqual({ outcome: "updated", postId: first.postId });
+  expect(await f.post(first.postId!)).toMatchObject({ parentId: services.postId, path: "/services/billing" });
+});
+
+test("refuses a parent on a post, and a page under itself", async () => {
+  const f = await fixture();
+  await expect(f.write(pricing(f, { type: "post", pageTemplate: undefined, parentSetupKey: "fixture:services" }))).rejects.toThrow(/DOCUMENT_LAYOUT_INVALID|apply to pages/);
+  await expect(f.write(pricing(f, { parentSetupKey: "fixture:packages" }))).rejects.toThrow(/SETUP_PARENT_INVALID|under itself/);
 });
 
 const contact = (heading: string) => [{

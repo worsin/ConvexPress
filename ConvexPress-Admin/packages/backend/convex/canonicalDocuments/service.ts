@@ -1983,21 +1983,31 @@ function readSetupReceipt(value: string): SiteSetupReceipt | null {
    ? { contract, setupKey, requestDigest, acceptedRevision, acceptedUpdatedAt } : null;
  } catch { return null; }
 }
+/** The page another setup document names as its parent: setup's own page under that key, unless it was removed. */
+async function siteSetupParent(ctx: MutationCtx, parentSetupKey: string): Promise<Id<"posts"> | undefined> {
+ const receipt = await ctx.db.query("postMeta").withIndex("by_key", q => q.eq("key", `${SITE_SETUP_RECEIPT_PREFIX}${parentSetupKey}`)).unique();
+ const parent = receipt ? await ctx.db.get("posts", receipt.postId) : null;
+ return parent && parent.type === "page" && parent.status !== "trash" ? parent._id : undefined;
+}
 export async function writeSiteSetupDocument(ctx: MutationCtx, args: SiteSetupDocumentArgs): Promise<SiteSetupDocumentResult> {
  if (!/^[!-~]{1,200}$/u.test(args.setupKey)) refuse("INVALID_SETUP_KEY", "The setup key must be 1 to 200 printable characters without spaces.");
  if (apiSlugify(args.slug) !== args.slug) refuse("INVALID_SETUP_SLUG", "Supply the document's canonical slug.");
- if (args.type === "post" && args.pageTemplate !== undefined) refuse("DOCUMENT_LAYOUT_INVALID", "Page settings apply to pages.");
+ if (args.type === "post" && (args.pageTemplate !== undefined || args.parentSetupKey !== undefined)) refuse("DOCUMENT_LAYOUT_INVALID", "Page settings apply to pages.");
+ if (args.parentSetupKey === args.setupKey) refuse("SETUP_PARENT_INVALID", "A page can't sit under itself.");
  const author = await ctx.db.get("users", args.authorId);
  if (!author || author.status !== "active" || author.authSource === "management")
   refuse("SETUP_AUTHOR_INVALID", "The setup author must be an active site user.");
- const { authorId, adoptUnedited, setupKey, ...content } = args;
+ const { authorId, adoptUnedited, setupKey, parentSetupKey, ...content } = args;
+ const parentId = parentSetupKey === undefined ? undefined : await siteSetupParent(ctx, parentSetupKey);
  let requestDigest: string;
- try { requestDigest = sha256Hex(canonicalJson(content)); }
+ // The parent is digested as found, so a document written while its parent was missing moves under it once it is back.
+ try { requestDigest = sha256Hex(canonicalJson(parentSetupKey === undefined ? content : { ...content, parentSetupKey, parentId: parentId ?? null })); }
  catch { refuse("SETUP_SOURCE_INVALID", "The setup document must contain only JSON values."); }
  const input: DocumentInput = {
   title: args.title, slug: args.slug, status: args.status, blocks: args.blocks,
   ...(args.excerpt !== undefined ? { excerpt: args.excerpt } : {}),
   ...(args.pageTemplate !== undefined ? { pageTemplate: args.pageTemplate } : {}),
+  ...(parentId !== undefined ? { parentId } : {}),
  };
  const receiptKey = `${SITE_SETUP_RECEIPT_PREFIX}${setupKey}`;
  const writeReceipt = async (postId: Id<"posts">, existing: Id<"postMeta"> | null) => {
