@@ -8,6 +8,13 @@
 import.meta.glob([
   "../../../../../../../blocks/*/*/*.css",
   "./*.css",
+  // The SDK primitives every block is built from (sections, text, stacks…).
+  // Imported only by the renderer modules, they reached a route that shows a
+  // document without loading those modules statically (a form page) after
+  // its first paint, and its sections re-laid out.
+  "../primitives/*.css",
+  // Each pack's own primitive parts (pack-parts.ts), for the same reason.
+  "../../packs/*/parts/*.css",
   "../../packs/*/blocks/**/*.css",
   "../../packs/*/surfaces/*.css",
 ], { eager: true });

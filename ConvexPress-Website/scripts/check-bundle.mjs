@@ -124,6 +124,33 @@ if (manifest?.routes) {
   const urlLinked = (file) => new RegExp(`["'\`](?:https?://[^"'\`]*|/[^"'\`]*)?/assets/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'\`]`).test(scripts);
   const lazyOnly = assets.filter((file) => file.endsWith(".css") && !linked.has(file) && !urlLinked(file));
   console.log(`\nStylesheets: ${assets.filter((file) => file.endsWith(".css")).length}, all in the server-rendered page${lazyOnly.length ? " except " + lazyOnly.length : ""}.`);
+  // A route's own preloaded chunks can still pull a stylesheet in lazily. On
+  // the budgeted routes, every stylesheet they depend on must be linked by the
+  // route itself, or that page restyles (and shifts) after its first paint.
+  const parentRoute = new Map();
+  for (const [id, entry] of Object.entries(manifest.routes)) for (const child of entry.children ?? []) parentRoute.set(child, id);
+  for (const budget of ROUTE_BUDGETS) {
+    if (!manifest.routes[budget.route]) continue;
+    const routeLinked = new Set();
+    const preloaded = new Set();
+    for (let id = budget.route; id; id = parentRoute.get(id)) {
+      for (const asset of manifest.routes[id]?.assets ?? []) {
+        const href = asset?.attrs?.href;
+        if (typeof href === "string" && href.endsWith(".css")) routeLinked.add(path.basename(href));
+      }
+      for (const preload of manifest.routes[id]?.preloads ?? []) preloaded.add(path.basename(preload));
+    }
+    const late = new Set();
+    // The entry and the template registry name every lazy surface's stylesheets
+    // (dashboard ones too); a route renders few of those, so they don't count here.
+    for (const chunk of [...preloaded].filter((name) => !/^(?:main|template-registry)-/.test(name))) {
+      const source = await readFile(path.join(clientAssetsDir, chunk), "utf8").catch(() => "");
+      for (const [, css] of source.matchAll(/["']assets\/([\w.-]+\.css)["']/g)) if (!routeLinked.has(css)) late.add(css);
+    }
+    for (const css of late) {
+      failures.push(`${budget.route} preloads code that loads ${css}, which the route doesn't link: its page restyles after the first paint. Load it with the route (sdk/block-renderer/critical-styles.ts).`);
+    }
+  }
   for (const file of lazyOnly) {
     failures.push(
       `${file} reaches the page only with a lazily loaded module's JavaScript, so server-rendered pages show unstyled first. ` +
