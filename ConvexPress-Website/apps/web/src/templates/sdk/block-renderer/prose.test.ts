@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import { proseText } from "../block-data/portable/searchText";
-import { proseRuns } from "./presentation";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { Prose, proseRuns } from "./presentation";
 
 describe("prose", () => {
   test("blank lines separate paragraphs", () => {
@@ -29,5 +32,15 @@ describe("prose", () => {
     expect(proseText("Includes:\n- **Lien** documents\n- Payment tracking")).toBe(
       "Includes:\nLien documents\nPayment tracking",
     );
+  });
+
+  test("a link may be absolute or site-relative; a protocol-relative one stays text", () => {
+    const html = renderToStaticMarkup(createElement(Prose, { text: "Sign up on [the sign-up page](/get-started) or read [the guide](https://example.com/guide). Not [this](//evil.example)." }));
+    expect(html).toContain('href="/get-started"');
+    expect(html).toContain('href="https://example.com/guide"');
+    expect(html).not.toContain("evil.example\"");
+    expect(html).toContain("[this](//evil.example)");
+    expect(proseText("See [the sign-up page](/get-started).")).toBe("See the sign-up page.");
+    expect(proseText("Not [this](//evil.example).")).toBe("Not [this](//evil.example).");
   });
 });

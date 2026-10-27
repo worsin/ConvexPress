@@ -8,7 +8,7 @@ export function Prose({ text }: { text: string }) {
 		const out: ReactNode[] = [];
 		let at = 0;
 		const pattern =
-			/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/gu;
+			/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((?:https?:\/\/|\/(?![\/\\]))[^\s)]*\))/gu;
 		for (const match of value.matchAll(pattern)) {
 			out.push(value.slice(at, match.index));
 			const token = match[0];
