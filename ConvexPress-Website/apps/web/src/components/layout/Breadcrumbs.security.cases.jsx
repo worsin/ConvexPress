@@ -6,9 +6,11 @@ const { JSDOM } = createRequire(import.meta.url)('jsdom');
 let matches = [];
 mock.module('@tanstack/react-router', () => ({
   useMatches: () => matches,
+  useRouter: () => ({ routesByPath: {} }),
   Link: ({to, children, ...props}) => createElement('a', {...props, href: to}, children),
 }));
 const { Breadcrumbs } = await import('./Breadcrumbs');
+const { getRouteSiteUrl } = await import('@/lib/seo/head');
 
 test('decoded route labels cannot terminate breadcrumb JSON-LD in server HTML', () => {
   const serial = '</script><img title=12345>';
@@ -30,7 +32,8 @@ test('authored breadcrumb text and destinations round-trip as data without creat
   expect(doc.querySelectorAll('script').length).toBe(1);
   const data = JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent);
   expect(data.itemListElement[0].name).toBe(label);
-  expect(data.itemListElement[0].item).toBe(destination);
+  // The destination is data: it reaches the JSON-LD as an absolute, encoded URL.
+  expect(data.itemListElement[0].item).toBe(new URL(destination, `${getRouteSiteUrl()}/`).toString());
   expect(doc.querySelector('nav').textContent).toContain(label);
 });
 

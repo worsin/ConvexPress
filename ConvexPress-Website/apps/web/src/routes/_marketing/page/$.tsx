@@ -80,6 +80,8 @@ export const Route = createFileRoute("/_marketing/page/$")({
 
 		return {
       canonical,
+			// The breadcrumb trail names the page (hooks/layout/useBreadcrumbs.ts).
+			title: page && typeof page === "object" && "title" in page ? String(page.title) : undefined,
 			seoHead: buildIndexablePageHead({
 				path: `/page${pagePath}`,
 				title:

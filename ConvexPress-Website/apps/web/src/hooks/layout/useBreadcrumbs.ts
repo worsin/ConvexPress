@@ -1,4 +1,4 @@
-import { useMatches } from "@tanstack/react-router";
+import { useMatches, useRouter } from "@tanstack/react-router";
 
 import { ROUTE_LABEL_MAP } from "@/lib/layout/constants";
 import type { BreadcrumbSegment } from "@/lib/layout/types";
@@ -9,20 +9,28 @@ const CREDENTIAL_ROUTE_LABELS: Record<string, string> = {
   "/_marketing/cart/shared/$shareToken": "Shared cart",
 };
 
+interface BreadcrumbMatch {
+  routeId: unknown;
+  params?: unknown;
+  loaderData?: unknown;
+}
+
+function labelFor(part: string): string {
+  return ROUTE_LABEL_MAP[part] || part.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+}
+
 /**
- * Auto-generate or override breadcrumb segments for the current route.
- * Always starts with "Home" linking to "/".
+ * The breadcrumb trail for the matched routes, starting with "Home" ("/").
+ *
+ * A page shown by a dynamic route is named by its loader's `title` (else its
+ * `name`, else the URL's value). The listing it sits under, such as /blog for
+ * a post at /blog/$slug, is a crumb of its own when `isPage` says that address
+ * is a page.
  */
-export function useBreadcrumbs(
-  overrides?: BreadcrumbSegment[],
+export function breadcrumbSegments(
+  matches: readonly BreadcrumbMatch[],
+  isPage: (path: string) => boolean,
 ): BreadcrumbSegment[] {
-  const matches = useMatches();
-
-  // If overrides are provided, use them directly
-  if (overrides && overrides.length > 0) {
-    return overrides;
-  }
-
   const segments: BreadcrumbSegment[] = [{ label: "Home", to: "/" }];
 
   for (const match of matches) {
@@ -44,8 +52,15 @@ export function useBreadcrumbs(
 
     if (!lastPart || lastPart === "index") continue;
 
-    // Check if it's a dynamic segment ($slug, $postId, etc.)
+    // Check if it's a dynamic segment ($slug, $postId, or the "$" splat)
     if (lastPart.startsWith("$")) {
+      publicParts.slice(0, -1).forEach((part, index) => {
+        if (part.startsWith("$")) return;
+        const to = `/${publicParts.slice(0, index + 1).join("/")}`;
+        if (isPage(to) && !segments.some((segment) => segment.to === to)) {
+          segments.push({ label: labelFor(part), to });
+        }
+      });
       // Try to get a label from loader data
       const loaderData = match.loaderData as Record<string, unknown> | undefined;
       const title =
@@ -54,7 +69,7 @@ export function useBreadcrumbs(
         segments.push({ label: title });
       } else {
         // Use the param value as fallback
-        const paramName = lastPart.slice(1);
+        const paramName = lastPart === "$" ? "_splat" : lastPart.slice(1);
         const paramValue = (match.params as Record<string, string | undefined>)?.[paramName];
         if (paramValue && typeof paramValue === "string") {
           segments.push({
@@ -64,9 +79,7 @@ export function useBreadcrumbs(
       }
     } else {
       // Static segment - look up in the label map
-      const label =
-        ROUTE_LABEL_MAP[lastPart] ||
-        lastPart.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+      const label = labelFor(lastPart);
 
       const to = `/${publicParts.join("/")}`;
 
@@ -84,4 +97,22 @@ export function useBreadcrumbs(
   }
 
   return segments;
+}
+
+/**
+ * Auto-generate or override breadcrumb segments for the current route.
+ * Always starts with "Home" linking to "/".
+ */
+export function useBreadcrumbs(
+  overrides?: BreadcrumbSegment[],
+): BreadcrumbSegment[] {
+  const matches = useMatches();
+  const router = useRouter();
+
+  // If overrides are provided, use them directly
+  if (overrides && overrides.length > 0) {
+    return overrides;
+  }
+
+  return breadcrumbSegments(matches, (path) => Object.hasOwn(router.routesByPath, path));
 }
