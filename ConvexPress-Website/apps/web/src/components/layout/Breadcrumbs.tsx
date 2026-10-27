@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getRouteSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 import { serializeJsonLd } from "@/lib/seo/jsonld";
 import { useBreadcrumbs } from "@/hooks/layout/useBreadcrumbs";
 import type { BreadcrumbSegment } from "@/lib/layout/types";
@@ -9,6 +10,21 @@ import type { BreadcrumbSegment } from "@/lib/layout/types";
 interface BreadcrumbsProps {
   segments?: BreadcrumbSegment[];
   className?: string;
+}
+
+/**
+ * The trail as schema.org BreadcrumbList data. Each crumb's `item` is its
+ * absolute URL on the site's configured address, as search engines ask.
+ */
+export function breadcrumbJsonLd(segments: BreadcrumbSegment[], siteUrl: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: segments.map((segment, index) => {
+      const item = segment.to ? (toAbsoluteUrl(segment.to, siteUrl) ?? segment.to) : undefined;
+      return { "@type": "ListItem", position: index + 1, name: segment.label, ...(item ? { item } : {}) };
+    }),
+  };
 }
 
 /**
@@ -22,16 +38,7 @@ export function Breadcrumbs({ segments: overrides, className }: BreadcrumbsProps
   if (segments.length <= 1) return null;
 
   // Build JSON-LD structured data
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: segments.map((segment, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: segment.label,
-      ...(segment.to ? { item: segment.to } : {}),
-    })),
-  };
+  const jsonLd = breadcrumbJsonLd(segments, getRouteSiteUrl());
 
   return (
     <>

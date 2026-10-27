@@ -65,6 +65,8 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 		]);
 		return {
       canonical,
+			// The breadcrumb trail names the post (hooks/layout/useBreadcrumbs.ts).
+			title: post.title,
 			seoHead: buildPostSeoHead(post, postSeo, seoSettings && "titles" in seoSettings ? seoSettings : null),
 		};
 	},

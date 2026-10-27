@@ -10,6 +10,11 @@ import {
   type SeoSettings,
 } from "./resolve";
 
+/** The page's breadcrumb trail declares its BreadcrumbList (components/layout/Breadcrumbs.tsx), once. */
+function isBreadcrumbList(node: object): boolean {
+  return "@type" in node && node["@type"] === "BreadcrumbList";
+}
+
 export interface PostForHead extends Omit<PostForSeoResolution, "type"> {
   author?: { displayName?: string | null; slug?: string | null; avatarUrl?: string | null } | null;
 }
@@ -46,7 +51,7 @@ export function buildPostSeoHead(
     name: post.author?.displayName ?? "",
     url: post.author?.slug ? `${base}/author/${post.author.slug}` : base,
     imageUrl: post.author?.avatarUrl ?? undefined,
-  });
+  }).filter((node) => !isBreadcrumbList(node));
   return {
     meta: buildMetaTags(seo, base),
     links: buildHeadLinks(seo),

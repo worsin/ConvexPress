@@ -51,6 +51,8 @@ describe("a blog post's head", () => {
     expect(meta(head, "og:type")).toEqual(["article"]);
     expect(meta(head, "description")).toEqual(["Practical steps for a busy practice."]);
     expect(head.scripts.map((script) => script.type)).toEqual(["application/ld+json"]);
+    // The page's breadcrumb trail declares the BreadcrumbList; the post's graph doesn't repeat it.
+    expect(head.scripts.map((script) => script.children).join("")).not.toContain("BreadcrumbList");
     expect(article(head)).toMatchObject({
       url: "https://www.example.com/blog/five-ways-to-grow",
       author: { "@type": "Person", name: "Avery Quinn", url: "https://www.example.com/author/avery" },
