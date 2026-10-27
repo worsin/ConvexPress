@@ -3,7 +3,12 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { clerkFrontendApi, contentSecurityPolicy, readConfig, securityHeaders, staticFile } from "./serve.mjs";
+import { clerkFrontendApi, contentSecurityPolicy, readConfig as readSiteConfig, securityHeaders, staticFile } from "./serve.mjs";
+
+// ConvexPress's own runtime checks, for a site that declares nothing more in
+// site-env.json (a site's own declaration is tested in required-env.test.ts).
+const NO_SITE_ENV = mkdtempSync(join(tmpdir(), "serve-no-site-env-"));
+const readConfig = (environment: Record<string, string | undefined>) => readSiteConfig(environment, NO_SITE_ENV);
 
 const env = {
   CONVEXPRESS_CONVEX_URL: "https://api.example.com",
