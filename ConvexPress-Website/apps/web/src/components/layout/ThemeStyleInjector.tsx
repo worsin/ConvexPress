@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { preconnect } from "react-dom";
 
 import { useSettings, type PublicSettings } from "@/contexts/SettingsContext";
 
@@ -86,6 +87,8 @@ export function ThemeStyleInjector() {
     .filter(Boolean)
     .join("\n");
   if (!cssText) return null;
+  // The font files come from Google's file host once its stylesheet is read.
+  if (brand.fontsHref) preconnect("https://fonts.gstatic.com", { crossOrigin: "anonymous" });
 
   return (
     <>

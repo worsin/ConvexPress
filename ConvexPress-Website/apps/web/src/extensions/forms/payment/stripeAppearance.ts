@@ -47,6 +47,15 @@ export function stripeAppearance(theme: StripeTheme): Appearance {
   };
 }
 
+/**
+ * The family as Google Fonts names it. A self-hosted variable font is named
+ * "<Family> Variable" (Fontsource's convention: the default body face is
+ * "Inter Variable"); Google serves the same face as "<Family>".
+ */
+export function googleFontFamily(family: string): string {
+  return family.trim().replace(/\s+Variable$/i, "");
+}
+
 /** The body font inside Stripe's frame, from Google Fonts (the site's own copy isn't reachable there). */
 export function stripeFonts(fontFamily: string | undefined): NonNullable<StripeElementsOptions["fonts"]> {
   if (!fontFamily || !/^[A-Za-z0-9 ]{1,60}$/.test(fontFamily)) return [];
@@ -114,6 +123,7 @@ export function readStripeTheme(root: HTMLElement): StripeTheme {
     danger: color("--destructive"),
     border: color("--border"),
     radius: radiusPx,
-    fontFamily: family || undefined,
+    // Stripe's frame loads it from Google Fonts, under Google's name.
+    fontFamily: family ? googleFontFamily(family) : undefined,
   };
 }

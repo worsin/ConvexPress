@@ -29,8 +29,8 @@
   --color-sh-button-text: var(--sh-color-button-text, #ffffff);
 
   /* Typography */
-  --font-sh-body: var(--sh-font-body, 'Inter', sans-serif);
-  --font-sh-heading: var(--sh-font-heading, 'Inter', sans-serif);
+  --font-sh-body: var(--sh-font-body, 'Inter Variable', sans-serif);
+  --font-sh-heading: var(--sh-font-heading, 'Inter Variable', sans-serif);
   --font-sh-mono: var(--sh-font-mono, 'JetBrains Mono', monospace);
 
   /* Spacing */

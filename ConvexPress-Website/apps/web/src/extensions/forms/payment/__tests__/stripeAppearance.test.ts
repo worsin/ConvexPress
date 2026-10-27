@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { paymentErrorMessage, stripeAppearance, stripeFonts } from "../stripeAppearance";
+import { googleFontFamily, paymentErrorMessage, stripeAppearance, stripeFonts } from "../stripeAppearance";
 
 describe("stripeAppearance", () => {
   test("carries the theme's colours, radius and font into Stripe's variables and input rules", () => {
@@ -30,6 +30,21 @@ describe("stripeFonts", () => {
   test("nothing for a missing or unusual family name", () => {
     expect(stripeFonts(undefined)).toEqual([]);
     expect(stripeFonts("system-ui; color:red")).toEqual([]);
+  });
+});
+
+describe("googleFontFamily", () => {
+  test("a self-hosted variable face is asked of Google Fonts by its family name", () => {
+    // The default body face: index.css self-hosts it as "Inter Variable".
+    expect(googleFontFamily("Inter Variable")).toBe("Inter");
+    expect(stripeFonts(googleFontFamily("Inter Variable"))).toEqual([
+      { cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" },
+    ]);
+  });
+  test("any other family is kept as it is", () => {
+    expect(googleFontFamily("Inter")).toBe("Inter");
+    expect(googleFontFamily("Source Sans 3")).toBe("Source Sans 3");
+    expect(googleFontFamily("Roboto Flex")).toBe("Roboto Flex");
   });
 });
 
