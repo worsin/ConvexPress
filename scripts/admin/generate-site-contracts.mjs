@@ -100,6 +100,20 @@ function materialize(type) {
  definitions[slot]=`export type ${name} = { ${[...props,...indexes].join(' ')} };`;
  return name;
 }
+/** Whether a type holds `any` anywhere a consumer could read (properties, index signatures, unions, arrays, tuples). */
+function containsAny(type,seen=new Set()) {
+ if(type.flags & F.Any)return true;
+ if(seen.has(type))return false;seen.add(type);
+ if(type.flags & (F.Unknown|F.Never|F.StringLike|F.NumberLike|F.BooleanLike|F.BigIntLike|F.Null|F.Undefined|F.Void|F.TemplateLiteral))return false;
+ if(type.isUnionOrIntersection())return type.types.some(t=>containsAny(t,seen));
+ if(checker.isArrayType(type)||checker.isTupleType(type))return checker.getTypeArguments(type).some(t=>containsAny(t,seen));
+ if(type.aliasSymbol?.name==='Id')return false;
+ for(const symbol of checker.getPropertiesOfType(type)){
+  const declaration=symbol.valueDeclaration??symbol.declarations?.[0]??currentSource;
+  if(containsAny(checker.getTypeOfSymbolAtLocation(symbol,declaration),seen))return true;
+ }
+ return checker.getIndexInfosOfType(type).some(index=>containsAny(index.type,seen));
+}
 function propertyType(type,name) {
  const property=checker.getPropertyOfType(type,name);
  return property?checker.getTypeOfSymbolAtLocation(property,property.valueDeclaration??property.declarations?.[0]??currentSource):undefined;
@@ -137,7 +151,11 @@ for(const file of parsed.fileNames.sort()) {
   const [visibility,args,returns]=type.aliasTypeArguments??[];if(!visibility||!args||!returns)throw new Error(`Unresolved registered signature ${module}:${exported.name}`);
   const vis=checker.typeToString(visibility).replaceAll('"','');if(!['public','internal'].includes(vis))throw new Error(`Invalid visibility ${module}:${exported.name}`);
   const validators=declaredValidators(symbol);
-  current=`${module}:${exported.name}:args`;const argText=argumentContract(validators.args,args);current=`${module}:${exported.name}:returns`;const validatedReturn=validators.returns&&propertyType(validators.returns,'type');const effectiveReturn=validatedReturn&&!(validatedReturn.flags&F.Any)?validatedReturn:checker.getAwaitedType(returns);const retText=materialize(effectiveReturn);
+  current=`${module}:${exported.name}:args`;const argText=argumentContract(validators.args,args);current=`${module}:${exported.name}:returns`;const validatedReturn=validators.returns&&propertyType(validators.returns,'type');const declaredReturn=checker.getAwaitedType(returns);
+  // The returns validator is the wire's runtime check; where it keeps v.any()
+  // holes (runtime-defined JSON) the handler's declared type, which TypeScript
+  // holds it to, is the exact contract.
+  const effectiveReturn=validatedReturn&&!(validatedReturn.flags&F.Any)&&(!containsAny(validatedReturn)||containsAny(declaredReturn))?validatedReturn:declaredReturn;const retText=materialize(effectiveReturn);
   const ref=`FunctionReference<${JSON.stringify(kind)}, ${JSON.stringify(vis)}, ${argText}, ${retText==='undefined'?'null':retText}>`;
   add(vis==='public'?publicTree:internalTree,module,exported.name,ref);signatures.push({path:`${module}:${exported.name}`,kind,visibility:vis});
  }
