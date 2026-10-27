@@ -26,6 +26,7 @@
  *   });
  */
 
+import { staticFrontPageId } from "../helpers/frontPage";
 import {
   internalMutation,
   internalAction,
@@ -207,10 +208,17 @@ export const gatherSitemapData = internalQuery({
         )
         .collect();
 
-      // Filter: not noindexed, not password-protected
+      // The static front page is listed as the homepage ("/"), not again at its own address.
+      const reading = await ctx.db
+        .query("settings")
+        .withIndex("by_section", (q) => q.eq("section", "reading"))
+        .unique();
+      const frontPageId = staticFrontPageId(reading?.values);
+
+      // Filter: not noindexed, not password-protected, not the front page
       result.pages = pages
         .filter(
-          (p) => !noindexIds.has(p._id) && !p.password,
+          (p) => !noindexIds.has(p._id) && !p.password && String(p._id) !== frontPageId,
         )
         .map((p) => {
           // Pages may have optional `path` and `menuOrder` fields
@@ -611,7 +619,7 @@ export const regenerateStale = internalAction({
         // Post URLs
         for (const post of posts) {
           urlEntries.push({
-            loc: buildContentUrl(siteUrl, post.slug, "post"),
+            loc: buildContentUrl(siteUrl, { type: "post", slug: post.slug }),
             lastmod: toW3CDatetime(post.updatedAt || post.publishedAt),
             changefreq: toChangefreq(settings.changefreq_posts, "weekly"),
             priority: settings.priority_posts || 0.6,
@@ -687,9 +695,7 @@ export const regenerateStale = internalAction({
         pagesList.sort((a, b) => (a.menuOrder - b.menuOrder) || a.title.localeCompare(b.title));
 
         const urlEntries: SitemapUrlEntry[] = pagesList.map((p) => ({
-          loc: p.path
-            ? `${siteUrl}${p.path}`
-            : buildContentUrl(siteUrl, p.slug, "page"),
+          loc: buildContentUrl(siteUrl, { type: "page", slug: p.slug, path: p.path }),
           lastmod: toW3CDatetime(p.updatedAt || p.publishedAt),
           changefreq: toChangefreq(settings.changefreq_pages, "monthly"),
           priority: settings.priority_pages || 0.6,

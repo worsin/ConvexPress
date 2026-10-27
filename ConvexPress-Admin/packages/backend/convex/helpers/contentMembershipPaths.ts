@@ -1,4 +1,5 @@
 import { publicDocumentHref } from "./publicDocumentHref";
+import { staticFrontPageId } from "./frontPage";
 import type { RequestReadLedger } from "./requestReadLedger";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
@@ -39,21 +40,7 @@ export function createContentMembershipPathResolver(
         budget?.record(value);
         return value;
       })();
-      const values = (await reading)?.values as
-        | {
-            homepageDisplays?: string;
-            homepageId?: string;
-            showOnFront?: string;
-            pageOnFront?: string;
-          }
-        | undefined;
-      const homeId =
-        values?.homepageDisplays === "static_page" && values.homepageId
-          ? values.homepageId
-          : values?.showOnFront === "page"
-            ? values.pageOnFront
-            : undefined;
-      if (homeId === String(post._id)) paths.add("/");
+      if (staticFrontPageId((await reading)?.values) === String(post._id)) paths.add("/");
     }
     if (post.type === "post") paths.add(publicDocumentHref(post));
     return [...paths];
