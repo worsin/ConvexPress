@@ -1,3 +1,5 @@
+// First: no string evaluation in the browser (lib/zod-jitless.ts).
+import "./lib/zod-jitless";
 import { StrictMode, startTransition } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { StartClient } from "@tanstack/react-start/client";

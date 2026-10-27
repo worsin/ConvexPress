@@ -3,7 +3,15 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { clerkFrontendApi, contentSecurityPolicy, readConfig as readSiteConfig, securityHeaders, staticFile } from "./serve.mjs";
+import {
+  clerkFrontendApi,
+  contentSecurityPolicy,
+  cspReportLogger,
+  cspViolations,
+  readConfig as readSiteConfig,
+  securityHeaders,
+  staticFile,
+} from "./serve.mjs";
 
 // ConvexPress's own runtime checks, for a site that declares nothing more in
 // site-env.json (a site's own declaration is tested in required-env.test.ts).
@@ -40,10 +48,12 @@ describe("self-hosted website runtime", () => {
 
   test("allows the backend, Clerk and Stripe, and nothing frames the site by default", () => {
     const csp = contentSecurityPolicy(readConfig(env));
-    expect(csp.enforced).toBe("frame-ancestors 'none'; base-uri 'self'; object-src 'none'");
+    expect(csp.enforced).toBe("frame-ancestors 'none'; base-uri 'self'; object-src 'none'; report-uri /__csp-report");
+    expect(csp.reportOnly).toContain("script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com");
+    expect(csp.reportOnly).toEndWith("; report-uri /__csp-report");
     expect(csp.reportOnly).toContain("connect-src 'self' https://api.example.com wss://api.example.com https://site.example.com https://api.stripe.com");
     expect(csp.reportOnly).toContain("https://example.clerk.accounts.dev");
-    expect(csp.reportOnly).toContain("frame-src 'self' https://js.stripe.com https://hooks.stripe.com");
+    expect(csp.reportOnly).toContain("frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com");
     const headers = securityHeaders(readConfig(env));
     expect(headers["X-Frame-Options"]).toBe("DENY");
     expect(headers["Strict-Transport-Security"]).toBe("max-age=31536000; includeSubDomains");
@@ -71,5 +81,42 @@ describe("self-hosted website runtime", () => {
     expect(staticFile(client, "/%2e%2e/secret.txt")).toBeNull();
     expect(staticFile(client, "/%E0%A4%A")).toBeNull();
     expect(staticFile(client, "/missing.js")).toBeNull();
+  });
+
+  test("reads both kinds of violation report, without query strings", () => {
+    const legacy = cspViolations({
+      "csp-report": {
+        "document-uri": "https://www.example.com/get-started?email=avery%40example.test",
+        "effective-directive": "script-src-elem",
+        "blocked-uri": "https://static.cloudflareinsights.com/beacon.min.js?token=secret",
+        disposition: "report",
+      },
+    });
+    expect(legacy).toEqual([
+      { disposition: "report", directive: "script-src-elem", blocked: "https://static.cloudflareinsights.com/beacon.min.js", page: "/get-started", source: "" },
+    ]);
+    const reporting = cspViolations([
+      { type: "csp-violation", body: { documentURL: "https://www.example.com/pricing", effectiveDirective: "script-src", blockedURL: "eval", sourceFile: "https://www.example.com/assets/vendor.js", disposition: "enforce" } },
+      { type: "deprecation", body: { id: "x" } },
+    ]);
+    expect(reporting).toEqual([
+      { disposition: "enforce", directive: "script-src", blocked: "eval", page: "/pricing", source: "https://www.example.com/assets/vendor.js" },
+    ]);
+    expect(cspViolations({ nonsense: true })).toEqual([]);
+    expect(cspViolations(null)).toEqual([]);
+  });
+
+  test("logs each distinct violation once an hour", () => {
+    const lines: string[] = [];
+    let clock = 0;
+    const log = cspReportLogger((line: string) => lines.push(line), () => clock);
+    const violation = { disposition: "report", directive: "script-src", blocked: "eval", page: "/pricing", source: "" };
+    log([violation, violation]);
+    clock += 30 * 60 * 1000;
+    log([violation]);
+    expect(lines).toEqual(["[csp] report script-src blocked eval on /pricing"]);
+    clock += 31 * 60 * 1000;
+    log([violation]);
+    expect(lines).toHaveLength(2);
   });
 });
