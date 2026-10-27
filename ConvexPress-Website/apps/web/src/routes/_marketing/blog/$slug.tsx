@@ -11,7 +11,6 @@ import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 
 import type { RestrictedTeaserMode } from "@/components/membership/RestrictedContent";
-import { SeoHead } from "@/components/seo/SeoHead";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import type {
@@ -22,12 +21,8 @@ import type {
 	PostTag,
 } from "@/lib/blog/types";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
-import { buildSeoHead, siteTitled } from "@/lib/seo/head";
-import {
-	buildArticleJsonLd,
-	createFallbackSeo,
-	resolvePostSeoFromQueries,
-} from "@/lib/seo/resolve";
+import { getRouteSiteUrl } from "@/lib/seo/head";
+import { buildPostSeoHead } from "@/lib/seo/post-head";
 import CoreBlogPost from "@/templates/packs/core/surfaces/blog.post";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import CorePasswordGate from "@/templates/packs/core/surfaces/system.passwordGate";
@@ -53,35 +48,30 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 		// successful page if publication/access was revoked between them.
 		if (canonical === null) throw notFound();
 
-		// Prefetch the membership access decision so SSR renders the correct
-		// gated view without a client-side flash. Safe to skip when the post is
-		// missing or the membership plugin is off (checkAccess returns `allowed`).
-		if (post && typeof post === "object" && "_id" in post && post._id) {
-			await queryClient.ensureQueryData(
+		const [postSeo, seoSettings] = await Promise.all([
+			// The post's SEO fields and Settings › SEO, so the server-rendered page
+			// carries the post's whole head (lib/seo/post-head.ts).
+			queryClient.ensureQueryData(convexQuery(api.seo.queries.getPostSeo, { postId: post._id })).catch(() => null),
+			queryClient.ensureQueryData(convexQuery(api.seo.queries.getSettings, {})).catch(() => null),
+			// Prefetch the membership access decision so SSR renders the correct
+			// gated view without a client-side flash. checkAccess returns `allowed`
+			// when the membership plugin is off.
+			queryClient.ensureQueryData(
 				convexQuery(api.membership.queries.checkAccess, {
 					resourceType: "post",
 					resourceIdOrKey: post._id as string,
 				}),
-			);
-		}
+			),
+		]);
 		return {
       canonical,
-			seoHead: buildSeoHead({
-				title:
-					post && typeof post === "object" && "title" in post
-						? siteTitled(`${post.title}`)
-						: siteTitled(`${slug}`),
-				description:
-					post && typeof post === "object" && "excerpt" in post
-						? post.excerpt
-						: undefined,
-				ogType: "article",
-			}),
+			seoHead: buildPostSeoHead(post, postSeo, seoSettings && "titles" in seoSettings ? seoSettings : null),
 		};
 	},
 	head: ({ loaderData }) => ({
 		...loaderData?.seoHead,
 		links: [
+			...(loaderData?.seoHead.links ?? []),
 			{
 				rel: "alternate",
 				type: "application/rss+xml",
@@ -102,8 +92,8 @@ function SinglePost() {
   const {canonical} = Route.useLoaderData();
   const {blockPages: request} = Route.useSearch();
 	const { isSignedIn, userId } = useAuth();
-	// SSR-safe origin: start empty to avoid hydration mismatch
-	const [siteUrl, setSiteUrl] = useState("");
+	// The site's configured address: the same on the server and in the browser.
+	const siteUrl = getRouteSiteUrl();
 	const [submittedPassword, setSubmittedPassword] = useState<string | null>(
 		null,
 	);
@@ -111,9 +101,6 @@ function SinglePost() {
 		undefined,
 	);
 	const [isVerifying, setIsVerifying] = useState(false);
-	useEffect(() => {
-		setSiteUrl(window.location.origin);
-	}, []);
 	// Fetch post by slug (public, no auth required)
 	const { data: rawPost } = useTanStackQuery(
     convexQuery(api.posts.queries.getPublished, { slug }),
@@ -147,15 +134,6 @@ function SinglePost() {
 		api.profiles.queries.getUserBySlug,
 		rawPost?.author?.slug ? { slug: rawPost.author.slug } : "skip",
 	);
-	// Fetch per-post SEO metadata (only when post is loaded)
-	const postSeoData = useQuery(
-		api.seo.queries.getPostSeo,
-		rawPost?._id ? { postId: rawPost._id as Id<"posts"> } : "skip",
-	);
-	// Fetch global SEO settings (for title templates, social defaults, schema config)
-	const seoSettingsResult = useQuery(api.seo.queries.getSettings, {});
-	// Without a `key` the query returns every section, never a single-section record.
-	const seoSettings = seoSettingsResult && "titles" in seoSettingsResult ? seoSettingsResult : null;
 	// Password verification for protected posts
 	const verifiedPost = useQuery(
 		api.posts.queries.verifyPostPassword,
@@ -315,51 +293,7 @@ function SinglePost() {
 		bio: authorProfile?.bio ?? undefined,
 		websiteUrl: authorProfile?.url ?? undefined,
 	};
-	// Build share URL (siteUrl is already set via useEffect for SSR safety)
-	const shareUrl = siteUrl ? `${siteUrl}/blog/${slug}` : `/blog/${slug}`;
-	// ── SEO Resolution ──────────────────────────────────────────────────────
-	// Resolve SEO data using the fallback chain when all queries have loaded.
-	// While loading, use a sensible fallback based on the post title.
-	const resolvedSeo =
-		postSeoData && seoSettings && siteUrl
-			? resolvePostSeoFromQueries(
-					{
-						title: post.title,
-						slug: post.slug,
-						type: "post",
-						excerpt: post.excerpt,
-						textExcerpt: rawPost.textExcerpt,
-						featuredImageUrl: post.featuredImageUrl,
-						publishedAt: post.publishedAt,
-					},
-					postSeoData,
-					seoSettings,
-					siteUrl,
-				)
-			: createFallbackSeo(post.title, siteUrl || `/blog/${slug}`);
-	// Build JSON-LD structured data graph for the article
-	const jsonLdGraph =
-		postSeoData && seoSettings && siteUrl
-			? buildArticleJsonLd(
-					{
-						title: post.title,
-						slug: post.slug,
-						type: "post",
-						excerpt: post.excerpt,
-						textExcerpt: rawPost.textExcerpt,
-						featuredImageUrl: post.featuredImageUrl,
-						publishedAt: post.publishedAt,
-					},
-					resolvedSeo,
-					seoSettings,
-					siteUrl,
-					{
-						name: post.author.displayName,
-						url: `${siteUrl}/author/${post.author.slug}`,
-						imageUrl: post.author.avatarUrl,
-					},
-				)
-			: undefined;
+	const shareUrl = `${siteUrl}/blog/${slug}`;
 	// Evaluate membership gate. The `plugin_disabled` short-circuit in the
 	// backend returns `allowed: false` with `reason: "plugin_disabled"`; we
 	// treat that the same as "no restriction" so content remains visible when
@@ -425,12 +359,7 @@ function SinglePost() {
 			: null;
 	return (
 		<>
-			{/* SEO Meta Tags + JSON-LD: emitted by the route so every template pack keeps them */}
-			<SeoHead
-				seo={resolvedSeo}
-				siteUrl={siteUrl || `/blog/${slug}`}
-				jsonLdGraph={jsonLdGraph}
-			/>
+			{/* The post's SEO head and JSON-LD come from the route's head(), so every template pack keeps them. */}
 			<PublicCanonicalScope request={request} documentId={post._id} initial={canonical} password={submittedPassword ?? undefined}>
 			<Surface
 				name="blog.post"
