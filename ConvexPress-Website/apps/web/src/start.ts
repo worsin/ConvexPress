@@ -1,7 +1,7 @@
 import { createMiddleware, createStart } from "@tanstack/react-start";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
-import { readServerSiteRuntime } from "@/lib/site-runtime";
+import { readServerConvexOrigins } from "@/lib/site-runtime";
 
 import {
   getRobotsTxtResponse,
@@ -18,7 +18,7 @@ import {
 let convexClient: ConvexHttpClient | null = null;
 
 function getServerConvexClient(): ConvexHttpClient | null {
-  const { convexUrl } = readServerSiteRuntime();
+  const { convexUrl } = readServerConvexOrigins();
   if (!convexUrl) return null;
   convexClient ??= new ConvexHttpClient(convexUrl);
   return convexClient;

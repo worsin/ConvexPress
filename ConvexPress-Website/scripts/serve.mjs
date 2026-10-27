@@ -15,6 +15,10 @@
 //   PORT (3000), HOST (127.0.0.1)
 //   CONVEXPRESS_CONVEX_URL, CONVEXPRESS_SITE_URL, CONVEXPRESS_INSTANCE_KEY   required
 //   CONVEXPRESS_CONVEX_SITE_URL, CONVEXPRESS_CLERK_PUBLISHABLE_KEY          optional
+//   CONVEXPRESS_CONVEX_SERVER_URL      the same backend at a private address (same machine or
+//                                      network), for the server's own requests; the browser keeps
+//                                      CONVEXPRESS_CONVEX_URL. Optional, with
+//   CONVEXPRESS_CONVEX_SERVER_SITE_URL its HTTP actions (default: its port + 1)
 //   CONVEXPRESS_FRAME_ANCESTORS   origins allowed to frame the site (admin previews); default none
 //   CONVEXPRESS_CSP_EXTRA         extra CSP sources, as "directive source …; directive source …"
 //   CONVEXPRESS_CSP_ENFORCE       "true" enforces the full policy; otherwise it is report-only
@@ -73,6 +77,9 @@ export function readConfig(env = process.env, appDir = APP_DIR) {
   const convexUrl = url("CONVEXPRESS_CONVEX_URL", { required: true });
   const siteUrl = url("CONVEXPRESS_SITE_URL", { required: true });
   const convexSiteUrl = url("CONVEXPRESS_CONVEX_SITE_URL", { required: false });
+  const serverConvexUrl = url("CONVEXPRESS_CONVEX_SERVER_URL", { required: false });
+  url("CONVEXPRESS_CONVEX_SERVER_SITE_URL", { required: false });
+  if (env.CONVEXPRESS_CONVEX_SERVER_SITE_URL && !env.CONVEXPRESS_CONVEX_SERVER_URL) problems.push("CONVEXPRESS_CONVEX_SERVER_SITE_URL is set without CONVEXPRESS_CONVEX_SERVER_URL");
   const instanceKey = env.CONVEXPRESS_INSTANCE_KEY ?? "";
   if (!/^[-a-zA-Z0-9_:]{1,160}$/.test(instanceKey)) problems.push("CONVEXPRESS_INSTANCE_KEY is required (letters, digits, - _ :)");
   const port = Number(env.PORT ?? 3000);
@@ -87,6 +94,7 @@ export function readConfig(env = process.env, appDir = APP_DIR) {
     port,
     convexUrl,
     convexSiteUrl,
+    serverConvexUrl,
     siteUrl,
     clerkPublishableKey: env.CONVEXPRESS_CLERK_PUBLISHABLE_KEY ?? env.VITE_CLERK_PUBLISHABLE_KEY,
     frameAncestors,
@@ -361,7 +369,8 @@ async function main() {
       }
     },
   });
-  console.log(`[website] ${config.siteUrl.origin} on http://${server.hostname}:${server.port} (instance ${process.env.CONVEXPRESS_INSTANCE_KEY})`);
+  const backend = config.serverConvexUrl ? `, backend at ${config.serverConvexUrl.origin}` : "";
+  console.log(`[website] ${config.siteUrl.origin} on http://${server.hostname}:${server.port} (instance ${process.env.CONVEXPRESS_INSTANCE_KEY}${backend})`);
   setTimeout(() => void warmCompressedAssets(compressed), 0);
 
   const stop = () => {
