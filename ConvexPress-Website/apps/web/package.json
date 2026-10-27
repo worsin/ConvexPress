@@ -9,7 +9,7 @@
     "lint": "oxlint src vite.config.ts --quiet --max-warnings 0 && cd ../../.. && oxlint scripts/website --quiet --max-warnings 0",
     "check-types": "tsc --noEmit",
     "check:seo": "node ../../../scripts/website/check-seo-routes.mjs",
-    "check:bundle": "node ../../../scripts/website/check-bundle.mjs",
+    "check:bundle": "node ../../scripts/check-bundle.mjs",
     "check:smoke:browser": "node ../../../scripts/website/website-browser-smoke.mjs",
     "smoke:ssr": "node ../../../scripts/website/smoke-ssr.mjs",
     "test:smoke": "playwright test",

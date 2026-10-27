@@ -6,8 +6,9 @@ const clientAssetsDir = path.resolve("dist/client/assets");
 const maxChunkBytes = Number.parseInt(process.env.BUNDLE_MAX_CHUNK_BYTES ?? "550000", 10);
 const maxMainBytes = Number.parseInt(process.env.BUNDLE_MAX_MAIN_BYTES ?? "300000", 10);
 
+// Run from apps/web after `vite build` (bun run check:bundle). Limits are bytes; sizes print in KiB.
 function formatBytes(bytes) {
-  return `${(bytes / 1024).toFixed(2)} kB`;
+  return `${(bytes / 1024).toFixed(2)} KiB`;
 }
 
 const assets = await readdir(clientAssetsDir);
