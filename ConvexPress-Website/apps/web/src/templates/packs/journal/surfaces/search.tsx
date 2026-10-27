@@ -39,8 +39,8 @@ export default function JournalSearch({ data }: SurfaceProps<SearchSurfaceData>)
   const { query, hasQuery, type, sort, results, total, pagination, onResultClick } = data;
   const navigate = useNavigate();
 
-  const setType = (next: string | undefined) => void navigate({ to: "/search", search: { q: query, type: next, page: 1 } });
-  const setSort = (next: string) => void navigate({ to: "/search", search: { q: query, type, sort: next, page: 1 } });
+  const setType = (next: string | undefined) => void navigate({ to: "/search", search: { q: query, type: next } });
+  const setSort = (next: string) => void navigate({ to: "/search", search: { q: query, type, sort: next } });
 
   return (
     <Container data-slot="search-page" className="py-6 md:py-10">

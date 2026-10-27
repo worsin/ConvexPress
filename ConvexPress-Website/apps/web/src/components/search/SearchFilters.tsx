@@ -54,7 +54,6 @@ export function SearchFilters({
     const search: SearchPageParams = {
       q: currentQuery,
       type,
-      page: 1,
     };
     navigate({ to: "/search", search });
   };
@@ -64,7 +63,6 @@ export function SearchFilters({
       q: currentQuery,
       type: currentType,
       sort,
-      page: 1,
     };
     navigate({ to: "/search", search });
   };

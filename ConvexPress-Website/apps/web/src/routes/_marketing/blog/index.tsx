@@ -9,6 +9,7 @@ import { PostCardSkeletonGrid } from "@/components/blog/PostCardSkeleton";
 import { buildIndexablePageHead, resolveSiteName, siteTitled } from "@/lib/seo/head";
 import CoreBlogIndex from "@/templates/packs/core/surfaces/blog.index";
 import { Surface } from "@/templates/sdk/Surface";
+import { pageParam } from "@/lib/page-param";
 
 // PostCardSkeletonGrid is used as the pending component during SSR loader
 
@@ -19,9 +20,7 @@ interface BlogSearchParams {
 export const Route = createFileRoute("/_marketing/blog/")({
   component: BlogIndex,
   pendingComponent: () => <PostCardSkeletonGrid count={6} />,
-  validateSearch: (search: Record<string, unknown>): BlogSearchParams => ({
-    page: Number(search.page) || 1,
-  }),
+  validateSearch: (search: Record<string, unknown>): BlogSearchParams => pageParam(search.page),
   loaderDeps: ({ search: { page } }) => ({ page: page ?? 1 }),
   loader: async ({ context: { queryClient }, deps: { page } }) => {
     await queryClient.ensureQueryData(
