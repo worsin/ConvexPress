@@ -19,7 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Loader2 } from "lucide-react";
@@ -27,6 +27,7 @@ import { Loader2 } from "lucide-react";
 import { AuthError } from "@/components/auth/AuthError";
 import { useDashboardPath } from "@/hooks/useDashboardConfig";
 import { OrderSummary, formatMinor } from "@/components/subscriptions/OrderSummary";
+import { renewalConsent, renewalTermsText } from "@/components/subscriptions/renewalTerms";
 import { FormStripePaymentForm } from "./FormStripePaymentForm";
 import { useConfirmFirstCharge } from "./useConfirmFirstCharge";
 import {
@@ -81,6 +82,7 @@ function replaceSearch(search: string): void {
 
 export function FormSubscriptionCheckout({ formId, formTitle, submission, returned, onFinished }: Props) {
   const dashboard = useDashboardPath();
+  const recordRenewalConsent = useMutation(api.commerceSubscriptions.checkout.recordRenewalConsent);
   const storage = useMemo(() => browserCheckoutStorage(), []);
   const inPage = submission ?? null;
   const stored = useMemo(
@@ -231,6 +233,13 @@ export function FormSubscriptionCheckout({ formId, formTitle, submission, return
             }
             onError={(message) => dispatch({ type: "card_error", message })}
             onConfirmed={() => dispatch({ type: "stripe_confirmed", confirmation: cardConfirmation })}
+            consent={
+              descriptor.summary && descriptor.recurringAmount > 0 && checkoutIntentId
+                ? renewalConsent(renewalTermsText(descriptor.summary, descriptor.currency), (text) =>
+                    recordRenewalConsent({ checkoutIntentRef: checkoutIntentId, text }),
+                  )
+                : undefined
+            }
           />
         </>
       );

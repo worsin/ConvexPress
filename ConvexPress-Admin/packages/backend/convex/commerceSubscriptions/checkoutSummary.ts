@@ -25,6 +25,8 @@ export const checkoutSummaryValidator = v.object({
   firstChargeDiscount: v.number(),
   /** When the next charge after today's runs (the end of the trial or the first period). */
   nextChargeAt: v.number(),
+  /** Cancelling ends the subscription at the end of the paid period (true) or at once. */
+  cancelAtPeriodEnd: v.boolean(),
 });
 
 /** The plan, its terms and the coupon of a checkout intent, from its pricing snapshot. */
@@ -49,5 +51,6 @@ export async function checkoutSummary(ctx: Pick<QueryCtx, "db">, rawIntentId: st
     couponCode: snapshotString(snapshot, "couponCode"),
     firstChargeDiscount: snapshotNumber(snapshot, "firstChargeDiscount") ?? 0,
     nextChargeAt: trialDays > 0 ? addDays(intent.createdAt, trialDays) : addBillingPeriod(intent.createdAt, interval, count),
+    cancelAtPeriodEnd: template?.cancelAtPeriodEndDefault ?? true,
   };
 }

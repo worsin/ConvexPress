@@ -176,6 +176,8 @@ describe("subscription charge emails", () => {
     expect(welcome.subject).toBe("Welcome to Launch");
     // $50 setup + $299 − 20% of $299 = $289.20; the once-only code is used up, so the next charge is full price.
     expect(welcome.text).toMatch(/We charged \$289\.20 on October 14, 2026 \(invoice INV-\d+\)\. You pay \$299\.00 per month\. Your next charge is on November 14, 2026\./);
+    // The acknowledgment automatic-renewal laws require: it renews until cancelled, and how to cancel.
+    expect(welcome.text).toMatch(/It renews automatically per month until you cancel\. You can cancel any time from your account at \S*\/dashboard\/subscriptions; your plan stays active until the end of the period you've paid for\./);
 
     // The bell points at the subscription, where invoices and the card live.
     const notifications = await f.t.run((ctx) => ctx.db.query("siteNotifications").collect());
