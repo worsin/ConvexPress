@@ -23,6 +23,8 @@ export interface PublicFormSettings {
   requireLogin?: boolean | null;
   loginRequired?: boolean | null;
   requireAccountToSubmit?: boolean | null;
+  /** Show every answer for review, with an Edit link per page, before the final submit. */
+  reviewStep?: boolean | null;
   [key: string]: unknown;
 }
 

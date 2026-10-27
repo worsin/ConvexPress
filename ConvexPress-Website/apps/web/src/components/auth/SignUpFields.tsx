@@ -64,6 +64,8 @@ export interface SignUpFieldsProps {
   only?: SignUpFieldName[];
   /** Fields that cannot be edited (e.g. invitation email). */
   locked?: Partial<Record<SignUpFieldName, string>>;
+  /** Under each locked field: where its value came from. */
+  lockedNote?: string;
   idPrefix?: string;
   autoFocus?: boolean;
 }
@@ -74,6 +76,7 @@ export function SignUpFields({
   onChange,
   only,
   locked,
+  lockedNote = "Pre-filled from your invitation.",
   idPrefix = "register",
   autoFocus = true,
 }: SignUpFieldsProps) {
@@ -111,7 +114,7 @@ export function SignUpFields({
         />
         {lockedValue !== undefined && (
           <p id={`${id}-note`} className="text-xs text-muted-foreground">
-            Pre-filled from your invitation.
+            {lockedNote}
           </p>
         )}
       </div>

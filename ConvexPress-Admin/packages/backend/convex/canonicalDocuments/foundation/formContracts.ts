@@ -19,6 +19,8 @@ export const publicFormSettingsSchema = z.object({
   requireLogin: z.boolean().nullable().optional(),
   loginRequired: z.boolean().nullable().optional(),
   requireAccountToSubmit: z.boolean().nullable().optional(),
+  /** Show every answer for review, with an Edit link per page, before the final submit. */
+  reviewStep: z.boolean().nullable().optional(),
   orderForm: z.object({
     enabled: z.boolean().optional(), showSummary: z.boolean().optional(),
     summaryTitle: z.string().max(512).optional(), paymentTitle: z.string().max(512).optional(),

@@ -40,6 +40,12 @@ interface RegisterFormProps {
   onSwitchToSignIn?: () => void;
   /** Values to start from (e.g. what a form already asked). */
   initialValues?: Partial<Pick<SignUpFieldValues, "emailAddress" | "firstName" | "lastName">>;
+  /**
+   * The host already asked these (a form's answers): show them read-only and
+   * create the account with them, so one name and email follow the buyer
+   * through the account, the form and the subscription.
+   */
+  lockInitialValues?: { note: string };
   submitLabel?: string;
 }
 
@@ -57,6 +63,7 @@ export function RegisterForm({
   onSignedIn,
   onSwitchToSignIn,
   initialValues,
+  lockInitialValues,
   submitLabel,
 }: RegisterFormProps) {
   const capabilities = useAuthCapabilities();
@@ -89,10 +96,17 @@ export function RegisterForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flow.isLoaded]);
 
-  const lockedFields = useMemo(
-    () => (invitation?.email ? { emailAddress: invitation.email } : undefined),
-    [invitation?.email],
-  );
+  const lockedFields = useMemo(() => {
+    const locked: Partial<Record<"emailAddress" | "firstName" | "lastName", string>> = {};
+    if (lockInitialValues) {
+      for (const name of ["emailAddress", "firstName", "lastName"] as const) {
+        const value = initialValues?.[name]?.trim();
+        if (value) locked[name] = value;
+      }
+    }
+    if (invitation?.email) locked.emailAddress = invitation.email;
+    return Object.keys(locked).length ? locked : undefined;
+  }, [invitation?.email, lockInitialValues, initialValues]);
 
   const go = (url: string) => {
     if (typeof window !== "undefined") window.location.assign(url);
@@ -181,8 +195,8 @@ export function RegisterForm({
         emailAddress: lockedFields?.emailAddress ?? values.emailAddress,
         phoneNumber: values.phoneNumber,
         username: values.username,
-        firstName: values.firstName,
-        lastName: values.lastName,
+        firstName: lockedFields?.firstName ?? values.firstName,
+        lastName: lockedFields?.lastName ?? values.lastName,
         password: passwordEnabled ? values.password : undefined,
         legalAccepted: consentRequired ? legalAccepted : undefined,
       });
@@ -386,7 +400,13 @@ export function RegisterForm({
 
       {error && <AuthError message={error} />}
 
-      <SignUpFields capabilities={capabilities} values={values} onChange={setValues} locked={lockedFields} />
+      <SignUpFields
+        capabilities={capabilities}
+        values={values}
+        onChange={setValues}
+        locked={lockedFields}
+        lockedNote={lockInitialValues && !invitation?.email ? lockInitialValues.note : undefined}
+      />
 
       {consentRequired && <LegalConsent capabilities={capabilities} checked={legalAccepted} onChange={setLegalAccepted} />}
 

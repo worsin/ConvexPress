@@ -39,6 +39,8 @@ export interface AccountStepProps {
   backLabel?: string;
   /** The create button's text. */
   createLabel?: string;
+  /** The prefill is the buyer's own answers: keep them read-only, with this note (see RegisterForm). */
+  lockPrefill?: { note: string };
 }
 
 const UNAVAILABLE_COPY: Record<"registration_closed" | "email_conflict" | "email_unverified" | "local_account" | "error", string> = {
@@ -58,6 +60,7 @@ export function AccountStep({
   signedInIntro,
   backLabel = "Back",
   createLabel = "Create account and continue",
+  lockPrefill,
 }: AccountStepProps) {
   const { isLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
@@ -99,6 +102,7 @@ export function AccountStep({
         <RegisterForm
           returnTo={returnTo}
           initialValues={prefill}
+          lockInitialValues={lockPrefill}
           submitLabel={createLabel}
           onSignedIn={() => undefined}
           onSwitchToSignIn={() => setMode("sign_in")}

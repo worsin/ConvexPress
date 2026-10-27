@@ -24,6 +24,8 @@ export function FormAccountStep(props: FormAccountStepProps) {
       intro="Create the account you'll use to sign in and manage your subscription. Your answers stay with it."
       signedInIntro="You're signed in. Your answers stay with this account."
       backLabel="Back to the form"
+      // One name and email throughout: the ones the form already asked.
+      lockPrefill={{ note: "From your answers. To change it, go back to the form." }}
     />
   );
 }

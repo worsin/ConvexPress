@@ -69,6 +69,8 @@ import {
   publicFormRequiresLogin,
 } from "./StateNotices";
 import { FormAccountStep, type AccountPrefill } from "./FormAccountStep";
+import { FormReviewStep } from "./FormReviewStep";
+import { reviewSections } from "./reviewStep";
 import { FormSecurityControls } from "./SecurityControls";
 import {
   buildSubmitSecurityEnvelope,
@@ -358,6 +360,8 @@ export function accountPrefillFrom(
 
 /** The account step's place in the progress bar (not a form page; no fields). */
 const ACCOUNT_STEP: WizardStep = { index: Number.MAX_SAFE_INTEGER, title: "Your account", fieldKeys: [], isSkippable: false };
+/** The review step's place in the progress bar (form setting `reviewStep`). */
+const REVIEW_STEP: WizardStep = { index: Number.MAX_SAFE_INTEGER - 1, title: "Review", fieldKeys: [], isSkippable: false };
 
 export function FormWizard({
   form,
@@ -455,6 +459,8 @@ export function FormWizard({
     useState<SubscriptionReturn | null>(null);
   // The built-in account step (forms that ask for an account at the end).
   const [accountStepOpen, setAccountStepOpen] = useState(false);
+  // The review step (form setting `reviewStep`), after the last page.
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [honeypotValue, setHoneypotValue] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState<string | null>(null);
@@ -535,6 +541,7 @@ export function FormWizard({
   // Signed-out visitors (or anyone the server turned away for lack of an
   // account) go through the account step after the last page.
   const needsAccountStep = accountRequired && (!isLoaded || !isSignedIn || accountStepOpen);
+  const reviewEnabled = formSettings.reviewStep === true;
 
   // ── Funnel analytics (Analytics System §12) ─────────────────────────────────
   // first VIEW on mount; first INTERACTION (started) on the first value change.
@@ -888,6 +895,7 @@ export function FormWizard({
       }
       if (serverFieldErrors && serverFieldErrors.length > 0) {
         setAccountStepOpen(false);
+        setReviewOpen(false);
         const offendingKeys = new Set(serverFieldErrors.map((e) => e.fieldKey));
         let firstStep = -1;
         for (let i = 0; i < activeSteps.length; i++) {
@@ -945,6 +953,16 @@ export function FormWizard({
   const onAccountReady = useCallback(() => {
     void submitFinal(false);
   }, [submitFinal]);
+
+  /** Last page of a form with a review step: check it, save it, then the review. */
+  const openReview = useCallback(() => {
+    const ok = rendererRef.current?.validate() ?? true;
+    if (!ok) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    void flushAutosave();
+    setSubmitError(null);
+    setReviewOpen(true);
+  }, [flushAutosave]);
 
   // ── Post-submit confirmation handoff ────────────────────────────────────────
   // Reuse the renderer's confirmation view. The wizard owns the submit lifecycle,
@@ -1013,15 +1031,18 @@ export function FormWizard({
         <FormLoginRequiredNotice />
       ) : (
         <>
-          {opts.showProgress && (!isSinglePage || needsAccountStep) ? (
+          {opts.showProgress && (!isSinglePage || needsAccountStep || reviewEnabled) ? (
             <StepProgress
-              activeSteps={needsAccountStep ? [...activeSteps, ACCOUNT_STEP] : activeSteps}
-              currentIndex={accountStepOpen ? activeSteps.length : clampedIndex}
-              furthestIndex={accountStepOpen ? activeSteps.length : furthestStep}
+              activeSteps={[...activeSteps, ...(reviewEnabled ? [REVIEW_STEP] : []), ...(needsAccountStep ? [ACCOUNT_STEP] : [])]}
+              currentIndex={accountStepOpen ? activeSteps.length + (reviewEnabled ? 1 : 0) : reviewOpen ? activeSteps.length : clampedIndex}
+              furthestIndex={accountStepOpen ? activeSteps.length + (reviewEnabled ? 1 : 0) : reviewOpen ? activeSteps.length : furthestStep}
               allowBackNav={opts.allowBackNav}
               onJumpTo={(target) => {
-                if (accountStepOpen) {
+                if (accountStepOpen || reviewOpen) {
                   setAccountStepOpen(false);
+                  // The review step itself: back to it from the account step.
+                  if (reviewEnabled && target === activeSteps.length) return;
+                  setReviewOpen(false);
                   setStepIndex(target);
                   return;
                 }
@@ -1032,7 +1053,30 @@ export function FormWizard({
 
           {submitError ? <div ref={submitErrorRef} data-slot="form-submit-error" tabIndex={-1}><AuthError message={submitError} /></div> : null}
 
-          {accountStepOpen ? (
+          {!accountStepOpen && reviewOpen ? (
+            <>
+              <FormReviewStep
+                sections={reviewSections(activeSteps, values, form.fields)}
+                canEdit={opts.allowBackNav}
+                onEdit={(position) => {
+                  setReviewOpen(false);
+                  setStepIndex(position);
+                }}
+                onBack={() => setReviewOpen(false)}
+                onContinue={needsAccountStep ? () => setAccountStepOpen(true) : onFinalSubmit}
+                continueLabel={needsAccountStep ? "Continue" : options?.submitLabel || "Submit"}
+                isSubmitting={isSubmitting}
+              />
+              <FormSecurityControls
+                formId={form._id}
+                security={form.security}
+                honeypotValue={honeypotValue}
+                onHoneypotChange={setHoneypotValue}
+                onCaptchaTokenChange={setCaptchaToken}
+                onCaptchaErrorChange={setCaptchaError}
+              />
+            </>
+          ) : accountStepOpen ? (
             isSubmitting ? (
               <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
                 Submitting your answers…
@@ -1085,11 +1129,11 @@ export function FormWizard({
                 isFinal={isFinal}
                 onBack={goBack}
                 onNext={goNext}
-                onSubmit={isFinal && needsAccountStep ? continueToAccount : onFinalSubmit}
+                onSubmit={isFinal && reviewEnabled ? openReview : isFinal && needsAccountStep ? continueToAccount : onFinalSubmit}
                 isSubmitting={isSubmitting}
                 nextLabel={labels.nextLabel}
                 prevLabel={labels.prevLabel}
-                submitLabel={isFinal && needsAccountStep ? "Continue" : options?.submitLabel}
+                submitLabel={isFinal && reviewEnabled ? "Review your answers" : isFinal && needsAccountStep ? "Continue" : options?.submitLabel}
               />
 
               <AutosaveIndicator saveState={saveState} savedAt={savedAt} heldBackLabels={heldBackLabels} />
