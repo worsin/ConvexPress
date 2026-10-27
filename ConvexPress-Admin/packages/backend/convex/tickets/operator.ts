@@ -70,7 +70,7 @@ async function loadTicket(ctx: MutationCtx, ticketId: Id<"ticket_tickets">): Pro
 
 // ─── Reading the queue ──────────────────────────────────────────────────────
 
-const queueRowValidator = v.object({
+export const operatorQueueRowValidator = v.object({
   ticketId: v.id("ticket_tickets"),
   ticketNumber: v.string(),
   subject: v.string(),
@@ -92,8 +92,8 @@ const queueRowValidator = v.object({
   updatedAt: v.number(),
 });
 
-const ticketDetailValidator = v.object({
-  ...queueRowValidator.fields,
+export const operatorTicketDetailValidator = v.object({
+  ...operatorQueueRowValidator.fields,
   description: v.string(),
   tags: v.array(v.string()),
   rating: v.optional(v.number()),
@@ -114,7 +114,7 @@ async function queueRow(
   ticket: Ticket,
   labels: Map<string, string>,
   names: Map<Id<"users">, string | null>,
-): Promise<Infer<typeof queueRowValidator>> {
+): Promise<Infer<typeof operatorQueueRowValidator>> {
   const assignee = await assigneeName(ctx, ticket, names);
   return {
     ticketId: ticket._id,
@@ -141,7 +141,7 @@ async function queueRow(
 /** Every ticket, newest first. */
 export const listQueue = internalQuery({
   args: { paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(queueRowValidator),
+  returns: paginationResultValidator(operatorQueueRowValidator),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const page = await ctx.db.query("ticket_tickets").withIndex("by_created").order("desc").paginate(args.paginationOpts);
@@ -154,7 +154,7 @@ export const listQueue = internalQuery({
 /** One ticket, with where its status may go next. Null when there is no such ticket. */
 export const getTicket = internalQuery({
   args: { ticketId: v.id("ticket_tickets") },
-  returns: v.union(v.null(), ticketDetailValidator),
+  returns: v.union(v.null(), operatorTicketDetailValidator),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -173,7 +173,7 @@ export const getTicket = internalQuery({
   },
 });
 
-const messageRowValidator = v.object({
+export const operatorMessageRowValidator = v.object({
   messageId: v.id("ticket_messages"),
   sequence: v.number(),
   senderType: messageSenderTypeValidator,
@@ -187,7 +187,7 @@ const messageRowValidator = v.object({
 /** A ticket's messages, internal notes included, newest first. */
 export const listMessages = internalQuery({
   args: { ticketId: v.id("ticket_tickets"), paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(messageRowValidator),
+  returns: paginationResultValidator(operatorMessageRowValidator),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const page = await ctx.db
@@ -398,7 +398,7 @@ export const updateSettings = internalMutation({
   },
 });
 
-const cannedResponseRowValidator = v.object({
+export const operatorCannedResponseRowValidator = v.object({
   id: v.id("ticket_cannedResponses"),
   title: v.string(),
   shortcut: v.string(),
@@ -412,7 +412,7 @@ const cannedResponseRowValidator = v.object({
 /** Saved replies, most used first. */
 export const listCannedResponses = internalQuery({
   args: {},
-  returns: v.array(cannedResponseRowValidator),
+  returns: v.array(operatorCannedResponseRowValidator),
   handler: async (ctx) => {
     await requirePluginEnabled(ctx, "tickets");
     const rows = await ctx.db.query("ticket_cannedResponses").take(500);
@@ -503,7 +503,7 @@ const MAX_RECORD_LIMIT = 5_000;
 const MINUTE = 60_000;
 const ACTIVE: readonly TicketStatus[] = ["open", "inProgress", "awaitingResponse"];
 
-const statsValidator = v.object({
+export const operatorStatsValidator = v.object({
   totalTickets: v.number(),
   statusCounts: v.object({
     open: v.number(),
@@ -544,7 +544,7 @@ const average = (values: number[]) => (values.length > 0 ? Math.round(values.red
 /** Counts, response and resolution times against the targets, and categories, over the newest `recordLimit` tickets. */
 export const queueStats = internalQuery({
   args: { recordLimit: v.optional(v.number()) },
-  returns: statsValidator,
+  returns: operatorStatsValidator,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const recordLimit = Math.max(1, Math.min(MAX_RECORD_LIMIT, Math.floor(args.recordLimit ?? DEFAULT_RECORD_LIMIT)));
