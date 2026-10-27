@@ -3676,6 +3676,7 @@ export declare const internal:
 "cancelContract": FunctionReference<"mutation", "internal", { subscriptionId: Id<"commerce_subscriptions">, actorRef: string, reason?: string, immediate: boolean }, { status: "cancelled" | "pending_cancel", effectiveAt?: number }>,
 "completeInvoiceRefund": FunctionReference<"mutation", "internal", { invoiceId: Id<"commerce_subscription_invoices">, refundKey: string, status: "pending" | "succeeded" | "failed", providerRefundId?: string, error?: string }, null>,
 "getInvoiceRefund": FunctionReference<"query", "internal", { invoiceId: Id<"commerce_subscription_invoices">, refundKey: string }, null | { paymentIntentId: string, amount: number, status: string, currencyCode: string }>,
+"reconcileInvoiceRefund": FunctionReference<"mutation", "internal", { invoiceId: string, refundKey: string, providerStatus: string, providerRefundId: string, error?: string }, null>,
 "requestInvoiceRefund": FunctionReference<"mutation", "internal", { invoiceId: Id<"commerce_subscription_invoices">, amount?: number, reason?: string, actorRef: string }, { refundKey: string, amount: number }>,
 "resumeContract": FunctionReference<"mutation", "internal", { subscriptionId: Id<"commerce_subscriptions">, actorRef: string, reason?: string }, { status: "active", nextBillingAt?: number }>,
 "retryPaymentNow": FunctionReference<"mutation", "internal", { subscriptionId: Id<"commerce_subscriptions">, actorRef: string, reason?: string }, { scheduled: boolean }>,

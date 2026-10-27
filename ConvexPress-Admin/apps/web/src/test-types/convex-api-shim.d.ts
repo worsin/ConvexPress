@@ -8169,6 +8169,7 @@ export type InternalApi = {
   "cancelContract": FunctionReference<"mutation", "internal", { "immediate": boolean; "subscriptionId": GenericId<"commerce_subscriptions">; "actorRef": string; "reason"?: (undefined | string); }, Dto1210>;
   "completeInvoiceRefund": FunctionReference<"mutation", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; "refundKey": string; "status": ("pending" | "failed" | "succeeded"); "providerRefundId"?: (undefined | string); "error"?: (undefined | string); }, null>;
   "getInvoiceRefund": FunctionReference<"query", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; "refundKey": string; }, (null | Dto1211)>;
+  "reconcileInvoiceRefund": FunctionReference<"mutation", "internal", { "invoiceId": string; "refundKey": string; "providerStatus": string; "providerRefundId": string; "error"?: (undefined | string); }, null>;
   "requestInvoiceRefund": FunctionReference<"mutation", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; "amount"?: (undefined | number); "reason"?: (undefined | string); "actorRef": string; }, Dto1212>;
   "resumeContract": FunctionReference<"mutation", "internal", { "subscriptionId": GenericId<"commerce_subscriptions">; "actorRef": string; "reason"?: (undefined | string); }, Dto1213>;
   "retryPaymentNow": FunctionReference<"mutation", "internal", { "subscriptionId": GenericId<"commerce_subscriptions">; "actorRef": string; "reason"?: (undefined | string); }, Dto1214>;
@@ -8254,6 +8255,7 @@ export type InternalApi = {
   "cancelContract": FunctionReference<"mutation", "internal", { "immediate": boolean; "subscriptionId": GenericId<"commerce_subscriptions">; "actorRef": string; "reason"?: (undefined | string); }, Dto1210>;
   "completeInvoiceRefund": FunctionReference<"mutation", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; "refundKey": string; "status": ("pending" | "failed" | "succeeded"); "providerRefundId"?: (undefined | string); "error"?: (undefined | string); }, null>;
   "getInvoiceRefund": FunctionReference<"query", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; "refundKey": string; }, (null | Dto1211)>;
+  "reconcileInvoiceRefund": FunctionReference<"mutation", "internal", { "invoiceId": string; "refundKey": string; "providerStatus": string; "providerRefundId": string; "error"?: (undefined | string); }, null>;
   "requestInvoiceRefund": FunctionReference<"mutation", "internal", { "invoiceId": GenericId<"commerce_subscription_invoices">; "amount"?: (undefined | number); "reason"?: (undefined | string); "actorRef": string; }, Dto1212>;
   "resumeContract": FunctionReference<"mutation", "internal", { "subscriptionId": GenericId<"commerce_subscriptions">; "actorRef": string; "reason"?: (undefined | string); }, Dto1213>;
   "retryPaymentNow": FunctionReference<"mutation", "internal", { "subscriptionId": GenericId<"commerce_subscriptions">; "actorRef": string; "reason"?: (undefined | string); }, Dto1214>;

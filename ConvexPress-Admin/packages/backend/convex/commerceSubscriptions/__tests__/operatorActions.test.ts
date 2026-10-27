@@ -214,6 +214,60 @@ describe("invoice refunds", () => {
     expect(invoice?.refunds?.[0]).toMatchObject({ status: "failed", error: "This charge has already been refunded." });
     expect(invoice?.refundedAmount).toBe(0);
     expect(await f.history()).toContain("subscription.refund_failed");
+    // Staff hear of it: the failure is an event with Stripe's reason (PR 087).
+    const failed = await f.t.run(async (ctx) =>
+      (await ctx.db.query("events").collect())
+        .filter((event) => event.code === "commerce.subscription_invoice_refund_failed")
+        .map((event): Record<string, unknown> => JSON.parse(event.payload)),
+    );
+    expect(failed).toHaveLength(1);
+    expect(failed[0]).toMatchObject({ invoiceNumber: "INV-000010", amount: 29_900, error: "This charge has already been refunded." });
+  });
+
+  test("a refund Stripe answers pending settles from Stripe's webhook, once (PR 087)", async () => {
+    const f = await fixture();
+    refundOutcome = "pending";
+    const { refundKey } = await f.t.mutation(internal.commerceSubscriptions.operator.requestInvoiceRefund, {
+      invoiceId: f.ids.invoiceId, amount: 10_000, ...op,
+    });
+    await drainScheduled(f.t);
+    expect((await f.invoice())?.refunds?.[0]).toMatchObject({ status: "pending", providerRefundId: "re_op1" });
+    // Pending records no outcome yet.
+    expect(await f.history()).not.toContain("subscription.refunded");
+
+    const webhook = (providerStatus: string) =>
+      f.t.mutation(internal.commerceSubscriptions.operator.reconcileInvoiceRefund, {
+        invoiceId: String(f.ids.invoiceId), refundKey, providerStatus, providerRefundId: "re_op1",
+      });
+    await webhook("pending");
+    expect((await f.invoice())?.refunds?.[0]?.status).toBe("pending");
+    await webhook("succeeded");
+    await webhook("succeeded");
+    const invoice = await f.invoice();
+    expect(invoice?.refunds?.[0]).toMatchObject({ status: "succeeded" });
+    expect(invoice?.refundedAmount).toBe(10_000);
+    expect((await f.history()).filter((type) => type === "subscription.refunded")).toHaveLength(1);
+    // A late "failed" for a settled refund changes nothing, and an unknown invoice is ignored.
+    await webhook("failed");
+    expect((await f.invoice())?.refunds?.[0]?.status).toBe("succeeded");
+    await f.t.mutation(internal.commerceSubscriptions.operator.reconcileInvoiceRefund, {
+      invoiceId: "not-an-invoice", refundKey, providerStatus: "succeeded", providerRefundId: "re_op1",
+    });
+  });
+
+  test("a pending refund Stripe later fails releases its reservation and raises the failure", async () => {
+    const f = await fixture();
+    refundOutcome = "pending";
+    const { refundKey } = await f.t.mutation(internal.commerceSubscriptions.operator.requestInvoiceRefund, { invoiceId: f.ids.invoiceId, ...op });
+    await drainScheduled(f.t);
+    await f.t.mutation(internal.commerceSubscriptions.operator.reconcileInvoiceRefund, {
+      invoiceId: String(f.ids.invoiceId), refundKey, providerStatus: "failed", providerRefundId: "re_op1", error: "insufficient_funds",
+    });
+    const invoice = await f.invoice();
+    expect(invoice?.refunds?.[0]).toMatchObject({ status: "failed", error: "insufficient_funds" });
+    expect(invoice?.refundedAmount).toBe(0);
+    const codes = await f.t.run(async (ctx) => (await ctx.db.query("events").collect()).map((event) => event.code));
+    expect(codes).toContain("commerce.subscription_invoice_refund_failed");
   });
 
   test("a re-run of the same refund does not refund twice", async () => {
