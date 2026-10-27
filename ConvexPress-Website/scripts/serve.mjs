@@ -257,6 +257,31 @@ export function preferredEncoding(acceptEncoding) {
   return null;
 }
 
+/**
+ * The byte span a Range header asks for, for one file of `size` bytes:
+ * { start, end } (inclusive), "unsatisfiable", or null when the header isn't a
+ * single bytes range (the whole file is sent). Safari won't play a <video>
+ * whose server answers its range requests with the whole file.
+ */
+export function byteRange(header, size) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec((header ?? "").trim());
+  if (!match || (match[1] === "" && match[2] === "")) return null;
+  let start;
+  let end;
+  if (match[1] === "") {
+    // A suffix: the last N bytes.
+    const length = Number(match[2]);
+    if (length === 0) return "unsatisfiable";
+    start = Math.max(0, size - length);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
+  }
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= size || start > end) return "unsatisfiable";
+  return { start, end };
+}
+
 /** Whether a static file is worth sending compressed (text formats, 1 KiB and up). */
 export function compressible(path, size) {
   return COMPRESSIBLE.test(path) && size >= MIN_COMPRESS_BYTES;
@@ -350,7 +375,25 @@ async function main() {
           const immutable = url.pathname.startsWith("/assets/");
           const caching = { "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=3600" };
           const stat = statSync(file);
-          if (!compressible(file, stat.size)) return new Response(Bun.file(file), { headers: { ...caching, ...headers } });
+          // A range request (a video seeking, Safari above all) gets just those bytes.
+          const range = request.headers.has("range") ? byteRange(request.headers.get("range"), stat.size) : null;
+          if (range === "unsatisfiable") {
+            return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${stat.size}`, ...caching, ...headers } });
+          }
+          if (range) {
+            return new Response(request.method === "HEAD" ? null : Bun.file(file).slice(range.start, range.end + 1), {
+              status: 206,
+              headers: {
+                "Content-Type": Bun.file(file).type,
+                "Content-Range": `bytes ${range.start}-${range.end}/${stat.size}`,
+                "Content-Length": String(range.end - range.start + 1),
+                "Accept-Ranges": "bytes",
+                ...caching,
+                ...headers,
+              },
+            });
+          }
+          if (!compressible(file, stat.size)) return new Response(Bun.file(file), { headers: { "Accept-Ranges": "bytes", ...caching, ...headers } });
           // A range request gets the file as stored; everything else the best encoding the browser takes.
           const encoding = request.headers.has("range") ? null : preferredEncoding(request.headers.get("accept-encoding"));
           const varied = { ...caching, Vary: "Accept-Encoding", ...headers };

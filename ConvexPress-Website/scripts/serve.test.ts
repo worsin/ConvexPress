@@ -12,6 +12,7 @@ import {
   cspReportLogger,
   cspViolations,
   readConfig as readSiteConfig,
+  byteRange,
   preferredEncoding,
   securityHeaders,
   staticFile,
@@ -168,5 +169,22 @@ describe("compressed static assets", () => {
     expect(gunzipSync(gz).toString()).toBe(source);
     expect(br.byteLength).toBeLessThan(source.length / 10);
     expect(compressed(path, "br", stat)).toBe(compressed(path, "br", stat));
+  });
+});
+
+describe("range requests", () => {
+  test("a single bytes range is served as that span of the file", () => {
+    expect(byteRange("bytes=0-1", 1000)).toEqual({ start: 0, end: 1 });
+    expect(byteRange("bytes=500-", 1000)).toEqual({ start: 500, end: 999 });
+    expect(byteRange("bytes=-100", 1000)).toEqual({ start: 900, end: 999 });
+    expect(byteRange("bytes=900-5000", 1000)).toEqual({ start: 900, end: 999 });
+  });
+  test("a range past the end is unsatisfiable; anything else gets the whole file", () => {
+    expect(byteRange("bytes=1000-", 1000)).toBe("unsatisfiable");
+    expect(byteRange("bytes=5-2", 1000)).toBe("unsatisfiable");
+    expect(byteRange("bytes=-0", 1000)).toBe("unsatisfiable");
+    expect(byteRange("bytes=0-1,5-9", 1000)).toBeNull();
+    expect(byteRange("items=0-1", 1000)).toBeNull();
+    expect(byteRange(null, 1000)).toBeNull();
   });
 });
