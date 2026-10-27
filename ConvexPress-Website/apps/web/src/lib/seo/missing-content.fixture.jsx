@@ -1,12 +1,13 @@
 import { mock } from "bun:test";
 import assert from "node:assert/strict";
-import { getFunctionName } from "convex/server";
+import { bareFunctionName } from "../../templates/sdk/block-renderer/test-function-names";
 
 // Route loaders for content that may not exist, with their reads faked.
 const router = await import("@tanstack/react-router");
 const reads = {};
 mock.module("@tanstack/react-router", () => ({ ...router, createFileRoute: () => (options) => ({ options }) }));
-mock.module("@convex-dev/react-query", () => ({ convexQuery: (ref, args) => ({ name: getFunctionName(ref), args }) }));
+// Names without the namespace a host deployment mounts ConvexPress under.
+mock.module("@convex-dev/react-query", () => ({ convexQuery: (ref, args) => ({ name: bareFunctionName(ref), args }) }));
 mock.module("@/templates/sdk/registry", () => ({
   TEMPLATE_PACKS: new Map(), DEFAULT_TEMPLATE_CONFIG: { active: "core", overrides: {}, variants: {}, settings: {} },
   prepareTemplateHydration: async () => {}, listTemplatePacks: () => [], getTemplatePack: () => undefined,
