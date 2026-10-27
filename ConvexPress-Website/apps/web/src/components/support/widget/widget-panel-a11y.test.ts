@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { WidgetButton } from "./WidgetButton";
 import { WidgetPanel } from "./WidgetPanel";
 import { homeGreeting } from "./SupportWidget";
 import { signInHref } from "../views/TicketFormView";
@@ -49,5 +50,15 @@ describe("support widget for a visitor who isn't signed in", () => {
     expect(signInHref("/page/about")).toBe("/login?returnTo=%2Fpage%2Fabout");
     expect(signInHref("/pricing?plan=practice")).toBe("/login?returnTo=%2Fpricing%3Fplan%3Dpractice");
     expect(signInHref("/")).toBe("/login");
+  });
+});
+
+describe("support widget launcher", () => {
+  test("names its slot and its state, so a theme can place or reveal it", () => {
+    const closed = renderToStaticMarkup(createElement(WidgetButton, { isOpen: false, position: "bottomRight", onClick() {} }));
+    const open = renderToStaticMarkup(createElement(WidgetButton, { isOpen: true, position: "bottomRight", onClick() {} }));
+    expect(closed).toContain('data-slot="support-widget-launcher"');
+    expect(closed).toContain('data-state="closed"');
+    expect(open).toContain('data-state="open"');
   });
 });
