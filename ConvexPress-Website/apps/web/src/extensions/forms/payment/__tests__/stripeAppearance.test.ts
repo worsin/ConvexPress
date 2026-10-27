@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { paymentErrorMessage, stripeAppearance, stripeFonts } from "./stripeAppearance";
+import { paymentErrorMessage, stripeAppearance, stripeFonts } from "../stripeAppearance";
 
 describe("stripeAppearance", () => {
   test("carries the theme's colours, radius and font into Stripe's variables and input rules", () => {

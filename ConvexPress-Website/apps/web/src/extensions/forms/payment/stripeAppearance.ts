@@ -87,7 +87,8 @@ export function paymentErrorMessage(error: { type?: string; code?: string; decli
 function toHex(color: string, canvas: CanvasRenderingContext2D): string | undefined {
   if (!color) return undefined;
   canvas.clearRect(0, 0, 1, 1);
-  canvas.fillStyle = "#000000";
+  // A colour the canvas can't parse leaves this, which reads back as unreadable (alpha 0).
+  canvas.fillStyle = "transparent";
   canvas.fillStyle = color;
   canvas.fillRect(0, 0, 1, 1);
   const [r = 0, g = 0, b = 0, a = 0] = canvas.getImageData(0, 0, 1, 1).data;
