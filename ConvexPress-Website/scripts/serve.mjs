@@ -21,15 +21,20 @@
 //                                 (frame-ancestors, base-uri and object-src are always enforced)
 //   plus whatever the site declares under "start" in apps/web/site-env.json
 //
+// Text assets (scripts, styles, SVG, JSON…) go out compressed when the browser
+// accepts it (Brotli, else gzip). Each is compressed once and kept in memory:
+// files under /assets are content-hashed, and the process restarts on deploy.
 // GET /healthz answers 200 without touching the backend.
 // POST /__csp-report takes the browser's Content-Security-Policy violation
 // reports (the policy's report-uri) and logs each distinct one once an hour,
 // with no query strings, so a site can see what enforcing would break.
 // ============================================================================
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, normalize, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
+import { brotliCompress, constants as zlibConstants, gzip } from "node:zlib";
 
 import { readSiteEnvSpec, siteEnvProblems } from "../apps/web/required-env.mjs";
 
@@ -226,6 +231,61 @@ export function securityHeaders(config) {
   return headers;
 }
 
+const COMPRESSIBLE = /\.(?:js|mjs|css|svg|json|map|txt|xml|webmanifest|html|wasm)$/i;
+const MIN_COMPRESS_BYTES = 1024;
+const brotliAsync = promisify(brotliCompress);
+const gzipAsync = promisify(gzip);
+
+/** The encoding to send for an Accept-Encoding header: "br", "gzip" or null. */
+export function preferredEncoding(acceptEncoding) {
+  const offered = new Map();
+  for (const part of String(acceptEncoding ?? "").split(",")) {
+    const [name, ...params] = part.trim().toLowerCase().split(";").map((piece) => piece.trim());
+    if (!name) continue;
+    const quality = params.find((param) => param.startsWith("q="));
+    offered.set(name, quality === undefined ? 1 : Number(quality.slice(2)));
+  }
+  for (const encoding of ["br", "gzip"]) if ((offered.get(encoding) ?? 0) > 0) return encoding;
+  return null;
+}
+
+/** Whether a static file is worth sending compressed (text formats, 1 KiB and up). */
+export function compressible(path, size) {
+  return COMPRESSIBLE.test(path) && size >= MIN_COMPRESS_BYTES;
+}
+
+/** Compressed copies of static files, made once per file and encoding. */
+export function compressedFiles() {
+  const cache = new Map();
+  return (path, encoding, stat) => {
+    const key = `${encoding}:${path}:${stat.size}:${stat.mtimeMs}`;
+    let entry = cache.get(key);
+    if (!entry) {
+      entry = Bun.file(path).arrayBuffer().then((data) => {
+        const input = Buffer.from(data);
+        return encoding === "br"
+          ? brotliAsync(input, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 9, [zlibConstants.BROTLI_PARAM_SIZE_HINT]: input.byteLength } })
+          : gzipAsync(input, { level: 9 });
+      });
+      cache.set(key, entry);
+      entry.catch(() => cache.delete(key));
+    }
+    return entry;
+  };
+}
+
+/** Compress every hashed asset in the background after start, so the first visitor after a deploy isn't the one who waits. */
+async function warmCompressedAssets(compressed) {
+  const dir = join(CLIENT_DIR, "assets");
+  if (!existsSync(dir)) return;
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    const stat = statSync(path);
+    if (!stat.isFile() || !compressible(path, stat.size)) continue;
+    for (const encoding of ["br", "gzip"]) await compressed(path, encoding, stat).catch(() => undefined);
+  }
+}
+
 /** A file under the client build for this path, or null (no traversal, no directories). */
 export function staticFile(clientDir, pathname) {
   let decoded;
@@ -261,6 +321,7 @@ async function main() {
   const { default: app } = await import(pathToFileURL(SERVER_ENTRY).href);
   const headers = securityHeaders(config);
   const logCspReport = cspReportLogger();
+  const compressed = compressedFiles();
 
   const server = Bun.serve({
     hostname: config.host,
@@ -279,8 +340,16 @@ async function main() {
         const file = url.pathname === "/" ? null : staticFile(CLIENT_DIR, url.pathname);
         if (file) {
           const immutable = url.pathname.startsWith("/assets/");
-          return new Response(Bun.file(file), {
-            headers: { "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=3600", ...headers },
+          const caching = { "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=3600" };
+          const stat = statSync(file);
+          if (!compressible(file, stat.size)) return new Response(Bun.file(file), { headers: { ...caching, ...headers } });
+          // A range request gets the file as stored; everything else the best encoding the browser takes.
+          const encoding = request.headers.has("range") ? null : preferredEncoding(request.headers.get("accept-encoding"));
+          const varied = { ...caching, Vary: "Accept-Encoding", ...headers };
+          if (!encoding) return new Response(Bun.file(file), { headers: varied });
+          const body = await compressed(file, encoding, stat);
+          return new Response(request.method === "HEAD" ? null : body, {
+            headers: { "Content-Type": Bun.file(file).type, "Content-Encoding": encoding, "Content-Length": String(body.byteLength), ...varied },
           });
         }
       }
@@ -293,6 +362,7 @@ async function main() {
     },
   });
   console.log(`[website] ${config.siteUrl.origin} on http://${server.hostname}:${server.port} (instance ${process.env.CONVEXPRESS_INSTANCE_KEY})`);
+  setTimeout(() => void warmCompressedAssets(compressed), 0);
 
   const stop = () => {
     server.stop();
