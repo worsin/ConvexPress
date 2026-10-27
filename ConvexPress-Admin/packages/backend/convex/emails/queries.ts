@@ -373,6 +373,7 @@ export const getTemplate = query({
     slug: v.string(),
     priority: v.union(v.literal("digest"), v.literal("immediate"), v.literal("batched")),
     isActive: v.boolean(),
+    activeChangedAt: v.optional(v.number()),
     category: v.string(),
     recipientType: v.union(v.literal("customer"), v.literal("employee"), v.literal("admin"), v.literal("custom")),
     subjectTemplate: v.string(),

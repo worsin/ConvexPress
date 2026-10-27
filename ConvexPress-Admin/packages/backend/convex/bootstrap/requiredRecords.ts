@@ -1,7 +1,7 @@
 import type { RegisteredMutation } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
-import { DEFAULT_TEMPLATES } from "../emails/templateDefaults";
+import { DEFAULT_TEMPLATES, templateActiveByDefault } from "../emails/templateDefaults";
 
 /** Installation data only. Never migrate existing records, emit events, or queue mail. */
 export const ensure: RegisteredMutation<"internal", {}, { templatesCreated: number; templatesExisting: number; categoryCreated: boolean }> = internalMutation({
@@ -34,7 +34,7 @@ export const ensure: RegisteredMutation<"internal", {}, { templatesCreated: numb
         availableVariables: def.availableVariables,
         priority: def.priority,
         recipientType: def.recipientType,
-        isActive: true,
+        isActive: templateActiveByDefault(def),
         eventCode: def.eventCode,
         isCustomized: false,
         defaultSubjectTemplate: def.subjectTemplate,

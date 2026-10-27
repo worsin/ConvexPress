@@ -7,7 +7,7 @@
  */
 
 import { internalMutation } from "../_generated/server";
-import { DEFAULT_TEMPLATES } from "../emails/templateDefaults";
+import { DEFAULT_TEMPLATES, templateActiveByDefault } from "../emails/templateDefaults";
 import type { MutationCtx } from "../_generated/server";
 
 import { v } from "convex/values";
@@ -51,7 +51,7 @@ export async function runBootstrapShippingTemplates(
       availableVariables: def.availableVariables,
       priority: def.priority,
       recipientType: def.recipientType,
-      isActive: true,
+      isActive: templateActiveByDefault(def),
       eventCode: def.eventCode,
       isCustomized: false,
       defaultSubjectTemplate: def.subjectTemplate,
