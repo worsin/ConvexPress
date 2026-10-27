@@ -20,6 +20,11 @@
  *     the caller, which asks the server to verify it with Stripe and activate
  *     (`publicCharge.confirmFirstCharge`). Redirect-based methods still come
  *     back to `returnUrl`, where the same server verification runs.
+ *
+ * The card form takes the site's look (theme colours, radius and body font;
+ * `stripeAppearance`), and payment errors are explained in plain words.
+ * Wallets (Apple Pay, Google Pay) show where the buyer's device offers them
+ * (`wallets`, on by default).
  */
 
 import { useEffect, useId, useState } from "react";
@@ -32,6 +37,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+import { paymentErrorMessage, readStripeTheme, stripeAppearance, stripeFonts, type StripeTheme } from "./stripeAppearance";
 
 /**
  * Automatic-renewal consent for a subscription checkout: the terms are shown
@@ -63,20 +69,30 @@ interface Props {
   submitLabel?: string;
   /** Required for a subscription that renews: see `RenewalConsent`. */
   consent?: RenewalConsent;
+  /** Offer Apple Pay and Google Pay where available ("auto", the default) or never. */
+  wallets?: "auto" | "never";
 }
 
 export function FormStripePaymentForm(props: Props) {
   const [stripePromise, setStripePromise] =
     useState<Promise<Stripe | null> | null>(null);
+  const [theme, setTheme] = useState<StripeTheme | null>(null);
 
   useEffect(() => {
     setStripePromise(loadStripe(props.publishableKey));
   }, [props.publishableKey]);
+  // Stripe needs concrete values, read from the rendered page once mounted.
+  useEffect(() => {
+    setTheme(readStripeTheme(document.documentElement));
+  }, []);
 
-  if (!stripePromise) return null;
+  if (!stripePromise || !theme) return null;
 
   return (
-    <Elements stripe={stripePromise} options={{ clientSecret: props.clientSecret }}>
+    <Elements
+      stripe={stripePromise}
+      options={{ clientSecret: props.clientSecret, appearance: stripeAppearance(theme), fonts: stripeFonts(theme.fontFamily) }}
+    >
       <PaymentFormInner
         mode={props.mode}
         returnUrl={props.returnUrl}
@@ -84,6 +100,7 @@ export function FormStripePaymentForm(props: Props) {
         onConfirmed={props.onConfirmed}
         submitLabel={props.submitLabel}
         consent={props.consent}
+        wallets={props.wallets ?? "auto"}
       />
     </Elements>
   );
@@ -96,6 +113,7 @@ function PaymentFormInner(props: {
   onConfirmed?: (confirmed: ConfirmedStripeObject) => void;
   submitLabel?: string;
   consent?: RenewalConsent;
+  wallets: "auto" | "never";
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -138,7 +156,7 @@ function PaymentFormInner(props: {
           redirect: "if_required",
         });
         if (result.error) {
-          props.onError(result.error.message ?? "Your card could not be saved.");
+          props.onError(paymentErrorMessage(result.error, "Your card could not be saved. Please try again."));
           setSubmitting(false);
           return;
         }
@@ -151,7 +169,7 @@ function PaymentFormInner(props: {
         redirect: "if_required",
       });
       if (result.error) {
-        props.onError(result.error.message ?? "Payment failed");
+        props.onError(paymentErrorMessage(result.error, "Your payment didn't go through. Please try again."));
         setSubmitting(false);
         return;
       }
@@ -170,7 +188,7 @@ function PaymentFormInner(props: {
             confirmParams: { return_url: returnUrl },
           });
     if (result.error) {
-      props.onError(result.error.message ?? "Payment failed");
+      props.onError(paymentErrorMessage(result.error, "Your payment didn't go through. Please try again."));
       setSubmitting(false);
     }
     // On success Stripe redirects to returnUrl. The server activates the order
@@ -179,7 +197,7 @@ function PaymentFormInner(props: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+      <PaymentElement options={{ wallets: { applePay: props.wallets, googlePay: props.wallets } }} />
       {props.consent ? (
         <div data-slot="renewal-consent" className="flex flex-col gap-3 rounded-md border border-border bg-muted/40 p-4">
           <p id={termsId} data-slot="renewal-terms" className="text-sm text-foreground">
