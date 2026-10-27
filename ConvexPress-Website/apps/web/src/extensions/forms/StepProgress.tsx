@@ -90,7 +90,7 @@ export function StepProgress({
           return (
             <li
               key={step.index}
-              className="flex min-w-0 shrink items-center gap-1 sm:gap-1.5"
+              className="flex min-w-0 shrink items-center gap-1 last:shrink-0 sm:gap-1.5"
               aria-current={isCurrent ? "step" : undefined}
             >
               {canJump ? (
