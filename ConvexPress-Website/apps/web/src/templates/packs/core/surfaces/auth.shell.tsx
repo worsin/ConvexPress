@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
@@ -60,7 +60,8 @@ export default function CoreAuthShell({ data }: SurfaceProps<AuthShellSurfaceDat
       {/* Auth Card */}
       <Card className={cn("w-full", maxWidthClasses[maxWidth])}>
         <CardHeader className="text-center">
-          <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+          {/* The screen's one heading: "Sign in", "Reset your password"… */}
+          <h1 data-slot="card-title" className="text-sm font-semibold">{title}</h1>
           {description && (
             <CardDescription>{description}</CardDescription>
           )}
