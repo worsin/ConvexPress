@@ -67,6 +67,7 @@ mock.module("../useTemplateSettings", () => ({
 // View paint alone is isolated. The exact parser, data installer and component
 // lifecycle remain real; workerd separately renders all four actual packs.
 mock.module("../block-preview/CanonicalDocumentView", () => ({
+	preloadDocumentRenderers: () => {},
 	CanonicalDocumentView: ({tree,policy,data,synced,scope,composed,packId}) => {
     const displayTree=synced?resolveSyncedDisplay(synced,validateCanonicalTree(tree),scope).resolverTree:tree;
     const subscription=pageDataSubscription(data.grant);
@@ -77,18 +78,6 @@ mock.module("../block-preview/CanonicalDocumentView", () => ({
 }));
 // Submission adapters are covered by their own production-provider DOM suites.
 // This lifecycle harness isolates paint while keeping authorization/install real.
-mock.module("../block-renderer/form-embed-production", () => ({ ProductionFormEmbedProvider: ({children}) => children }));
-mock.module("../block-renderer/lead-magnet-production", () => ({ ProductionLeadMagnetProvider: ({children}) => children }));
-mock.module("../block-renderer/download-library-production", () => ({ ProductionDownloadLibraryProvider: ({children}) => children }));
-mock.module("../block-renderer/bundle-production", () => ({ ProductionBundleProvider: ({children}) => children }));
-mock.module("../block-renderer/wishlist-production", () => ({ ProductionWishlistProvider: ({children}) => children }));
-mock.module("../block-renderer/certificate-production", () => ({ ProductionCertificateProvider: ({children}) => children }));
-mock.module("../block-renderer/newsletter-production", () => ({ ProductionNewsletterProvider: ({children}) => children }));
-mock.module("../block-renderer/cart-summary-production", () => ({ ProductionCartSummaryProvider: ({children}) => children }));
-mock.module("../block-renderer/shopping-assistant-production", () => ({ ProductionShoppingAssistantProvider: ({children}) => children }));
-mock.module("../block-renderer/collection-cart-production", () => ({ ProductionCollectionCartProvider: ({children}) => children }));
-mock.module("../block-renderer/rsvp-production", () => ({ ProductionRsvpProvider: ({children}) => children, RsvpDraftScope: ({children}) => children }));
-mock.module("../block-renderer/poll-production", () => ({ ProductionPollProvider: ({children}) => children, PollDraftScope: ({children}) => children }));
 const actualHistory = await import("../../../hooks/useProductHistory");
 const realUseProductHistory = actualHistory.useProductHistory;
 let realHistory = false;

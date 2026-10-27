@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useConvex } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
@@ -7,15 +7,7 @@ import { ensurePollVisitorAcrossTabs, pollStorageKey, readPollVisitor, subscribe
 import { parsePollDefinition } from "../block-data/portable/pollContracts";
 import { FormSecurityControls } from "../../../extensions/forms/SecurityControls";
 import { retryPollWrite } from "../block-data/portable/pollRetry";
-
-const PollDrafts = createContext<Map<string, string> | null>(null);
-/** Retain only the visitor's unsent option key while authorized content is
- * cleared for renewal. No labels, results, identity or CAPTCHA proof is cached.
- * The owning document/session generation remounts this scope when it changes. */
-export function PollDraftScope({ children }: { children: ReactNode }) {
-  const [drafts] = useState(() => new Map<string, string>());
-  return <PollDrafts value={drafts}>{children}</PollDrafts>;
-}
+import { usePollDrafts } from "./drafts";
 
 /** Installed only inside an authorized public document. The owning generation
  * changes on account/session/client/environment/password changes. Native preview
@@ -29,7 +21,7 @@ export function ProductionPollProvider({ installationKey, generation, signedIn, 
   return <PollProvider value={value}>{children}</PollProvider>;
 }
 function LivePoll({ initial, installationKey, signedIn, password }: { initial: PollSnapshot; installationKey: string; signedIn: boolean; password?: string }) {
-  const drafts = useContext(PollDrafts);
+  const drafts = usePollDrafts();
   const client = useConvex(), [refresh, setRefresh] = useState(0);
   const [poll, setPoll] = useState<PollSnapshot | null | undefined>(undefined), [visitor, setVisitor] = useState<string | undefined>();
   const [acknowledged, setAcknowledged] = useState<string | undefined>();

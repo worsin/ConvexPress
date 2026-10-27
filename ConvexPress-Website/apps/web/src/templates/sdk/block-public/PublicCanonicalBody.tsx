@@ -1,18 +1,11 @@
 import { Suspense } from "react";
 import { opensWithHero } from "@/lib/blog/page-opening";
-import {ProductionLeadMagnetProvider} from "../block-renderer/lead-magnet-production";
-import { ProductionDownloadLibraryProvider } from "../block-renderer/download-library-production";
-import { ProductionBundleProvider } from "../block-renderer/bundle-production";
-import { ProductionWishlistProvider } from "../block-renderer/wishlist-production";
-import {ProductionRsvpProvider,RsvpDraftScope} from "../block-renderer/rsvp-production";
-import { ProductionCertificateProvider } from "../block-renderer/certificate-production";
-import { ProductionCartSummaryProvider } from "../block-renderer/cart-summary-production";
-import {ProductionShoppingAssistantProvider} from "../block-renderer/shopping-assistant-production";
 import { useProductHistory } from "../../../hooks/useProductHistory";
-import { ProductionCollectionCartProvider } from "../block-renderer/collection-cart-production";
 import {publicDocumentRefreshDelay} from "./refresh-delay";
 import { useLocation } from "@tanstack/react-router";
 import { BlockPaginationProvider } from "../block-renderer/pagination";
+import { PollDraftScope, RsvpDraftScope } from "../block-renderer/drafts";
+import { LiveBlockHosts, liveHostsFor } from "./live-hosts";
 import type { BlockPageRequest } from "../block-data/portable/postGridContracts";
 import { type PublicReadState } from "./subscription";
 import { subscribeCatalogDisplay } from "./catalog-continuation";
@@ -32,11 +25,8 @@ import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { usePublicViewer } from "@/lib/auth/usePublicViewer";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { useTemplateSettings } from "../useTemplateSettings";
-import { CanonicalDocumentView } from "../block-preview/CanonicalDocumentView";
+import { CanonicalDocumentView, preloadDocumentRenderers } from "../block-preview/CanonicalDocumentView";
 import type { BlockInsertion } from "../block-renderer/model";
-import { ProductionNewsletterProvider } from "../block-renderer/newsletter-production";
-import { ProductionFormEmbedProvider } from "../block-renderer/form-embed-production";
-import { ProductionPollProvider, PollDraftScope } from "../block-renderer/poll-production";
 import { useDisplayInstallation } from "../block-data/use-display-installation";
 import { canonicalDisplayDigest } from "../block-data/portable/documentContracts";
 import type {
@@ -253,16 +243,11 @@ function InstalledPublicDocument({
 	// Keep the saved activation synchronized with the authorized DTO. A validated
 	// temporary pack preview changes paint only, never the document or its grant.
 	if (savedPackId !== value.presentation.packId) return <Loading />;
+	const hosts = liveHostsFor(value);
+	// Start the blocks' renderers with the hosts, not after them.
+	preloadDocumentRenderers(packId, [value.document.blocks, ...(value.synced?.revisions.map(source => source.blocks) ?? [])]);
 	return (
-		<ProductionNewsletterProvider installationKey={`${value.scope.websiteKey}:${value.scope.instanceKey}:${generation}`}>
-		<ProductionLeadMagnetProvider password={password}><ProductionFormEmbedProvider password={password}>
-    <ProductionPollProvider installationKey={`${value.scope.websiteKey}:${value.scope.instanceKey}`} generation={generation} signedIn={value.viewerSubject !== null} password={password}>
-    <ProductionRsvpProvider instanceKey={value.scope.instanceKey} postId={value.document.id} generation={generation} signedIn={value.viewerSubject!==null} password={password}>
-    <ProductionCertificateProvider generation={generation}>
-    <ProductionCartSummaryProvider>
-    <ProductionDownloadLibraryProvider><ProductionBundleProvider><ProductionWishlistProvider>
-    <ProductionCollectionCartProvider>
-    <ProductionShoppingAssistantProvider>
+		<LiveBlockHosts hosts={hosts} value={value} generation={generation} password={password}>
 		<CanonicalDocumentView
 			tree={value.document.blocks}
 			synced={value.synced}
@@ -274,15 +259,7 @@ function InstalledPublicDocument({
 			packId={packId}
       insertion={insertion}
 		/>
-    </ProductionShoppingAssistantProvider>
-    </ProductionCollectionCartProvider>
-    </ProductionWishlistProvider></ProductionBundleProvider></ProductionDownloadLibraryProvider>
-    </ProductionCartSummaryProvider>
-    </ProductionCertificateProvider>
-    </ProductionRsvpProvider>
-    </ProductionPollProvider>
-		</ProductionFormEmbedProvider></ProductionLeadMagnetProvider>
-		</ProductionNewsletterProvider>
+		</LiveBlockHosts>
 	);
 }
 function Loading() {

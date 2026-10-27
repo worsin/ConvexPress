@@ -60,9 +60,9 @@ const STOREFRONT_CHUNK = /\/(?:chrome\.cartDrawer|CartDrawer|cartLine|useCart|Pr
 const ROUTE_BUDGETS = [
   // The public form page carries signups, including paid ones: no storefront code.
   { route: "/_marketing/forms/$slug", maxGzipBytes: Number.parseInt(process.env.BUNDLE_FORM_ROUTE_GZIP_BYTES ?? "600000", 10), noStorefront: true },
-  // A page body still wraps every block family's live-data provider (block-public/
-  // PublicCanonicalBody.tsx), storefront ones included; this holds it where it is.
-  { route: "/_marketing/", maxGzipBytes: Number.parseInt(process.env.BUNDLE_PAGE_ROUTE_GZIP_BYTES ?? "720000", 10), noStorefront: false },
+  // A page loads a block family's live host (forms, polls, the cart...) only when
+  // one of its blocks is on the page (block-public/live-hosts.tsx): no storefront.
+  { route: "/_marketing/", maxGzipBytes: Number.parseInt(process.env.BUNDLE_PAGE_ROUTE_GZIP_BYTES ?? "625000", 10), noStorefront: true },
 ];
 
 async function readStartManifest() {
