@@ -82,3 +82,18 @@ test("footer background image has a media picker in native and on-site field sch
     expect(image?.surfaces).toEqual(["chrome.footer"]);
   }
 });
+
+test("Inter is the bundled face: named by its self-hosted copy, never asked of Google Fonts", () => {
+  const { css, fonts } = settingsCss({ typography: { body: "Inter", display: "Inter" } });
+  expect(css).toContain("--font-sans: 'Inter Variable', system-ui, sans-serif;");
+  expect(css).toContain("--font-display: 'Inter Variable', var(--font-sans);");
+  expect(css).not.toContain("'Inter',");
+  expect(fonts).toEqual([]);
+});
+
+test("another body or display font loads from Google Fonts, with the bundled face behind it", () => {
+  const { css, fonts } = settingsCss({ typography: { body: "Lora", display: "Montserrat" } });
+  expect(css).toContain("--font-sans: 'Lora', 'Inter Variable', system-ui, sans-serif;");
+  expect(css).toContain("--font-display: 'Montserrat', var(--font-sans);");
+  expect(fonts).toEqual(["Lora", "Montserrat"]);
+});

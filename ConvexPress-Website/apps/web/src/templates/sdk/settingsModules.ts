@@ -24,12 +24,14 @@ export function settingsCss(values: Record<string, Record<string, unknown>>): { 
   const typography = values.typography ?? {};
   const display = typeof typography.display === "string" && FONT.test(typography.display) ? typography.display : null;
   const body = typeof typography.body === "string" && FONT.test(typography.body) ? typography.body : null;
+  // Inter is the bundled body face (index.css serves it as "Inter Variable"):
+  // it is named by that copy, never asked of Google Fonts.
   if (body) {
-    vars.push(`--font-sans: '${body}', 'Inter Variable', system-ui, sans-serif;`);
+    vars.push(`--font-sans: ${body === "Inter" ? "" : `'${body}', `}'Inter Variable', system-ui, sans-serif;`);
     if (body !== "Inter") fonts.push(body);
   }
   if (display) {
-    vars.push(`--font-display: '${display}', var(--font-sans);`);
+    vars.push(`--font-display: ${display === "Inter" ? "'Inter Variable'" : `'${display}'`}, var(--font-sans);`);
     if (display !== "Inter" && display !== body) fonts.push(display);
   }
   const scale = typography.scale;
