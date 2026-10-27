@@ -2,6 +2,8 @@ import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /** Core · help.category — a knowledge base category and its published articles. */
 import { Link } from "@tanstack/react-router";
 
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { helpTrail } from "@/lib/help-trail";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export type KbCategory = {
@@ -49,14 +51,7 @@ export default function CoreHelpCategory({ data }: SurfaceProps<HelpCategorySurf
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link to="/help" className="hover:text-foreground transition-colors">
-          Help Center
-        </Link>
-        <span className="mx-2">/</span>
-        <span>{category.name}</span>
-      </nav>
+      <Breadcrumbs className="mb-6" segments={helpTrail({ label: category.name })} />
 
       <h1 className="text-3xl font-bold">{category.name}</h1>
       {category.description && (

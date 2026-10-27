@@ -1,6 +1,8 @@
 /** Core · help.search — knowledge base search form and results. */
 import { Link } from "@tanstack/react-router";
 
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { helpTrail } from "@/lib/help-trail";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export type KbSearchResult = {
@@ -38,14 +40,7 @@ export default function CoreHelpSearch({ data }: SurfaceProps<HelpSearchSurfaceD
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link to="/help" className="hover:text-foreground transition-colors">
-          Help Center
-        </Link>
-        <span className="mx-2">/</span>
-        <span>Search</span>
-      </nav>
+      <Breadcrumbs className="mb-6" segments={helpTrail({ label: "Search" })} />
 
       {/* Search form */}
       <form className="mb-8 flex gap-2" onSubmit={handleSearchSubmit}>

@@ -6,6 +6,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import { BackToTop } from "@/components/layout/BackToTop";
 import { ContentWrapper } from "@/components/layout/ContentWrapper";
+import { helpRouteOwnsBreadcrumbs } from "@/lib/help-trail";
 import {
   getBackgroundInertProps,
   LayoutShellProvider,
@@ -78,7 +79,9 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   const pathname=useLocation({select:location=>location.pathname});
   const routeOwnsBreadcrumbs=/^\/(?:category|tag)\/[^/]+\/?$/.test(pathname)
     // A resume URL contains a bearer credential, not a navigation label.
-    || /^\/forms\/[^/]+\/resume\/[^/]+\/?$/.test(pathname);
+    || /^\/forms\/[^/]+\/resume\/[^/]+\/?$/.test(pathname)
+    // Help categories, articles, collections and search name their own trail.
+    || helpRouteOwnsBreadcrumbs(pathname);
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
   const headerMenu = useHeaderMenu(headerConfig.navigation);
