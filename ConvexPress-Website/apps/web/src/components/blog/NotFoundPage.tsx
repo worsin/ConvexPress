@@ -30,7 +30,8 @@ export function NotFoundPage({ className }: NotFoundPageProps) {
     if (hasLogged.current) return;
     hasLogged.current = true;
 
-    const url = location.pathname + (location.search ? `?${location.search}` : "");
+    // searchStr is the query string as written ("?a=1"); search is the parsed object.
+    const url = location.pathname + location.searchStr;
 
     logNotFound({
       url,

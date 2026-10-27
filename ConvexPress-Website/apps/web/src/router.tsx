@@ -7,7 +7,8 @@ import { ConvexHttpClient } from "convex/browser";
 import Loader from "./components/loader";
 import { getRequestConvexUrl, getSiteRuntime } from "./lib/site-runtime";
 import { ErrorTemplate } from "./templates/packs/core/parts/runtime-error";
-import { NotFoundTemplate } from "./templates/packs/core/parts/not-found";
+import CoreNotFound from "./templates/packs/core/surfaces/system.notFound";
+import { Surface } from "./templates/sdk/Surface";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
@@ -43,7 +44,9 @@ export function getRouter() {
     trailingSlash: "preserve",
     defaultPendingComponent: () => <Loader />,
     defaultErrorComponent: ({ error, reset }) => <ErrorTemplate error={error} reset={reset} />,
-    defaultNotFoundComponent: () => <NotFoundTemplate />,
+    // A route whose loader found nothing (notFound()) shows the active pack's
+    // in-layout 404, with search, which also logs the hit for the 404 report.
+    defaultNotFoundComponent: () => <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />,
     context: { queryClient, convexQueryClient },
   });
 

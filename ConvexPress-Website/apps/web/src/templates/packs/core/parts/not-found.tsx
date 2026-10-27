@@ -23,13 +23,15 @@ export function NotFoundTemplate({ children }: NotFoundTemplateProps) {
     >
       {children ?? (
         <>
-          <h1
+          <p
+            aria-hidden="true"
             className="text-6xl font-bold"
             style={{ fontFamily: "var(--sh-font-heading, inherit)" }}
           >
             404
-          </h1>
-          <p className="mt-4 text-xl text-muted-foreground">
+          </p>
+          <h1 className="mt-4 text-xl font-semibold">Page not found</h1>
+          <p className="mt-2 text-muted-foreground">
             The page you are looking for could not be found.
           </p>
           <a
