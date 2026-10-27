@@ -10,6 +10,8 @@ import { api } from "@backend/convex/_generated/api";
 import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { asId } from "@/lib/utils";
 import { OfferEditor } from "@/components/subscriptions/catalog/OfferEditor";
+import { ManagedRecordGate } from "@/components/shared/ManagedRecord";
+import { useManagedRecord } from "@/components/shared/useManagedRecord";
 
 export const Route = createFileRoute("/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit")({
   component: EditOfferPage,
@@ -18,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/_admin/commerce/subscripti
 function EditOfferPage() {
   const { offerId } = Route.useParams();
   const editor = useQuery(api.commerceSubscriptions.adminCatalog.getOfferEditor, { offerId: asId<"commerce_subscription_offers">(offerId) });
+  const managed = useManagedRecord("subscriptionOffer", offerId);
   useBreadcrumbTitle(offerId, editor?.offer.title);
 
   return (
@@ -34,7 +37,9 @@ function EditOfferPage() {
         <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">This offer was not found.</div>
       ) : (
         // Remount when another offer opens, so the form starts from its values.
-        <OfferEditor key={editor.offer._id} existing={editor} />
+        <ManagedRecordGate managed={managed} what="This offer">
+          <OfferEditor key={editor.offer._id} existing={editor} />
+        </ManagedRecordGate>
       )}
     </div>
   );

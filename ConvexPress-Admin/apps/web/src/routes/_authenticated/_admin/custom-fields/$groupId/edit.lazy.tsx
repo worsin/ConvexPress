@@ -10,6 +10,8 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { FieldGroupBuilder } from "@/components/custom-fields/FieldGroupBuilder";
+import { ManagedRecordGate } from "@/components/shared/ManagedRecord";
+import { useManagedRecord } from "@/components/shared/useManagedRecord";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createLazyFileRoute(
@@ -31,6 +33,7 @@ function EditFieldGroupPage() {
   const fields = useQuery(api.customFields.queries.getFieldsByGroup, {
     groupId: typedGroupId,
   });
+  const managed = useManagedRecord("fieldGroup", groupId);
 
   // Loading state
   if (group === undefined || fields === undefined) {
@@ -67,5 +70,9 @@ function EditFieldGroupPage() {
     );
   }
 
-  return <FieldGroupBuilder group={group} fields={fields ?? []} />;
+  return (
+    <ManagedRecordGate managed={managed} what="This field group">
+      <FieldGroupBuilder group={group} fields={fields ?? []} />
+    </ManagedRecordGate>
+  );
 }

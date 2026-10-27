@@ -1,4 +1,5 @@
 import { sha256Hex } from "../../canonicalDocuments/foundation/shared/fingerprints";
+import { assertNotManaged } from "../../managedRecords/helpers";
 import { generateConfirmationToken, CONFIRMATION_RECEIPT_TTL_MS } from "./tokens";
 import { contactSourceAllowed } from "../../canonicalDocuments/contactSource";
 import { initializeEmptyFormCount, insertCountedFormSubmission, patchCountedFormSubmission, readCompletedFormCount } from "../../helpers/formSubmissionCounts";
@@ -749,6 +750,7 @@ export const update = mutation({
 
     const form = await ctx.db.get(args.id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
+    await assertNotManaged(ctx, "form", args.id, "This form");
 
     const patch: Record<string, unknown> = {};
     const changedFields: string[] = [];
@@ -840,6 +842,7 @@ export const publish = mutation({
     await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(id);
+    await assertNotManaged(ctx, "form", id, "This form");
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
     if (form.status === "published") return form;
 
@@ -878,6 +881,7 @@ export const unpublish = mutation({
     await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(id);
+    await assertNotManaged(ctx, "form", id, "This form");
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
     if (form.status === "draft") return form;
 
@@ -912,6 +916,7 @@ export const remove = mutation({
     await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(id);
+    await assertNotManaged(ctx, "form", id, "This form");
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
 
     await ctx.db.patch("forms", id, {

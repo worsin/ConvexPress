@@ -61,6 +61,7 @@ import {
 import { requirePluginEnabled } from "../helpers/plugins";
 
 import { v } from "convex/values";
+import { assertNotManaged } from "../managedRecords/helpers";
 // ─── Validation Helpers (local) ─────────────────────────────────────────────
 
 type LocationRuleCondition = {
@@ -502,6 +503,7 @@ export const updateGroup = mutation({
 
     // 2. Fetch existing group
     const group = await ctx.db.get("fieldGroups", args.groupId);
+    await assertNotManaged(ctx, "fieldGroup", args.groupId, "This field group");
     if (!group) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -664,6 +666,7 @@ export const deleteGroup = mutation({
 
     // 2. Fetch group
     const group = await ctx.db.get("fieldGroups", args.groupId);
+    await assertNotManaged(ctx, "fieldGroup", args.groupId, "This field group");
     if (!group) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -755,6 +758,7 @@ export const createField = mutation({
 
     // 2. Validate group exists
     const group = await ctx.db.get("fieldGroups", args.groupId);
+    await assertNotManaged(ctx, "fieldGroup", args.groupId, "This field group");
     if (!group) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -873,6 +877,7 @@ export const updateField = mutation({
 
     // 2. Fetch existing field
     const field = await ctx.db.get("fieldDefinitions", args.fieldId);
+    if (field) await assertNotManaged(ctx, "fieldGroup", field.groupId, "This field group");
     if (!field) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -985,6 +990,7 @@ export const deleteField = mutation({
 
     // 2. Fetch field
     const field = await ctx.db.get("fieldDefinitions", args.fieldId);
+    if (field) await assertNotManaged(ctx, "fieldGroup", field.groupId, "This field group");
     if (!field) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -1073,6 +1079,7 @@ export const reorderFields = mutation({
 
     // 2. Validate group exists
     const group = await ctx.db.get("fieldGroups", args.groupId);
+    await assertNotManaged(ctx, "fieldGroup", args.groupId, "This field group");
     if (!group) {
       throw new ConvexError({
         code: "NOT_FOUND",

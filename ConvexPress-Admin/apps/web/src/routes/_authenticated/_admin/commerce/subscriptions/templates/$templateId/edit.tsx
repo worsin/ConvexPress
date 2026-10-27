@@ -10,6 +10,8 @@ import { api } from "@backend/convex/_generated/api";
 import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { asId } from "@/lib/utils";
 import { TemplateEditor } from "@/components/subscriptions/catalog/TemplateEditor";
+import { ManagedRecordGate } from "@/components/shared/ManagedRecord";
+import { useManagedRecord } from "@/components/shared/useManagedRecord";
 
 export const Route = createFileRoute("/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit")({
   component: EditTemplatePage,
@@ -20,6 +22,7 @@ function EditTemplatePage() {
   const editor = useQuery(api.commerceSubscriptions.adminCatalog.getTemplateEditor, {
     templateId: asId<"commerce_subscription_templates">(templateId),
   });
+  const managed = useManagedRecord("subscriptionTemplate", templateId);
   useBreadcrumbTitle(templateId, editor?.template.title);
 
   return (
@@ -36,7 +39,9 @@ function EditTemplatePage() {
       ) : editor === null ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">This template was not found.</div>
       ) : (
-        <TemplateEditor key={editor.template._id} existing={editor} />
+        <ManagedRecordGate managed={managed} what="This template">
+          <TemplateEditor key={editor.template._id} existing={editor} />
+        </ManagedRecordGate>
       )}
     </div>
   );

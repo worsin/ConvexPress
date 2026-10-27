@@ -36,6 +36,7 @@ import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
+import { assertNotManaged } from "../../managedRecords/helpers";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 /** The capability every screen and mutation here requires. */
@@ -357,6 +358,7 @@ export const createConfirmation = mutation({
   returns: v.union(v.null(), formsExtensionDocs.form_confirmations),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, MANAGE_CONFIRMATIONS);
+    await assertNotManaged(ctx, "form", args.formId, "This form");
     await requirePluginEnabled(ctx, "forms");
     await ensureDefault(ctx, args.formId, user._id);
 
@@ -414,6 +416,7 @@ export const updateConfirmation = mutation({
     await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(confirmationId);
+    if (existing) await assertNotManaged(ctx, "form", existing.formId, "This form");
     if (!existing) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -462,6 +465,7 @@ export const reorderConfirmations = mutation({
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, order }) => {
     await requireCan(ctx, MANAGE_CONFIRMATIONS);
+    await assertNotManaged(ctx, "form", formId, "This form");
     await requirePluginEnabled(ctx, "forms");
     const rows = await Promise.all(order.map((id) => ctx.db.get(id)));
     if (rows.some((row) => !row || row.formId !== formId)) {
@@ -485,6 +489,7 @@ export const setDefaultConfirmation = mutation({
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, confirmationId }) => {
     const user = await requireCan(ctx, MANAGE_CONFIRMATIONS);
+    await assertNotManaged(ctx, "form", formId, "This form");
     await requirePluginEnabled(ctx, "forms");
 
     const target = await ctx.db.get(confirmationId);
@@ -529,6 +534,7 @@ export const deleteConfirmation = mutation({
     await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(confirmationId);
+    if (existing) await assertNotManaged(ctx, "form", existing.formId, "This form");
     if (!existing) {
       throw new ConvexError({
         code: "NOT_FOUND",

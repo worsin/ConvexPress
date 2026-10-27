@@ -43,6 +43,7 @@ import { displayableBenefitValidator } from "../membership/validators";
 import { actionPlan, choiceForOffer, planParam, type ActionPlan } from "../extensions/forms/planLinks";
 
 import { commerceSubscriptionsDocs } from "../schema/commerceSubscriptions.docs.generated";
+import { assertNotManaged } from "../managedRecords/helpers";
 // ─── Shared shape validators ────────────────────────────────────────────────
 
 const featureValidator = v.object({
@@ -240,6 +241,7 @@ export const updateOffer = mutation({
     await requireCan(ctx, "manage_options");
 
     const existing = await ctx.db.get(args.offerId);
+    await assertNotManaged(ctx, "subscriptionOffer", args.offerId, "This offer");
     if (!existing) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -372,6 +374,7 @@ export const archiveOffer = mutation({
     await requireCan(ctx, "manage_options");
 
     const existing = await ctx.db.get(args.offerId);
+    await assertNotManaged(ctx, "subscriptionOffer", args.offerId, "This offer");
     if (!existing) {
       throw new ConvexError({
         code: "NOT_FOUND",

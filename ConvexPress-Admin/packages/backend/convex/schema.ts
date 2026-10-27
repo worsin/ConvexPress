@@ -19,6 +19,7 @@ import { contentPromotionTables } from "./schema/contentPromotion";
 import { extensionTables } from "./schema/_extensionsIndex.generated";
 import { usersTables } from "./schema/users";
 import { authorCountTables } from "./schema/authorCounts";
+import { managedRecordTables } from "./schema/managedRecords";
 import { rolesTables } from "./schema/roles";
 import { eventsTables } from "./schema/events";
 import { settingsTables } from "./schema/settings";
@@ -79,6 +80,7 @@ export default defineSchema(withMediaReferenceIndexes({
   ...localizationTables,
   ...usersTables,
   ...authorCountTables,
+  ...managedRecordTables,
   ...rolesTables,
   ...eventsTables,
   ...settingsTables,

@@ -66,6 +66,7 @@ import { getCurrentUser } from "../../helpers/auth";
 
 import { formsExtensionDocs } from "./schema.docs.generated";
 import { ALREADY_SUBSCRIBED_MESSAGE } from "../../commerceSubscriptions/ownership";
+import { assertNotManaged } from "../../managedRecords/helpers";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
 /** The capability every action screen and mutation requires. */
@@ -532,6 +533,7 @@ export const createAction = mutation({
   returns: v.union(v.null(), formsExtensionDocs.form_actions),
   handler: async (ctx, args) => {
     await requireCan(ctx, MANAGE_ACTIONS);
+    await assertNotManaged(ctx, "form", args.formId, "This form");
     await requirePluginEnabled(ctx, "forms");
 
     const label = args.label.trim();
@@ -593,6 +595,7 @@ export const updateAction = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Action not found." });
     }
 
+    await assertNotManaged(ctx, "form", action.formId, "This form");
     const patch: Partial<Doc<"form_actions">> = {};
     if (args.label !== undefined) {
       const label = args.label.trim();
@@ -640,6 +643,7 @@ export const reorderActions = mutation({
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, orderedIds }) => {
     await requireCan(ctx, MANAGE_ACTIONS);
+    await assertNotManaged(ctx, "form", formId, "This form");
     await requirePluginEnabled(ctx, "forms");
     for (const [order, actionId] of orderedIds.entries()) {
       const row = await ctx.db.get(actionId);
@@ -662,6 +666,7 @@ export const deleteAction = mutation({
     if (!action) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Action not found." });
     }
+    await assertNotManaged(ctx, "form", action.formId, "This form");
     // Delete the config row only; run history (form_action_runs) is retained.
     await ctx.db.delete("form_actions", actionId);
     return { success: true };
