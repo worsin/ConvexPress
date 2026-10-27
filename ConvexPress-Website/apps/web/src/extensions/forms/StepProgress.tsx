@@ -61,7 +61,7 @@ export function StepProgress({
         ) : null}
       </p>
       {/* Seven steps fit a 320px phone: the connectors shrink before anything overflows. */}
-      <ol className="flex min-w-0 items-center gap-1 sm:gap-1.5">
+      <ol className="flex min-w-0 items-center gap-0.5 sm:gap-1.5">
         {activeSteps.map((step, i) => {
           const isCurrent = i === currentIndex;
           const isVisited = i < currentIndex || i <= furthestIndex;
