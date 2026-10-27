@@ -1,13 +1,14 @@
 import { typeScale } from "./type-scale.mjs";
 import { canonicalBlockWatch } from "./canonical-block-watch.mjs";
 import { sanitizerPostcssStub, sanitizerPostcssStubEsbuild } from "./sanitizer-postcss-stub.mjs";
+import { requiredSiteEnv } from "./required-env.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const appDir = fileURLToPath(new URL(".", import.meta.url));
@@ -61,6 +62,8 @@ export default defineConfig(() => {
       esbuildOptions: { plugins: [sanitizerPostcssStubEsbuild] },
     },
     plugins: [
+      // A production build stops when apps/web/site-env.json's "build" variables are missing.
+      requiredSiteEnv({ appDir, loadEnv }),
       sanitizerPostcssStub(),
       canonicalBlockWatch({root:canonicalBlocksDir,discoveryId:path.join(appDir,"src/templates/sdk/block-renderer/discovery.ts")}),
       tsconfigPaths(),
