@@ -414,6 +414,7 @@ export const opaqueMediaReferences = {
     "topics"
   ],
   "settings": [
+    "updatedByRef",
     "values"
   ],
   "syncedBlockRevisions": [

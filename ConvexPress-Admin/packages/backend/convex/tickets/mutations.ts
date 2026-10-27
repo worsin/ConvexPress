@@ -625,6 +625,7 @@ export const assign = mutation({
     const now = Date.now();
     await ctx.db.patch("ticket_tickets", args.ticketId, {
       assignedTo: args.assigneeId,
+      assignedAgent: undefined,
       assignedAt: now,
       // Auto-transition to inProgress if currently open
       ...(ticket.status === "open" ? { status: "inProgress" } : {}),
@@ -660,6 +661,7 @@ export const unassign = mutation({
 
     await ctx.db.patch("ticket_tickets", args.ticketId, {
       assignedTo: undefined,
+      assignedAgent: undefined,
       assignedAt: undefined,
       updatedAt: Date.now(),
     });

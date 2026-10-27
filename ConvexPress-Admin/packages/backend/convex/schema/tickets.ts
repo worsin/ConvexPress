@@ -110,6 +110,12 @@ export const ticketTables = {
 
     // ── Assignment ────────────────────────────────────────────────────────
     assignedTo: v.optional(v.id("users")),
+    /**
+     * An agent of the application that works the queue for its own staff
+     * (tickets/operator.ts), who has no ConvexPress account: `ref` is that
+     * application's identifier for them. Never set together with assignedTo.
+     */
+    assignedAgent: v.optional(v.object({ ref: v.string(), name: v.string() })),
     assignedAt: v.optional(v.number()),
 
     // ── Source ─────────────────────────────────────────────────────────────
@@ -179,6 +185,8 @@ export const ticketTables = {
     // ── Sender ────────────────────────────────────────────────────────────
     senderType: messageSenderTypeValidator,
     senderId: v.optional(v.id("users")),
+    /** An operator application's identifier for the agent who wrote it (tickets/operator.ts). */
+    senderRef: v.optional(v.string()),
     senderName: v.string(),
     senderEmail: v.optional(v.string()),
 
@@ -231,7 +239,10 @@ export const ticketTables = {
     content: v.string(), // Supports {{variable}} substitution
     category: v.string(),
     usageCount: v.number(),
-    createdBy: v.id("users"),
+    /** Unset when an operator application wrote it: see createdByRef. */
+    createdBy: v.optional(v.id("users")),
+    /** An operator application's identifier for the agent who wrote it (tickets/operator.ts). */
+    createdByRef: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
