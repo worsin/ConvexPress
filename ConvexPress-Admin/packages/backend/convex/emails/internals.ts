@@ -61,6 +61,7 @@ import {
   emailStatusValidator,
 } from "./validators";
 import { DEFAULT_TEMPLATES, templateActiveByDefault } from "./templateDefaults";
+import { canonicalJson } from "../canonicalDocuments/foundation/shared/fingerprints";
 import {
   EMAIL_TEMPLATE_REGISTRY_BY_SLUG,
 } from "./registry";
@@ -359,8 +360,8 @@ export async function runBootstrapTemplates(ctx: Pick<MutationCtx, "db">, now = 
       existing.category !== templateDef.category ||
       existing.priority !== templateDef.priority ||
       existing.recipientType !== templateDef.recipientType ||
-      JSON.stringify(existing.availableVariables) !==
-        JSON.stringify(templateDef.availableVariables) ||
+      // Stored objects come back with their keys in another order.
+      canonicalJson(existing.availableVariables) !== canonicalJson(templateDef.availableVariables) ||
       existing.defaultSubjectTemplate !== templateDef.subjectTemplate ||
       existing.defaultBodyHtml !== templateDef.bodyHtml;
 
