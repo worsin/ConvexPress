@@ -33,25 +33,41 @@ function publicRedirect(rule: Doc<"redirects">, resolvedTargetUrl?: string) {
   };
 }
 
+/**
+ * The address as asked for, then with its path's trailing slash added or
+ * removed. The website serves every page without one; rules typed with one,
+ * or created from older permalinks, still match.
+ */
+export function slashForms(url: string): string[] {
+  const queryAt = url.indexOf("?");
+  const path = queryAt >= 0 ? url.slice(0, queryAt) : url;
+  const query = queryAt >= 0 ? url.slice(queryAt) : "";
+  if (path === "/" || path === "") return [url];
+  const twin = path.endsWith("/") ? path.replace(/\/+$/, "") || "/" : `${path}/`;
+  return [url, twin + query];
+}
+
 export const resolveRedirect = query({
   args: {
     url: v.string(),
   },
   returns: v.union(v.null(), resolvedRedirectValidator),
   handler: async (ctx, args) => {
-    const url = args.url;
+    const forms = slashForms(args.url);
 
-    const exactMatches = await ctx.db
-      .query("redirects")
-      .withIndex("by_source_url", (q) =>
-        q.eq("sourceUrl", url),
-      )
-      .collect();
+    for (const form of forms) {
+      const exactMatches = await ctx.db
+        .query("redirects")
+        .withIndex("by_source_url", (q) =>
+          q.eq("sourceUrl", form),
+        )
+        .collect();
 
-    const exactMatch = exactMatches.find(
-      (r) => r.enabled && r.matchType === "exact",
-    );
-    if (exactMatch) return publicRedirect(exactMatch);
+      const exactMatch = exactMatches.find(
+        (r) => r.enabled && r.matchType === "exact",
+      );
+      if (exactMatch) return publicRedirect(exactMatch);
+    }
 
     const enabledRedirects = await ctx.db
       .query("redirects")
@@ -60,27 +76,31 @@ export const resolveRedirect = query({
       )
       .collect();
 
-    const prefixMatches = enabledRedirects
-      .filter((r) => r.matchType === "prefix" && url.startsWith(r.sourceUrl))
-      .sort((a, b) => b.sourceUrl.length - a.sourceUrl.length);
+    for (const url of forms) {
+      const prefixMatches = enabledRedirects
+        .filter((r) => r.matchType === "prefix" && url.startsWith(r.sourceUrl))
+        .sort((a, b) => b.sourceUrl.length - a.sourceUrl.length);
 
-    if (prefixMatches.length > 0) {
-      const bestPrefix = prefixMatches[0];
-      const remainder = url.slice(bestPrefix.sourceUrl.length);
-      return publicRedirect(bestPrefix, bestPrefix.targetUrl + remainder);
+      if (prefixMatches.length > 0) {
+        const bestPrefix = prefixMatches[0];
+        const remainder = url.slice(bestPrefix.sourceUrl.length);
+        return publicRedirect(bestPrefix, bestPrefix.targetUrl + remainder);
+      }
     }
 
     const regexRedirects = enabledRedirects.filter(
       (r) => r.matchType === "regex",
     );
-    for (const redirect of regexRedirects) {
-      try {
-        const regex = new RegExp(redirect.sourceUrl);
-        if (regex.test(url)) {
-          return publicRedirect(redirect, url.replace(regex, redirect.targetUrl));
+    for (const url of forms) {
+      for (const redirect of regexRedirects) {
+        try {
+          const regex = new RegExp(redirect.sourceUrl);
+          if (regex.test(url)) {
+            return publicRedirect(redirect, url.replace(regex, redirect.targetUrl));
+          }
+        } catch {
+          continue;
         }
-      } catch {
-        continue;
       }
     }
 
