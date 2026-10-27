@@ -35,7 +35,7 @@ import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 // and lets Vite update it without a second, independently timestamped head link.
 import "../index.css";
 import "../templates/sdk/block-renderer/critical-styles";
-import { resolveSiteName, rememberSiteName } from "@/lib/seo/head";
+import { rememberSearchVisibility, resolveSiteName, rememberSiteName } from "@/lib/seo/head";
 import { SiteNameBootstrap } from "@/components/layout/SiteNameBootstrap";
 
 export interface RouterAppContext {
@@ -63,20 +63,18 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   // use the site's name on the very first server render.
   beforeLoad: async ({ context: { queryClient } }) => {
     try {
-      const settings = (await queryClient.ensureQueryData(
-        convexQuery(api.settings.queries.getPublic, {}),
-      )) as { siteTitle?: string } | null;
+      const settings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
       rememberSiteName(settings?.siteTitle);
+      rememberSearchVisibility(settings?.searchEngineVisibility);
     } catch {
       // Settings unavailable: titles fall back to the generic name.
     }
   },
   loader: async ({ context: { queryClient } }): Promise<{ authConfig: WebsiteAuthConfig }> => {
     try {
-      const settings = (await queryClient.ensureQueryData(
-        convexQuery(api.settings.queries.getPublic, {}),
-      )) as { siteTitle?: string } | null;
+      const settings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
       rememberSiteName(settings?.siteTitle);
+      rememberSearchVisibility(settings?.searchEngineVisibility);
     } catch {
       // Settings unavailable: titles fall back to the generic name.
     }

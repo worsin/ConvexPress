@@ -10,6 +10,30 @@ const FALLBACK_SITE_NAME = "ConvexPress";
  */
 let knownSiteName: string | null = null;
 
+/**
+ * Settings › Reading › "Discourage search engines": every page is noindex,
+ * nofollow while it's set (staging and preview copies). Process-level like
+ * the site name; the client learns it from `SiteNameBootstrap`.
+ */
+let discourageSearchEngines = false;
+
+export function rememberSearchVisibility(visible?: boolean | null): void {
+  if (typeof visible === "boolean") discourageSearchEngines = !visible;
+}
+
+export function searchEnginesDiscouraged(): boolean {
+  if (typeof window !== "undefined") {
+    const flag: unknown = Reflect.get(window, "__CONVEXPRESS_NOINDEX__");
+    if (typeof flag === "boolean") return flag;
+  }
+  return discourageSearchEngines;
+}
+
+/** The robots value a page asks for, unless the site discourages search engines. */
+export function effectiveRobots(requested: string | undefined): string {
+  return searchEnginesDiscouraged() ? "noindex, nofollow" : requested || "index, follow";
+}
+
 export function rememberSiteName(name?: string | null): void {
   const trimmed = typeof name === "string" ? name.trim() : "";
   if (trimmed) knownSiteName = trimmed;
@@ -101,7 +125,7 @@ export function buildSeoHead(input: SeoHeadInput) {
     meta.push({ name: "description", content: input.description });
   }
 
-  meta.push({ name: "robots", content: input.robots || "index, follow" });
+  meta.push({ name: "robots", content: effectiveRobots(input.robots) });
 
   if (input.canonical) {
     links.push({ rel: "canonical", href: input.canonical });

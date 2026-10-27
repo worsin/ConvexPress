@@ -20,3 +20,23 @@ for (const name of [
     dom.window.close();
   });
 }
+
+test("the bootstrap tells the client when the site discourages search engines, and pages say noindex", async () => {
+  const { buildSeoHead, effectiveRobots, rememberSearchVisibility } = await import("@/lib/seo/head");
+  rememberSiteName("Northstar");
+  rememberSearchVisibility(false);
+  try {
+    const dom = new JSDOM(renderToStaticMarkup(<SiteNameBootstrap />), { runScripts: "dangerously" });
+    expect(dom.window.__CONVEXPRESS_NOINDEX__).toBe(true);
+    dom.window.close();
+    expect(effectiveRobots("index, follow")).toBe("noindex, nofollow");
+    expect(buildSeoHead({ title: "Pricing" }).meta.some((tag) => tag.name === "robots" && tag.content === "noindex, nofollow")).toBe(true);
+  } finally {
+    rememberSearchVisibility(true);
+  }
+  const dom = new JSDOM(renderToStaticMarkup(<SiteNameBootstrap />), { runScripts: "dangerously" });
+  expect(dom.window.__CONVEXPRESS_NOINDEX__).toBeUndefined();
+  dom.window.close();
+  expect(effectiveRobots("noindex, follow")).toBe("noindex, follow");
+  expect(effectiveRobots(undefined)).toBe("index, follow");
+});
