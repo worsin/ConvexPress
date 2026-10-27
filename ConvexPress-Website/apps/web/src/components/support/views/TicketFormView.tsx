@@ -19,6 +19,11 @@ interface TicketFormViewProps {
   onCancel: () => void;
 }
 
+/** The sign-in page, returning to the page the widget was opened on. */
+export function signInHref(returnTo: string): string {
+  return returnTo && returnTo !== "/" ? `/login?returnTo=${encodeURIComponent(returnTo)}` : "/login";
+}
+
 export function TicketFormView({
   prefillQuery,
   onSuccess,
@@ -91,8 +96,14 @@ export function TicketFormView({
       <div className="flex flex-col items-center gap-3 p-8 text-center">
         <Lock className="h-8 w-8 text-muted-foreground/50" />
         <p className="text-sm text-muted-foreground">
-          Please sign in to create a ticket.
+          Sign in to open a ticket and follow the replies here.
         </p>
+        <a
+          href={signInHref(typeof window === "undefined" ? "/" : `${window.location.pathname}${window.location.search}`)}
+          className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Sign in
+        </a>
       </div>
     );
   }
