@@ -13,6 +13,10 @@ import {
   cspViolations,
   readConfig as readSiteConfig,
   byteRange,
+  DEFAULT_ERROR_PAGE,
+  errorPageResponse,
+  replacesFailure,
+  isPageNavigation,
   preferredEncoding,
   securityHeaders,
   staticFile,
@@ -186,5 +190,43 @@ describe("range requests", () => {
     expect(byteRange("bytes=0-1,5-9", 1000)).toBeNull();
     expect(byteRange("items=0-1", 1000)).toBeNull();
     expect(byteRange(null, 1000)).toBeNull();
+  });
+});
+
+describe("a page that can't be rendered", () => {
+  const page = (method = "GET", accept = "text/html,application/xhtml+xml") => new Request("https://site.example/about", { method, headers: { accept } });
+
+  test("only a visitor opening a page gets the error page; data, assets and posts keep their own errors", () => {
+    expect(isPageNavigation(page())).toBe(true);
+    expect(isPageNavigation(page("HEAD"))).toBe(true);
+    expect(isPageNavigation(page("GET", "application/json"))).toBe(false);
+    expect(isPageNavigation(page("GET", "*/*"))).toBe(false);
+    expect(isPageNavigation(page("POST"))).toBe(false);
+  });
+
+  test("a 5xx gives way to the error page: always when bare, and an app-rendered one when the site ships its own page", () => {
+    const json = () => new Response("{}", { status: 500, headers: { "content-type": "application/json" } });
+    const html = () => new Response("<!doctype html>", { status: 500, headers: { "content-type": "text/html; charset=utf-8" } });
+    expect(replacesFailure(json(), false)).toBe(true);
+    expect(replacesFailure(new Response("oops", { status: 502 }), false)).toBe(true);
+    expect(replacesFailure(html(), false)).toBe(false);
+    expect(replacesFailure(html(), true)).toBe(true);
+    expect(replacesFailure(new Response("{}", { status: 404, headers: { "content-type": "application/json" } }), true)).toBe(false);
+  });
+
+  test("the error page is a 503 that asks to be retried and is never cached", async () => {
+    const response = errorPageResponse("<p>down</p>", page(), { "X-Content-Type-Options": "nosniff" });
+    expect(response.status).toBe(503);
+    expect(response.headers.get("retry-after")).toBe("10");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(await response.text()).toBe("<p>down</p>");
+    expect(await errorPageResponse("<p>down</p>", page("HEAD"), {}).text()).toBe("");
+  });
+
+  test("the default page retries on its own and isn't indexed", () => {
+    expect(DEFAULT_ERROR_PAGE).toContain('http-equiv="refresh"');
+    expect(DEFAULT_ERROR_PAGE).toContain('name="robots" content="noindex"');
   });
 });
