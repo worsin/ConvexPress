@@ -519,6 +519,8 @@ async function renderSampleEmail(
     site_name: settings.siteName,
     site_url: settings.siteUrl,
     unsubscribe_url: settings.unsubscribeUrl,
+    // The name asked for, over the template's sample one.
+    ...(args.recipientName ? { recipient_name: args.recipientName } : {}),
     ...parsedOverrides,
     // The site's real look: a test shows what customers receive.
     ...emailBrandVariables(settings.branding, settings),
