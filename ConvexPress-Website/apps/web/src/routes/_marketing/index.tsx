@@ -59,8 +59,12 @@ export const Route = createFileRoute("/_marketing/")({
 		// The home page is the site's own: Settings › SEO's homepage title and
 		// description, and the site's WebSite and Organization structured data.
 		const share = await loadSiteShare(queryClient).catch(() => null);
+		// A slow or failed read of the front page's content (a query past the
+		// backend's time limit under load) must not take the homepage down: the
+		// page renders without it, as one whose content isn't loaded yet.
+		const canonical = await loadAnonymousCanonical(frontPage, deps.request).catch(() => null);
 		return {
-      canonical: await loadAnonymousCanonical(frontPage, deps.request),
+      canonical,
 			seoHead: buildIndexablePageHead({
 				title: share ? homepageTitle(share) : siteTitle,
 				description:
