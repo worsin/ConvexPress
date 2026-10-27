@@ -470,6 +470,15 @@ crons.daily(
   internal.commerceSubscriptions.internals.emitTrialEndingEvents,
 );
 
+// Daily renewal notice for yearly (and longer) plans renewing in ~30 days.
+// Emits `commerce.subscription_renewal_upcoming`; automatic-renewal laws ask
+// for this notice before a term of a year or more renews.
+crons.daily(
+  "subscription-renewal-notice",
+  { hourUTC: 12, minuteUTC: 15 },
+  internal.commerceSubscriptions.internals.emitRenewalUpcomingEvents,
+);
+
 // Daily store-credit expiration sweep (Wave 11.3). Writes `expire`
 // ledger rows that zero out balances whose issue rows have an
 // `expiresAt` in the past.

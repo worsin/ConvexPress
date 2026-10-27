@@ -346,6 +346,7 @@ export const SUBSCRIPTION_EVENTS = {
   RENEWED: "commerce.subscription_renewed",
   PAST_DUE: "commerce.subscription_past_due",
   TRIAL_ENDING: "commerce.subscription_trial_ending",
+  RENEWAL_UPCOMING: "commerce.subscription_renewal_upcoming",
   PAUSED: "commerce.subscription_paused",
   RESUMED: "commerce.subscription_resumed",
   CANCEL_SCHEDULED: "commerce.subscription_cancel_scheduled",

@@ -302,7 +302,7 @@ export const commerceSubscriptionTables = {
     manualBilling: v.optional(v.boolean()),
     // v.any(): exact shape is the pricing snapshot read by commerceSubscriptions/snapshot.ts, but rows written before PR 008 are unaudited; tighten after a migration.
     pricingSnapshot: v.optional(v.any()),
-    // v.any(): caller JSON (sourceMetadataJson) merged with system flags such as trialEndingEmailSent; it has no fixed shape.
+    // v.any(): caller JSON (sourceMetadataJson) merged with system flags such as trialEndingEmailSent and renewalNoticeFor; it has no fixed shape.
     sourceMetadata: v.optional(v.any()),
     offerHistory: v.optional(
       v.array(

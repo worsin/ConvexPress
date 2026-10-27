@@ -124,6 +124,7 @@ export const EMAIL_TEMPLATES = {
   SUBSCRIPTION_RENEWED: "subscription-renewed",
   SUBSCRIPTION_PAYMENT_FAILED: "subscription-payment-failed",
   SUBSCRIPTION_TRIAL_ENDING: "subscription-trial-ending",
+  SUBSCRIPTION_RENEWAL_UPCOMING: "subscription-renewal-upcoming",
   SUBSCRIPTION_CANCELLED: "subscription-cancelled",
   SUBSCRIPTION_PAUSED: "subscription-paused",
   SUBSCRIPTION_RESUMED: "subscription-resumed",
