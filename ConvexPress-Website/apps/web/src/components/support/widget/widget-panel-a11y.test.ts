@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { WidgetPanel } from "./WidgetPanel";
 import { homeGreeting } from "./SupportWidget";
+import { signInHref } from "../views/TicketFormView";
 
 describe("support widget panel accessibility", () => {
   function render(isOpen: boolean) {
@@ -40,5 +41,13 @@ describe("support widget fit", () => {
     expect(homeGreeting("Questions? We're here.", "Support")).toBe("Questions? We're here.");
     expect(homeGreeting(undefined, "Support")).toBe("Hi! How can we help?");
     expect(homeGreeting("", "Support")).toBe("Hi! How can we help?");
+  });
+});
+
+describe("support widget for a visitor who isn't signed in", () => {
+  test("a new ticket offers sign-in, returning to the page the widget was opened on", () => {
+    expect(signInHref("/page/about")).toBe("/login?returnTo=%2Fpage%2Fabout");
+    expect(signInHref("/pricing?plan=practice")).toBe("/login?returnTo=%2Fpricing%3Fplan%3Dpractice");
+    expect(signInHref("/")).toBe("/login");
   });
 });
