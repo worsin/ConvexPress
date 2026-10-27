@@ -33,7 +33,7 @@ import { formatMoney } from "@/lib/commerce/format";
 import type { HeaderConfig, ResolvedMenuItem, SiteIdentity } from "@/lib/layout/types";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { cn } from "@/lib/utils";
-import CoreCartDrawer from "@/templates/packs/core/surfaces/chrome.cartDrawer";
+import { LazyCoreCartDrawer } from "@/components/commerce/LazyCartDrawer";
 import type { HeaderSurfaceData } from "@/templates/packs/core/surfaces/chrome.header";
 import { Surface } from "@/templates/sdk/Surface";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -208,7 +208,7 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
               <span className="text-[13px] font-semibold tabular-nums">{formatMoney(cart?.subtotalAmount ?? 0, cart?.currencyCode ?? settings?.commerceConfig?.currencyCode ?? "USD")}</span>
             </span>
           </button>
-          <Surface name="chrome.cartDrawer" data={{ open: cartOpen, onOpenChange: setCartOpen }} fallback={CoreCartDrawer} />
+          <Surface name="chrome.cartDrawer" data={{ open: cartOpen, onOpenChange: setCartOpen }} fallback={LazyCoreCartDrawer} />
         </>
       )}
     </div>
