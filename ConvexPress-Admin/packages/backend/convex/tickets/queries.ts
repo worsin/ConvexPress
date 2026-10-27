@@ -51,6 +51,7 @@ import {
   getAwaitingFirstResponseArgs,
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
+import { assigneeName, isAssigned } from "./assignee";
 
 import { v } from "convex/values";
 import { paginationResultValidator } from "convex/server";
@@ -217,6 +218,7 @@ export const getTicketWithReplies = query({
       resolvedAt: v.optional(v.number()),
       rating: v.optional(v.number()),
       assignedTo: v.optional(v.id("users")),
+      assignedAgent: v.optional(v.object({ ref: v.string(), name: v.string() })),
       assignedAt: v.optional(v.number()),
       aiQuery: v.optional(v.string()),
       aiResponse: v.optional(v.string()),
@@ -280,19 +282,12 @@ export const getTicketWithReplies = query({
       ? allMessages
       : allMessages.filter((m) => !m.isInternal);
 
-    // Resolve assignee name if assigned
-    let assigneeName: string | undefined;
-    if (ticket.assignedTo) {
-      const assignee = await ctx.db.get("users", ticket.assignedTo);
-      if (assignee) {
-        assigneeName = getTicketUserSnapshotName(assignee);
-      }
-    }
+    const assignee = await assigneeName(ctx, ticket);
 
     return {
       ticket: {
         ...ticket,
-        assigneeName,
+        ...(assignee ? { assigneeName: assignee } : {}),
       },
       messages,
     };
@@ -405,7 +400,7 @@ export const getQueue = query({
     let tickets = scanned;
 
     if (args.unassigned) {
-      tickets = tickets.filter((t) => !t.assignedTo);
+      tickets = tickets.filter((t) => !isAssigned(t));
     }
 
     // Filter by category when it wasn't used as the primary index
@@ -456,27 +451,15 @@ export const getQueue = query({
     const pageTickets = tickets.slice(start, start + perPage);
 
     // ── Resolve assignee names (only for the visible page) ──────────────
-    const assigneeIds = [
-      ...new Set(
-        pageTickets
-          .map((t) => t.assignedTo)
-          .filter((id): id is NonNullable<typeof id> => id != null),
-      ),
-    ];
-    const assigneeMap = new Map<string, string>();
-    for (const id of assigneeIds) {
-      const assignee = await ctx.db.get(id);
-      if (assignee) {
-        assigneeMap.set(id, getTicketUserSnapshotName(assignee));
-      }
-    }
+    const names = new Map<Id<"users">, string | null>();
+    const assigneeNames = await Promise.all(pageTickets.map((t) => assigneeName(ctx, t, names)));
 
     return {
       total,
       page,
       perPage,
       totalPages,
-      tickets: pageTickets.map((t) => ({
+      tickets: pageTickets.map((t, index) => ({
         _id: t._id,
         ticketNumber: t.ticketNumber,
         subject: t.subject,
@@ -484,9 +467,7 @@ export const getQueue = query({
         status: t.status,
         priority: t.priority,
         assignedTo: t.assignedTo,
-        assigneeName: t.assignedTo
-          ? assigneeMap.get(t.assignedTo)
-          : undefined,
+        assigneeName: assigneeNames[index] ?? undefined,
         userNameSnapshot: t.userNameSnapshot,
         userEmailSnapshot: t.userEmailSnapshot,
         messageCount: t.messageCount,
@@ -903,7 +884,7 @@ export const getMyTicketsOverview = query({
     const counts = overviewCounts(rows);
     const sorted = [...rows].sort(compareForCustomerList);
 
-    const agentNames: Map<Id<"users">, string> = new Map();
+    const agentNames = new Map<Id<"users">, string | null>();
     const tickets: TicketsOverviewItem[] = [];
     for (const t of sorted) {
       // Latest public message for the preview (internal notes never leak).
@@ -914,19 +895,7 @@ export const getMyTicketsOverview = query({
         .take(5);
       const last = recent.find((m) => !m.isInternal);
 
-      let agentName: string | null = null;
-      if (t.assignedTo) {
-        const cached = agentNames.get(t.assignedTo);
-        if (cached) {
-          agentName = cached;
-        } else {
-          const agent = await ctx.db.get("users", t.assignedTo);
-          if (agent) {
-            agentName = getTicketUserSnapshotName(agent);
-            agentNames.set(t.assignedTo, agentName);
-          }
-        }
-      }
+      const agentName = await assigneeName(ctx, t, agentNames);
 
       tickets.push({
         _id: t._id,
@@ -1058,14 +1027,8 @@ export const getMyTicketThread = query({
       });
     }
 
-    let agent: { name: string; initials: string } | null = null;
-    if (ticket.assignedTo) {
-      const assignee = await ctx.db.get("users", ticket.assignedTo);
-      if (assignee) {
-        const name = getTicketUserSnapshotName(assignee);
-        agent = { name, initials: nameInitials(name) };
-      }
-    }
+    const agentName = await assigneeName(ctx, ticket);
+    const agent = agentName ? { name: agentName, initials: nameInitials(agentName) } : null;
 
     const { categories, firstResponseTarget, resolutionTarget } = await loadCustomerSla(ctx);
     const categoryLabel =

@@ -103,7 +103,9 @@ export const settingsTables = {
     /** Unix timestamp (ms) of last update */
     updatedAt: v.number(),
 
-    /** Reference to the user who last updated this section */
-    updatedBy: v.id("users"),
+    /** Reference to the user who last updated this section (unset when an operator application did: see updatedByRef) */
+    updatedBy: v.optional(v.id("users")),
+    /** An operator application's identifier for the agent who last updated it (tickets/operator.ts). */
+    updatedByRef: v.optional(v.string()),
   }).index("by_section", ["section"]),
 };
