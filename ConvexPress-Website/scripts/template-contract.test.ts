@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateTemplateContract } from "./template-contract.mjs";
@@ -36,4 +36,29 @@ test("packs may add page templates with new, unique ids and must draw the page s
       "a pack that adds page templates must implement the page surface",
     ]));
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a surface's stylesheet sits next to it, where the server-rendered page loads it", () => {
+  const root = mkdtempSync(join(tmpdir(), "template-contract-"));
+  try {
+    const base = { version: "1.0.0", sdk: "^1.0.0", surfaces: ["home"] };
+    mkdirSync(join(root, "surfaces"));
+    mkdirSync(join(root, "styles"));
+    writeFileSync(join(root, "surfaces", "home.tsx"), [
+      'import "./home.css";',
+      'import shared from "../styles/shared.css?url";',
+      "export default function Home() { return null; }",
+    ].join("\n"));
+    expect(validateTemplateContract(root, base, new Set(["home"]))).toEqual([]);
+
+    writeFileSync(join(root, "surfaces", "home.tsx"), ['import "../styles/home.css";', "export default function Home() { return null; }"].join("\n"));
+    expect(validateTemplateContract(root, base, new Set(["home"]))).toEqual([
+      `surfaces/home.tsx: imports ../styles/home.css, which the server-rendered page won't have; put the stylesheet next to the surface in surfaces/ or link it with "?url"`,
+    ]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("the server-rendered page loads every pack's surface stylesheets", () => {
+  const critical = readFileSync(join(import.meta.dir, "../apps/web/src/templates/sdk/block-renderer/critical-styles.ts"), "utf8");
+  expect(critical).toContain('"../../packs/*/surfaces/*.css"');
 });

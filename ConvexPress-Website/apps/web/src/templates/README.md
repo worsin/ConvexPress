@@ -22,6 +22,11 @@ templates/
 4. SSR-safe: no `window`/`document` during render (effects are fine).
 5. Every surface id must exist in `sdk/catalog.ts`; every file under `surfaces/` must be listed in
    `template.json` → `surfaces` (the Core manifest is maintained by the person merging).
+6. A surface's own stylesheet sits next to it (`surfaces/<id>.css`, imported as `import "./<id>.css"`),
+   scoped to the classes it styles. Surfaces load lazily, so only these are in the server-rendered page
+   (`sdk/block-renderer/critical-styles.ts`); a stylesheet imported from anywhere else would arrive with
+   the JavaScript, after the page shows. To keep one elsewhere, link it: `import href from "./x.css?url"`
+   and render `<link rel="stylesheet" href={href} precedence="default" />`.
 
 ## Extraction recipe (moving a route's rendering into the Core pack)
 

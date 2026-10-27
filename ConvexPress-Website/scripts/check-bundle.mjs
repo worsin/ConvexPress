@@ -106,6 +106,32 @@ if (!manifest?.routes) {
   }
 }
 
+// ─── Server-rendered stylesheets ───────────────────────────────────────────
+// A stylesheet a lazily loaded module imports arrives with that module's
+// JavaScript, after the server-rendered page shows: the page flashes unstyled.
+// Every stylesheet must be linked by the server for some route (the manifest's
+// route assets) or linked by a component with ?url (an absolute URL in the
+// JavaScript). One that is only a lazy chunk's dependency fails.
+if (manifest?.routes) {
+  const linked = new Set();
+  for (const entry of Object.values(manifest.routes)) {
+    for (const asset of entry.assets ?? []) {
+      const href = asset?.attrs?.href;
+      if (typeof href === "string" && href.endsWith(".css")) linked.add(path.basename(href));
+    }
+  }
+  const scripts = (await Promise.all(jsAssets.map(({ file }) => readFile(path.join(clientAssetsDir, file), "utf8")))).join("\n");
+  const urlLinked = (file) => new RegExp(`["'\`](?:https?://[^"'\`]*|/[^"'\`]*)?/assets/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'\`]`).test(scripts);
+  const lazyOnly = assets.filter((file) => file.endsWith(".css") && !linked.has(file) && !urlLinked(file));
+  console.log(`\nStylesheets: ${assets.filter((file) => file.endsWith(".css")).length}, all in the server-rendered page${lazyOnly.length ? " except " + lazyOnly.length : ""}.`);
+  for (const file of lazyOnly) {
+    failures.push(
+      `${file} reaches the page only with a lazily loaded module's JavaScript, so server-rendered pages show unstyled first. ` +
+        "Import it from a module the route loads statically (a pack surface's own stylesheet sits next to it in surfaces/), or link it with ?url.",
+    );
+  }
+}
+
 if (failures.length > 0) {
   console.error("\nBundle budget check failed:");
   for (const failure of failures) {
