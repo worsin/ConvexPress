@@ -53,12 +53,17 @@ export default function CoreHelpHome({ data }: SurfaceProps<HelpHomeSurfaceData>
           Search our knowledge base or browse by category
         </p>
         <form
+          role="search"
           className="mx-auto mt-6 flex max-w-lg gap-2"
           onSubmit={handleSearchSubmit}
         >
+          <label className="sr-only" htmlFor="help-home-search">
+            Search help articles
+          </label>
           <input
+            id="help-home-search"
             name="q"
-            type="text"
+            type="search"
             placeholder="Search articles..."
             className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
           />

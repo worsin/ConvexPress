@@ -4,8 +4,9 @@
  * Reads the site identity from the SSR-hydrated settings context (so the
  * title renders identically on the server and the client) and hands it,
  * with the screen's title/description, to the active template pack's
- * `auth.shell` surface. Every auth route wraps its content in this. The logo
- * is the site identity's, as in the header and footer.
+ * `auth.shell` surface, inside the page's main landmark. Every auth route
+ * wraps its content in this. The logo is the site identity's, as in the header
+ * and footer.
  */
 import * as React from "react";
 
@@ -43,5 +44,10 @@ export function AuthPageLayout({
     children,
   };
 
-  return <Surface name="auth.shell" data={data} fallback={CoreAuthShell} />;
+  // The screen's main landmark, whichever pack draws the frame.
+  return (
+    <main data-slot="auth-main">
+      <Surface name="auth.shell" data={data} fallback={CoreAuthShell} />
+    </main>
+  );
 }
