@@ -7,6 +7,8 @@
  *   startKeyless          no Clerk account yet: create a claimable app, then configure
  *   verify                live readiness checks against Clerk (persisted)
  *   syncCapabilities      refresh the public environment document Clerk publishes
+ *                         (also refreshed daily and by site setup, through
+ *                         the internal `refreshCapabilities`)
  *   webhookPortalUrl      one-time URL to Clerk's (Svix) webhook portal
  *   runTokenProbe         dev instances: mint a real "convex" token and verify it
  *   getStatus             everything the admin page renders (no plaintext secrets)
@@ -21,10 +23,12 @@ import { ConvexError, v } from "convex/values";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 import { internal } from "../_generated/api";
-import { action, mutation, query, type ActionCtx } from "../_generated/server";
+import { action, internalAction, mutation, query, type ActionCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
 import { decryptSettingSecret } from "../helpers/settingsSecret";
 import { jsonAt } from "../helpers/jsonValue";
+import { canonicalJson } from "../canonicalDocuments/foundation/shared/fingerprints";
 import { CLERK_INTEGRATION_DEFAULTS, type ClerkIntegrationSettings } from "../settings/defaults";
 import {
   computeReadiness,
@@ -153,6 +157,31 @@ async function snapshot(ctx: ActionCtx): Promise<ClerkConnectionSnapshot> {
 
 async function save(ctx: ActionCtx, values: Partial<ClerkIntegrationSettings>) {
   await ctx.runMutation(internal.auth.clerkConnectionInternals.saveConnection, { values });
+}
+
+/**
+ * Fetch the environment document the site's Clerk publishes and store it.
+ * Without a signed-in administrator (the daily refresh, site setup) it is
+ * stored as the system, attributed to `actorId` when the site has no Clerk
+ * settings yet.
+ */
+async function refreshCapabilities(
+  ctx: ActionCtx,
+  asSystem?: { actorId?: Id<"users"> },
+): Promise<{ synced: boolean; changed: boolean; capabilities: AuthCapabilities | null }> {
+  const snap = await snapshot(ctx);
+  const frontendApi = normalizeFrontendApi(
+    String(snap.values.clerkFrontendApi || snap.values.clerkJwtIssuerDomain || snap.deployment.issuer || ""),
+  );
+  if (!frontendApi) return { synced: false, changed: false, capabilities: null };
+  const capabilities = await fetchCapabilities(frontendApi);
+  if (!capabilities) return { synced: false, changed: false, capabilities: null };
+  const changed = canonicalJson(capabilities) !== canonicalJson(snap.values.clerkCapabilities);
+  const stored = await ctx.runMutation(internal.auth.clerkConnectionInternals.saveConnection, {
+    values: { clerkCapabilities: capabilities, clerkCapabilitiesSyncedAt: Date.now() },
+    ...(asSystem ? { system: true, actorId: asSystem.actorId } : {}),
+  });
+  return { synced: stored, changed: stored && changed, capabilities: stored ? capabilities : null };
 }
 
 function siteOriginsFor(snap: ClerkConnectionSnapshot, extra: string[] = []): string[] {
@@ -566,15 +595,22 @@ export const syncCapabilities = action({
   }),
   handler: async (ctx): Promise<{ synced: boolean; capabilities: AuthCapabilities | null }> => {
     await requireManageOptions(ctx);
-    const snap = await snapshot(ctx);
-    const frontendApi = normalizeFrontendApi(
-      String(snap.values.clerkFrontendApi || snap.values.clerkJwtIssuerDomain || snap.deployment.issuer || ""),
-    );
-    if (!frontendApi) return { synced: false, capabilities: null };
-    const capabilities = await fetchCapabilities(frontendApi);
-    if (!capabilities) return { synced: false, capabilities: null };
-    await save(ctx, { clerkCapabilities: capabilities, clerkCapabilitiesSyncedAt: Date.now() });
-    return { synced: true, capabilities };
+    const { synced, capabilities } = await refreshCapabilities(ctx);
+    return { synced, capabilities };
+  },
+});
+
+/**
+ * What the site's Clerk accepts (social providers, captcha, password rules,
+ * second factors) changes in Clerk's dashboard, so the website's copy is
+ * refreshed daily and by site setup, not only when an administrator syncs.
+ */
+export const refreshCapabilitiesInternal = internalAction({
+  args: { actorId: v.optional(v.id("users")) },
+  returns: v.object({ synced: v.boolean(), changed: v.boolean() }),
+  handler: async (ctx, { actorId }): Promise<{ synced: boolean; changed: boolean }> => {
+    const { synced, changed } = await refreshCapabilities(ctx, { actorId });
+    return { synced, changed };
   },
 });
 
