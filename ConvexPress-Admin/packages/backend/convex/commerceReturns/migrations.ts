@@ -1,6 +1,6 @@
 import { internalMutation, mutation, type MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
-import { DEFAULT_TEMPLATES } from "../emails/templateDefaults";
+import { DEFAULT_TEMPLATES, templateActiveByDefault } from "../emails/templateDefaults";
 import { EMAIL_TEMPLATES } from "../helpers/email";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { requireCan } from "../helpers/permissions";
@@ -41,7 +41,7 @@ export function buildReturnTemplateInsert(
     availableVariables: templateDef.availableVariables,
     priority: templateDef.priority,
     recipientType: templateDef.recipientType,
-    isActive: true,
+    isActive: templateActiveByDefault(templateDef),
     eventCode: templateDef.eventCode,
     isCustomized: false,
     defaultSubjectTemplate: templateDef.subjectTemplate,

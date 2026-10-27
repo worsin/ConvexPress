@@ -87,6 +87,11 @@ export const emailTables = {
     recipientType: emailRecipientType,
     /** Whether this template is enabled */
     isActive: v.boolean(),
+    /**
+     * When an administrator last turned the template on or off. Site setup
+     * applies its own choice only to templates no one has chosen for.
+     */
+    activeChangedAt: v.optional(v.number()),
     /** Event that triggers this email (undefined for digest-only templates) */
     eventCode: v.optional(v.string()),
 

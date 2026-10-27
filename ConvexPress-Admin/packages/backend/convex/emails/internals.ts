@@ -57,7 +57,7 @@ import {
   queueRenderedEmailArgs,
   emailStatusValidator,
 } from "./validators";
-import { DEFAULT_TEMPLATES } from "./templateDefaults";
+import { DEFAULT_TEMPLATES, templateActiveByDefault } from "./templateDefaults";
 import {
   EMAIL_TEMPLATE_REGISTRY_BY_SLUG,
 } from "./registry";
@@ -297,6 +297,23 @@ async function getCustomerRecipients(ctx: DbCtx) {
   return Array.from(recipientMap.values());
 }
 
+/**
+ * A site's own choice of whether a template is sent, applied by site setup.
+ * A template an administrator has turned on or off keeps that choice.
+ */
+export const applyTemplateDefaultActive = internalMutation({
+  args: { slug: v.string(), isActive: v.boolean() },
+  returns: v.object({ changed: v.boolean() }),
+  handler: async (ctx, { slug, isActive }) => {
+    const template = await getTemplateRecord(ctx, slug);
+    if (!template || template.activeChangedAt !== undefined || template.isActive === isActive) {
+      return { changed: false };
+    }
+    await ctx.db.patch("emailTemplates", template._id, { isActive, updatedAt: Date.now() });
+    return { changed: true };
+  },
+});
+
 export async function runBootstrapTemplates(ctx: Pick<MutationCtx, "db">, now = Date.now()) {
   let created = 0;
   let updated = 0;
@@ -315,7 +332,7 @@ export async function runBootstrapTemplates(ctx: Pick<MutationCtx, "db">, now = 
         availableVariables: templateDef.availableVariables,
         priority: templateDef.priority,
         recipientType: templateDef.recipientType,
-        isActive: true,
+        isActive: templateActiveByDefault(templateDef),
         eventCode: templateDef.eventCode,
         isCustomized: false,
         defaultSubjectTemplate: templateDef.subjectTemplate,

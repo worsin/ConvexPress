@@ -188,6 +188,7 @@ export const updateTemplate = mutation({
 
     if (args.isActive !== undefined) {
       patch.isActive = args.isActive;
+      if (args.isActive !== template.isActive) patch.activeChangedAt = patch.updatedAt;
     }
 
     // Determine if the template is now customized

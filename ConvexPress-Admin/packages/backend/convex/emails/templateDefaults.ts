@@ -78,6 +78,17 @@ interface TemplateDefinition {
   recipientType: "customer" | "employee" | "admin" | "custom";
   category: string;
   eventCode?: string;
+  /**
+   * Whether a new site sends this email. Defaults to true; routine notices
+   * that would arrive after every ordinary action ship turned off, for an
+   * administrator to turn on.
+   */
+  activeByDefault?: boolean;
+}
+
+/** Whether a newly installed template is turned on. */
+export function templateActiveByDefault(def: Pick<TemplateDefinition, "activeByDefault">): boolean {
+  return def.activeByDefault ?? true;
 }
 
 // ─── Default Templates (25) ──────────────────────────────────────────────────
@@ -665,6 +676,8 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     recipientType: "admin",
     category: "system",
     eventCode: "seo.sitemap_generated",
+    // The sitemap regenerates whenever published content changes.
+    activeByDefault: false,
   },
 
   {
