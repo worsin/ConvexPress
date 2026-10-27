@@ -32,6 +32,12 @@ const VIEW_TITLES: Record<string, string> = {
   ticketDetail: "Ticket",
 };
 
+/** The home view's greeting, unless it would repeat the panel's title. */
+export function homeGreeting(configured: string | undefined, title: string): string | undefined {
+  const greeting = configured?.trim() || "Hi! How can we help?";
+  return greeting.toLowerCase() === title.trim().toLowerCase() ? undefined : greeting;
+}
+
 export function SupportWidget() {
   const config = useQuery(api.support.widget.getConfig);
   const { sessionId, isReady } = useSessionId();
@@ -42,8 +48,9 @@ export function SupportWidget() {
   if (!config?.enabled) return null;
 
   const position = config.position === "bottomLeft" ? "bottomLeft" : "bottomRight";
-  const greeting = config?.widgetTitle ?? "Hi! How can we help?";
   const title = VIEW_TITLES[state.currentView] ?? "Support";
+  // A greeting that only repeats the panel's title ("Support" under "Support") is left out.
+  const greeting = homeGreeting(config?.widgetTitle, title);
   const showBack = state.currentView !== "home";
 
   return (
