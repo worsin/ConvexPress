@@ -36,6 +36,8 @@ import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 import "../index.css";
 import "../templates/sdk/block-renderer/critical-styles";
 import { rememberSearchVisibility, resolveSiteName, rememberSiteName } from "@/lib/seo/head";
+import { loadSiteShare } from "@/lib/seo/loadSiteShare";
+import { siteShareHead, type SiteShareHead } from "@/lib/seo/siteShare";
 import { SiteNameBootstrap } from "@/components/layout/SiteNameBootstrap";
 
 export interface RouterAppContext {
@@ -70,11 +72,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       // Settings unavailable: titles fall back to the generic name.
     }
   },
-  loader: async ({ context: { queryClient } }): Promise<{ authConfig: WebsiteAuthConfig }> => {
+  loader: async ({ context: { queryClient } }): Promise<{ authConfig: WebsiteAuthConfig; shareHead: SiteShareHead }> => {
+    let shareHead = siteShareHead(null);
     try {
       const settings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
       rememberSiteName(settings?.siteTitle);
       rememberSearchVisibility(settings?.searchEngineVisibility);
+      // Icon, description and link-preview image every page starts from.
+      shareHead = siteShareHead(await loadSiteShare(queryClient));
     } catch {
       // Settings unavailable: titles fall back to the generic name.
     }
@@ -88,9 +93,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     } catch {
       // Older backends: fall back to environment-provided keys.
     }
-    return { authConfig };
+    return { authConfig, shareHead };
   },
-  head: () => ({
+  head: ({ loaderData }) => {
+    const share = loaderData?.shareHead ?? siteShareHead(null);
+    return {
     meta: [
       {
         charSet: "utf-8",
@@ -102,10 +109,9 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       {
         title: resolveSiteName(),
       },
-      {
-        name: "description",
-        content: `${resolveSiteName()} website`,
-      },
+      ...(share.meta.some((tag) => tag.name === "description")
+        ? []
+        : [{ name: "description", content: `${resolveSiteName()} website` }]),
       {
         name: "robots",
         content: "index, follow",
@@ -128,8 +134,10 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "twitter:card",
         content: "summary_large_image",
       },
+      ...share.meta,
     ],
     links: [
+      ...share.links,
       {
         rel: "preconnect",
         href: "https://fonts.googleapis.com",
@@ -162,7 +170,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         href: "/api/comments/feed",
       },
     ],
-  }),
+    };
+  },
 
   component: RootDocument,
 });

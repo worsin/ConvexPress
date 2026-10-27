@@ -337,7 +337,7 @@ export const publicSettingsValidator = v.object({
   assistantConfig: commerceAssistantSettingsValidator,
   layoutConfig: commerceLayoutSettingsValidator,
   templateConfig: appearanceTemplateSettingsValidator,
-  brandConfig: brandSettingsValidator.pick("typography", "density", "radius", "industry"),
+  brandConfig: brandSettingsValidator.pick("typography", "density", "radius", "industry", "logoUrl", "faviconUrl"),
 });
 
 /**
@@ -480,12 +480,14 @@ export const getPublic = query({
       // Active template pack + per-surface overrides/variants (Appearance › Templates).
       templateConfig: template,
 
-      // Public brand inputs the storefront renders from (fonts, radius, density).
+      // Public brand inputs the storefront renders from (fonts, radius, density, logo, browser icon).
       brandConfig: {
         typography: brand.typography,
         density: brand.density,
         radius: brand.radius,
         industry: brand.industry,
+        logoUrl: brand.logoUrl,
+        faviconUrl: brand.faviconUrl,
       },
     };
   },

@@ -22,6 +22,7 @@
  *   produce a robots.txt with a stale or missing Sitemap: directive.
  */
 
+import { fallbackRobotsTxt } from "@/lib/seo/crawlers";
 import { readServerSiteRuntime } from "@/lib/site-runtime";
 import { createFileRoute } from "@tanstack/react-router";
 import { ConvexHttpClient } from "convex/browser";
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/api/robots")({
             {},
           );
 
-          return new Response(robotsTxt || defaultRobotsTxt(), {
+          return new Response(robotsTxt || fallbackRobotsTxt(), {
             status: 200,
             headers: {
               "Content-Type": "text/plain; charset=utf-8",
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/api/robots")({
         } catch (error: unknown) {
           // If Convex is unavailable, serve a sensible default
           console.error("Failed to fetch robots.txt from Convex:", error);
-          return new Response(defaultRobotsTxt(), {
+          return new Response(fallbackRobotsTxt(), {
             status: 200,
             headers: {
               "Content-Type": "text/plain; charset=utf-8",
@@ -65,15 +66,3 @@ export const Route = createFileRoute("/api/robots")({
   },
 });
 
-/**
- * Fallback robots.txt content when Convex is unavailable.
- */
-function defaultRobotsTxt(): string {
-  return [
-    "User-agent: *",
-    "Disallow: /admin/",
-    "Allow: /",
-    "",
-    "Sitemap: /sitemap.xml",
-  ].join("\n");
-}

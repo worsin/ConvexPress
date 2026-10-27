@@ -22,7 +22,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
-import { siteTitled } from "@/lib/seo/head";
+import { buildIndexablePageHead, siteTitled } from "@/lib/seo/head";
 import CorePricing, { type PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
 import { loadAnonymousCanonical } from "@/templates/sdk/block-public/anonymous-loader";
 import { canonicalPaginationSearch } from "@/templates/sdk/block-public/pagination-search";
@@ -57,17 +57,12 @@ export const Route = createFileRoute("/_marketing/pricing")({
       content: contentPage && canonical ? { documentId: contentPage._id, title: contentPage.title, excerpt: contentPage.excerpt } : null,
     };
   },
-  head: ({ loaderData }) => {
-    return {
-      meta: [
-        { title: siteTitled(loaderData?.content?.title ?? "Pricing") },
-        {
-          name: "description",
-          content: loaderData?.content?.excerpt ?? "Pick the plan that fits your needs.",
-        },
-      ],
-    };
-  },
+  head: ({ loaderData }) =>
+    buildIndexablePageHead({
+      title: siteTitled(loaderData?.content?.title ?? "Pricing"),
+      description: loaderData?.content?.excerpt ?? "Pick the plan that fits your needs.",
+      path: "/pricing",
+    }),
   component: PricingPage,
 });
 

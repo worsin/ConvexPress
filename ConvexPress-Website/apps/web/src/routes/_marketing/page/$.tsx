@@ -33,7 +33,7 @@ import type { RestrictedTeaserMode } from "@/components/membership/RestrictedCon
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import type { PageDetail } from "@/lib/blog/types";
-import { buildSeoHead, humanizeSlug, siteTitled } from "@/lib/seo/head";
+import { buildIndexablePageHead, humanizeSlug, siteTitled } from "@/lib/seo/head";
 import CorePage from "@/templates/packs/core/surfaces/page";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import CorePasswordGate from "@/templates/packs/core/surfaces/system.passwordGate";
@@ -74,7 +74,8 @@ export const Route = createFileRoute("/_marketing/page/$")({
 
 		return {
       canonical,
-			seoHead: buildSeoHead({
+			seoHead: buildIndexablePageHead({
+				path: `/page${pagePath}`,
 				title:
 					page && typeof page === "object" && "title" in page
 						? siteTitled(`${page.title}`)

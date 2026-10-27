@@ -6,7 +6,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useSetting } from "@/contexts/SettingsContext";
 import type { PaginationData, PostCard as PostCardType } from "@/lib/blog/types";
 import { PostCardSkeletonGrid } from "@/components/blog/PostCardSkeleton";
-import { buildSeoHead, siteTitled } from "@/lib/seo/head";
+import { buildIndexablePageHead, resolveSiteName, siteTitled } from "@/lib/seo/head";
 import CoreBlogIndex from "@/templates/packs/core/surfaces/blog.index";
 import { Surface } from "@/templates/sdk/Surface";
 
@@ -31,9 +31,10 @@ export const Route = createFileRoute("/_marketing/blog/")({
       }),
     );
     return {
-      seoHead: buildSeoHead({
+      seoHead: buildIndexablePageHead({
         title: siteTitled("Blog"),
-        description: "Read the latest articles, tutorials, and insights from ConvexPress.",
+        description: `The latest articles from ${resolveSiteName()}.`,
+        path: page > 1 ? `/blog?page=${page}` : "/blog",
       }),
     };
   },
