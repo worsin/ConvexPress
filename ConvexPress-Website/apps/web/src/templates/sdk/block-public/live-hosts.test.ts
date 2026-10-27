@@ -3,7 +3,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { blockNamesIn, LIVE_HOSTS, liveHostsFor, type LiveHostId } from "./live-hosts";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { blockNamesIn, LIVE_HOSTS, LiveBlockHosts, liveHostsFor, loadLiveHosts, type LiveHostId } from "./live-hosts";
 
 // The same roots block-renderer/discovery.ts globs: library renderers under the
 // repository's blocks/, pack-owned renderers and primitive parts under packs/.
@@ -132,5 +135,20 @@ describe("which hosts a document needs", () => {
   test("reusable content counts as the page's own", () => {
     const synced = { revisions: [{ blocks: [{ name: "core/group", children: [{ name: "core/newsletter-signup" }] }] }] } as never;
     expect(liveHostsFor({ document: document([{ name: "core/synced" }]), synced })).toEqual(new Set<LiveHostId>(["newsletter"]));
+  });
+});
+
+describe("mounting hosts", () => {
+  const value = { scope: { websiteKey: "site", instanceKey: "stage" }, viewerSubject: null, document: { id: "page" } } as never;
+  const mount = (hosts: LiveHostId[]) =>
+    renderToStaticMarkup(createElement(LiveBlockHosts, { hosts: new Set(hosts), value, generation: "one", children: createElement("p", null, "Body") }));
+
+  test("a document without live blocks renders as it is, with no marker", () => {
+    expect(mount([])).toBe("<p>Body</p>");
+  });
+
+  test("a loaded host renders at once, after a marker naming the hosts for hydration", async () => {
+    await loadLiveHosts(["wishlist", "unknown-host"]);
+    expect(mount(["wishlist"])).toBe('<template data-live-hosts="wishlist"></template><p>Body</p>');
   });
 });

@@ -19,7 +19,14 @@ let auth = {
 	convexAuth = { isLoading: false, isAuthenticated: true };
 let operator = {active:false};
 mock.module("@/lib/auth/WebsiteOperatorContext", () => ({useWebsiteOperator:()=>operator}));
+// Template settings come from contexts in the app; a store stands in, so a
+// change reaches the memoized body the way a context change does.
 let templateSettings = { packId: "core", savedPackId: "core" };
+const templateListeners = new Set();
+const setTemplateSettings = (next) => { templateSettings = next; for (const listener of templateListeners) listener(); };
+// Set to hold the document's paint on the client, as a renderer or live host
+// that hasn't downloaded yet does while the page hydrates.
+let paintGate = null;
 let siteInstance = "stage", history = {ids:[],ready:true};
 const watches = [];
 let lastInstallation;
@@ -62,13 +69,14 @@ mock.module("@/lib/site-runtime", () => ({
 	getSiteRuntime: () => ({ instanceKey: siteInstance }),
 }));
 mock.module("../useTemplateSettings", () => ({
-	useTemplateSettings: () => templateSettings,
+	useTemplateSettings: () => useSyncExternalStore((listener) => (templateListeners.add(listener), () => templateListeners.delete(listener)), () => templateSettings, () => templateSettings),
 }));
 // View paint alone is isolated. The exact parser, data installer and component
 // lifecycle remain real; workerd separately renders all four actual packs.
 mock.module("../block-preview/CanonicalDocumentView", () => ({
 	preloadDocumentRenderers: () => {},
 	CanonicalDocumentView: ({tree,policy,data,synced,scope,composed,packId}) => {
+    if (paintGate && !paintGate.done && globalThis.window) throw paintGate.promise;
     const displayTree=synced?resolveSyncedDisplay(synced,validateCanonicalTree(tree),scope).resolverTree:tree;
     const subscription=pageDataSubscription(data.grant);
     useSyncExternalStore(subscription.subscribe,subscription.getSnapshot,subscription.getSnapshot);
@@ -147,10 +155,10 @@ test("real public body clears on viewer/session/client change, refuses mismatche
 		expect(document.body.textContent.includes("Authorized body")).toBe(true);
     // A temporary installed-pack preview uses the authorized saved presentation.
     // A real saved activation mismatch still hides the body until its DTO catches up.
-    templateSettings = { packId: "journal", savedPackId: "core" };
+    setTemplateSettings({ packId: "journal", savedPackId: "core" });
     await act(async () => render());
     expect(document.querySelector("article")?.dataset.pack).toBe("journal");
-    templateSettings = { packId: "journal", savedPackId: "depot" };
+    setTemplateSettings({ packId: "journal", savedPackId: "depot" });
     await act(async () => render());
     expect(document.body.textContent.includes("Authorized body")).toBe(false);
     const activated = ready("reader_a");
@@ -159,7 +167,7 @@ test("real public body clears on viewer/session/client change, refuses mismatche
     expect(document.querySelector("article")?.dataset.pack).toBe("journal");
     await deliver(ready("reader_b"));
     expect(document.body.textContent.includes("Authorized body")).toBe(false);
-    templateSettings = { packId: "core", savedPackId: "core" };
+    setTemplateSettings({ packId: "core", savedPackId: "core" });
     await act(async () => render());
     await deliver(ready("reader_a"));
     const firstInstallation=lastInstallation;
@@ -240,7 +248,7 @@ test("real public body clears on viewer/session/client change, refuses mismatche
     expect(()=>readInstalledPageData(finalInstallation.data,finalInstallation.tree,finalInstallation.policy)).toThrow("invalidated");
 		expect(watches.at(-1).stopped).toBe(true);
 	} finally {
-    templateSettings = { packId: "core", savedPackId: "core" };
+    setTemplateSettings({ packId: "core", savedPackId: "core" });
 		dom.window.close();
 		for (const [name, value] of Object.entries(previous)) {
 			if (value) Object.defineProperty(globalThis, name, value);
@@ -274,6 +282,30 @@ test("anonymous SSR handoff preserves the disclosure DOM and an in-flight pointe
  }finally{if(root)await act(async()=>root.unmount());dom.window.close();for(const [name,value] of Object.entries(previous)){if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}}
 });
 
+
+test("a live result whose code hasn't loaded keeps the current body until it has; revocation still clears at once", async () => {
+ const {renderToString}=await import('react-dom/server');
+ auth={isLoaded:true,isSignedIn:false,userId:null,sessionId:null};convexAuth={isLoading:false,isAuthenticated:false};
+ const initial={...ready(null),historyDigest:productHistoryDigest([])},view=()=> <StrictMode><PublicCanonicalScope documentId="page" initial={initial}><PublicCanonicalBody documentId="page"/></PublicCanonicalScope></StrictMode>;
+ const html=renderToString(view()),dom=new JSDOM('<div id="app">'+html+'</div>',{url:'https://site.example.invalid'}),previous={};
+ for(const name of ['window','document','navigator','HTMLElement','Event','IS_REACT_ACT_ENVIRONMENT']){previous[name]=Object.getOwnPropertyDescriptor(globalThis,name);Object.defineProperty(globalThis,name,{configurable:true,writable:true,value:name==='IS_REACT_ACT_ENVIRONMENT'?true:dom.window[name]});}
+ const {hydrateRoot}=await import('react-dom/client');let root;
+ try{
+  await act(async()=>{root=hydrateRoot(document.getElementById('app'),view());});
+  const original=document.querySelector('article');expect(original).not.toBeNull();
+  // A revision arrives whose renderers (or live hosts) are still downloading.
+  let release;paintGate={done:false,promise:new Promise(resolve=>{release=resolve;})};
+  const revised={...ready(null),historyDigest:productHistoryDigest([])};
+  revised.document={...revised.document,title:'Revised body',revision:2,digest:canonicalContentDigest('Revised body',[])};
+  const w=watches.at(-1);w.value=revised;await act(async()=>w.listener());
+  expect(document.querySelector('article') === original).toBe(true);
+  expect(document.body.textContent).not.toContain('Loading document');
+  paintGate.done=true;await act(async()=>{release();await paintGate.promise;});
+  expect(document.querySelector('article')).not.toBeNull();
+  expect(document.querySelector('article') === original).toBe(false);
+  w.value=new Error('revoked');await act(async()=>w.listener());expect(document.querySelector('article')).toBeNull();
+ }finally{paintGate=null;if(root)await act(async()=>root.unmount());dom.window.close();for(const [name,value] of Object.entries(previous)){if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}}
+});
 
 async function withSeededBody(initial,check,bodyProps={},pageView){
  auth={isLoaded:true,isSignedIn:false,userId:null,sessionId:null};convexAuth={isLoading:false,isAuthenticated:false};siteInstance='stage';history={ids:[],ready:true};

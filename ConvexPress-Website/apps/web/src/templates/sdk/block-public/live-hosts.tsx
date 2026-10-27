@@ -10,9 +10,10 @@
  * reaches a host this table doesn't list it under, or a listed block no longer
  * does. A block missing here would render its inert (not live) state.
  */
-import { lazy, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import type { PublicCanonicalReady } from "../block-data/portable/publicDocumentContracts";
+import { suspenseResource } from "../block-renderer/suspense-resource";
 
 /** Each host: the block-renderer module its blocks consume, and those blocks. */
 export const LIVE_HOSTS = {
@@ -67,37 +68,36 @@ export function liveHostsFor(value: Pick<PublicCanonicalReady, "document" | "syn
   return hosts;
 }
 
-const LOADERS = {
-  newsletter: () => import("../block-renderer/newsletter-production"),
-  leadMagnet: () => import("../block-renderer/lead-magnet-production"),
-  formEmbed: () => import("../block-renderer/form-embed-production"),
-  poll: () => import("../block-renderer/poll-production"),
-  rsvp: () => import("../block-renderer/rsvp-production"),
-  certificate: () => import("../block-renderer/certificate-production"),
-  cartSummary: () => import("../block-renderer/cart-summary-production"),
-  downloadLibrary: () => import("../block-renderer/download-library-production"),
-  bundle: () => import("../block-renderer/bundle-production"),
-  wishlist: () => import("../block-renderer/wishlist-production"),
-  collectionCart: () => import("../block-renderer/collection-cart-production"),
-  shoppingAssistant: () => import("../block-renderer/shopping-assistant-production"),
-} satisfies Record<LiveHostId, () => Promise<unknown>>;
+const HOST_MODULES = {
+  newsletter: suspenseResource(() => import("../block-renderer/newsletter-production")),
+  leadMagnet: suspenseResource(() => import("../block-renderer/lead-magnet-production")),
+  formEmbed: suspenseResource(() => import("../block-renderer/form-embed-production")),
+  poll: suspenseResource(() => import("../block-renderer/poll-production")),
+  rsvp: suspenseResource(() => import("../block-renderer/rsvp-production")),
+  certificate: suspenseResource(() => import("../block-renderer/certificate-production")),
+  cartSummary: suspenseResource(() => import("../block-renderer/cart-summary-production")),
+  downloadLibrary: suspenseResource(() => import("../block-renderer/download-library-production")),
+  bundle: suspenseResource(() => import("../block-renderer/bundle-production")),
+  wishlist: suspenseResource(() => import("../block-renderer/wishlist-production")),
+  collectionCart: suspenseResource(() => import("../block-renderer/collection-cart-production")),
+  shoppingAssistant: suspenseResource(() => import("../block-renderer/shopping-assistant-production")),
+} satisfies Record<LiveHostId, { start(): Promise<void> }>;
 
-const Newsletter = lazy(async () => ({ default: (await LOADERS.newsletter()).ProductionNewsletterProvider }));
-const LeadMagnet = lazy(async () => ({ default: (await LOADERS.leadMagnet()).ProductionLeadMagnetProvider }));
-const FormEmbed = lazy(async () => ({ default: (await LOADERS.formEmbed()).ProductionFormEmbedProvider }));
-const Poll = lazy(async () => ({ default: (await LOADERS.poll()).ProductionPollProvider }));
-const Rsvp = lazy(async () => ({ default: (await LOADERS.rsvp()).ProductionRsvpProvider }));
-const Certificate = lazy(async () => ({ default: (await LOADERS.certificate()).ProductionCertificateProvider }));
-const CartSummary = lazy(async () => ({ default: (await LOADERS.cartSummary()).ProductionCartSummaryProvider }));
-const DownloadLibrary = lazy(async () => ({ default: (await LOADERS.downloadLibrary()).ProductionDownloadLibraryProvider }));
-const Bundle = lazy(async () => ({ default: (await LOADERS.bundle()).ProductionBundleProvider }));
-const Wishlist = lazy(async () => ({ default: (await LOADERS.wishlist()).ProductionWishlistProvider }));
-const CollectionCart = lazy(async () => ({ default: (await LOADERS.collectionCart()).ProductionCollectionCartProvider }));
-const ShoppingAssistant = lazy(async () => ({ default: (await LOADERS.shoppingAssistant()).ProductionShoppingAssistantProvider }));
+export const isLiveHostId = (id: string): id is LiveHostId => Object.hasOwn(LIVE_HOSTS, id);
 
-/** Mount the hosts a document needs around it. Every needed host starts loading
- * at once, before any of them suspends, so nesting never makes them load in turn.
- * The caller places Suspense above. */
+/** Load these hosts' code; settles when each has loaded or failed (a failed
+ * chunk is reported by the document's boundary when it renders). */
+export async function loadLiveHosts(ids: Iterable<string>): Promise<void> {
+  await Promise.allSettled([...ids].filter(isLiveHostId).map((id) => HOST_MODULES[id].start()));
+}
+
+/** Mount the hosts a document needs around it, after a marker naming them
+ * (`<template data-live-hosts>`): the client loads those hosts before it
+ * hydrates (live-hosts-hydration.ts), because hydrating a body whose code is
+ * still downloading lets any change above it swap the server HTML for the
+ * loading state. Every needed host starts loading at once, before any of them
+ * suspends, so nesting never makes them load in turn; a loaded host renders
+ * synchronously. The caller places Suspense above. */
 export function LiveBlockHosts({ hosts, value, generation, password, children }: {
   hosts: ReadonlySet<LiveHostId>;
   value: PublicCanonicalReady;
@@ -105,21 +105,63 @@ export function LiveBlockHosts({ hosts, value, generation, password, children }:
   password?: string;
   children: ReactNode;
 }) {
-  for (const id of hosts) void LOADERS[id]();
+  for (const id of hosts) void HOST_MODULES[id].start();
   const installation = `${value.scope.websiteKey}:${value.scope.instanceKey}`;
   const signedIn = value.viewerSubject !== null;
   let tree = children;
-  if (hosts.has("shoppingAssistant")) tree = <ShoppingAssistant>{tree}</ShoppingAssistant>;
-  if (hosts.has("collectionCart")) tree = <CollectionCart>{tree}</CollectionCart>;
-  if (hosts.has("wishlist")) tree = <Wishlist>{tree}</Wishlist>;
-  if (hosts.has("bundle")) tree = <Bundle>{tree}</Bundle>;
-  if (hosts.has("downloadLibrary")) tree = <DownloadLibrary>{tree}</DownloadLibrary>;
-  if (hosts.has("cartSummary")) tree = <CartSummary>{tree}</CartSummary>;
-  if (hosts.has("certificate")) tree = <Certificate generation={generation}>{tree}</Certificate>;
-  if (hosts.has("rsvp")) tree = <Rsvp instanceKey={value.scope.instanceKey} postId={value.document.id} generation={generation} signedIn={signedIn} password={password}>{tree}</Rsvp>;
-  if (hosts.has("poll")) tree = <Poll installationKey={installation} generation={generation} signedIn={signedIn} password={password}>{tree}</Poll>;
-  if (hosts.has("formEmbed")) tree = <FormEmbed password={password}>{tree}</FormEmbed>;
-  if (hosts.has("leadMagnet")) tree = <LeadMagnet password={password}>{tree}</LeadMagnet>;
-  if (hosts.has("newsletter")) tree = <Newsletter installationKey={`${installation}:${generation}`}>{tree}</Newsletter>;
-  return tree;
+  if (hosts.has("shoppingAssistant")) {
+    const { ProductionShoppingAssistantProvider: Host } = HOST_MODULES.shoppingAssistant.read();
+    tree = <Host>{tree}</Host>;
+  }
+  if (hosts.has("collectionCart")) {
+    const { ProductionCollectionCartProvider: Host } = HOST_MODULES.collectionCart.read();
+    tree = <Host>{tree}</Host>;
+  }
+  if (hosts.has("wishlist")) {
+    const { ProductionWishlistProvider: Host } = HOST_MODULES.wishlist.read();
+    tree = <Host>{tree}</Host>;
+  }
+  if (hosts.has("bundle")) {
+    const { ProductionBundleProvider: Host } = HOST_MODULES.bundle.read();
+    tree = <Host>{tree}</Host>;
+  }
+  if (hosts.has("downloadLibrary")) {
+    const { ProductionDownloadLibraryProvider: Host } = HOST_MODULES.downloadLibrary.read();
+    tree = <Host>{tree}</Host>;
+  }
+  if (hosts.has("cartSummary")) {
+    const { ProductionCartSummaryProvider: Host } = HOST_MODULES.cartSummary.read();
+    tree = <Host>{tree}</Host>;
+  }
+  if (hosts.has("certificate")) {
+    const { ProductionCertificateProvider: Host } = HOST_MODULES.certificate.read();
+    tree = <Host generation={generation}>{tree}</Host>;
+  }
+  if (hosts.has("rsvp")) {
+    const { ProductionRsvpProvider: Host } = HOST_MODULES.rsvp.read();
+    tree = <Host instanceKey={value.scope.instanceKey} postId={value.document.id} generation={generation} signedIn={signedIn} password={password}>{tree}</Host>;
+  }
+  if (hosts.has("poll")) {
+    const { ProductionPollProvider: Host } = HOST_MODULES.poll.read();
+    tree = <Host installationKey={installation} generation={generation} signedIn={signedIn} password={password}>{tree}</Host>;
+  }
+  if (hosts.has("formEmbed")) {
+    const { ProductionFormEmbedProvider: Host } = HOST_MODULES.formEmbed.read();
+    tree = <Host password={password}>{tree}</Host>;
+  }
+  if (hosts.has("leadMagnet")) {
+    const { ProductionLeadMagnetProvider: Host } = HOST_MODULES.leadMagnet.read();
+    tree = <Host password={password}>{tree}</Host>;
+  }
+  if (hosts.has("newsletter")) {
+    const { ProductionNewsletterProvider: Host } = HOST_MODULES.newsletter.read();
+    tree = <Host installationKey={`${installation}:${generation}`}>{tree}</Host>;
+  }
+  if (hosts.size === 0) return tree;
+  return (
+    <>
+      <template data-live-hosts={[...hosts].sort().join(" ")} />
+      {tree}
+    </>
+  );
 }
