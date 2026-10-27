@@ -29,10 +29,12 @@ export function FormDocumentLink({ document }: { document: FormDocument }) {
         Read the {document.label}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+        {/* The document scrolls; its title and the way back stay in view. */}
+        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
           <DialogHeader>
             <DialogTitle>{document.label}</DialogTitle>
           </DialogHeader>
+          <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
           {open ? (
             <Suspense
               fallback={
@@ -44,6 +46,7 @@ export function FormDocumentLink({ document }: { document: FormDocument }) {
               <FormDocumentBody document={document} />
             </Suspense>
           ) : null}
+          </div>
           <DialogFooter>
             <a
               href={documentHref(document.page)}
