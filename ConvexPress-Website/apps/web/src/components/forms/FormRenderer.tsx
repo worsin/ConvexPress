@@ -18,6 +18,7 @@
  */
 
 import { answerError, answerRules } from "@/components/forms/answerCheck";
+import { signatureErrors } from "@convexpress-website/backend/generated/fieldFormats";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/clerk";
 import { useAction, useMutation, useConvex } from "convex/react";
@@ -268,6 +269,11 @@ export function FormRenderer({
       // The same shape rules the server applies (format, email, URL, number range).
       const shapeError = typeof value === "string" ? answerError(field.type, value, answerRules(field.settings)) : null;
       if (shapeError) errors[field.key] = shapeError;
+    }
+    // A signature must spell the name typed in its `signatureOf` fields, as the server checks.
+    const visibleKeys = new Set(visibleFields.map((field) => field.key));
+    for (const [key, error] of Object.entries(signatureErrors(visibleFields, values, (fieldKey) => visibleKeys.has(fieldKey)))) {
+      errors[key] ??= error;
     }
     setFieldErrors(errors);
     const firstError = Object.keys(errors)[0];

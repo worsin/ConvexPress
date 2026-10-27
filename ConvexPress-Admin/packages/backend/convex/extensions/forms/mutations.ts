@@ -69,6 +69,7 @@ import {
 // within-bounds submission (every legitimate form) is unaffected.
 import { checkSubmissionPayload } from "./submitGuards";
 import { generateResumeToken, isGeneratedResumeToken, computeResumeExpiry } from "./tokens";
+import { signatureErrors } from "./fieldFormats";
 // Builder pure core (slug/settings/status/duplicate-remap). Extracted from this
 // file so the admin CRUD logic is unit-testable without a Convex ctx. The
 // mutations compose these; behavior is unchanged. `remapFieldReferences` is the
@@ -1293,7 +1294,9 @@ async function submitForm(
       }
     }
 
-    const mergedErrors = { ...zodErrors, ...validation.errors };
+    // A signature field must spell the name its `signatureOf` fields hold.
+    const signatureMismatch = signatureErrors(validationDefs, valueMap, (key) => visibility.visibleFieldKeys.has(key));
+    const mergedErrors = { ...zodErrors, ...signatureMismatch, ...validation.errors };
     const fieldErrors = Object.entries(mergedErrors).map(([fieldKey, error]) => ({
       fieldKey,
       label: labelByKey.get(fieldKey) ?? fieldKey,
