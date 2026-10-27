@@ -28,6 +28,8 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import type { PageDetail } from "@/lib/blog/types";
 import { buildIndexablePageHead } from "@/lib/seo/head";
+import { loadSiteShare } from "@/lib/seo/loadSiteShare";
+import { homepageTitle, siteDescription, siteJsonLd } from "@/lib/seo/siteShare";
 import CoreHome, { type HomeLatestPost } from "@/templates/packs/core/surfaces/home";
 import { Surface } from "@/templates/sdk/Surface";
 
@@ -54,16 +56,20 @@ export const Route = createFileRoute("/_marketing/")({
 			await queryClient.ensureQueryData(latestPostsQuery);
 		}
 
+		// The home page is the site's own: Settings › SEO's homepage title and
+		// description, and the site's WebSite and Organization structured data.
+		const share = await loadSiteShare(queryClient).catch(() => null);
 		return {
       canonical: await loadAnonymousCanonical(frontPage, deps.request),
 			seoHead: buildIndexablePageHead({
-				title: frontPage?.title
-					? `${frontPage.title} – ${siteTitle}`
-					: siteTitle,
+				title: share ? homepageTitle(share) : siteTitle,
 				description:
-					frontPage?.excerpt ??
+					share?.seo?.titles.homepageDescription?.trim() ||
+					frontPage?.excerpt ||
+					(share ? siteDescription(share) : "") ||
 					`Read the latest published articles from ${siteTitle}.`,
 				path: "/",
+				jsonLdGraph: share ? siteJsonLd(share) : undefined,
 			}),
 		};
 	},

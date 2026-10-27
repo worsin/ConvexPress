@@ -24,7 +24,7 @@ export async function getRobotsTxtResponse() {
   try {
     const robotsTxt = await getClient().query(api.sitemaps.queries.getRobotsContent, {});
 
-    return new Response(robotsTxt || defaultRobotsTxt(), {
+    return new Response(robotsTxt || fallbackRobotsTxt(), {
       status: 200,
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -34,7 +34,7 @@ export async function getRobotsTxtResponse() {
   } catch (error: unknown) {
     console.error("Failed to fetch robots.txt from Convex:", error);
 
-    return new Response(defaultRobotsTxt(), {
+    return new Response(fallbackRobotsTxt(), {
       status: 200,
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -116,18 +116,22 @@ export async function getSubSitemapResponse(type: string, pageParam: string) {
   }
 }
 
-function defaultRobotsTxt(): string {
+/**
+ * robots.txt while the backend can't be reached. Crawlers need an absolute
+ * Sitemap URL, so the line is left out when the site's URL isn't known.
+ */
+export function fallbackRobotsTxt(siteUrl = readServerSiteRuntime().siteUrl): string {
+  const origin = siteUrl ? siteUrl.replace(/\/+$/, "") : "";
   return [
     "User-agent: *",
     "Disallow: /admin/",
     "Allow: /",
-    "",
-    "Sitemap: /sitemap.xml",
+    ...(origin ? ["", `Sitemap: ${origin}/sitemap.xml`] : []),
   ].join("\n");
 }
 
 function sitemapFallbackResponse(requestUrl?: string): Response {
-  const origin = requestUrl ? new URL(requestUrl).origin : "https://convexpress.com";
+  const origin = requestUrl ? new URL(requestUrl).origin : (readServerSiteRuntime().siteUrl ?? "").replace(/\/+$/, "");
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',

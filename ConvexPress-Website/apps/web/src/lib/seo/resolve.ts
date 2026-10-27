@@ -51,6 +51,8 @@ export interface SeoSettings {
     separator: string;
     siteTitle: string;
     tagline: string;
+    homepageTitle?: string;
+    homepageDescription?: string;
     postTitleTemplate: string;
     pageTitleTemplate: string;
     postNoindex: boolean;
@@ -59,6 +61,11 @@ export interface SeoSettings {
   };
   social: {
     twitterUsername: string;
+    facebookUrl?: string;
+    instagramUrl?: string;
+    linkedinUrl?: string;
+    youtubeUrl?: string;
+    pinterestUrl?: string;
     defaultOgImage: string;
     twitterCardType: string;
     organizationName: string;
@@ -114,7 +121,7 @@ export interface AuthorForJsonLd {
  * Resolve Yoast-compatible template variables.
  * Mirrors the backend applyTemplate() function.
  */
-function applyTemplate(
+export function applyTemplate(
   template: string | undefined | null,
   variables: Record<string, string>,
 ): string | null {
@@ -276,6 +283,84 @@ export function resolvePostSeoFromQueries(
 // ─── JSON-LD Builder ─────────────────────────────────────────────────────────
 
 /**
+ * The site's own nodes: WebSite, and the Organization or Person it represents
+ * (Settings › SEO › Schema). Every page's graph starts with them; the home
+ * page publishes them on their own.
+ */
+export function buildSiteJsonLd(settings: SeoSettings, siteUrl: string, siteName: string, siteTagline = ""): object[] {
+  const { schema: schemaSettings, social } = settings;
+  const graph: object[] = [];
+  const description = settings.titles.tagline || siteTagline;
+
+  // 1. WebSite
+  const webSite: Record<string, unknown> = {
+    "@type": "WebSite",
+    "@id": `${siteUrl}/#website`,
+    url: siteUrl,
+    name: siteName,
+    ...(description ? { description } : {}),
+    inLanguage: "en-US",
+  };
+
+  if (schemaSettings.sitelinksSearchBox) {
+    webSite.potentialAction = {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    };
+  }
+
+  graph.push(webSite);
+
+  // 2. Organization or Person
+  if (schemaSettings.representType === "organization") {
+    const org: Record<string, unknown> = {
+      "@type": "Organization",
+      "@id": `${siteUrl}/#organization`,
+      name: schemaSettings.organizationName || siteName,
+      url: siteUrl,
+    };
+    if (schemaSettings.organizationLogoUrl) {
+      org.logo = {
+        "@type": "ImageObject",
+        "@id": `${siteUrl}/#logo`,
+        url: schemaSettings.organizationLogoUrl,
+        contentUrl: schemaSettings.organizationLogoUrl,
+      };
+      org.image = { "@id": `${siteUrl}/#logo` };
+    }
+    const sameAs = [
+      social.facebookUrl,
+      social.twitterUsername ? `https://twitter.com/${social.twitterUsername}` : "",
+      social.instagramUrl,
+      social.linkedinUrl,
+      social.youtubeUrl,
+      social.pinterestUrl,
+    ].filter((url): url is string => typeof url === "string" && url.length > 0);
+    if (sameAs.length > 0) {
+      org.sameAs = sameAs;
+    }
+    graph.push(org);
+  } else {
+    const person: Record<string, unknown> = {
+      "@type": "Person",
+      "@id": `${siteUrl}/#person`,
+      name: schemaSettings.personName || siteName,
+      url: siteUrl,
+    };
+    if (schemaSettings.personImageUrl) {
+      person.image = { "@type": "ImageObject", url: schemaSettings.personImageUrl };
+    }
+    graph.push(person);
+  }
+
+  return graph;
+}
+
+/**
  * Build Schema.org JSON-LD @graph array for a blog post.
  *
  * Generates:
@@ -299,73 +384,8 @@ export function buildArticleJsonLd(
   siteUrl: string,
   author: AuthorForJsonLd,
 ): object[] {
-  const { schema: schemaSettings, social } = settings;
-  const graph: object[] = [];
-
-  // 1. WebSite
-  const webSite: Record<string, unknown> = {
-    "@type": "WebSite",
-    "@id": `${siteUrl}/#website`,
-    url: siteUrl,
-    name: resolved.ogSiteName,
-    description: settings.titles.tagline || "",
-    inLanguage: "en-US",
-  };
-
-  if (schemaSettings.sitelinksSearchBox) {
-    webSite.potentialAction = {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${siteUrl}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    };
-  }
-
-  graph.push(webSite);
-
-  // 2. Organization or Person
-  if (schemaSettings.representType === "organization") {
-    const org: Record<string, unknown> = {
-      "@type": "Organization",
-      "@id": `${siteUrl}/#organization`,
-      name: schemaSettings.organizationName || resolved.ogSiteName,
-      url: siteUrl,
-    };
-    if (schemaSettings.organizationLogoUrl) {
-      org.logo = {
-        "@type": "ImageObject",
-        "@id": `${siteUrl}/#logo`,
-        url: schemaSettings.organizationLogoUrl,
-        contentUrl: schemaSettings.organizationLogoUrl,
-      };
-      org.image = { "@id": `${siteUrl}/#logo` };
-    }
-    const sameAs = [
-      (social as Record<string, unknown>).facebookUrl,
-      social.twitterUsername ? `https://twitter.com/${social.twitterUsername}` : "",
-      (social as Record<string, unknown>).instagramUrl,
-      (social as Record<string, unknown>).linkedinUrl,
-      (social as Record<string, unknown>).youtubeUrl,
-      (social as Record<string, unknown>).pinterestUrl,
-    ].filter(Boolean) as string[];
-    if (sameAs.length > 0) {
-      org.sameAs = sameAs;
-    }
-    graph.push(org);
-  } else {
-    const person: Record<string, unknown> = {
-      "@type": "Person",
-      "@id": `${siteUrl}/#person`,
-      name: schemaSettings.personName || resolved.ogSiteName,
-      url: siteUrl,
-    };
-    if (schemaSettings.personImageUrl) {
-      person.image = { "@type": "ImageObject", url: schemaSettings.personImageUrl };
-    }
-    graph.push(person);
-  }
+  const { schema: schemaSettings } = settings;
+  const graph: object[] = buildSiteJsonLd(settings, siteUrl, resolved.ogSiteName);
 
   // 3. Article schema (for posts)
   const publisherRef = schemaSettings.representType === "organization"
