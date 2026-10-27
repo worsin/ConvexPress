@@ -78,3 +78,10 @@ test("editing a template's wording isn't a choice about sending it", async () =>
   expect((await f.template("settings-changed-alert"))?.activeChangedAt).toBeUndefined();
   expect(await f.apply("settings-changed-alert", false)).toEqual({ changed: true });
 });
+
+test("the template bootstrap changes nothing on a second run", async () => {
+  const t = convexTest({ schema, modules });
+  await t.mutation(internal.bootstrap.requiredRecords.ensure, {});
+  await t.mutation(internal.emails.internals.bootstrapTemplates, {});
+  expect(await t.mutation(internal.emails.internals.bootstrapTemplates, {})).toEqual({ created: 0, updated: 0 });
+});
