@@ -4,11 +4,12 @@
  * Reads the site identity from the SSR-hydrated settings context (so the
  * title renders identically on the server and the client) and hands it,
  * with the screen's title/description, to the active template pack's
- * `auth.shell` surface. Every auth route wraps its content in this.
+ * `auth.shell` surface. Every auth route wraps its content in this. The logo
+ * is the site identity's, as in the header and footer.
  */
 import * as React from "react";
 
-import { useSettings } from "@/contexts/SettingsContext";
+import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import CoreAuthShell, { type AuthShellSurfaceData } from "@/templates/packs/core/surfaces/auth.shell";
 import { Surface } from "@/templates/sdk/Surface";
 
@@ -27,11 +28,10 @@ export function AuthPageLayout({
   showLogo = true,
   maxWidth = "sm",
 }: AuthPageLayoutProps) {
-  const publicSettings = useSettings();
-  const siteTitle =
-    (publicSettings?.siteTitle as string | undefined) || "ConvexPress";
-  const siteLogo =
-    (publicSettings?.siteLogo as string | undefined) || undefined;
+  const identity = useSiteIdentity();
+  const siteTitle = identity?.title || "ConvexPress";
+  // The logo's URL. General settings' `siteLogo` is its media id, not an image source.
+  const siteLogo = identity?.logoUrl || undefined;
 
   const data: AuthShellSurfaceData = {
     title,

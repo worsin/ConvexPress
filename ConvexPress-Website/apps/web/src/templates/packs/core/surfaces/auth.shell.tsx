@@ -19,7 +19,7 @@ export interface AuthShellSurfaceData {
   maxWidth: "sm" | "md" | "lg";
   /** Site title from the public settings (falls back to "ConvexPress"). */
   siteTitle: string;
-  /** Site logo URL, when the site has one. */
+  /** Site logo URL, when the site has one (the site identity's logoUrl). */
   siteLogo?: string;
   children: ReactNode;
 }
