@@ -33,6 +33,7 @@ import type { RestrictedTeaserMode } from "@/components/membership/RestrictedCon
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import type { PageDetail } from "@/lib/blog/types";
+import { redirectFrontPageHome } from "@/lib/seo/front-page";
 import { buildIndexablePageHead, humanizeSlug, siteTitled } from "@/lib/seo/head";
 import CorePage from "@/templates/packs/core/surfaces/page";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
@@ -44,19 +45,24 @@ export const Route = createFileRoute("/_marketing/page/$")({
   validateSearch: canonicalPaginationSearch,
   loaderDeps: ({ search }) => ({ request: search.blockPages }),
 	component: SinglePage,
-	loader: async ({ context: { queryClient }, params, deps }) => {
+	loader: async ({ context: { queryClient }, params, deps, location }) => {
 		// Extract the full path from the splat param (mirrors component logic).
 		const splatPath = params._splat ?? "";
 		const segments = splatPath.split("/").filter(Boolean);
 		const pagePath = `/${segments.join("/")}`;
 
-		// Prefetch page lookup so SSR has data ready.
-		const page = await queryClient.ensureQueryData(
-			convexQuery(api.pages.queries.getByPath, { path: pagePath }),
-		);
+		// Prefetch page lookup so SSR has data ready, with the static front page.
+		const [page, frontPage] = await Promise.all([
+			queryClient.ensureQueryData(
+				convexQuery(api.pages.queries.getByPath, { path: pagePath }),
+			),
+			queryClient.ensureQueryData(convexQuery(api.pages.queries.getFrontPage, {})).catch(() => null),
+		]);
 		// A rendered not-found surface alone leaves SSR at HTTP200. Signal the
 		// router so missing, draft and private-denied documents return HTTP404.
 		if (page === null) throw notFound();
+		// The static front page is served at "/": one address, one canonical URL.
+		redirectFrontPageHome(page, frontPage, location.search);
 		const canonical = await loadAnonymousCanonical(page, deps.request);
 		// Metadata and canonical policy are separate reads. Do not return a
 		// successful page if publication/access was revoked between them.

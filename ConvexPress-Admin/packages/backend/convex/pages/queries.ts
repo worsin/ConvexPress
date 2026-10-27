@@ -28,6 +28,7 @@
  */
 
 import { v } from "convex/values";
+import { staticFrontPageId } from "../helpers/frontPage";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { timingSafeEquals } from "../helpers/timingSafe";
@@ -1261,23 +1262,7 @@ export const getFrontPage = query({
 			return null;
 		}
 
-		const values = readingSettings.values as {
-			homepageDisplays?: "latest_posts" | "static_page";
-			homepageId?: string | null;
-			postsPageId?: string | null;
-			// Legacy keys (kept for backwards compatibility with older data).
-			showOnFront?: "posts" | "page";
-			pageOnFront?: string;
-			pageForPosts?: string;
-			postsPerPage?: number;
-		};
-
-		const staticHomepageId =
-			values.homepageDisplays === "static_page" && values.homepageId
-				? values.homepageId
-				: values.showOnFront === "page" && values.pageOnFront
-					? values.pageOnFront
-					: null;
+		const staticHomepageId = staticFrontPageId(readingSettings.values);
 
 		if (!staticHomepageId) {
 			return null;

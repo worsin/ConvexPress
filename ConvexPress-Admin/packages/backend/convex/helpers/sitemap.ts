@@ -22,6 +22,7 @@
  */
 
 import type { SitemapChangefreq } from "../sitemaps/validators";
+import { publicDocumentHref, type PublicDocumentAddress } from "./publicDocumentHref";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -244,19 +245,17 @@ export function buildSitemapIndexUrl(siteUrl: string): string {
 }
 
 /**
- * Build a post/page URL from its slug.
+ * Build a post's or page's canonical URL: the address the site serves it at
+ * and names in its canonical link (helpers/publicDocumentHref.ts), never the
+ * pretty /<slug> address that redirects there.
  *
  * @param siteUrl - The site's base URL
- * @param slug - The post/page slug
- * @param type - "post" or "page"
- * @returns Full URL (e.g., "https://example.com/blog/my-post" or "https://example.com/about")
+ * @param document - The post or page: its type, slug and, for a page, its stored path
+ * @returns Full URL (e.g., "https://example.com/blog/my-post" or "https://example.com/page/services/cme")
  */
-export function buildContentUrl(siteUrl: string, slug: string, type: "post" | "page"): string {
+export function buildContentUrl(siteUrl: string, document: PublicDocumentAddress): string {
   const base = siteUrl.replace(/\/+$/, "");
-  if (type === "post") {
-    return `${base}/blog/${slug}`;
-  }
-  return `${base}/${slug}`;
+  return `${base}${publicDocumentHref(document)}`;
 }
 
 /**
