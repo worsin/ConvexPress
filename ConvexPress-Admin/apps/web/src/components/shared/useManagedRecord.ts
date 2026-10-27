@@ -12,3 +12,8 @@ export function useManagedRecord(tableName: ManagedTable, recordId: string | und
 export function useSubscriberBillingElsewhere(): ManagedInfo | null | undefined {
   return useManagedRecord("area", "subscriberBilling");
 }
+
+/** Whether another system answers tickets: the ticket screens are read-only here, with its note. */
+export function useSupportDeskElsewhere(): ManagedInfo | null | undefined {
+  return useManagedRecord("area", "supportDesk");
+}

@@ -34,6 +34,7 @@ import {
   MAX_CANNED_CONTENT_LENGTH,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { assertSupportDeskHere } from "../managedRecords/helpers";
 
 import { ticketsDocs } from "../schema/tickets.docs.generated";
 // ─── list ───────────────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ export const applyTemplate = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "ticket.respond");
+    await assertSupportDeskHere(ctx);
 
     const template = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!template) {
@@ -184,6 +186,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
+    await assertSupportDeskHere(ctx);
 
     // Validate lengths
     if (args.title.trim().length === 0 || args.title.length > MAX_CANNED_TITLE_LENGTH) {
@@ -245,6 +248,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
+    await assertSupportDeskHere(ctx);
 
     const existing = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!existing) {
@@ -318,6 +322,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
+    await assertSupportDeskHere(ctx);
 
     const existing = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!existing) {
@@ -343,6 +348,7 @@ export const incrementUsage = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "ticket.respond");
+    await assertSupportDeskHere(ctx);
 
     const response = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!response) return;

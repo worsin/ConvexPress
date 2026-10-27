@@ -8,6 +8,9 @@
  * `subscriberBilling` hands what staff do to subscribers' billing (cancel,
  * pause, resume, refund, retry, change plan, grant or revoke access, apply a
  * coupon) to another system; subscribers' own self-service is unaffected.
+ * `supportDesk` hands answering tickets (replies, notes, status, priority,
+ * assignment, tags, saved replies, ticket settings) to another system, which
+ * works them through tickets/operator.ts; customers' own tickets are unaffected.
  */
 import { ConvexError, type Infer } from "convex/values";
 
@@ -24,7 +27,7 @@ export async function managedRecord(ctx: ReadCtx, tableName: ManagedTable, recor
     .unique();
 }
 
-export const MANAGED_AREAS = { subscriberBilling: "subscriberBilling" } as const;
+export const MANAGED_AREAS = { subscriberBilling: "subscriberBilling", supportDesk: "supportDesk" } as const;
 export type ManagedArea = keyof typeof MANAGED_AREAS;
 
 /** Refuse an admin edit of a managed record; `what` names it ("This form", "This offer"). */
@@ -40,4 +43,9 @@ export async function assertNotManaged(ctx: ReadCtx, tableName: ManagedTable, re
 /** Refuse an admin action in a managed area; `what` names the area ("Subscriber billing"). */
 export async function assertAreaNotManaged(ctx: ReadCtx, area: ManagedArea, what: string): Promise<void> {
   await assertNotManaged(ctx, "area", MANAGED_AREAS[area], what);
+}
+
+/** Refuse a staff ticket action here when another system answers tickets. */
+export async function assertSupportDeskHere(ctx: ReadCtx): Promise<void> {
+  await assertAreaNotManaged(ctx, "supportDesk", "The support desk");
 }
