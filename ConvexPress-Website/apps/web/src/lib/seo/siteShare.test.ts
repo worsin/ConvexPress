@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { fallbackRobotsTxt } from "./crawlers";
+import { siteTitled } from "./head";
 import type { SeoSettings } from "./resolve";
 import { defaultShareImage, homepageTitle, siteDescription, siteJsonLd, siteShareHead, type SiteShare } from "./siteShare";
 
@@ -124,5 +125,13 @@ describe("site sharing defaults", () => {
       "User-agent: *\nDisallow: /admin/\nAllow: /\n\nSitemap: https://northstar.example/sitemap.xml",
     );
     expect(fallbackRobotsTxt("")).toBe("User-agent: *\nDisallow: /admin/\nAllow: /");
+  });
+
+  test("a page title names the site once", () => {
+    expect(siteTitled("Pricing", "Northstar")).toBe("Pricing – Northstar");
+    expect(siteTitled("Contact Northstar", "Northstar")).toBe("Contact Northstar");
+    expect(siteTitled("northstar's story", "Northstar")).toBe("northstar's story");
+    expect(siteTitled("Northstarlings", "Northstar")).toBe("Northstarlings – Northstar");
+    expect(siteTitled("", "Northstar")).toBe("Northstar");
   });
 });
