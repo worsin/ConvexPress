@@ -511,4 +511,15 @@ crons.daily(
   {},
 );
 
+// ─── Clerk ────────────────────────────────────────────────────────────────────
+// What the site's Clerk accepts (social providers, captcha, password rules,
+// second factors) is changed in Clerk's dashboard, so the website's copy is
+// refreshed daily. A site with no Clerk settings yet is left to its setup.
+crons.daily(
+  "clerk-capabilities-refresh",
+  { hourUTC: 4, minuteUTC: 40 },
+  internal.auth.clerkConnection.refreshCapabilitiesInternal,
+  {},
+);
+
 export default crons;

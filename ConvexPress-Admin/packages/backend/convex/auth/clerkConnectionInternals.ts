@@ -236,14 +236,18 @@ export const saveConnection = internalMutation({
   args: {
     values: clerkIntegrationSettingsPatchValidator,
     system: v.optional(v.boolean()),
+    /** For a system write that creates the settings: whom they're attributed to. */
+    actorId: v.optional(v.id("users")),
   },
-  returns: v.null(),
+  /** Whether the settings were written. */
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const incoming: Record<string, unknown> = args.values;
     const doc = await readSection(ctx, SECTION);
     const user = await getCurrentUser(ctx);
     if (!user && !args.system) throw new Error("Sign in to change the Clerk connection.");
-    if (!user && !doc) return; // nothing to annotate yet
+    const updatedBy = user?._id ?? doc?.updatedBy ?? (args.system ? args.actorId : undefined);
+    if (!updatedBy) return false; // a system write with no one to attribute new settings to
 
     const next: Record<string, unknown> = {
       ...CLERK_INTEGRATION_DEFAULTS,
@@ -262,16 +266,17 @@ export const saveConnection = internalMutation({
       await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
         values: next,
         updatedAt: now,
-        updatedBy: user?._id ?? doc.updatedBy,
+        updatedBy,
       });
     } else {
       await insertWithMediaReferences<"settings">(ctx, "settings", {
         section: SECTION,
         values: next,
         updatedAt: now,
-        updatedBy: user!._id,
+        updatedBy,
       });
     }
+    return true;
   },
 });
 
