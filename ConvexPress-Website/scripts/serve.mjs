@@ -34,7 +34,7 @@
 // with no query strings, so a site can see what enforcing would break.
 // ============================================================================
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, normalize, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -282,6 +282,40 @@ export function byteRange(header, size) {
   return { start, end };
 }
 
+/** How long a page may take to start answering before the visitor gets the error page instead. */
+export const PAGE_DEADLINE_MS = 15_000;
+
+/** The page sent when a page can't be rendered: the site's own `500.html` if it ships one. */
+export const DEFAULT_ERROR_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="15"><meta name="robots" content="noindex"><title>We'll be right back</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px/1.6 system-ui,sans-serif;color:#1f2937;background:#f8fafc}main{max-width:32rem;padding:2rem;text-align:center}h1{font-size:1.5rem;margin:0 0 .5rem}a{color:inherit}</style></head><body><main><h1>We couldn't load this page.</h1><p>It usually clears in a few seconds. This page will try again on its own, or <a href="">try now</a>.</p></main></body></html>`;
+
+/**
+ * Whether a request is a visitor opening a page (a GET or HEAD that accepts
+ * HTML), as opposed to data, an asset or a form post, which keep their own
+ * error responses.
+ */
+export function isPageNavigation(request) {
+  return (request.method === "GET" || request.method === "HEAD") && (request.headers.get("accept") ?? "").includes("text/html");
+}
+
+/**
+ * Whether a page's 5xx gives way to the error page. The framework's bare
+ * failure (a 5xx that isn't HTML) always does. A 5xx page the app rendered
+ * itself does when the site ships its own `500.html`: with the backend down,
+ * the app can't load the site's settings and renders an unbranded page.
+ */
+export function replacesFailure(response, siteHasErrorPage) {
+  if (response.status < 500) return false;
+  return siteHasErrorPage || !(response.headers.get("content-type") ?? "").includes("text/html");
+}
+
+/** The error page response: 503 with a short Retry-After, never cached. */
+export function errorPageResponse(html, request, headers) {
+  return new Response(request.method === "HEAD" ? null : html, {
+    status: 503,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Retry-After": "10", ...headers },
+  });
+}
+
 /** Whether a static file is worth sending compressed (text formats, 1 KiB and up). */
 export function compressible(path, size) {
   return COMPRESSIBLE.test(path) && size >= MIN_COMPRESS_BYTES;
@@ -355,6 +389,9 @@ async function main() {
   const headers = securityHeaders(config);
   const logCspReport = cspReportLogger();
   const compressed = compressedFiles();
+  const siteErrorPage = join(CLIENT_DIR, "500.html");
+  const siteHasErrorPage = existsSync(siteErrorPage);
+  const errorPage = siteHasErrorPage ? readFileSync(siteErrorPage, "utf8") : DEFAULT_ERROR_PAGE;
 
   const server = Bun.serve({
     hostname: config.host,
@@ -404,10 +441,32 @@ async function main() {
           });
         }
       }
+      const page = isPageNavigation(request);
       try {
-        return withHeaders(await app.fetch(request), headers);
+        // A page that hasn't started answering by the deadline (a backend that
+        // stopped responding) gets the error page rather than hanging until
+        // the proxy in front gives up with its own.
+        let deadline;
+        const rendered = page
+          ? await Promise.race([
+              app.fetch(request),
+              new Promise((resolve) => {
+                deadline = setTimeout(() => resolve(null), PAGE_DEADLINE_MS);
+              }),
+            ]).finally(() => clearTimeout(deadline))
+          : await app.fetch(request);
+        if (rendered === null) {
+          console.error("[website] page timed out", url.pathname);
+          return errorPageResponse(errorPage, request, headers);
+        }
+        if (page && replacesFailure(rendered, siteHasErrorPage)) {
+          console.error("[website] page failed", url.pathname, rendered.status);
+          return errorPageResponse(errorPage, request, headers);
+        }
+        return withHeaders(rendered, headers);
       } catch (error) {
         console.error("[website] request failed", url.pathname, error);
+        if (page) return errorPageResponse(errorPage, request, headers);
         return new Response("Something went wrong on our side. Please try again.", { status: 500, headers: { "Content-Type": "text/plain", ...headers } });
       }
     },
