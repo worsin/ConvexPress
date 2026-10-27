@@ -5,6 +5,8 @@ import { ExternalLink, LoaderIcon } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { PluginGuard } from "@/components/plugins/PluginGuard";
+import { ManagedRecordNotice } from "@/components/shared/ManagedRecord";
+import { useManagedRecord } from "@/components/shared/useManagedRecord";
 import { Button } from "@/components/ui/button";
 import { useControlShell } from "@/control/ControlShellContext";
 import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
@@ -29,6 +31,9 @@ const TABS = [
   { segment: "analytics", label: "Analytics", to: "/forms/$formId/analytics" },
 ] as const;
 
+/** What the site's code owns on a managed form; notifications and entries stay the admin's. */
+const MANAGED_TABS: ReadonlySet<string> = new Set(["edit", "settings", "confirmations", "actions"]);
+
 const STATUS_LABEL: Record<string, string> = { draft: "Draft", published: "Published", archived: "Archived" };
 
 function FormLayout() {
@@ -44,6 +49,7 @@ function FormShell({ formId }: { formId: Id<"forms"> }) {
   const form = useQuery(api.extensions.forms.queries.getForm, { id: formId });
   const general = useQuery(api.settings.queries.getBySection, { section: "general" });
   const shell = useControlShell();
+  const managed = useManagedRecord("form", formId);
   const { pathname } = useLocation();
   useBreadcrumbTitle(formId, form?.title);
 
@@ -72,6 +78,7 @@ function FormShell({ formId }: { formId: Id<"forms"> }) {
   const siteOrigin = (shell?.selectedEnvironment?.siteOrigin ?? configuredUrl).replace(/\/+$/, "");
   const publicUrl = siteOrigin ? `${siteOrigin}/forms/${form.slug}` : null;
   const segment = pathname.split("/")[3] ?? "edit";
+  const locked = managed && MANAGED_TABS.has(segment) ? managed : null;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
@@ -120,7 +127,16 @@ function FormShell({ formId }: { formId: Id<"forms"> }) {
           })}
         </nav>
       </header>
-      <Outlet />
+      {locked ? (
+        <>
+          <ManagedRecordNotice managed={locked} what="This form" />
+          <fieldset disabled className="min-w-0">
+            <Outlet />
+          </fieldset>
+        </>
+      ) : (
+        <Outlet />
+      )}
     </div>
   );
 }

@@ -1941,6 +1941,15 @@ export declare const api:
 "translationGroup": FunctionReference<"query", "public", { instanceKey: string, documentId?: Id<"posts">, key?: string }, null | { key: string, revision: number, translations: Array<{ code: string, documentId: Id<"posts"> }> }>,
 }
 ,
+"managedRecords":
+{
+"queries":
+{
+"forRecord": FunctionReference<"query", "public", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate", recordId: string }, null | { system: string, note: string }>,
+}
+,
+}
+,
 "media":
 {
 "actions":
@@ -4169,6 +4178,16 @@ export declare const internal:
 "seed":
 {
 "run": FunctionReference<"mutation", "internal", { reset?: boolean }, { ok: boolean, userId: Id<"users">, planId: Id<"membership_plans">, certificateId: Id<"lms_certificates">, certificateSerial: string, courses: { freeCourseId: Id<"lms_courses">, memberCourseId: Id<"lms_courses">, certificateCourseId: Id<"lms_courses">, dripCourseId: Id<"lms_courses"> } }>,
+}
+,
+}
+,
+"managedRecords":
+{
+"internals":
+{
+"clearManaged": FunctionReference<"mutation", "internal", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate", recordId: string }, { changed: boolean }>,
+"setManaged": FunctionReference<"mutation", "internal", { tableName: "form" | "fieldGroup" | "subscriptionOffer" | "subscriptionTemplate", recordId: string, system: string, note: string }, { changed: boolean }>,
 }
 ,
 }

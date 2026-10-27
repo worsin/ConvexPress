@@ -47,6 +47,7 @@ import {
 } from "./pricing";
 import { subscriptionIntervalValidator } from "./validators";
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+import { assertNotManaged } from "../managedRecords/helpers";
 import {
 	addBillingPeriod,
 	addDays,
@@ -419,6 +420,7 @@ export const updateTemplate = mutation({
 		await requireCan(ctx, "manage_options");
 
 		const template = await ctx.db.get(args.templateId);
+		await assertNotManaged(ctx, "subscriptionTemplate", args.templateId, "This plan template");
 		if (!template) {
 			throw new ConvexError({
 				code: "NOT_FOUND",

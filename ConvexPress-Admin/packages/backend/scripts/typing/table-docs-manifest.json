@@ -103,6 +103,10 @@
     "module": "schema/authorCounts.docs.generated",
     "exportName": "authorCountsDocs"
   },
+  "managedRecords": {
+    "module": "schema/managedRecords.docs.generated",
+    "exportName": "managedRecordsDocs"
+  },
   "roleChanges": {
     "module": "schema/roles.docs.generated",
     "exportName": "rolesDocs"

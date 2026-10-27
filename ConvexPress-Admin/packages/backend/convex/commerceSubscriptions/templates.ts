@@ -31,6 +31,7 @@ import { mutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { assertNotManaged } from "../managedRecords/helpers";
 
 /**
  * Soft-delete a subscription template by flipping its status to `archived`.
@@ -55,6 +56,7 @@ export const archiveTemplate = mutation({
     await requireCan(ctx, "manage_options");
 
     const template = await ctx.db.get(args.templateId);
+    await assertNotManaged(ctx, "subscriptionTemplate", args.templateId, "This plan template");
     if (!template) {
       throw new ConvexError({
         code: "NOT_FOUND",
