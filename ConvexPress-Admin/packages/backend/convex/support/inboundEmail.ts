@@ -25,7 +25,10 @@ import {
   type InboundChannelSecurity,
 } from "./inboundSecurity";
 import { isPluginEnabled } from "../helpers/plugins";
+import { emitEvent } from "../helpers/events";
+import { SYSTEM, TICKET_EVENTS } from "../events/constants";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+import { statusAfterCustomerReply } from "../tickets/customer";
 
 
 type InboundChannelSecurityResult =
@@ -175,7 +178,8 @@ export const recordInboundEmail = internalMutation({
       };
     }
 
-    // 4. Existing-ticket append path.
+    // 4. Existing-ticket append path: only the sender's own ticket. A ticket
+    // number quoted by anyone else opens a new ticket instead.
     let ticketId: Id<"ticket_tickets"> | undefined = undefined;
     if (args.ticketNumber) {
       const existing = await ctx.db
@@ -184,12 +188,16 @@ export const recordInboundEmail = internalMutation({
           q.eq("ticketNumber", args.ticketNumber!),
         )
         .unique();
-      if (existing) {
+      if (existing && existing.userId === user._id) {
         ticketId = existing._id;
-        const seq = (existing.messageCount ?? 0) + 1;
-        await ctx.db.insert("ticket_messages", {
+        const last = await ctx.db
+          .query("ticket_messages")
+          .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", existing._id))
+          .order("desc")
+          .first();
+        const messageId = await ctx.db.insert("ticket_messages", {
           ticketId,
-          sequence: seq,
+          sequence: (last?.sequence ?? -1) + 1,
           senderType: "user" as const,
           senderId: user._id,
           senderName:
@@ -199,14 +207,36 @@ export const recordInboundEmail = internalMutation({
           isInternal: false,
           createdAt: args.receivedAt,
         });
+        // As a reply from the website: the ticket waits on staff again, and a
+        // resolved or closed one reopens.
+        const status = statusAfterCustomerReply(existing.status);
+        const reopened = status !== existing.status && (existing.status === "resolved" || existing.status === "closed");
         await patchDynamicWithMediaReferences(ctx, existing._id, {
-          status:
-            existing.status === "closed"
-              ? ("open" as const)
-              : existing.status,
-          messageCount: seq,
+          status,
+          messageCount: existing.messageCount + 1,
           lastMessageAt: args.receivedAt,
+          lastMessageSenderType: "user" as const,
           updatedAt: args.receivedAt,
+          ...(reopened ? { resolvedAt: undefined, closedAt: undefined } : {}),
+        });
+        if (status !== existing.status) {
+          await emitEvent(ctx, TICKET_EVENTS.STATUS_CHANGED, SYSTEM.TICKET, {
+            ticketId: existing._id,
+            ticketNumber: existing.ticketNumber,
+            previousStatus: existing.status,
+            newStatus: status,
+            ticketOwnerId: existing.userId,
+          });
+        }
+        await emitEvent(ctx, TICKET_EVENTS.REPLIED, SYSTEM.TICKET, {
+          ticketId: existing._id,
+          ticketNumber: existing.ticketNumber,
+          messageId,
+          senderType: "user",
+          senderId: user._id,
+          ticketOwnerId: existing.userId,
+          assignedTo: existing.assignedTo ?? null,
+          source: "email",
         });
       }
     }
@@ -236,7 +266,8 @@ export const recordInboundEmail = internalMutation({
       });
       await ctx.db.insert("ticket_messages", {
         ticketId,
-        sequence: 1,
+        // The opening message, as a ticket opened on the website has.
+        sequence: 0,
         senderType: "user" as const,
         senderId: user._id,
         senderName,
@@ -244,6 +275,15 @@ export const recordInboundEmail = internalMutation({
         content: args.body,
         isInternal: false,
         createdAt: args.receivedAt,
+      });
+      await emitEvent(ctx, TICKET_EVENTS.CREATED, SYSTEM.TICKET, {
+        ticketId,
+        ticketNumber,
+        userId: user._id,
+        category: "other",
+        priority: "medium",
+        source: "email",
+        aiAttempted: false,
       });
     }
 
