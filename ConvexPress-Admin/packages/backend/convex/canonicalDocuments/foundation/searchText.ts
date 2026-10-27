@@ -31,7 +31,7 @@ function richText(value: unknown): string {
  * lines separate paragraphs, "- " starts a list item, and the inline marks.
  * Unsupported Markdown is rendered literally, so it must stay literal here. */
 export function proseText(value: string): string {
-  return value.split(/\n\s*\n/u).map(paragraph => paragraph.replace(/^\s*- /gmu, "").replace(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/gu, token => {
+  return value.split(/\n\s*\n/u).map(paragraph => paragraph.replace(/^\s*- /gmu, "").replace(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((?:https?:\/\/|\/(?![\/\\]))[^\s)]*\))/gu, token => {
     if (token.startsWith("**")) return token.slice(2, -2);
     if (token.startsWith("*")) return token.slice(1, -1);
     return /^\[([^\]]+)\]\(([^)]+)\)$/u.exec(token)![1];

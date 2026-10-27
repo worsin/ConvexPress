@@ -37,7 +37,7 @@ test("prose follows rendered inline copy without indexing markdown link destinat
   expect(authoredBlockSearchText("core/hero", { eyebrow: "", title: "Intro", body: "A **bright** [garden](https://example.invalid/Invisiblelinkneedle) with *flowers*." })).toBe("Intro A bright garden with flowers.");
   // The same syntax in a literal heading remains visible literal text.
   expect(authoredBlockSearchText("core/hero", { eyebrow: "", title: "[Garden](https://example.invalid/literal)", body: "" })).toBe("[Garden](https://example.invalid/literal)");
-  expect(authoredBlockSearchText("core/hero", { eyebrow: "", title: "Intro", body: "**First\n\nsecond** [relative](/visible-literal)" })).toBe("Intro **First second** [relative](/visible-literal)");
+  expect(authoredBlockSearchText("core/hero", { eyebrow: "", title: "Intro", body: "**First\n\nsecond** [relative](/visible-page) [host](//other.example)" })).toBe("Intro **First second** relative [host](//other.example)");
   expect(() => parseBlockSpec({ ...paragraph, searchText: [{ path: ["body"], format: "prose" }] })).toThrow("plain text field");
 });
 
