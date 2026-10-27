@@ -44,6 +44,18 @@ describe("self-hosted website runtime", () => {
     expect(readConfig(env).problems).toEqual([]);
   });
 
+  test("checks the backend's private address, and keeps it out of the browser's policy", () => {
+    const config = readConfig({ ...env, CONVEXPRESS_CONVEX_SERVER_URL: "http://10.0.0.7:3230" });
+    expect(config.problems).toEqual([]);
+    expect(config.serverConvexUrl?.origin).toBe("http://10.0.0.7:3230");
+    const csp = contentSecurityPolicy(config);
+    expect(`${csp.enforced} ${csp.reportOnly}`).not.toContain("10.0.0.7");
+    expect(readConfig({ ...env, CONVEXPRESS_CONVEX_SERVER_URL: "file:///etc/passwd" }).problems).toEqual(["CONVEXPRESS_CONVEX_SERVER_URL must be an http(s) URL"]);
+    expect(readConfig({ ...env, CONVEXPRESS_CONVEX_SERVER_SITE_URL: "http://10.0.0.7:3231" }).problems).toEqual([
+      "CONVEXPRESS_CONVEX_SERVER_SITE_URL is set without CONVEXPRESS_CONVEX_SERVER_URL",
+    ]);
+  });
+
   test("reads the Clerk Frontend API host from the publishable key", () => {
     expect(clerkFrontendApi(env.CONVEXPRESS_CLERK_PUBLISHABLE_KEY)).toBe("https://example.clerk.accounts.dev");
     expect(clerkFrontendApi("sk_test_secret")).toBeUndefined();

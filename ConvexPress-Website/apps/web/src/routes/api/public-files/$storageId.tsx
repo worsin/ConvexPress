@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { servePublicStorageDownload } from '@/lib/downloads/public-storage';
-import { readServerSiteRuntime } from '@/lib/site-runtime';
+import { readServerConvexOrigins } from '@/lib/site-runtime';
 function handle(request: Request, storageId: string) {
-  return servePublicStorageDownload(request, storageId, { backendOrigin: readServerSiteRuntime().convexUrl ?? '', fetch });
+  return servePublicStorageDownload(request, storageId, { backendOrigin: readServerConvexOrigins().convexUrl, fetch });
 }
 export const Route = createFileRoute('/api/public-files/$storageId')({
   server: { handlers: {

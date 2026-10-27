@@ -23,12 +23,12 @@
  */
 
 import { fallbackRobotsTxt } from "@/lib/seo/crawlers";
-import { readServerSiteRuntime } from "@/lib/site-runtime";
+import { readServerConvexOrigins } from "@/lib/site-runtime";
 import { createFileRoute } from "@tanstack/react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
 
-const CONVEX_URL = readServerSiteRuntime().convexUrl || "";
+const CONVEX_URL = readServerConvexOrigins().convexUrl || "";
 
 export const Route = createFileRoute("/api/robots")({
   server: {

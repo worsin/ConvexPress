@@ -11,6 +11,11 @@
  * Resolution order
  *   server:  CONVEXPRESS_* env → VITE_* env (dev convenience)
  *   client:  window.__CONVEXPRESS_SITE__ → import.meta.env (dev fallback)
+ *
+ * A website running next to its backend (the same machine or private network)
+ * can also set CONVEXPRESS_CONVEX_SERVER_URL: the same deployment at a private
+ * address, for the server's own requests (see readServerConvexOrigins). It is
+ * never part of the configuration sent to the browser.
  */
 
 export interface SiteRuntimeConfig {
@@ -84,6 +89,39 @@ export function readServerSiteRuntime(): SiteRuntimeConfig {
       "VITE_CLERK_PUBLISHABLE_KEY",
     ),
   };
+}
+
+/** The Convex origins for the server's own requests. */
+export interface ServerConvexOrigins {
+  /** Deployment origin for queries, mutations and storage. */
+  convexUrl: string;
+  /** HTTP-actions origin. */
+  convexSiteUrl?: string;
+}
+
+/**
+ * Where this server process sends its own requests to the backend: server
+ * rendering, redirect lookups, feeds, sitemaps and file downloads. With
+ * CONVEXPRESS_CONVEX_SERVER_URL set (and CONVEXPRESS_CONVEX_SERVER_SITE_URL,
+ * else derived from it) that is the private address, so a server render
+ * doesn't go out to the public edge and back for each query. Otherwise it is
+ * the public address the browser uses.
+ */
+export function readServerConvexOrigins(): ServerConvexOrigins {
+  const privateUrl = firstEnv("CONVEXPRESS_CONVEX_SERVER_URL");
+  if (privateUrl) {
+    return {
+      convexUrl: privateUrl,
+      convexSiteUrl: firstEnv("CONVEXPRESS_CONVEX_SERVER_SITE_URL") ?? deriveConvexSiteUrl(privateUrl),
+    };
+  }
+  const { convexUrl, convexSiteUrl } = getSiteRuntime();
+  return { convexUrl, convexSiteUrl };
+}
+
+/** The deployment URL for a request made from here: the server's own origin on the server, the public one in the browser. */
+export function getRequestConvexUrl(): string {
+  return typeof window === "undefined" ? readServerConvexOrigins().convexUrl : getSiteRuntime().convexUrl;
 }
 
 function readBuildTimeFallback(): SiteRuntimeConfig {

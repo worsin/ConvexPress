@@ -5,6 +5,8 @@ declare module "bun:test" {
   export function test(name: string, callback: TestCallback, timeout?: number): void;
   export function beforeAll(callback: TestCallback): void;
   export function afterAll(callback: TestCallback): void;
+  export function beforeEach(callback: TestCallback): void;
+  export function afterEach(callback: TestCallback): void;
   export function expect(actual: unknown): {
     toBe(expected: unknown): void;
     toEqual(expected: unknown): void;

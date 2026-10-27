@@ -2,9 +2,10 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
+import { ConvexHttpClient } from "convex/browser";
 
 import Loader from "./components/loader";
-import { getSiteRuntime } from "./lib/site-runtime";
+import { getRequestConvexUrl, getSiteRuntime } from "./lib/site-runtime";
 import { ErrorTemplate } from "./templates/packs/core/parts/runtime-error";
 import { NotFoundTemplate } from "./templates/packs/core/parts/not-found";
 import { routeTree } from "./routeTree.gen";
@@ -18,6 +19,12 @@ export function getRouter() {
   }
 
   const convexQueryClient = new ConvexQueryClient(convexUrl);
+  // A server render reads the backend at its private address when one is set
+  // (lib/site-runtime.ts); the browser keeps the public one.
+  const serverUrl = getRequestConvexUrl();
+  if (typeof window === "undefined" && serverUrl && serverUrl !== convexUrl) {
+    convexQueryClient.serverHttpClient = new ConvexHttpClient(serverUrl);
+  }
 
   const queryClient: QueryClient = new QueryClient({
     defaultOptions: {
