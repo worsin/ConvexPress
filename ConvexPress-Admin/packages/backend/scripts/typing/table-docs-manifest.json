@@ -475,6 +475,10 @@
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"
   },
+  "kb_setupReceipts": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
   "kb_tags": {
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"
