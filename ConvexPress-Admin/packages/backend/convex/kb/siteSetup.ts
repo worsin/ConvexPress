@@ -257,7 +257,9 @@ export const writeArticle = internalMutation({
       const recordId = ctx.db.normalizeId("kb_articles", receipt.recordId);
       const article = recordId ? await ctx.db.get("kb_articles", recordId) : null;
       if (!article || article.status === "archived") return { outcome: "kept_removed", articleId: article?._id ?? null };
-      if (receipt.requestDigest === requestDigest) return { outcome: "unchanged", articleId: article._id };
+      // A repeated request is unchanged, unless an earlier setup recorded a
+      // visibility it never applied (before setup moved visibility at all).
+      if (receipt.requestDigest === requestDigest && article.visibility === fields.visibility) return { outcome: "unchanged", articleId: article._id };
       if (articleDigest(article) !== receipt.acceptedDigest) return { outcome: "kept_edited", articleId: article._id };
       const now = Date.now();
       // No editor has changed the article, so setup may move it between
