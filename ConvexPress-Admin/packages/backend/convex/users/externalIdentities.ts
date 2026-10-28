@@ -562,7 +562,7 @@ export const moveExternalIssuer = internalMutation({
         userId: link.userId, changes: ["external_identity_moved"], issuer: to, previousIssuer: from, source: SYNC_SOURCE,
       });
     }
-    const last = links.at(-1);
+    const last = links[links.length - 1];
     return { moved, merged, conflicts, continueAfter: links.length === MOVE_BATCH && last ? last.subject : null };
   },
 });
