@@ -19,7 +19,9 @@
  *   - an email that belongs to a non-external account is a typed conflict,
  *     never a merge;
  *   - a banned account is never changed by the sync (a typed conflict);
- *   - a deactivated or unlinked identity resolves to no user.
+ *   - a deactivated or unlinked identity resolves to no user;
+ *   - when the integrator's issuer changes, moveExternalIssuer carries every
+ *     link to the new one; nothing follows an issuer on its own.
  */
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
@@ -112,15 +114,20 @@ function exactClaim(value: string, name: "issuer" | "subject", maxLength: number
 
 type ExternalIdentityKey = { issuer: string; subject: string; tokenIdentifier: string };
 
-function externalIdentityKey(args: { issuer: string; subject: string }): ExternalIdentityKey {
-  const issuer = exactClaim(args.issuer, "issuer", MAX_ISSUER_LENGTH);
-  const subject = exactClaim(args.subject, "subject", MAX_SUBJECT_LENGTH);
+function externalIssuer(value: string): string {
+  const issuer = exactClaim(value, "issuer", MAX_ISSUER_LENGTH);
   // tokenIdentifier joins issuer and subject with "|". An issuer containing
   // "|" could make two different identities produce the same identifier.
   if (issuer.includes("|")) invalid("The issuer must not contain '|'.");
   if (isReservedIssuer(issuer)) {
     invalid("ConvexPress's own issuers and the configured Clerk issuer cannot back an external identity.");
   }
+  return issuer;
+}
+
+function externalIdentityKey(args: { issuer: string; subject: string }): ExternalIdentityKey {
+  const issuer = externalIssuer(args.issuer);
+  const subject = exactClaim(args.subject, "subject", MAX_SUBJECT_LENGTH);
   return { issuer, subject, tokenIdentifier: tokenIdentifierFor(issuer, subject) };
 }
 
@@ -491,5 +498,71 @@ export const unlinkExternalIdentity = internalMutation({
       userId: link.userId, changes: ["external_identity_unlinked"], issuer: link.issuer, source: SYNC_SOURCE,
     });
     return { removed: true, userId: link.userId };
+  },
+});
+
+const MOVE_BATCH = 100;
+
+/**
+ * Carry every link from one issuer to another, keeping each subject: for an
+ * integrator whose identity provider now signs with a different `iss` (a new
+ * domain, or a deployment copied from another whose tokens name its own URL).
+ * Accounts, roles and content stay as they are. Afterwards a token from `to`
+ * resolves where one from `from` did, and a token from `from` resolves to no
+ * user.
+ *
+ * Only the integrator knows both issuers name the same people, so this is
+ * internal like the rest of the API. A subject already linked under `to` keeps
+ * that link: to the same account, the `from` link is dropped (`merged`); to a
+ * different account, both stay and it is reported (`conflicts`). Background
+ * work captured under a `from` identity (a search job, a category deletion)
+ * fails closed.
+ *
+ * Moves up to 100 links per call, in subject order: call again with
+ * `afterSubject: continueAfter` until `continueAfter` is null.
+ */
+export const moveExternalIssuer = internalMutation({
+  args: { from: v.string(), to: v.string(), afterSubject: v.optional(v.string()) },
+  returns: v.object({
+    moved: v.number(),
+    merged: v.number(),
+    conflicts: v.array(v.object({ subject: v.string(), userId: v.id("users"), linkedUserId: v.id("users") })),
+    continueAfter: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const from = externalIssuer(args.from);
+    const to = externalIssuer(args.to);
+    if (from === to) invalid("The issuers must differ.");
+    const { afterSubject } = args;
+    const links = await ctx.db
+      .query("userExternalIdentities")
+      .withIndex("by_issuer_subject", (q) =>
+        afterSubject === undefined ? q.eq("issuer", from) : q.eq("issuer", from).gt("subject", afterSubject),
+      )
+      .take(MOVE_BATCH);
+
+    let moved = 0;
+    let merged = 0;
+    const conflicts: Array<{ subject: string; userId: Id<"users">; linkedUserId: Id<"users"> }> = [];
+    for (const link of links) {
+      const key = externalIdentityKey({ issuer: to, subject: link.subject });
+      const existing = await readLink(ctx, key);
+      if (existing && existing.userId !== link.userId) {
+        conflicts.push({ subject: link.subject, userId: link.userId, linkedUserId: existing.userId });
+        continue;
+      }
+      if (existing) {
+        await ctx.db.delete("userExternalIdentities", link._id);
+        merged++;
+      } else {
+        await ctx.db.patch("userExternalIdentities", link._id, { issuer: key.issuer, tokenIdentifier: key.tokenIdentifier });
+        moved++;
+      }
+      await emitEvent(ctx, PROFILE_EVENTS.UPDATED, SYSTEM.PROFILE, {
+        userId: link.userId, changes: ["external_identity_moved"], issuer: to, previousIssuer: from, source: SYNC_SOURCE,
+      });
+    }
+    const last = links.at(-1);
+    return { moved, merged, conflicts, continueAfter: links.length === MOVE_BATCH && last ? last.subject : null };
   },
 });
