@@ -66,8 +66,11 @@ test("a manifest registers spots; editors' summaries survive later syncs; prune 
   const sync = (spots: Array<{ key: string; label: string; summary?: string; routeHint?: string }>, prune = false) =>
     f.t.mutation(internal.kb.helpContexts.syncManifest, { surface: "doctor-portal", spots, prune });
   expect(await sync([{ key: "doctor.cases.list", label: "Cases", summary: "Every case.", routeHint: "/cases" }, { key: "doctor.case.status", label: "Case status" }])).toEqual({ created: 2, updated: 0, unchanged: 0, pruned: 0 });
-  await f.editor.mutation(api.kb.helpContexts.save, { key: "doctor.cases.list", label: "Cases list", summary: "All your practice's cases, newest first." });
-  expect(await sync([{ key: "doctor.cases.list", label: "Cases list", summary: "Every case.", routeHint: "/cases" }, { key: "doctor.case.status", label: "Case status" }])).toEqual({ created: 0, updated: 0, unchanged: 2, pruned: 0 });
+  // The app owns a registered spot's label and route; the editor owns its summary.
+  await f.editor.mutation(api.kb.helpContexts.save, { key: "doctor.cases.list", label: "My cases", summary: "All your practice's cases, newest first.", routeHint: "/elsewhere" });
+  const saved = (await f.editor.query(api.kb.helpContexts.list, {})).find((spot) => spot.key === "doctor.cases.list");
+  expect(saved).toMatchObject({ label: "Cases", routeHint: "/cases", summary: "All your practice's cases, newest first." });
+  expect(await sync([{ key: "doctor.cases.list", label: "Cases list", summary: "Every case.", routeHint: "/cases" }, { key: "doctor.case.status", label: "Case status" }])).toEqual({ created: 0, updated: 1, unchanged: 1, pruned: 0 });
   expect((await f.t.query(internal.kb.help.spot, { key: "doctor.cases.list", ...DOCTOR })).spot?.summary).toBe("All your practice's cases, newest first.");
   expect(await sync([{ key: "doctor.cases.list", label: "Cases list", routeHint: "/cases" }], true)).toEqual({ created: 0, updated: 0, unchanged: 1, pruned: 1 });
   expect((await f.editor.query(api.kb.helpContexts.list, {})).map((spot) => spot.key)).toEqual(["doctor.cases.list"]);
