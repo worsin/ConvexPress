@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import schema from "../../schema";
 import { api, internal } from "../../_generated/api";
+import { articleDigest } from "../siteSetup";
 import type { Id } from "../../_generated/dataModel";
 
 const modules = {
@@ -242,6 +243,18 @@ test("site setup moves an article it owns between public and internal, with its 
   expect(await f.t.query(internal.kb.help.search, { query: "inviting", ...VISITOR })).toEqual([]);
   expect((await f.t.query(internal.kb.help.search, { query: "inviting", ...DOCTOR })).map((a) => a.slug)).toEqual(["inviting-your-team"]);
   expect((await write("internal")).outcome).toBe("unchanged");
+
+  // A setup from before visibility moved recorded "internal" but left the article public: the next run applies it.
+  await f.t.run(async (ctx) => {
+    await ctx.db.patch(articleId!, { visibility: undefined });
+    await ctx.db.patch(f.ids.category, { articleCount: 1 });
+    // ...and accepted the article as it left it.
+    const left = (await ctx.db.get(articleId!))!;
+    const receipt = (await ctx.db.query("kb_setupReceipts").withIndex("by_record", (q) => q.eq("recordId", articleId!)).first())!;
+    await ctx.db.patch(receipt._id, { acceptedDigest: articleDigest(left) });
+  });
+  expect((await write("internal")).outcome).toBe("updated");
+  expect(await state(articleId!)).toEqual({ visibility: "internal", count: 0, chunks: 0 });
 
   expect((await write("public")).outcome).toBe("updated");
   expect(await state(articleId!)).toEqual({ visibility: undefined, count: 1, chunks: 0 });
