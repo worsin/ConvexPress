@@ -1,7 +1,7 @@
 /**
  * Knowledge Base System - Schema
  *
- * 20 tables supporting a full-featured enterprise knowledge base:
+ * 22 tables supporting a full-featured enterprise knowledge base:
  *   - kb_articles          - Primary article storage
  *   - kb_articleVersions   - Article version history
  *   - kb_articleSlugHistory - Earlier slugs of published articles
@@ -22,6 +22,8 @@
  *   - kb_comments          - Article comments with threading
  *   - kb_commentVotes      - Comment upvote/downvote tracking
  *   - kb_ragChunks         - RAG vector search chunks
+ *   - kb_help_contexts     - In-app help spots registered by applications
+ *   - kb_article_contexts  - The articles each help spot shows, in order
  */
 
 import { defineTable } from "convex/server";
@@ -499,6 +501,44 @@ export const kbTables = {
   })
     .index("by_article", ["articleId"])
     .index("by_article_slug", ["articleSlug"]),
+
+  /**
+   * kb_help_contexts - In-app help spots (kb/helpContexts.ts)
+   *
+   * A spot is a place in an application where a reader can ask for help: a
+   * screen, a panel, a field. Apps register their spots (a manifest of keys
+   * such as `doctor.cases.list`, with labels and the route they live on);
+   * editors give each one a short summary and choose its articles
+   * (kb_article_contexts). The summary is what the help panel shows first.
+   */
+  kb_help_contexts: defineTable({
+    key: v.string(),
+    label: v.string(),
+    summary: v.optional(v.string()),
+    /** Which application the spot belongs to (a manifest's surface). */
+    surface: v.optional(v.string()),
+    /** Where the spot lives, for editors (e.g. /cases/:caseId). */
+    routeHint: v.optional(v.string()),
+    source: v.union(v.literal("editor"), v.literal("manifest")),
+    /** Set once an editor changes the summary; manifests no longer overwrite it. */
+    summaryEditedAt: v.optional(v.number()),
+    manifestSeenAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_surface_key", ["surface", "key"]),
+
+  /** Which articles a help spot shows, in the order editors chose (rank ascending). */
+  kb_article_contexts: defineTable({
+    articleId: v.id("kb_articles"),
+    contextKey: v.string(),
+    rank: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_context_rank", ["contextKey", "rank"])
+    .index("by_context_article", ["contextKey", "articleId"])
+    .index("by_article", ["articleId"]),
 
   /**
    * kb_setupReceipts - What a site's setup wrote (kb/siteSetup.ts)

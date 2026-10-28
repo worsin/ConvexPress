@@ -1,6 +1,7 @@
 import { KBInheritedCategoryAccess } from "@/components/kb/KBInheritedCategoryAccess";
 import { KBAudienceInput } from "@/components/kb/KBAudienceInput";
 import { KbEditor } from "@/components/kb/editor/KbEditor";
+import { KBHelpSpotsInput } from "@/components/kb/KBHelpSpotsInput";
 /**
  * KB Article Editor - /admin/kb/$articleId/edit
  *
@@ -48,6 +49,7 @@ type Form = {
   keywords: string;
   visibility: "public" | "internal";
   audiences: string[];
+  helpContexts: string[];
 };
 
 const inputClass = "w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary/30";
@@ -60,6 +62,7 @@ function errorMessage(err: unknown, fallback: string) {
 function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
   const article = useQuery(api.kb.queries.getById, { articleId });
   const versions = useQuery(api.kb.queries.getVersions, { articleId });
+  const helpSpots = useQuery(api.kb.helpContexts.forArticle, { articleId });
   const categories = useQuery(api.kb.categories.list) ?? [];
   const updateArticle = useMutation(api.kb.mutations.update);
   const publishArticle = useMutation(api.kb.mutations.publish);
@@ -76,7 +79,7 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const ownSave = useRef(false);
 
-  function load(source: NonNullable<typeof article>) {
+  function load(source: NonNullable<typeof article>, spots: string[]) {
     setForm({
       title: source.title,
       excerpt: source.excerpt ?? "",
@@ -88,6 +91,7 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
       keywords: (source.keywords ?? []).join(", "),
       visibility: source.visibility,
       audiences: source.audiences,
+      helpContexts: spots,
     });
     contentRef.current = source.content;
     setContentChanged(false);
@@ -96,9 +100,10 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
     setIsDirty(false);
   }
 
+  const spotKeys = helpSpots?.map((spot) => spot.key);
   useEffect(() => {
-    if (!article) return;
-    if (baseline === null) return load(article);
+    if (!article || !spotKeys) return;
+    if (baseline === null) return load(article, spotKeys);
     if (article.updatedAt === baseline) return;
     // Our own save came back: it becomes the baseline without reloading the form.
     if (ownSave.current) {
@@ -107,9 +112,9 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
       return;
     }
     // Someone else saved. Nothing unsaved here: take their version.
-    if (!isDirty) load(article);
+    if (!isDirty) load(article, spotKeys);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load is stable in effect; only article changes matter
-  }, [article]);
+  }, [article, helpSpots === undefined]);
 
   const changedElsewhere = article && baseline !== null && article.updatedAt !== baseline && isDirty;
 
@@ -144,6 +149,7 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
       keywords,
       visibility: form.visibility,
       audiences: form.audiences,
+      helpContexts: form.helpContexts,
       ...(changeSummary.trim() ? { changeSummary: changeSummary.trim() } : {}),
     };
   }
@@ -217,7 +223,7 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [isDirty]);
 
-  if (article === undefined || (article && !form)) {
+  if (article === undefined || helpSpots === undefined || (article && !form)) {
     return (
       <div className="flex items-center justify-center h-48">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -309,7 +315,7 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
       {changedElsewhere && (
         <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm">
           <span>Someone else saved this article while you were editing. Saving now replaces their changes with yours.</span>
-          <button type="button" onClick={() => load(article)} className="shrink-0 rounded-md border border-border bg-card px-3 py-1 text-xs hover:bg-muted">
+          <button type="button" onClick={() => load(article, spotKeys ?? form.helpContexts)} className="shrink-0 rounded-md border border-border bg-card px-3 py-1 text-xs hover:bg-muted">
             Load their version
           </button>
         </div>
@@ -414,6 +420,12 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
               <KBAudienceInput audiences={form.audiences} onChange={(next) => edit("audiences", next)} />
               <p className="text-xs text-foreground/40 mt-1">Labels for integrations, such as staff or doctor.</p>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">In-app help</h3>
+            <KBHelpSpotsInput spots={form.helpContexts} onChange={(next) => edit("helpContexts", next)} />
+            <p className="text-xs text-foreground/40">The “?” spots in your apps that list this article. Order and summaries are set on the In-app help page.</p>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">

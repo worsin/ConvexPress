@@ -121,6 +121,7 @@ import { Route as AuthenticatedAdminKbTemplatesRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminKbTagsRouteImport } from './routes/_authenticated/_admin/kb/tags'
 import { Route as AuthenticatedAdminKbSettingsRouteImport } from './routes/_authenticated/_admin/kb/settings'
 import { Route as AuthenticatedAdminKbNewRouteImport } from './routes/_authenticated/_admin/kb/new'
+import { Route as AuthenticatedAdminKbHelpRouteImport } from './routes/_authenticated/_admin/kb/help'
 import { Route as AuthenticatedAdminKbCollectionsRouteImport } from './routes/_authenticated/_admin/kb/collections'
 import { Route as AuthenticatedAdminKbCategoriesRouteImport } from './routes/_authenticated/_admin/kb/categories'
 import { Route as AuthenticatedAdminKbAnalyticsRouteImport } from './routes/_authenticated/_admin/kb/analytics'
@@ -952,6 +953,12 @@ const AuthenticatedAdminKbNewRoute = AuthenticatedAdminKbNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedAdminKbRoute,
 } as any)
+const AuthenticatedAdminKbHelpRoute =
+  AuthenticatedAdminKbHelpRouteImport.update({
+    id: '/help',
+    path: '/help',
+    getParentRoute: () => AuthenticatedAdminKbRoute,
+  } as any)
 const AuthenticatedAdminKbCollectionsRoute =
   AuthenticatedAdminKbCollectionsRouteImport.update({
     id: '/collections',
@@ -2005,6 +2012,7 @@ export interface FileRoutesByFullPath {
   '/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
   '/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
   '/kb/collections': typeof AuthenticatedAdminKbCollectionsRoute
+  '/kb/help': typeof AuthenticatedAdminKbHelpRoute
   '/kb/new': typeof AuthenticatedAdminKbNewRoute
   '/kb/settings': typeof AuthenticatedAdminKbSettingsRoute
   '/kb/tags': typeof AuthenticatedAdminKbTagsRoute
@@ -2255,6 +2263,7 @@ export interface FileRoutesByTo {
   '/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
   '/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
   '/kb/collections': typeof AuthenticatedAdminKbCollectionsRoute
+  '/kb/help': typeof AuthenticatedAdminKbHelpRoute
   '/kb/new': typeof AuthenticatedAdminKbNewRoute
   '/kb/settings': typeof AuthenticatedAdminKbSettingsRoute
   '/kb/tags': typeof AuthenticatedAdminKbTagsRoute
@@ -2526,6 +2535,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
   '/_authenticated/_admin/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
   '/_authenticated/_admin/kb/collections': typeof AuthenticatedAdminKbCollectionsRoute
+  '/_authenticated/_admin/kb/help': typeof AuthenticatedAdminKbHelpRoute
   '/_authenticated/_admin/kb/new': typeof AuthenticatedAdminKbNewRoute
   '/_authenticated/_admin/kb/settings': typeof AuthenticatedAdminKbSettingsRoute
   '/_authenticated/_admin/kb/tags': typeof AuthenticatedAdminKbTagsRoute
@@ -2797,6 +2807,7 @@ export interface FileRouteTypes {
     | '/kb/analytics'
     | '/kb/categories'
     | '/kb/collections'
+    | '/kb/help'
     | '/kb/new'
     | '/kb/settings'
     | '/kb/tags'
@@ -3047,6 +3058,7 @@ export interface FileRouteTypes {
     | '/kb/analytics'
     | '/kb/categories'
     | '/kb/collections'
+    | '/kb/help'
     | '/kb/new'
     | '/kb/settings'
     | '/kb/tags'
@@ -3317,6 +3329,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/kb/analytics'
     | '/_authenticated/_admin/kb/categories'
     | '/_authenticated/_admin/kb/collections'
+    | '/_authenticated/_admin/kb/help'
     | '/_authenticated/_admin/kb/new'
     | '/_authenticated/_admin/kb/settings'
     | '/_authenticated/_admin/kb/tags'
@@ -4311,6 +4324,13 @@ declare module '@tanstack/react-router' {
       path: '/new'
       fullPath: '/kb/new'
       preLoaderRoute: typeof AuthenticatedAdminKbNewRouteImport
+      parentRoute: typeof AuthenticatedAdminKbRoute
+    }
+    '/_authenticated/_admin/kb/help': {
+      id: '/_authenticated/_admin/kb/help'
+      path: '/help'
+      fullPath: '/kb/help'
+      preLoaderRoute: typeof AuthenticatedAdminKbHelpRouteImport
       parentRoute: typeof AuthenticatedAdminKbRoute
     }
     '/_authenticated/_admin/kb/collections': {
@@ -5846,6 +5866,7 @@ interface AuthenticatedAdminKbRouteChildren {
   AuthenticatedAdminKbAnalyticsRoute: typeof AuthenticatedAdminKbAnalyticsRoute
   AuthenticatedAdminKbCategoriesRoute: typeof AuthenticatedAdminKbCategoriesRoute
   AuthenticatedAdminKbCollectionsRoute: typeof AuthenticatedAdminKbCollectionsRoute
+  AuthenticatedAdminKbHelpRoute: typeof AuthenticatedAdminKbHelpRoute
   AuthenticatedAdminKbNewRoute: typeof AuthenticatedAdminKbNewRoute
   AuthenticatedAdminKbSettingsRoute: typeof AuthenticatedAdminKbSettingsRoute
   AuthenticatedAdminKbTagsRoute: typeof AuthenticatedAdminKbTagsRoute
@@ -5860,6 +5881,7 @@ const AuthenticatedAdminKbRouteChildren: AuthenticatedAdminKbRouteChildren = {
   AuthenticatedAdminKbAnalyticsRoute: AuthenticatedAdminKbAnalyticsRoute,
   AuthenticatedAdminKbCategoriesRoute: AuthenticatedAdminKbCategoriesRoute,
   AuthenticatedAdminKbCollectionsRoute: AuthenticatedAdminKbCollectionsRoute,
+  AuthenticatedAdminKbHelpRoute: AuthenticatedAdminKbHelpRoute,
   AuthenticatedAdminKbNewRoute: AuthenticatedAdminKbNewRoute,
   AuthenticatedAdminKbSettingsRoute: AuthenticatedAdminKbSettingsRoute,
   AuthenticatedAdminKbTagsRoute: AuthenticatedAdminKbTagsRoute,

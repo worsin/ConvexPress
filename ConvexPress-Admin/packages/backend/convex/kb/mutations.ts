@@ -32,6 +32,7 @@ import { KB_EVENTS, SYSTEM } from "../events/constants";
 import { articleDoc, prepareArticleContent } from "./helpers/content";
 import { recordPublishedSlug, requireArticleEditor, resolveArticleSlug, snapshotArticle } from "./helpers/editing";
 import { kbExcerpt } from "./content/derive";
+import { helpContextKeys, removeArticleContexts, setArticleContexts } from "./helpers/help";
 import {
   createArticleArgs,
   updateArticleArgs,
@@ -86,6 +87,7 @@ export const create = mutation({
     }
 
     const audiences = args.audiences === undefined ? undefined : storedKbAudiences(args.audiences);
+    const helpContexts = args.helpContexts === undefined ? undefined : helpContextKeys(args.helpContexts);
 
     const slug = (await resolveArticleSlug(ctx, { title, ...(args.slug !== undefined ? { slug: args.slug } : {}) }))!;
     let source = args.content;
@@ -147,6 +149,7 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     }, undefined, undefined, body.mediaIds);
+    if (helpContexts?.length) await setArticleContexts(ctx, articleId, helpContexts);
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_CREATED, SYSTEM.KB, {
       articleId,
@@ -269,6 +272,7 @@ export const update = mutation({
     // Every image in a new body must still be usable in the library.
     if (mediaIds?.length) await assertMediaAttachments(ctx, "kb_articles", {}, undefined, mediaIds);
     await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, updates);
+    if (args.helpContexts !== undefined) await setArticleContexts(ctx, args.articleId, args.helpContexts);
     await applyKbPublicCounts(ctx, args.articleId, article, {
       status: article.status, visibility: storedKbVisibility(visibility), categoryId: args.categoryId ?? article.categoryId,
     });
@@ -470,6 +474,9 @@ export const remove = mutation({
       .withIndex("by_related", (q) => q.eq("relatedArticleId", args.articleId))
       .take(1000);
     for (const r of relatedTo) await ctx.db.delete("kb_relatedArticles", r._id);
+    await removeArticleContexts(ctx, args.articleId);
+    const slugHistory = await ctx.db.query("kb_articleSlugHistory").withIndex("by_article", (q) => q.eq("articleId", args.articleId)).take(200);
+    for (const row of slugHistory) await ctx.db.delete("kb_articleSlugHistory", row._id);
 
     const versions = await ctx.db
       .query("kb_articleVersions")

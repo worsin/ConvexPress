@@ -16,6 +16,8 @@ import { canonicalJson, sha256Hex } from "../canonicalDocuments/foundation/share
 import { assertMediaAttachments, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { applyKbPublicCounts } from "./helpers/publicCounts";
 import { prepareArticleContent } from "./helpers/content";
+import { helpContextKeys, setArticleContexts } from "./helpers/help";
+import { kbArticleVisibilityValidator, storedKbAudiences, storedKbVisibility } from "./helpers/visibility";
 import { MAX_KB_EXCERPT_LENGTH, MAX_KB_TITLE_LENGTH, MAX_KEYWORDS } from "./validators";
 
 export const kbSetupOutcomeValidator = v.union(
@@ -156,6 +158,8 @@ export function articleDigest(article: Doc<"kb_articles">): string {
       isFeatured,
       sortOrder,
       parentArticleId: parentArticleId ?? null,
+      // Present only when set, so digests of articles without audiences are unchanged.
+      ...(article.audiences?.length ? { audiences: article.audiences } : {}),
     }),
   );
 }
@@ -172,6 +176,11 @@ export const writeArticle = internalMutation({
     keywords: v.optional(v.array(v.string())),
     sortOrder: v.number(),
     isFeatured: v.optional(v.boolean()),
+    /** Internal articles are for in-app help only (kb/help.ts); defaults to public. */
+    visibility: v.optional(kbArticleVisibilityValidator),
+    audiences: v.optional(v.array(v.string())),
+    /** In-app help spots the article shows in. Applied when setup writes the article, like its other fields. */
+    helpContexts: v.optional(v.array(v.string())),
     actorId: v.id("users"),
   },
   returns: v.object({ outcome: kbSetupOutcomeValidator, articleId: v.union(v.id("kb_articles"), v.null()) }),
@@ -206,7 +215,10 @@ export const writeArticle = internalMutation({
       sortOrder: args.sortOrder,
       isFeatured: args.isFeatured ?? false,
       readingTimeMinutes: body.readingTimeMinutes,
+      visibility: storedKbVisibility(args.visibility ?? "public"),
+      audiences: args.audiences === undefined ? undefined : storedKbAudiences(args.audiences),
     };
+    const helpContexts = helpContextKeys(args.helpContexts ?? []);
     const requestDigest = sha256Hex(
       canonicalJson({
         title: fields.title,
@@ -217,6 +229,9 @@ export const writeArticle = internalMutation({
         keywords: fields.keywords,
         sortOrder: fields.sortOrder,
         isFeatured: fields.isFeatured,
+        visibility: fields.visibility ?? null,
+        audiences: fields.audiences ?? null,
+        helpContexts,
       }),
     );
     const receipt = await receiptFor(ctx, "article", args.setupKey);
@@ -234,9 +249,12 @@ export const writeArticle = internalMutation({
       if (receipt.requestDigest === requestDigest) return { outcome: "unchanged", articleId: article._id };
       if (articleDigest(article) !== receipt.acceptedDigest) return { outcome: "kept_edited", articleId: article._id };
       const now = Date.now();
-      const updates = { ...fields, version: article.version + 1, meilisearchSynced: false, ragSynced: false, updatedAt: now };
+      // Setup never moves an existing article between public and internal;
+      // that transition withdraws search copies and needs an editor's action.
+      const updates = { ...fields, visibility: article.visibility, version: article.version + 1, meilisearchSynced: false, ragSynced: false, updatedAt: now };
       if (body.mediaIds.length) await assertMediaAttachments(ctx, "kb_articles", {}, undefined, body.mediaIds);
       await patchWithMediaReferences(ctx, "kb_articles", article._id, updates);
+      await setArticleContexts(ctx, article._id, helpContexts);
       await applyKbPublicCounts(ctx, article._id, article, { ...article, ...updates });
       await accept(article._id);
       return { outcome: "updated", articleId: article._id };
@@ -263,6 +281,7 @@ export const writeArticle = internalMutation({
       updatedAt: now,
     };
     const articleId = await insertWithMediaReferences(ctx, "kb_articles", article, undefined, undefined, body.mediaIds);
+    await setArticleContexts(ctx, articleId, helpContexts);
     await applyKbPublicCounts(ctx, articleId, null, article);
     await accept(articleId);
     return { outcome: "created", articleId };

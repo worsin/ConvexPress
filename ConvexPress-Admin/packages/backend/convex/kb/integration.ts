@@ -69,6 +69,7 @@ export const KB_CAPABILITIES = [
   { slug: "kb.manageTemplates",    label: "Manage KB Templates",     description: "Create and manage article content templates" },
   { slug: "kb.moderateComments",   label: "Moderate KB Comments",    description: "Approve, reject, and delete article comments" },
   { slug: "kb.viewAnalytics",      label: "View KB Analytics",       description: "Access KB analytics dashboard and search reports" },
+  { slug: "kb.manageHelp",         label: "Manage In-App Help",      description: "Register in-app help spots and choose which articles each one shows" },
 ] as const;
 
 // ─── Email Templates ──────────────────────────────────────────────────────────
