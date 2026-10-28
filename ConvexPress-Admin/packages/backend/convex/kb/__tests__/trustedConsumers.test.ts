@@ -118,3 +118,15 @@ test("recordPageView rejects unpublished articles and invalid durations", async 
   });
   await expect(f.t.mutation(internal.kb.trustedConsumers.recordPageView, { articleId: f.ids.internalArticle, sessionId: "panel-1" })).rejects.toThrow();
 });
+
+test("recordSearch logs a panel search with its result count, whitespace collapsed", async () => {
+  const f = await fixture();
+  const { searchId } = await f.t.mutation(internal.kb.trustedConsumers.recordSearch, { query: "  lien   reduction ", resultCount: 0 });
+  expect(await f.t.run(ctx => ctx.db.get(searchId))).toMatchObject({ query: "lien reduction", resultCount: 0, source: "convex" });
+  const clicked = await f.t.mutation(internal.kb.trustedConsumers.recordSearch, { query: "help", resultCount: 2, clickedArticleId: f.ids.internalArticle });
+  expect((await f.t.run(ctx => ctx.db.get(clicked.searchId)))?.clickedArticleId).toBe(f.ids.internalArticle);
+  for (const query of ["", "   ", "x".repeat(501)])
+    await expect(f.t.mutation(internal.kb.trustedConsumers.recordSearch, { query, resultCount: 0 })).rejects.toThrow("Query must be non-empty");
+  for (const resultCount of [-1, 1.5])
+    await expect(f.t.mutation(internal.kb.trustedConsumers.recordSearch, { query: "x", resultCount })).rejects.toThrow("Result count");
+});
