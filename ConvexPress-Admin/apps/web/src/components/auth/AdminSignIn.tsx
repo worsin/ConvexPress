@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { AuthError, AuthScreen } from "@/components/auth/AuthScreen";
+import { SITE_AUTH_BRAND } from "@/components/auth/siteAuthBrand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,18 +46,7 @@ export function AdminSignIn({ initialError, onLogin }: AdminSignInProps) {
 
 	return (
 		<AuthScreen
-			panelEyebrow="ConvexPress admin"
-			headline={
-				<>
-					Your site.
-					<br />
-					Your database.
-					<br />
-					<em className="text-primary">Your</em> rules.
-				</>
-			}
-			lede="Every ConvexPress website runs on its own isolated deployment. Sign in with the admin account for this site."
-			steps={null}
+			{...SITE_AUTH_BRAND}
 			eyebrow="Site administrator"
 			title="Sign in to continue"
 			description="Use the email or username and password for this site's admin account."
