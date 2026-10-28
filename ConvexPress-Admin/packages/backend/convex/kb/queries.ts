@@ -34,9 +34,28 @@ import { createPublicKbAccess } from "./publicAccess";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { publicAuthorProfile } from "../helpers/publicAuthor";
 import { kbArticleVisibility, kbArticleVisibilityValidator, PUBLIC_VISIBILITY_KEY, storedKbVisibility, type KbArticleVisibility } from "./helpers/visibility";
+import { articleDoc, articleOutline, renderArticleBody } from "./helpers/content";
+import { kbOutlineEntryValidator } from "../schema/kb";
+import type { KbOutlineEntry } from "./content";
 
 import { paginationResultValidator } from "convex/server";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
+
+// Lists never carry article bodies; the editor reads one article at a time.
+const {
+  content: listOmitsContent,
+  contentPlainText: listOmitsPlainText,
+  outline: listOmitsOutline,
+  linkedArticleIds: listOmitsLinks,
+  ...articleListFields
+} = kbTables.kb_articles.validator.fields;
+void listOmitsContent; void listOmitsPlainText; void listOmitsOutline; void listOmitsLinks;
+
+function withoutBody({ content, contentPlainText, outline, linkedArticleIds, ...row }: Doc<"kb_articles">) {
+  void content; void contentPlainText; void outline; void linkedArticleIds;
+  return row;
+}
+type AdminListRow = ReturnType<typeof withoutBody> & AdminVisibilityFields & { author: ReturnType<typeof enrichUser> };
 
 /** Admin reads report the effective visibility and audiences, never absence. */
 type AdminVisibilityFields = { visibility: KbArticleVisibility; audiences: string[] };
@@ -44,45 +63,15 @@ function adminVisibility(article: Doc<"kb_articles">): AdminVisibilityFields {
   return { visibility: kbArticleVisibility(article), audiences: article.audiences ?? [] };
 }
 
-export const list: import("convex/server").RegisteredQuery<"public", { paginationOpts: import("convex/server").PaginationOptions; search?: string; status?: import("../_generated/dataModel").Doc<"kb_articles">["status"]; categoryId?: import("../_generated/dataModel").Id<"kb_categories">; authorId?: import("../_generated/dataModel").Id<"users">; visibility?: KbArticleVisibility }, import("convex/server").PaginationResult<import("../_generated/dataModel").Doc<"kb_articles"> & AdminVisibilityFields & { author: ReturnType<typeof enrichUser> }>> = query({
+export const list: RegisteredQuery<"public", { paginationOpts: PaginationOptions; search?: string; status?: Doc<"kb_articles">["status"]; categoryId?: Id<"kb_categories">; authorId?: Id<"users">; visibility?: KbArticleVisibility }, PaginationResult<AdminListRow>> = query({
   args: listArticlesArgs,
   returns: paginationResultValidator(v.object({
-    author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+    ...articleListFields,
     _id: v.id("kb_articles"),
     _creationTime: v.number(),
-    featuredImageId: v.optional(v.id("media")),
-    publishedAt: v.optional(v.number()),
-    scheduledAt: v.optional(v.number()),
-    categoryId: v.optional(v.id("kb_categories")),
-    parentArticleId: v.optional(v.id("kb_articles")),
-    metaTitle: v.optional(v.string()),
-    metaDescription: v.optional(v.string()),
-    lastMajorUpdate: v.optional(v.number()),
-    meilisearchSyncedAt: v.optional(v.number()),
-    ragSyncedAt: v.optional(v.number()),
-    title: v.string(),
-    version: v.number(),
-    updatedAt: v.number(),
-    createdAt: v.number(),
-    status: v.union(v.literal("draft"), v.literal("archived"), v.literal("review"), v.literal("published")),
-    slug: v.string(),
-    authorId: v.id("users"),
-    excerpt: v.string(),
-    content: v.string(),
-    contentPlainText: v.string(),
-    contributors: v.array(v.id("users")),
-    keywords: v.array(v.string()),
-    viewCount: v.number(),
-    uniqueViewCount: v.number(),
-    helpfulVotes: v.number(),
-    notHelpfulVotes: v.number(),
-    readingTimeMinutes: v.number(),
-    isFeatured: v.boolean(),
-    sortOrder: v.number(),
     visibility: kbArticleVisibilityValidator,
     audiences: v.array(v.string()),
-    meilisearchSynced: v.boolean(),
-    ragSynced: v.boolean(),
+    author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
@@ -103,7 +92,7 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
           return sq;
         }).paginate(paginationOpts);
       return { ...result, page: await Promise.all(result.page.map(async article => ({
-        ...article, ...adminVisibility(article), author: enrichUser(await ctx.db.get("users", article.authorId)),
+        ...withoutBody(article), ...adminVisibility(article), author: enrichUser(await ctx.db.get("users", article.authorId)),
       }))) };
     }
 
@@ -143,7 +132,7 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
       pageItems.map(async (article) => {
         const author = await ctx.db.get("users", article.authorId);
         return {
-          ...article,
+          ...withoutBody(article),
           ...adminVisibility(article),
           author: enrichUser(author),
         };
@@ -159,9 +148,11 @@ export const list: import("convex/server").RegisteredQuery<"public", { paginatio
 
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
-type AdminArticle = Doc<"kb_articles"> & AdminVisibilityFields & { hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
+/** `content` is always the normalized KbDoc JSON the editor loads; `html` is the rendered preview. */
+type AdminArticle = Doc<"kb_articles"> & AdminVisibilityFields & { html: string; outline: KbOutlineEntry[]; hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
 const adminArticleValidator: Validator<AdminArticle | null, "required", string> = v.union(v.null(), v.object({
   ...kbTables.kb_articles.validator.fields, _id: v.id("kb_articles"), _creationTime: v.number(), hasInheritedCategoryAccess: v.boolean(),
+  html: v.string(), outline: v.array(kbOutlineEntryValidator),
   visibility: kbArticleVisibilityValidator, audiences: v.array(v.string()),
   author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
   category: v.union(v.null(), v.object({ ...kbTables.kb_categories.validator.fields, _id: v.id("kb_categories"), _creationTime: v.number() })),
@@ -190,8 +181,13 @@ export const getById: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }
     );
 
     const inheritedGuard = await ctx.db.query("kb_article_category_guards").withIndex("by_article", q => q.eq("articleId", article._id)).first();
+    const doc = articleDoc(article);
+    const html = await renderArticleBody(ctx, doc, (target, anchor) => `/kb/${target._id}/edit${anchor ? `#${anchor}` : ""}`);
     return {
       ...article,
+      content: JSON.stringify(doc),
+      html,
+      outline: articleOutline(article),
       ...adminVisibility(article),
       hasInheritedCategoryAccess: inheritedGuard !== null,
       author: enrichUser(author),
@@ -203,9 +199,15 @@ export const getById: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
+/**
+ * `html` is the rendered body (kb/content/render.ts) and `outline` its headings.
+ * `content` is the KbDoc JSON for sites that render documents themselves.
+ * `slug` is the article's current slug: a read of an earlier slug returns the
+ * article, and the site redirects when the two differ.
+ */
 type PublicKbArticle = {
   _id: Id<"kb_articles">; title: string; slug: string; excerpt: string;
-  content: string; contentPlainText: string; readingTimeMinutes: number; publishedAt?: number;
+  content: string; html: string; outline: KbOutlineEntry[]; contentPlainText: string; readingTimeMinutes: number; publishedAt?: number; updatedAt: number;
   author: { _id: Id<"users">; displayName: string; avatarUrl?: string } | null;
   category: { _id: Id<"kb_categories">; name: string; slug: string } | null;
   tags: Array<{ _id: Id<"kb_tags">; name: string; slug: string }>;
@@ -213,8 +215,8 @@ type PublicKbArticle = {
 };
 const publicKbArticle: Validator<PublicKbArticle, "required", string> = v.object({
   _id: v.id("kb_articles"), title: v.string(), slug: v.string(), excerpt: v.string(),
-  content: v.string(), contentPlainText: v.string(), readingTimeMinutes: v.number(),
-  publishedAt: v.optional(v.number()),
+  content: v.string(), html: v.string(), outline: v.array(kbOutlineEntryValidator), contentPlainText: v.string(), readingTimeMinutes: v.number(),
+  publishedAt: v.optional(v.number()), updatedAt: v.number(),
   author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
   category: v.union(v.null(), v.object({ _id: v.id("kb_categories"), name: v.string(), slug: v.string() })),
   tags: v.array(v.object({ _id: v.id("kb_tags"), name: v.string(), slug: v.string() })),
@@ -226,10 +228,14 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicKbArti
   handler: async (ctx, args) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
-    const article = await ctx.db
+    let article = await ctx.db
       .query("kb_articles")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
+    if (!article) {
+      const earlier = await ctx.db.query("kb_articleSlugHistory").withIndex("by_slug", (q) => q.eq("slug", args.slug)).order("desc").first();
+      article = earlier ? await ctx.db.get("kb_articles", earlier.articleId) : null;
+    }
 
     if (!article) return null;
     const visible = await access.article(article);
@@ -267,11 +273,17 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicKbArti
       }),
     );
 
+    const doc = articleDoc(article);
+    // A link to an article this reader can't see renders as plain text.
+    const html = await renderArticleBody(ctx, doc, async (target, anchor) => {
+      const reachable = await access.article(target);
+      return reachable ? `/help/${reachable.category?.slug ?? "uncategorized"}/${target.slug}${anchor ? `#${anchor}` : ""}` : null;
+    });
     const profile = publicAuthorProfile(author);
     return {
       _id: article._id, title: article.title, slug: article.slug, excerpt: article.excerpt,
-      content: article.content, contentPlainText: article.contentPlainText,
-      readingTimeMinutes: article.readingTimeMinutes, publishedAt: article.publishedAt,
+      content: JSON.stringify(doc), html, outline: articleOutline(article), contentPlainText: article.contentPlainText,
+      readingTimeMinutes: article.readingTimeMinutes, publishedAt: article.publishedAt, updatedAt: article.updatedAt,
       author: profile ? { _id: profile._id, displayName: profile.displayName, avatarUrl: profile.avatarUrl } : null,
       category: category ? { _id: category._id, name: category.name, slug: category.slug } : null,
       tags: tags.filter((tag): tag is NonNullable<typeof tag> => tag !== null).map(tag => ({ _id: tag._id, name: tag.name, slug: tag.slug })),
@@ -393,6 +405,7 @@ export const getVersions = query({
     createdAt: v.number(),
     authorId: v.id("users"),
     content: v.string(),
+    contentVersion: v.optional(v.number()),
     articleId: v.id("kb_articles"),
     changeSummary: v.string(),
   })),

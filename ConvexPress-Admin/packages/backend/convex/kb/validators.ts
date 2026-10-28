@@ -64,11 +64,14 @@ export const PAGE_VIEW_DEDUP_WINDOW_MS = 30 * 60 * 1000;
 
 // ─── Article Mutation Args ──────────────────────────────────────────────────
 
+// `content` is a KbDoc (kb/content) as JSON. HTML and plain text are accepted
+// and converted. Plain text, outline and reading time are always derived.
 export const createArticleArgs = {
   title: v.string(),
+  /** Defaults to one derived from the title. */
+  slug: v.optional(v.string()),
   excerpt: v.optional(v.string()),
   content: v.optional(v.string()),
-  contentPlainText: v.optional(v.string()),
   categoryId: v.optional(v.id("kb_categories")),
   parentArticleId: v.optional(v.id("kb_articles")),
   metaTitle: v.optional(v.string()),
@@ -83,9 +86,12 @@ export const createArticleArgs = {
 export const updateArticleArgs = {
   articleId: v.id("kb_articles"),
   title: v.optional(v.string()),
+  /** A published article's address changes only when this is set; its old slug keeps working. */
+  slug: v.optional(v.string()),
   excerpt: v.optional(v.string()),
   content: v.optional(v.string()),
-  contentPlainText: v.optional(v.string()),
+  /** Recorded with the version snapshot this save creates. */
+  changeSummary: v.optional(v.string()),
   categoryId: v.optional(v.id("kb_categories")),
   parentArticleId: v.optional(v.id("kb_articles")),
   metaTitle: v.optional(v.string()),

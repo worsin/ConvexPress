@@ -5,6 +5,7 @@ import { kbTables } from "./kb";
 
 export const kbDocs = {
   kb_articleFeedback: docValidator("kb_articleFeedback", kbTables.kb_articleFeedback.validator),
+  kb_articleSlugHistory: docValidator("kb_articleSlugHistory", kbTables.kb_articleSlugHistory.validator),
   kb_articleTags: docValidator("kb_articleTags", kbTables.kb_articleTags.validator),
   kb_articleVersions: docValidator("kb_articleVersions", kbTables.kb_articleVersions.validator),
   kb_articleWorkflows: docValidator("kb_articleWorkflows", kbTables.kb_articleWorkflows.validator),

@@ -9,8 +9,9 @@
  * sanitising) with Journal type instead of Core's utility styling.
  */
 import { Link } from "@tanstack/react-router";
-import type React from "react";
 
+import { KbArticleBody } from "@/components/help/KbArticleBody";
+import { KbArticleOutline } from "@/components/help/KbArticleOutline";
 import { cn } from "@/lib/utils";
 import type { HelpArticleSurfaceData } from "@/templates/packs/core/surfaces/help.article";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -39,147 +40,6 @@ const PROSE_CLASSES = [
   "[&_details]:my-6 [&_details]:border-y [&_details]:border-border [&_details]:py-4 [&_summary]:cursor-pointer [&_summary]:font-medium [&_summary]:text-foreground",
 ].join(" ");
 
-function ArticleContent({ content, plainText }: { content?: string; plainText?: string }) {
-  if (content) {
-    try {
-      const doc = JSON.parse(content);
-      if (doc.type === "doc" && Array.isArray(doc.content)) {
-        return <div className={cn("max-w-none", PROSE_CLASSES)}>{renderTipTapNodes(doc.content)}</div>;
-      }
-    } catch {
-      // Not JSON, fall through
-    }
-  }
-
-  if (plainText) {
-    return <div className="max-w-none whitespace-pre-wrap text-base leading-8 text-foreground md:text-[17px]">{plainText}</div>;
-  }
-
-  return <p className="font-display text-xl text-muted-foreground">This article has no content yet.</p>;
-}
-
-function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
-  return nodes.map((node, i) => {
-    switch (node.type) {
-      case "paragraph":
-        return <p key={i}>{renderInlineContent(node.content)}</p>;
-      case "heading": {
-        const level = Math.min(6, Math.max(1, Number(node.attrs?.level ?? 2))) as 1 | 2 | 3 | 4 | 5 | 6;
-        const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-        return <Tag key={i}>{renderInlineContent(node.content)}</Tag>;
-      }
-      case "bulletList":
-        return <ul key={i}>{renderTipTapNodes(node.content ?? [])}</ul>;
-      case "orderedList":
-        return <ol key={i}>{renderTipTapNodes(node.content ?? [])}</ol>;
-      case "listItem":
-        return <li key={i}>{renderTipTapNodes(node.content ?? [])}</li>;
-      case "blockquote":
-        return <blockquote key={i}>{renderTipTapNodes(node.content ?? [])}</blockquote>;
-      case "codeBlock":
-        return (
-          <pre key={i}>
-            <code>{renderInlineContent(node.content)}</code>
-          </pre>
-        );
-      case "horizontalRule":
-        return <hr key={i} />;
-      case "image": {
-        const src = sanitizeLinkHref(node.attrs?.src);
-        return src ? <img key={i} src={src} alt={node.attrs?.alt ?? ""} title={node.attrs?.title ?? undefined} /> : null;
-      }
-      case "table":
-        return (
-          <table key={i}>
-            <tbody>{renderTipTapNodes(node.content ?? [])}</tbody>
-          </table>
-        );
-      case "tableRow":
-        return <tr key={i}>{renderTipTapNodes(node.content ?? [])}</tr>;
-      case "tableCell":
-        return <td key={i}>{renderTipTapNodes(node.content ?? [])}</td>;
-      case "tableHeader":
-        return <th key={i}>{renderTipTapNodes(node.content ?? [])}</th>;
-      case "taskList":
-        return (
-          <ul key={i} className="list-none pl-0">
-            {renderTipTapNodes(node.content ?? [])}
-          </ul>
-        );
-      case "taskItem": {
-        const checked = node.attrs?.checked ?? false;
-        return (
-          <li key={i} className="flex items-start gap-3">
-            <input type="checkbox" checked={checked} readOnly className="mt-2 accent-primary" />
-            <span>{renderTipTapNodes(node.content ?? [])}</span>
-          </li>
-        );
-      }
-      case "hardBreak":
-        return <br key={i} />;
-      case "details":
-        return <details key={i}>{renderTipTapNodes(node.content ?? [])}</details>;
-      case "detailsSummary":
-        return <summary key={i}>{renderInlineContent(node.content)}</summary>;
-      case "detailsContent":
-        return (
-          <div key={i} className="pt-3">
-            {renderTipTapNodes(node.content ?? [])}
-          </div>
-        );
-      default:
-        if (node.content) return <div key={i}>{renderTipTapNodes(node.content)}</div>;
-        return null;
-    }
-  });
-}
-
-function sanitizeLinkHref(href: string | undefined): string | undefined {
-  if (!href) return undefined;
-  const trimmed = href.trim();
-  if (/^(javascript|data|vbscript|blob):/i.test(trimmed)) return undefined;
-  return href;
-}
-
-function isExternalLink(href: string): boolean {
-  return href.startsWith("http://") || href.startsWith("https://") || href.startsWith("//");
-}
-
-function renderInlineContent(content?: any[]): React.ReactNode {
-  if (!content) return null;
-  return content.map((node, i) => {
-    if (node.type === "text") {
-      let text: React.ReactNode = node.text;
-      if (node.marks) {
-        for (const [markIndex, mark] of node.marks.entries()) {
-          const markKey = `${i}-${markIndex}`;
-          if (mark.type === "bold") text = <strong key={markKey}>{text}</strong>;
-          else if (mark.type === "italic") text = <em key={markKey}>{text}</em>;
-          else if (mark.type === "code") text = <code key={markKey}>{text}</code>;
-          else if (mark.type === "underline") text = <u key={markKey}>{text}</u>;
-          else if (mark.type === "strike") text = <s key={markKey}>{text}</s>;
-          else if (mark.type === "highlight") text = <mark key={markKey}>{text}</mark>;
-          else if (mark.type === "superscript") text = <sup key={markKey}>{text}</sup>;
-          else if (mark.type === "subscript") text = <sub key={markKey}>{text}</sub>;
-          else if (mark.type === "link") {
-            const safeHref = sanitizeLinkHref(mark.attrs?.href);
-            const external = safeHref ? isExternalLink(safeHref) : false;
-            text = (
-              <a key={markKey} href={safeHref} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-                {text}
-              </a>
-            );
-          }
-        }
-      }
-      return <span key={i}>{text}</span>;
-    }
-    return null;
-  });
-}
-
-/* ───────────────────────── reader ───────────────────────── */
-
 export default function JournalHelpArticle({ data }: SurfaceProps<HelpArticleSurfaceData>) {
   const { categorySlug, article, userFeedback, actions } = data;
 
@@ -203,7 +63,7 @@ export default function JournalHelpArticle({ data }: SurfaceProps<HelpArticleSur
 
   const votedHelpful = userFeedback?.isHelpful === true;
   const votedNotHelpful = userFeedback?.isHelpful === false;
-  const updated = formatDate(article.publishedAt);
+  const updated = formatDate(article.updatedAt ?? article.publishedAt);
 
   return (
     <Container as="article" data-slot="help-article" className="flex flex-col gap-12 py-6 md:gap-16 md:py-10">
@@ -229,7 +89,8 @@ export default function JournalHelpArticle({ data }: SurfaceProps<HelpArticleSur
       </Prose>
 
       <Prose>
-        <ArticleContent content={article.content} plainText={article.contentPlainText} />
+        <KbArticleOutline outline={article.outline} className="mb-10 border-y border-border py-4" />
+        <KbArticleBody html={article.html} className={cn("max-w-none", PROSE_CLASSES)} />
       </Prose>
 
       {article.tags && article.tags.length > 0 ? (

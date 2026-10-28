@@ -1,9 +1,10 @@
 /**
  * Knowledge Base System - Schema
  *
- * 19 tables supporting a full-featured enterprise knowledge base:
+ * 20 tables supporting a full-featured enterprise knowledge base:
  *   - kb_articles          - Primary article storage
  *   - kb_articleVersions   - Article version history
+ *   - kb_articleSlugHistory - Earlier slugs of published articles
  *   - kb_categories        - Hierarchical categories
  *   - kb_tags              - Flat tag taxonomy
  *   - kb_articleTags       - Article-tag junction table
@@ -84,6 +85,12 @@ export const kbSearchSourceValidator = v.union(
 
 export { kbArticleVisibilityValidator };
 
+export const kbOutlineEntryValidator = v.object({
+  id: v.string(),
+  level: v.union(v.literal(2), v.literal(3), v.literal(4)),
+  text: v.string(),
+});
+
 // ─── Workflow Step Object Validator ─────────────────────────────────
 
 export const kbWorkflowStepValidator = v.object({
@@ -149,6 +156,12 @@ export const kbTables = {
     // Site-defined audience labels for integrators; never interpreted or
     // returned publicly by ConvexPress.
     audiences: v.optional(v.array(v.string())),
+    // KbDoc version of `content` (kb/content). Absent on rows written before
+    // KbDoc; those are converted on read and by kb/contentMigration.
+    contentVersion: v.optional(v.number()),
+    // Derived from `content` on every write, never supplied by a client.
+    outline: v.optional(v.array(kbOutlineEntryValidator)),
+    linkedArticleIds: v.optional(v.array(v.id("kb_articles"))),
     meilisearchSynced: v.boolean(),
     meilisearchSyncedAt: v.optional(v.number()),
     ragSynced: v.boolean(),
@@ -178,17 +191,29 @@ export const kbTables = {
     .index("by_visibility", ["visibility"])
     .index("by_meilisearch_sync", ["meilisearchSynced"])
     .index("by_rag_sync", ["ragSynced"])
+    .index("by_content_version", ["contentVersion"])
     .searchIndex("search_article_titles", { searchField: "title", filterFields: ["status"] })
     .searchIndex("search_articles", {
       searchField: "contentPlainText",
       filterFields: ["status", "categoryId", "authorId", "visibility"],
     }),
 
+  // Slugs an article was published under before its current one. A public
+  // read of an old slug finds the article, so the website can redirect.
+  kb_articleSlugHistory: defineTable({
+    articleId: v.id("kb_articles"),
+    slug: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_article", ["articleId"]),
+
   kb_articleVersions: defineTable({
     articleId: v.id("kb_articles"),
     version: v.number(),
     title: v.string(),
     content: v.string(),
+    contentVersion: v.optional(v.number()),
     changeSummary: v.string(),
     authorId: v.id("users"),
     createdAt: v.number(),
@@ -490,5 +515,7 @@ export const kbTables = {
     acceptedDigest: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_kind_key", ["kind", "setupKey"]),
+  })
+    .index("by_kind_key", ["kind", "setupKey"])
+    .index("by_record", ["recordId"]),
 };
