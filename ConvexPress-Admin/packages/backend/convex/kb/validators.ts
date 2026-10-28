@@ -81,6 +81,8 @@ export const createArticleArgs = {
   templateId: v.optional(v.id("kb_templates")),
   visibility: v.optional(kbArticleVisibilityValidator),
   audiences: v.optional(v.array(v.string())),
+  /** In-app help spots this article shows in (kb/helpContexts.ts). */
+  helpContexts: v.optional(v.array(v.string())),
 };
 
 export const updateArticleArgs = {
@@ -102,6 +104,8 @@ export const updateArticleArgs = {
   visibility: v.optional(kbArticleVisibilityValidator),
   /** Replaces the article's audiences; an empty list clears them. */
   audiences: v.optional(v.array(v.string())),
+  /** Replaces the in-app help spots the article shows in. */
+  helpContexts: v.optional(v.array(v.string())),
 };
 
 export const publishArticleArgs = {

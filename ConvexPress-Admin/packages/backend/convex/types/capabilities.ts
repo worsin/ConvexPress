@@ -262,7 +262,8 @@ type KBCapability =
   | "kb.manageWorkflows"
   | "kb.manageTemplates"
   | "kb.moderateComments"
-  | "kb.viewAnalytics";
+  | "kb.viewAnalytics"
+  | "kb.manageHelp";
 
 // ─── LMS Capabilities (12) ──────────────────────────────────────────────────
 
@@ -670,6 +671,7 @@ export const ALL_CAPABILITIES: Capability[] = [
   "kb.manageTemplates",
   "kb.moderateComments",
   "kb.viewAnalytics",
+  "kb.manageHelp",
   // LMS (12)
   "lms.course.view",
   "lms.course.create",
@@ -1021,6 +1023,7 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "kb.manageTemplates",
     "kb.moderateComments",
     "kb.viewAnalytics",
+    "kb.manageHelp",
   ],
   LMS: [
     "lms.course.view",

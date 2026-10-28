@@ -427,6 +427,10 @@
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"
   },
+  "kb_article_contexts": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
   "kb_articles": {
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"
@@ -456,6 +460,10 @@
     "exportName": "kbDocs"
   },
   "kb_comments": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
+  "kb_help_contexts": {
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"
   },

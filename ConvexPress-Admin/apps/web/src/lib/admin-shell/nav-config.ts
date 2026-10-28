@@ -261,6 +261,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       { id: "kb-categories", label: "Categories", to: "/kb/categories" },
       { id: "kb-tags", label: "Tags", to: "/kb/tags" },
       { id: "kb-collections", label: "Collections", to: "/kb/collections" },
+      { id: "kb-help", label: "In-app help", to: "/kb/help" },
       { id: "kb-templates", label: "Templates", to: "/kb/templates" },
       { id: "kb-workflows", label: "Workflows", to: "/kb/workflows", capability: "manage_options" },
       { id: "kb-analytics", label: "Analytics", to: "/kb/analytics" },
