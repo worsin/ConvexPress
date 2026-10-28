@@ -4,6 +4,7 @@
  *   list         every spot with its coverage, plus keys articles use that no app registered
  *   get          one spot and its articles in order
  *   save         create or edit a spot's label, summary, surface and route hint
+ *                (a registered spot's summary only)
  *   remove       delete a spot and its pins
  *   setArticles  the articles a spot shows, in order
  *   forArticle   the spots an article shows in
@@ -145,12 +146,15 @@ export const save = mutation({
     if (!label) throw new ConvexError({ code: "VALIDATION_ERROR", message: "A help spot needs a label." });
     const now = Date.now();
     const existing = await ctx.db.query("kb_help_contexts").withIndex("by_key", (q) => q.eq("key", key)).first();
-    // An omitted field keeps its value; an empty string clears it.
+    // An application owns the label, surface and route of a spot it registered
+    // (its next sync would overwrite an edit); editors own the summary. On any
+    // other spot, an omitted field keeps its value and an empty string clears it.
+    const registered = existing?.source === "manifest" ? existing : null;
     const fields = {
-      label,
+      label: registered ? registered.label : label,
       summary: args.summary === undefined ? existing?.summary : text(args.summary, MAX_HELP_SUMMARY_LENGTH, "A summary"),
-      surface: args.surface === undefined ? existing?.surface : text(args.surface, MAX_SURFACE, "A surface"),
-      routeHint: args.routeHint === undefined ? existing?.routeHint : text(args.routeHint, MAX_ROUTE, "A route"),
+      surface: registered ? registered.surface : args.surface === undefined ? existing?.surface : text(args.surface, MAX_SURFACE, "A surface"),
+      routeHint: registered ? registered.routeHint : args.routeHint === undefined ? existing?.routeHint : text(args.routeHint, MAX_ROUTE, "A route"),
     };
     if (existing) {
       await ctx.db.patch("kb_help_contexts", existing._id, {

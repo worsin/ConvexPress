@@ -50,7 +50,8 @@ function HelpSpotsPage() {
     });
     const bySurface = new Map<string, typeof rows>();
     for (const row of rows) {
-      const surface = row.registered ? row.surface ?? "Added by editors" : "Not registered by any app";
+      // A surface is an app key ("doctor-portal"); the heading reads it as words.
+      const surface = row.registered ? (row.surface ? row.surface.replace(/[-_.]+/g, " ") : "Added by editors") : "Not registered by any app";
       bySurface.set(surface, [...(bySurface.get(surface) ?? []), row]);
     }
     return [...bySurface.entries()];
@@ -164,6 +165,8 @@ function SpotEditor({ spotKey, onDone }: { spotKey: string; onDone: () => void }
     );
   }
 
+  const registered = detail.spot?.source === "manifest";
+
   function move(index: number, delta: number) {
     setArticleList((list) => {
       const next = [...list];
@@ -192,7 +195,12 @@ function SpotEditor({ spotKey, onDone }: { spotKey: string; onDone: () => void }
       <div className="space-y-3">
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-foreground/70">Label</span>
-          <input className={inputClass} value={label} onChange={(event) => setLabel(event.target.value)} />
+          <input
+            className={cn(inputClass, registered && "cursor-default text-foreground/60")}
+            value={label}
+            readOnly={registered}
+            onChange={(event) => setLabel(event.target.value)}
+          />
         </label>
         <label className="block">
           <span className="mb-1 flex justify-between text-xs font-medium text-foreground/70">
@@ -206,8 +214,8 @@ function SpotEditor({ spotKey, onDone }: { spotKey: string; onDone: () => void }
             placeholder="One or two sentences on what this is and what to do here. The panel shows it above the articles."
           />
         </label>
-        {detail.spot?.source === "manifest" && (
-          <p className="text-[11px] text-foreground/50">Registered by {detail.spot.surface}. Its label and route follow the app; your summary is kept.</p>
+        {registered && (
+          <p className="text-[11px] text-foreground/50">Registered by {detail.spot?.surface}. Its label and route follow the app; your summary is kept.</p>
         )}
       </div>
       <div className="space-y-2">
