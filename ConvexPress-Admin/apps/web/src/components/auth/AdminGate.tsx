@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { AuthError, AuthScreen } from "./AuthScreen";
+import { SITE_AUTH_BRAND } from "./siteAuthBrand";
 import { isElectron } from "../../lib/electron";
 import {
   FIRST_ADMIN_SETUP_ROUTE,
@@ -494,7 +495,7 @@ function AdminCreationForm({
 function WaitingForServer() {
   return (
     <AuthScreen
-      steps={null}
+      {...SITE_AUTH_BRAND}
       eyebrow="Client mode"
       title="Waiting for server"
       description="The server administrator has not finished setting up yet. Please contact your administrator and try again once the server is ready."
@@ -544,7 +545,7 @@ function LoginFailure({
 
   return (
     <AuthScreen
-      steps={null}
+      {...SITE_AUTH_BRAND}
       eyebrow="Setup"
       title="Sign in failed"
       description="Restart setup or clear the saved credentials, then try again."

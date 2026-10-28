@@ -47,6 +47,9 @@ interface AuthScreenProps {
   cardClassName?: string;
 }
 
+/** The brand panel half of an AuthScreen: what a site or control plane says about itself. */
+export type AuthScreenBrand = Pick<AuthScreenProps, "panelEyebrow" | "headline" | "lede" | "steps">;
+
 export function AuthScreen({
   panelEyebrow = "Standalone control plane",
   headline = (

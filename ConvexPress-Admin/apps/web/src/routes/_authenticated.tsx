@@ -6,6 +6,7 @@ import { useQuery } from "convex-helpers/react/cache";
 
 import { AdminSignIn } from "@/components/auth/AdminSignIn";
 import { AuthScreen } from "@/components/auth/AuthScreen";
+import { SITE_AUTH_BRAND } from "@/components/auth/siteAuthBrand";
 import Loader from "@/components/loader";
 import { Button } from "@/components/ui/button";
 import { useLocalAuthContext } from "@/lib/local-auth-context";
@@ -74,7 +75,7 @@ function AuthenticatedLayout() {
 		if (runtime)
 			return (
 				<AuthScreen
-					steps={null}
+					{...SITE_AUTH_BRAND}
 					eyebrow="Site administrator"
 					title="Site session unavailable"
 					description="Your operator is still signed in. Reconnect this environment to check its current access."
@@ -112,7 +113,7 @@ function AuthenticatedLayout() {
 	if (!adminAccess) {
 		return (
 			<AuthScreen
-				steps={null}
+				{...SITE_AUTH_BRAND}
 				eyebrow="Site administrator"
 				title="Access denied"
 				description="This account does not have permission to open the admin panel for this site."
