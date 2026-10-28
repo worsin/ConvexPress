@@ -23,6 +23,7 @@ export { KB_DOC_VERSION, KB_STORED_CONTENT_VERSION, type KbDoc, type KbOutlineEn
 export { normalizeKbDoc, safeKbHref } from "./normalize";
 export { renderKbDoc, escapeKbHtml, type KbRenderMedia, type KbRenderOptions } from "./render";
 export { kbPlainText, kbOutline } from "./derive";
+export { kbDocFromMarkdown, type KbMarkdownResolvers } from "./fromMarkdown";
 
 /** The longest serialized document accepted (also bounds legacy HTML input). */
 export const MAX_KB_CONTENT_BYTES = 1024 * 1024;
