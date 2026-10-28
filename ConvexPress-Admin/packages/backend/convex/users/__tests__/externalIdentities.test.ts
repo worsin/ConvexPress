@@ -336,6 +336,85 @@ describe("upsertExternalOperator", () => {
   });
 });
 
+describe("moveExternalIssuer", () => {
+  const NEW_ISSUER = "https://staff-new.casemedix.example";
+
+  test("carries each link to the new issuer, keeping the account", async () => {
+    const t = createHarness();
+    await seedSite(t);
+    const erin = await linkStaff(t);
+    const sam = await linkStaff(t, { subject: "staff-002", email: "sam@casemedix.example" });
+
+    const result = await t.mutation(internal.users.externalIdentities.moveExternalIssuer, { from: STAFF_ISSUER, to: NEW_ISSUER });
+    expect(result).toEqual({ moved: 2, merged: 0, conflicts: [], continueAfter: null });
+
+    for (const [subject, userId] of [["staff-001", erin.userId], ["staff-002", sam.userId]] as const) {
+      expect((await t.withIdentity(identity(NEW_ISSUER, subject)).query(api.users.getCurrentUser, {}))?._id).toBe(userId);
+      expect(await t.withIdentity(identity(STAFF_ISSUER, subject)).query(api.users.getCurrentUser, {})).toBeNull();
+    }
+    // The integrator's next sync under the new issuer finds the same account.
+    const resync = await t.mutation(internal.users.externalIdentities.upsertExternalOperator, {
+      issuer: NEW_ISSUER, subject: "staff-001", email: "editor@casemedix.example", roleSlug: "editor", status: "active",
+    });
+    expect(resync).toEqual({ ok: true, userId: erin.userId, created: false });
+    // A second run finds nothing left to move.
+    expect(await t.mutation(internal.users.externalIdentities.moveExternalIssuer, { from: STAFF_ISSUER, to: NEW_ISSUER }))
+      .toEqual({ moved: 0, merged: 0, conflicts: [], continueAfter: null });
+  });
+
+  test("drops a link the account already has under the new issuer and reports one held by another account", async () => {
+    const t = createHarness();
+    await seedSite(t);
+    const erin = await linkStaff(t);
+    const sam = await linkStaff(t, { subject: "staff-002", email: "sam@casemedix.example" });
+    const pat = await linkStaff(t, { subject: "staff-003", email: "pat@casemedix.example" });
+    await t.run(async (ctx) => {
+      // Erin is already linked under the new issuer; Sam's subject there belongs to Pat.
+      for (const [subject, userId] of [["staff-001", erin.userId], ["staff-002", pat.userId]] as const) {
+        await ctx.db.insert("userExternalIdentities", {
+          userId, issuer: NEW_ISSUER, subject, tokenIdentifier: `${NEW_ISSUER}|${subject}`, linkedAt: Date.now(),
+        });
+      }
+    });
+
+    const result = await t.mutation(internal.users.externalIdentities.moveExternalIssuer, { from: STAFF_ISSUER, to: NEW_ISSUER });
+    expect(result).toEqual({
+      moved: 1,
+      merged: 1,
+      conflicts: [{ subject: "staff-002", userId: sam.userId, linkedUserId: pat.userId }],
+      continueAfter: null,
+    });
+    const links = await t.run(async (ctx) => await ctx.db.query("userExternalIdentities").collect());
+    expect(links.map((link) => link.tokenIdentifier).sort()).toEqual([
+      `${NEW_ISSUER}|staff-001`,
+      `${NEW_ISSUER}|staff-002`,
+      `${NEW_ISSUER}|staff-003`,
+      `${STAFF_ISSUER}|staff-002`,
+    ]);
+    // The conflict changed nothing: Sam still signs in under the old issuer, Pat under the new.
+    expect((await t.withIdentity(identity(STAFF_ISSUER, "staff-002")).query(api.users.getCurrentUser, {}))?._id).toBe(sam.userId);
+    expect((await t.withIdentity(identity(NEW_ISSUER, "staff-002")).query(api.users.getCurrentUser, {}))?._id).toBe(pat.userId);
+  });
+
+  test("refuses reserved, malformed and identical issuers", async () => {
+    const t = createHarness();
+    await seedSite(t);
+    await linkStaff(t);
+    for (const [from, to] of [
+      [STAFF_ISSUER, ADMIN_ISSUER],
+      [STAFF_ISSUER, CLERK_ISSUER],
+      [MANAGEMENT_ISSUER, NEW_ISSUER],
+      [STAFF_ISSUER, "https://bad|issuer.example"],
+      [STAFF_ISSUER, ` ${NEW_ISSUER}`],
+      [STAFF_ISSUER, STAFF_ISSUER],
+    ]) {
+      await expect(t.mutation(internal.users.externalIdentities.moveExternalIssuer, { from, to })).rejects.toThrow("EXTERNAL_IDENTITY_INVALID");
+    }
+    const links = await t.run(async (ctx) => await ctx.db.query("userExternalIdentities").collect());
+    expect(links.map((link) => link.tokenIdentifier)).toEqual([`${STAFF_ISSUER}|staff-001`]);
+  });
+});
+
 describe("capabilities for an external operator", () => {
   test("an external editor passes a real capability-gated mutation and is audited as itself", async () => {
     const t = createHarness();

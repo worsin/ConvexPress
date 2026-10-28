@@ -5061,6 +5061,7 @@ export declare const internal:
 {
 "deactivateExternalOperator": FunctionReference<"mutation", "internal", { issuer: string, subject: string }, { ok: false, reason: "not_found" } | { ok: true, userId: Id<"users">, changed: boolean }>,
 "getExternalOperator": FunctionReference<"query", "internal", { issuer: string, subject: string }, null | { userId: Id<"users">, issuer: string, subject: string, tokenIdentifier: string, email: string, firstName?: string, lastName?: string, displayName?: string, status: "active" | "inactive" | "banned", roleSlug: string | null, linkedAt: number, linkedBy?: string, label?: string }>,
+"moveExternalIssuer": FunctionReference<"mutation", "internal", { from: string, to: string, afterSubject?: string }, { moved: number, merged: number, conflicts: Array<{ subject: string, userId: Id<"users">, linkedUserId: Id<"users"> }>, continueAfter: string | null }>,
 "unlinkExternalIdentity": FunctionReference<"mutation", "internal", { issuer: string, subject: string }, { removed: boolean, userId: Id<"users"> | null }>,
 "upsertExternalOperator": FunctionReference<"mutation", "internal", { issuer: string, subject: string, email: string, firstName?: string, lastName?: string, displayName?: string, roleSlug: string, status: "active" | "inactive", linkedBy?: string, label?: string }, { ok: true, userId: Id<"users">, created: boolean } | { ok: false, reason: "email_conflict" | "identity_conflict" | "account_banned", message: string }>,
 }
