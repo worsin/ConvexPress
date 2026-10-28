@@ -10,6 +10,7 @@
  *
  *   recordHelpfulFeedback - helpful/not-helpful feedback (kb/feedback:submitHelpful's core)
  *   recordPageView        - page view (kb/analytics:trackPageView's core)
+ *   recordSearch          - a search and how many articles it found (kb/analytics:trackSearch)
  *
  * They accept a published article of any visibility. Draft, review, archived
  * and scheduled articles are "not found", as they are publicly. The
@@ -28,6 +29,8 @@ import { kbFeedbackReasonValidator } from "../schema/kb";
 
 /** Longest page-view duration accepted: one hour, as updateDuration allows. */
 const MAX_PAGE_VIEW_DURATION_MS = 3_600_000;
+/** Longest search accepted, as trackSearch allows. */
+const MAX_SEARCH_LENGTH = 500;
 
 async function requirePublishedKbArticle(ctx: QueryCtx, articleId: Id<"kb_articles">): Promise<Doc<"kb_articles">> {
   const article = await ctx.db.get("kb_articles", articleId);
@@ -67,5 +70,34 @@ export const recordPageView: RegisteredMutation<"internal", PageViewArgs, { view
       referrer: args.referrer,
       durationSeconds: args.durationMs === undefined ? undefined : Math.round(args.durationMs / 1000),
     });
+  },
+});
+
+type SearchArgs = { query: string; resultCount: number; clickedArticleId?: Id<"kb_articles"> };
+/**
+ * A search a reader ran in the integrator's help panel, so search analytics
+ * and content health (searches that find nothing) include it. The query is
+ * stored with its whitespace collapsed.
+ */
+export const recordSearch: RegisteredMutation<"internal", SearchArgs, { searchId: Id<"kb_searchQueries"> }> = internalMutation({
+  args: { query: v.string(), resultCount: v.number(), clickedArticleId: v.optional(v.id("kb_articles")) },
+  returns: v.object({ searchId: v.id("kb_searchQueries") }),
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const query = args.query.trim().replace(/\s+/g, " ");
+    if (!query || query.length > MAX_SEARCH_LENGTH) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: `Query must be non-empty and at most ${MAX_SEARCH_LENGTH} characters` });
+    }
+    if (!Number.isInteger(args.resultCount) || args.resultCount < 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Result count must be a whole number of at least 0" });
+    }
+    const searchId = await ctx.db.insert("kb_searchQueries", {
+      query,
+      resultCount: args.resultCount,
+      ...(args.clickedArticleId ? { clickedArticleId: args.clickedArticleId } : {}),
+      source: "convex",
+      createdAt: Date.now(),
+    });
+    return { searchId };
   },
 });
