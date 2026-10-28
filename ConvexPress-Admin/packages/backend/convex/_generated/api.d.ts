@@ -4126,6 +4126,7 @@ export declare const internal:
 {
 "recordHelpfulFeedback": FunctionReference<"mutation", "internal", { articleId: Id<"kb_articles">, sessionId: string, isHelpful: boolean, reason?: "outdated" | "incorrect" | "unclear" | "incomplete" | "other", comment?: string }, { feedbackId: Id<"kb_articleFeedback"> }>,
 "recordPageView": FunctionReference<"mutation", "internal", { articleId: Id<"kb_articles">, sessionId: string, referrer?: string, durationMs?: number }, { viewId: Id<"kb_pageViews">, deduplicated: boolean }>,
+"recordSearch": FunctionReference<"mutation", "internal", { query: string, resultCount: number, clickedArticleId?: Id<"kb_articles"> }, { searchId: Id<"kb_searchQueries"> }>,
 }
 ,
 "visibilityTransitions":
