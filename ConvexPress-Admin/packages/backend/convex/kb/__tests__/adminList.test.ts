@@ -18,7 +18,7 @@ async function fixture() {
     await ctx.db.insert("settings", {section:"plugins",values:{knowledgeBaseEnabled:true},updatedBy:user,updatedAt:1});
     const categories = await Promise.all(["selected", "other"].map(slug => ctx.db.insert("kb_categories", {name:slug,slug,order:0,isActive:true,isPublished:true,articleCount:0,createdAt:1,updatedAt:1})));
     const articles: Id<"kb_articles">[] = [];
-    for (let i=0;i<47;i++) articles.push(await ctx.db.insert("kb_articles", { title:`Compass guide ${i}`,slug:`compass-${i}`,excerpt:"Summary",content:"PRIVATE_DRAFT_BODY",contentPlainText:"compass guide",status:i%3===0?"published":"draft",authorId:i%2===0?user:other,categoryId:categories[i%2],contributors:[],keywords:[],viewCount:0,uniqueViewCount:0,helpfulVotes:0,notHelpfulVotes:0,readingTimeMinutes:1,version:1,isFeatured:false,sortOrder:0,meilisearchSynced:false,ragSynced:false,createdAt:i+1,updatedAt:i+1 }));
+    for (let i=0;i<47;i++) articles.push(await ctx.db.insert("kb_articles", { title:`Compass guide ${i}`,slug:`compass-${i}`,excerpt:"Summary",content:"PRIVATE_DRAFT_BODY",contentPlainText:"compass guide",searchText:"compass guide",status:i%3===0?"published":"draft",authorId:i%2===0?user:other,categoryId:categories[i%2],contributors:[],keywords:[],viewCount:0,uniqueViewCount:0,helpfulVotes:0,notHelpfulVotes:0,readingTimeMinutes:1,version:1,isFeatured:false,sortOrder:0,meilisearchSynced:false,ragSynced:false,createdAt:i+1,updatedAt:i+1 }));
     return {role,user,other,categories,articles};
   });
   return {t,ids,client:t.withIdentity({subject:ids.user,issuer:"https://convexpress-admin.local"})};

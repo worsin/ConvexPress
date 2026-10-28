@@ -26,6 +26,7 @@ import { kbOutlineEntryValidator } from "../schema/kb";
 import { articleDoc, articleOutline, renderArticleBody } from "./helpers/content";
 import { articleContextKeys, helpContextKey, helpReader, helpReaderArgs, readableBy, type HelpReader } from "./helpers/help";
 import { PUBLIC_VISIBILITY_KEY } from "./helpers/visibility";
+import { matchingPassage } from "./helpers/searchText";
 import { isPluginEnabled } from "../helpers/plugins";
 
 const helpListItem = v.object({
@@ -163,18 +164,18 @@ export const search = internalQuery({
       .query("kb_articles")
       .withSearchIndex("search_article_titles", (q) => q.search("title", query).eq("status", "published"))
       .take(100);
-    const byBody = await ctx.db
+    const byText = await ctx.db
       .query("kb_articles")
-      .withSearchIndex("search_articles", (q) => {
-        const base = q.search("contentPlainText", query).eq("status", "published");
+      .withSearchIndex("search_text", (q) => {
+        const base = q.search("searchText", query).eq("status", "published");
         return reader.includeInternal ? base : base.eq("visibility", PUBLIC_VISIBILITY_KEY);
       })
       .take(200);
-    for (const article of [...byTitle, ...byBody]) {
+    for (const article of [...byTitle, ...byText]) {
       if (found.size >= limit) break;
       if (!found.has(article._id) && readableBy(article, reader)) found.set(article._id, article);
     }
-    return [...found.values()].map(listItem);
+    return [...found.values()].map((article) => ({ ...listItem(article), excerpt: matchingPassage(article.contentPlainText, query) ?? article.excerpt }));
   },
 });
 

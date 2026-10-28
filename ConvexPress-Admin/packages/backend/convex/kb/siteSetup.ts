@@ -17,6 +17,7 @@ import { assertMediaAttachments, insertWithMediaReferences, patchWithMediaRefere
 import { applyKbPublicCounts } from "./helpers/publicCounts";
 import { prepareArticleContent } from "./helpers/content";
 import { helpContextKeys, setArticleContexts } from "./helpers/help";
+import { articleSearchText } from "./helpers/searchText";
 import { kbArticleVisibilityValidator, storedKbAudiences, storedKbVisibility } from "./helpers/visibility";
 import { MAX_KB_EXCERPT_LENGTH, MAX_KB_TITLE_LENGTH, MAX_KEYWORDS } from "./validators";
 
@@ -215,6 +216,7 @@ export const writeArticle = internalMutation({
       sortOrder: args.sortOrder,
       isFeatured: args.isFeatured ?? false,
       readingTimeMinutes: body.readingTimeMinutes,
+      searchText: articleSearchText(title, keywords, body.contentPlainText),
       visibility: storedKbVisibility(args.visibility ?? "public"),
       audiences: args.audiences === undefined ? undefined : storedKbAudiences(args.audiences),
     };

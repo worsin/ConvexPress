@@ -41,3 +41,32 @@ export function blockHtmlText(html: string): string {
   .replace(/&(amp|lt|gt);/gu, (_, name: string) => ({amp:"&",lt:"<",gt:">"})[name]!)
   .replace(/\s+/gu," ").trim();
 }
+
+/** Exactly what the knowledge-base renderer (backend kb/content/render.ts)
+ * emits. The server already escapes every value; this is the second gate, so a
+ * rendering bug or a tampered response still can't introduce script, styles,
+ * event handlers or foreign classes. */
+const kbTags = ["p", "h2", "h3", "h4", "ul", "ol", "li", "blockquote", "aside", "figure", "img", "video", "figcaption", "pre", "code", "hr", "div", "table", "thead", "tbody", "tr", "th", "td", "details", "summary", "strong", "em", "u", "s", "kbd", "span", "a", "br"];
+export function sanitizeKbArticleHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: kbTags,
+    allowedAttributes: {
+      a: ["href", "rel", "target", "data-kb-article", "data-kb-anchor"],
+      img: ["src", "alt", "width", "height", "loading", "decoding"],
+      video: ["src", "controls", "preload", "playsinline", "width", "height", "aria-label"],
+      ol: ["start", "class"], h2: ["id"], h3: ["id"], h4: ["id"],
+      th: ["colspan", "rowspan", "scope"], td: ["colspan", "rowspan"],
+      details: ["open", "class"], aside: ["class", "role"], figure: ["class"], div: ["class"], span: ["class"], kbd: ["class"], p: ["class"], pre: ["class"], code: ["class"],
+    },
+    allowedClasses: { "*": ["kb-*", "language-*"] },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: { img: ["http", "https"], video: ["http", "https"] },
+    allowProtocolRelative: false,
+    disallowedTagsMode: "discard",
+    enforceHtmlBoundary: true,
+    parseStyleAttributes: false,
+    transformTags: {
+      a: (_tagName, attrs) => ({ tagName: "a", attribs: attrs.target === "_blank" ? { ...attrs, rel: "noopener noreferrer" } : attrs }),
+    },
+  });
+}

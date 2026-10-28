@@ -15,6 +15,8 @@ const modules = {
   "./convex/kb/mutations.ts": () => import("../mutations"),
   "./convex/kb/publicCounts.ts": () => import("../publicCounts"),
   "./convex/kb/queries.ts": () => import("../queries"),
+  "./convex/kb/search.ts": () => import("../search"),
+  "./convex/kb/categoryAccess.ts": () => import("../categoryAccess"),
   "./convex/kb/searchJobs.ts": () => import("../searchJobs"),
   "./convex/kb/searchJobWorker.ts": () => import("../searchJobWorker"),
   "./convex/kb/siteSetup.ts": () => import("../siteSetup"),
@@ -57,7 +59,8 @@ test("an HTML body is stored as a document; plain text, outline and safe HTML ar
     content: `<p>The <strong>cases list</strong> filters by status.</p><h2>Statuses</h2><ul><li>Treating</li></ul><script>steal()</script><p><a href="javascript:x()">bad</a> <img src=x onerror=alert(1)></p>`,
   });
   const stored = await f.t.run((ctx) => ctx.db.get(articleId));
-  expect(stored!.contentVersion).toBe(1);
+  expect(stored!.contentVersion).toBe(2);
+  expect(stored!.searchText).toBe("Filtering cases\nThe cases list filters by status.\nStatuses\nTreating\nbad");
   expect(JSON.parse(stored!.content).type).toBe("doc");
   expect(stored!.contentPlainText).toBe("The cases list filters by status.\nStatuses\nTreating\nbad");
   expect(stored!.outline).toEqual([{ id: "statuses", level: 2, text: "Statuses" }]);
@@ -177,7 +180,7 @@ test("the migration converts legacy bodies once, keeps edits and setup receipts 
   expect(result).toEqual({ articles: 3, templates: 0, done: true });
   const rows = await f.t.run(async (ctx) => Promise.all([legacy.html, legacy.tiptap, legacy.plain].map((id) => ctx.db.get(id))));
   for (const row of rows) {
-    expect(row!.contentVersion).toBe(1);
+    expect(row!.contentVersion).toBe(2);
     expect(row!.updatedAt).toBe(5);
   }
   expect(rows[0]!.contentPlainText).toBe("Old HTML body\nMore");
@@ -185,7 +188,7 @@ test("the migration converts legacy bodies once, keeps edits and setup receipts 
   expect(rows[0]!.excerpt).toBe("Old HTML body");
   expect(rows[1]!.outline).toEqual([{ id: "hi", level: 2, text: "Hi" }]);
   expect(rows[2]!.excerpt).toBe("Kept");
-  expect(await f.t.query(internal.kb.contentMigration.remaining, {})).toEqual({ legacyArticles: 0, version: 1 });
+  expect(await f.t.query(internal.kb.contentMigration.remaining, {})).toEqual({ legacyArticles: 0, version: 2 });
   // A second run finds nothing.
   expect(await f.t.mutation(internal.kb.contentMigration.run, {})).toEqual({ articles: 0, templates: 0, done: true });
 });
@@ -205,4 +208,31 @@ test("normalizing a stored document again changes nothing", async () => {
   const second = (await f.t.run((ctx) => ctx.db.get(articleId)))!;
   expect(second.content).toBe(first);
   expect(second.version).toBe(1);
+});
+
+test("search reads titles and keywords too, and shows the passage that matched", async () => {
+  const f = await fixture();
+  const billing = await f.editor.mutation(api.kb.mutations.create, { title: "Billing basics", categoryId: f.ids.category, keywords: ["invoices"], content: docJson(paragraph("How charges reach your card each month."), paragraph(`${"Filler sentence about nothing in particular. ".repeat(8)}The ledger lists every payment, newest first, with its status.`)) });
+  await f.editor.mutation(api.kb.mutations.publish, { articleId: billing });
+  const results = async (query: string) => (await f.t.query(api.kb.search.search, { query }))!.results;
+  expect((await results("billing")).map((row) => row._id)).toEqual([billing]);
+  expect((await results("invoices")).map((row) => row._id)).toEqual([billing]);
+  const [ledger] = await results("ledger");
+  expect(ledger!.excerpt.startsWith("…")).toBe(true);
+  expect(ledger!.excerpt).toContain("The ledger lists every payment");
+  // A title-only match has no passage to show: the summary stands in.
+  expect((await results("billing"))[0]!.excerpt.startsWith("How charges reach your card each month.")).toBe(true);
+});
+
+test("the migration brings version-1 rows up to version 2 without touching their bodies", async () => {
+  const f = await fixture();
+  const articleId = await f.editor.mutation(api.kb.mutations.create, { title: "Version one", categoryId: f.ids.category, content: docJson(paragraph("Body text.")) });
+  const before = (await f.t.run((ctx) => ctx.db.get(articleId)))!;
+  await f.t.run((ctx) => ctx.db.patch(articleId, { contentVersion: 1, searchText: undefined }));
+  expect(await f.t.mutation(internal.kb.contentMigration.run, {})).toEqual({ articles: 1, templates: 0, done: true });
+  const after = (await f.t.run((ctx) => ctx.db.get(articleId)))!;
+  expect(after.contentVersion).toBe(2);
+  expect(after.searchText).toBe("Version one\nBody text.");
+  expect(after.content).toBe(before.content);
+  expect(after.meilisearchSynced).toBe(before.meilisearchSynced);
 });

@@ -84,8 +84,8 @@ export const list: RegisteredQuery<"public", { paginationOpts: PaginationOptions
     const search = args.search?.trim();
     if (search) {
       const result = await ctx.db.query("kb_articles")
-        .withSearchIndex("search_articles", q => {
-          let sq = q.search("contentPlainText", search);
+        .withSearchIndex("search_text", q => {
+          let sq = q.search("searchText", search);
           if (args.status) sq = sq.eq("status", args.status);
           if (args.categoryId) sq = sq.eq("categoryId", args.categoryId);
           if (args.authorId) sq = sq.eq("authorId", args.authorId);

@@ -15,7 +15,6 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import { prepareKbContent, readKbDoc, renderKbDoc, type KbDoc, type KbOutlineEntry, type KbRenderMedia } from "../content";
 import { kbLinkedArticleIds, kbMediaIds, kbOutline } from "../content/derive";
-import { KB_DOC_VERSION } from "../content/model";
 
 type DbCtx = Pick<QueryCtx, "db">;
 type ReadCtx = Pick<QueryCtx, "db" | "storage">;
@@ -72,7 +71,7 @@ export function articleDoc(article: Pick<Doc<"kb_articles">, "content">): KbDoc 
 
 /** The outline, from the stored field or, for legacy rows, from the body. */
 export function articleOutline(article: Pick<Doc<"kb_articles">, "content" | "outline" | "contentVersion">): KbOutlineEntry[] {
-  if (article.contentVersion === KB_DOC_VERSION && article.outline) return article.outline;
+  if (article.contentVersion !== undefined && article.outline) return article.outline;
   return kbOutline(articleDoc(article));
 }
 

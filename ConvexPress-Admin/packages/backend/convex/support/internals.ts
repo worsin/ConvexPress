@@ -130,8 +130,8 @@ export const searchKbConvex: import("convex/server").RegisteredQuery<"internal",
     }
     const results = await ctx.db
       .query("kb_articles")
-      .withSearchIndex("search_articles", (q) =>
-        q.search("contentPlainText", query).eq("status", "published").eq("visibility", PUBLIC_VISIBILITY_KEY),
+      .withSearchIndex("search_text", (q) =>
+        q.search("searchText", query).eq("status", "published").eq("visibility", PUBLIC_VISIBILITY_KEY),
       )
       .take(10);
 

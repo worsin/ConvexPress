@@ -8,7 +8,7 @@
  *
  * Accepted input: a KbDoc (object or JSON), TipTap JSON from older builds,
  * HTML, or plain text. Stored articles always hold KbDoc JSON with
- * `contentVersion: KB_DOC_VERSION`; anything else is legacy and is converted
+ * `contentVersion: KB_STORED_CONTENT_VERSION`; anything older is converted
  * on read and by kb/contentMigration.
  */
 
@@ -16,10 +16,10 @@ import { ConvexError } from "convex/values";
 
 import { kbExcerpt, kbFigureCount, kbLinkedArticleIds, kbMediaIds, kbOutline, kbPlainText, kbReadingTimeMinutes } from "./derive";
 import { kbDocFromHtml, kbDocFromPlainText, looksLikeHtml } from "./fromHtml";
-import { emptyKbDoc, KB_DOC_VERSION, type KbDoc, type KbOutlineEntry } from "./model";
+import { emptyKbDoc, KB_STORED_CONTENT_VERSION, type KbDoc, type KbOutlineEntry } from "./model";
 import { normalizeKbDoc } from "./normalize";
 
-export { KB_DOC_VERSION, type KbDoc, type KbOutlineEntry } from "./model";
+export { KB_DOC_VERSION, KB_STORED_CONTENT_VERSION, type KbDoc, type KbOutlineEntry } from "./model";
 export { normalizeKbDoc, safeKbHref } from "./normalize";
 export { renderKbDoc, escapeKbHtml, type KbRenderMedia, type KbRenderOptions } from "./render";
 export { kbPlainText, kbOutline } from "./derive";
@@ -31,7 +31,7 @@ export type PreparedKbContent = {
   doc: KbDoc;
   /** Serialized KbDoc, the stored `content`. */
   content: string;
-  contentVersion: typeof KB_DOC_VERSION;
+  contentVersion: typeof KB_STORED_CONTENT_VERSION;
   contentPlainText: string;
   outline: KbOutlineEntry[];
   readingTimeMinutes: number;
@@ -69,7 +69,7 @@ export function prepareKbContent(input: string | KbDoc | undefined | null): Prep
   return {
     doc,
     content,
-    contentVersion: KB_DOC_VERSION,
+    contentVersion: KB_STORED_CONTENT_VERSION,
     contentPlainText,
     outline: kbOutline(doc),
     readingTimeMinutes: kbReadingTimeMinutes(contentPlainText, kbFigureCount(doc)),
