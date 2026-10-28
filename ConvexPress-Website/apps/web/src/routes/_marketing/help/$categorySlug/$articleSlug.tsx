@@ -10,6 +10,7 @@ import { buildIndexablePageHead } from "@/lib/seo/head";
 import CoreHelpArticle, {
   type HelpArticleSurfaceData,
   type KbArticle,
+  type KbFeedbackReason,
   type KbUserFeedback,
 } from "@/templates/packs/core/surfaces/help.article";
 import { Surface } from "@/templates/sdk/Surface";
@@ -92,12 +93,13 @@ function ArticleReader() {
     sessionId && art?._id ? { articleId: art._id, sessionId } : "skip",
   );
 
-  async function handleFeedback(isHelpful: boolean) {
+  async function handleFeedback(isHelpful: boolean, details?: { reason?: KbFeedbackReason; comment?: string }) {
     if (!art?._id || !sessionId) return;
     await submitFeedback({
       articleId: art._id,
       sessionId,
       isHelpful,
+      ...details,
     });
   }
 
@@ -105,7 +107,7 @@ function ArticleReader() {
     categorySlug,
     article: art,
     userFeedback,
-    actions: { sendFeedback: (isHelpful) => void handleFeedback(isHelpful) },
+    actions: { sendFeedback: (isHelpful, details) => void handleFeedback(isHelpful, details) },
   };
 
   return <Surface name="help.article" data={data} fallback={CoreHelpArticle} />;

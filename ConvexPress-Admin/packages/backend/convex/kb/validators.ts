@@ -9,6 +9,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v, type VId, type VNull, type VUnion, type VString, type VBoolean } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import {
+  kbFeedbackReasonValidator,
   kbArticleStatusValidator,
   kbRelationTypeValidator,
   kbCollectionTypeValidator,
@@ -106,6 +107,14 @@ export const updateArticleArgs = {
   audiences: v.optional(v.array(v.string())),
   /** Replaces the in-app help spots the article shows in. */
   helpContexts: v.optional(v.array(v.string())),
+  /** Who answers for the article; null makes it the author again. */
+  ownerId: v.optional(v.union(v.id("users"), v.null())),
+  /** Days between reviews (1 to 3,650); null uses the site default. */
+  reviewIntervalDays: v.optional(v.union(v.number(), v.null())),
+};
+
+export const markReviewedArgs = {
+  articleId: v.id("kb_articles"),
 };
 
 export const publishArticleArgs = {
@@ -379,6 +388,8 @@ export const submitHelpfulArgs = {
   articleId: v.id("kb_articles"),
   sessionId: v.string(),
   isHelpful: v.boolean(),
+  /** Why it didn't help (with isHelpful: false). */
+  reason: v.optional(kbFeedbackReasonValidator),
   comment: v.optional(v.string()),
 };
 

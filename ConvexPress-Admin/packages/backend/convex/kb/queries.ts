@@ -35,6 +35,7 @@ import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { publicAuthorProfile } from "../helpers/publicAuthor";
 import { kbArticleVisibility, kbArticleVisibilityValidator, PUBLIC_VISIBILITY_KEY, storedKbVisibility, type KbArticleVisibility } from "./helpers/visibility";
 import { articleDoc, articleOutline, renderArticleBody } from "./helpers/content";
+import { reviewDueAt } from "./health";
 import { kbOutlineEntryValidator } from "../schema/kb";
 import type { KbOutlineEntry } from "./content";
 
@@ -149,10 +150,12 @@ export const list: RegisteredQuery<"public", { paginationOpts: PaginationOptions
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
 /** `content` is always the normalized KbDoc JSON the editor loads; `html` is the rendered preview. */
-type AdminArticle = Doc<"kb_articles"> & AdminVisibilityFields & { html: string; outline: KbOutlineEntry[]; hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
+type AdminArticle = Doc<"kb_articles"> & AdminVisibilityFields & { html: string; outline: KbOutlineEntry[]; hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; owner: ReturnType<typeof enrichUser>; reviewDueAt: number; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
 const adminArticleValidator: Validator<AdminArticle | null, "required", string> = v.union(v.null(), v.object({
   ...kbTables.kb_articles.validator.fields, _id: v.id("kb_articles"), _creationTime: v.number(), hasInheritedCategoryAccess: v.boolean(),
-  html: v.string(), outline: v.array(kbOutlineEntryValidator),
+  html: v.string(), outline: v.array(kbOutlineEntryValidator), reviewDueAt: v.number(),
+  /** Who answers for the article: the owner, or the author when none is set. */
+  owner: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
   visibility: kbArticleVisibilityValidator, audiences: v.array(v.string()),
   author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
   category: v.union(v.null(), v.object({ ...kbTables.kb_categories.validator.fields, _id: v.id("kb_categories"), _creationTime: v.number() })),
@@ -183,10 +186,13 @@ export const getById: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }
     const inheritedGuard = await ctx.db.query("kb_article_category_guards").withIndex("by_article", q => q.eq("articleId", article._id)).first();
     const doc = articleDoc(article);
     const html = await renderArticleBody(ctx, doc, (target, anchor) => `/kb/${target._id}/edit${anchor ? `#${anchor}` : ""}`);
+    const owner = article.ownerId ? await ctx.db.get("users", article.ownerId) : author;
     return {
       ...article,
       content: JSON.stringify(doc),
       html,
+      owner: enrichUser(owner),
+      reviewDueAt: reviewDueAt(article),
       outline: articleOutline(article),
       ...adminVisibility(article),
       hasInheritedCategoryAccess: inheritedGuard !== null,
