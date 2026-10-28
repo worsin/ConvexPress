@@ -21,7 +21,8 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { readKbDoc } from "./content";
-import { KB_DOC_VERSION } from "./content/model";
+import { KB_STORED_CONTENT_VERSION } from "./content/model";
+import { articleSearchText } from "./helpers/searchText";
 import { prepareArticleContent, type PreparedArticleContent } from "./helpers/content";
 import { articleDigest } from "./siteSetup";
 
@@ -52,6 +53,7 @@ async function migrateArticle(ctx: MutationCtx, article: Doc<"kb_articles">) {
     outline: body.outline,
     linkedArticleIds: body.linkedArticleIds,
     readingTimeMinutes: body.readingTimeMinutes,
+    searchText: articleSearchText(article.title, article.keywords, body.contentPlainText),
     ...(article.excerpt.trim() ? {} : { excerpt: body.excerpt }),
     ...(body.contentPlainText !== article.contentPlainText ? { meilisearchSynced: false, ragSynced: false } : {}),
   });
@@ -70,7 +72,7 @@ export const run = internalMutation({
   handler: async (ctx) => {
     const articles = await ctx.db
       .query("kb_articles")
-      .withIndex("by_content_version", (q) => q.eq("contentVersion", undefined))
+      .withIndex("by_content_version", (q) => q.lt("contentVersion", KB_STORED_CONTENT_VERSION))
       .take(BATCH);
     for (const article of articles) await migrateArticle(ctx, article);
 
@@ -98,10 +100,10 @@ export const remaining = internalQuery({
   returns: v.object({ legacyArticles: v.number(), version: v.number() }),
   handler: async (ctx) => {
     let legacyArticles = 0;
-    for await (const article of ctx.db.query("kb_articles").withIndex("by_content_version", (q) => q.eq("contentVersion", undefined))) {
+    for await (const article of ctx.db.query("kb_articles").withIndex("by_content_version", (q) => q.lt("contentVersion", KB_STORED_CONTENT_VERSION))) {
       void article;
       if (++legacyArticles >= 10_000) break;
     }
-    return { legacyArticles, version: KB_DOC_VERSION };
+    return { legacyArticles, version: KB_STORED_CONTENT_VERSION };
   },
 });

@@ -173,6 +173,8 @@ export const kbTables = {
     // Derived from `content` on every write, never supplied by a client.
     outline: v.optional(v.array(kbOutlineEntryValidator)),
     linkedArticleIds: v.optional(v.array(v.id("kb_articles"))),
+    // Title, keywords and plain text: what the search index reads (kb/helpers/searchText.ts).
+    searchText: v.optional(v.string()),
     // Content health (kb/health.ts): who answers for the article, and how
     // often it must be checked. Absent owner means the author; absent
     // interval means the site default.
@@ -211,8 +213,8 @@ export const kbTables = {
     .index("by_rag_sync", ["ragSynced"])
     .index("by_content_version", ["contentVersion"])
     .searchIndex("search_article_titles", { searchField: "title", filterFields: ["status"] })
-    .searchIndex("search_articles", {
-      searchField: "contentPlainText",
+    .searchIndex("search_text", {
+      searchField: "searchText",
       filterFields: ["status", "categoryId", "authorId", "visibility"],
     }),
 

@@ -33,6 +33,7 @@ import { articleDoc, prepareArticleContent } from "./helpers/content";
 import { recordPublishedSlug, requireArticleEditor, resolveArticleSlug, snapshotArticle } from "./helpers/editing";
 import { kbExcerpt } from "./content/derive";
 import { helpContextKeys, removeArticleContexts, setArticleContexts } from "./helpers/help";
+import { articleSearchText } from "./helpers/searchText";
 import {
   createArticleArgs,
   updateArticleArgs,
@@ -121,6 +122,7 @@ export const create = mutation({
       contentPlainText: body.contentPlainText,
       outline: body.outline,
       linkedArticleIds: body.linkedArticleIds,
+      searchText: articleSearchText(title || "Untitled Article", args.keywords ?? [], body.contentPlainText),
       status: "draft",
       authorId: user._id,
       contributors: [],
@@ -275,6 +277,15 @@ export const update = mutation({
     // Track contributors
     if (!article.contributors.includes(user._id) && user._id !== article.authorId) {
       updates.contributors = [...article.contributors, user._id];
+    }
+
+    // Search reads title, keywords and body together.
+    if (updates.title !== undefined || updates.keywords !== undefined || updates.contentPlainText !== undefined || article.searchText === undefined) {
+      updates.searchText = articleSearchText(
+        typeof updates.title === "string" ? updates.title : article.title,
+        Array.isArray(updates.keywords) ? (updates.keywords as string[]) : article.keywords,
+        typeof updates.contentPlainText === "string" ? updates.contentPlainText : article.contentPlainText,
+      );
     }
 
     // Each saved change to the body or title keeps the previous text.

@@ -14,6 +14,13 @@
 
 export const KB_DOC_VERSION = 1 as const;
 
+/**
+ * Version of an article's stored body and the fields derived from it
+ * (`contentVersion`): 1 = KbDoc with plain text, outline and links;
+ * 2 = also `searchText`. kb/contentMigration brings older rows up to date.
+ */
+export const KB_STORED_CONTENT_VERSION = 2 as const;
+
 export const KB_CALLOUT_TONES = ["note", "tip", "warning", "important"] as const;
 export type KbCalloutTone = (typeof KB_CALLOUT_TONES)[number];
 
