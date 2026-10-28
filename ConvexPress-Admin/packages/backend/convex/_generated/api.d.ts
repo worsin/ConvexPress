@@ -4058,6 +4058,7 @@ export declare const internal:
 "help":
 {
 "article": FunctionReference<"query", "internal", { articleId?: Id<"kb_articles">, slug?: string, audiences: Array<string>, includeInternal: boolean }, null | { _id: Id<"kb_articles">, title: string, slug: string, excerpt: string, html: string, outline: Array<{ id: string, level: 2 | 3 | 4, text: string }>, readingTimeMinutes: number, updatedAt: number, spots: Array<{ key: string, label: string }>, related: Array<{ _id: Id<"kb_articles">, title: string, slug: string, excerpt: string, readingTimeMinutes: number, updatedAt: number }> }>,
+"browse": FunctionReference<"query", "internal", { audiences: Array<string>, includeInternal: boolean }, Array<{ _id: Id<"kb_categories">, name: string, slug: string, description?: string, icon?: string, articles: Array<{ _id: Id<"kb_articles">, title: string, slug: string, excerpt: string, readingTimeMinutes: number, updatedAt: number }> }>>,
 "search": FunctionReference<"query", "internal", { query: string, limit?: number, audiences: Array<string>, includeInternal: boolean }, Array<{ _id: Id<"kb_articles">, title: string, slug: string, excerpt: string, readingTimeMinutes: number, updatedAt: number }>>,
 "spot": FunctionReference<"query", "internal", { key: string, limit?: number, audiences: Array<string>, includeInternal: boolean }, { spot: null | { key: string, label: string, summary?: string, routeHint?: string }, articles: Array<{ _id: Id<"kb_articles">, title: string, slug: string, excerpt: string, readingTimeMinutes: number, updatedAt: number }> }>,
 "suggestions": FunctionReference<"query", "internal", { limit?: number, audiences: Array<string>, includeInternal: boolean }, Array<{ _id: Id<"kb_articles">, title: string, slug: string, excerpt: string, readingTimeMinutes: number, updatedAt: number }>>,
@@ -4119,7 +4120,7 @@ export declare const internal:
 "siteSetup":
 {
 "writeArticle": FunctionReference<"mutation", "internal", { setupKey: string, title: string, slug: string, excerpt: string, content: string, categoryId: Id<"kb_categories">, keywords?: Array<string>, sortOrder: number, isFeatured?: boolean, visibility?: "public" | "internal", audiences?: Array<string>, helpContexts?: Array<string>, actorId: Id<"users"> }, { outcome: "created" | "updated" | "unchanged" | "kept_edited" | "kept_removed" | "slug_taken", articleId: Id<"kb_articles"> | null }>,
-"writeCategory": FunctionReference<"mutation", "internal", { setupKey: string, name: string, slug: string, description?: string, icon?: string, order: number, actorId: Id<"users"> }, { outcome: "created" | "updated" | "unchanged" | "kept_edited" | "kept_removed" | "slug_taken", categoryId: Id<"kb_categories"> | null }>,
+"writeCategory": FunctionReference<"mutation", "internal", { setupKey: string, name: string, slug: string, description?: string, icon?: string, order: number, isPublished?: boolean, actorId: Id<"users"> }, { outcome: "created" | "updated" | "unchanged" | "kept_edited" | "kept_removed" | "slug_taken", categoryId: Id<"kb_categories"> | null }>,
 }
 ,
 "trustedConsumers":

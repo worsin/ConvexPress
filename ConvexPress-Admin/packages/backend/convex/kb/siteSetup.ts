@@ -83,6 +83,8 @@ export const writeCategory = internalMutation({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     order: v.number(),
+    /** False keeps the category off the public help center (its articles are for an app's own help); default true. */
+    isPublished: v.optional(v.boolean()),
     actorId: v.id("users"),
   },
   returns: v.object({ outcome: kbSetupOutcomeValidator, categoryId: v.union(v.id("kb_categories"), v.null()) }),
@@ -97,6 +99,8 @@ export const writeCategory = internalMutation({
       ...(args.description ? { description: args.description.trim() } : {}),
       ...(args.icon ? { icon: args.icon } : {}),
       order: args.order,
+      // Only when given, so setups written before this field keep their receipts.
+      ...(args.isPublished !== undefined ? { isPublished: args.isPublished } : {}),
     };
     const requestDigest = sha256Hex(canonicalJson(fields));
     const receipt = await receiptFor(ctx, "category", args.setupKey);
@@ -119,6 +123,7 @@ export const writeCategory = internalMutation({
         description: fields.description,
         icon: fields.icon,
         order: fields.order,
+        ...(fields.isPublished !== undefined ? { isPublished: fields.isPublished } : {}),
         updatedAt: Date.now(),
       });
       await accept(category._id);
@@ -129,9 +134,9 @@ export const writeCategory = internalMutation({
     if (occupant) return { outcome: "slug_taken", categoryId: occupant._id };
     const now = Date.now();
     const categoryId = await ctx.db.insert("kb_categories", {
+      isPublished: true,
       ...fields,
       isActive: true,
-      isPublished: true,
       articleCount: 0,
       createdAt: now,
       updatedAt: now,

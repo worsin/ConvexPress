@@ -10,6 +10,7 @@ const modules = {
   "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
   "./convex/settings/internals.ts": () => import("../../settings/internals"),
   "./convex/settings/queries.ts": () => import("../../settings/queries"),
+  "./convex/kb/categories.ts": () => import("../categories"),
   "./convex/kb/categoryAccess.ts": () => import("../categoryAccess"),
   "./convex/kb/help.ts": () => import("../help"),
   "./convex/kb/helpContexts.ts": () => import("../helpContexts"),
@@ -156,4 +157,53 @@ test("site setup writes internal help articles with audiences and spots, and lea
   expect((await write("Filtering cases")).outcome).toBe("unchanged");
   await f.editor.mutation(api.kb.mutations.update, { articleId: created.articleId!, audiences: ["doctor", "staff"] });
   expect((await write("Filtering your cases")).outcome).toBe("kept_edited");
+});
+
+test("browse lists each topic with the articles the reader can read, in the editors' order", async () => {
+  const f = await fixture();
+  const guides = await f.t.run(async (ctx) =>
+    await ctx.db.insert("kb_categories", { name: "Guides", slug: "guides", order: 1, isActive: true, isPublished: true, articleCount: 0, createdAt: 1, updatedAt: 1 }),
+  );
+  await f.article("Second step", { audiences: ["doctor"] });
+  await f.article("First step", { audiences: ["doctor"] });
+  await f.article("Staff only", { audiences: ["staff"] });
+  await f.t.run(async (ctx) => {
+    for (const row of await ctx.db.query("kb_articles").collect()) {
+      if (row.title === "First step") await ctx.db.patch(row._id, { sortOrder: -1 });
+    }
+  });
+  const signUp = await f.article("Signing up", { visibility: "public" });
+  await f.editor.mutation(api.kb.mutations.update, { articleId: signUp, categoryId: guides });
+  await f.article("Unpublished draft", { audiences: ["doctor"], publish: false });
+
+  const topics = async (reader: typeof DOCTOR) =>
+    (await f.t.query(internal.kb.help.browse, { ...reader })).map((topic) => [topic.name, topic.articles.map((a) => a.title)]);
+  // The Portal topic is kept off the public help center, and is still the doctors' first topic.
+  expect(await topics(DOCTOR)).toEqual([["Portal", ["First step", "Second step"]], ["Guides", ["Signing up"]]]);
+  expect(await topics(STAFF)).toEqual([["Portal", ["Staff only"]], ["Guides", ["Signing up"]]]);
+  expect(await topics(VISITOR)).toEqual([["Guides", ["Signing up"]]]);
+});
+
+test("site setup can keep a category off the public help center", async () => {
+  const f = await fixture();
+  const write = (isPublished?: boolean) =>
+    f.t.mutation(internal.kb.siteSetup.writeCategory, {
+      setupKey: "help:doctor:cases",
+      name: "Working a case",
+      slug: "working-a-case",
+      order: 2,
+      actorId: f.ids.editor,
+      ...(isPublished !== undefined ? { isPublished } : {}),
+    });
+  const publicSlugs = async () => ((await f.t.query(api.kb.categories.listPublished, {})) ?? []).map((category) => category.slug);
+
+  const created = await write();
+  expect(created.outcome).toBe("created");
+  expect(await publicSlugs()).toEqual(["working-a-case"]);
+  expect((await write()).outcome).toBe("unchanged");
+  // An unedited category follows the setup off the public help center, once.
+  expect((await write(false)).outcome).toBe("updated");
+  expect((await write(false)).outcome).toBe("unchanged");
+  expect(await publicSlugs()).toEqual([]);
+  expect((await f.t.run(async (ctx) => await ctx.db.get(created.categoryId!)))?.isPublished).toBe(false);
 });
