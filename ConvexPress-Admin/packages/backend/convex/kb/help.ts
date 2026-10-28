@@ -11,6 +11,7 @@
  *   article       one readable article, rendered, with its outline and related reading
  *   search        readable articles matching words, titles first
  *   suggestions   featured, then most-read readable articles (the panel's empty state)
+ *   browse        the reader's help center: topics with the articles they can read
  *
  * Article bodies come back as HTML from the shared renderer. A link to another
  * article the reader can read points at `#kb-article/<id>[/<anchor>]` and carries
@@ -200,5 +201,50 @@ export const suggestions = internalQuery({
       }
     }
     return [...found.values()].map(listItem);
+  },
+});
+
+export const helpTopic = v.object({
+  _id: v.id("kb_categories"),
+  name: v.string(),
+  slug: v.string(),
+  description: v.optional(v.string()),
+  icon: v.optional(v.string()),
+  articles: v.array(helpListItem),
+});
+
+const MAX_TOPICS = 200;
+const MAX_TOPIC_ARTICLES = 300;
+
+/**
+ * The reader's own help center: every active topic holding at least one
+ * article the reader can read, in the editors' order, with those articles in
+ * theirs (oldest first among equals). A topic kept off the public help center
+ * (`isPublished` false) is included: an app's own help is where it belongs.
+ */
+export const browse = internalQuery({
+  args: { ...helpReaderArgs },
+  returns: v.array(helpTopic),
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
+    const reader = helpReader(args);
+    const categories = await ctx.db.query("kb_categories").withIndex("by_order").take(MAX_TOPICS);
+    const topics: Array<typeof helpTopic.type> = [];
+    for (const category of categories) {
+      if (!category.isActive || category.deletionJobId) continue;
+      const articles = (await ctx.db.query("kb_articles").withIndex("by_category", (q) => q.eq("categoryId", category._id)).take(MAX_TOPIC_ARTICLES))
+        .filter((article) => readableBy(article, reader))
+        .sort((a, b) => a.sortOrder - b.sortOrder || a._creationTime - b._creationTime);
+      if (articles.length === 0) continue;
+      topics.push({
+        _id: category._id,
+        name: category.name,
+        slug: category.slug,
+        ...(category.description ? { description: category.description } : {}),
+        ...(category.icon ? { icon: category.icon } : {}),
+        articles: articles.map(listItem),
+      });
+    }
+    return topics;
   },
 });
