@@ -18,8 +18,12 @@ import { applyKbPublicCounts } from "./helpers/publicCounts";
 import { prepareArticleContent } from "./helpers/content";
 import { helpContextKeys, setArticleContexts } from "./helpers/help";
 import { articleSearchText } from "./helpers/searchText";
-import { kbArticleVisibilityValidator, storedKbAudiences, storedKbVisibility } from "./helpers/visibility";
+import { isInternalKbArticle, kbArticleVisibilityValidator, storedKbAudiences, storedKbVisibility } from "./helpers/visibility";
 import { MAX_KB_EXCERPT_LENGTH, MAX_KB_TITLE_LENGTH, MAX_KEYWORDS } from "./validators";
+import { withdrawInternalKbArticle } from "./visibilityTransitions";
+
+/** How a site setup signs the search-removal job it starts (that job never re-checks its actor). */
+const SETUP_ISSUER = "convexpress:site-setup";
 
 export const kbSetupOutcomeValidator = v.union(
   v.literal("created"),
@@ -256,13 +260,18 @@ export const writeArticle = internalMutation({
       if (receipt.requestDigest === requestDigest) return { outcome: "unchanged", articleId: article._id };
       if (articleDigest(article) !== receipt.acceptedDigest) return { outcome: "kept_edited", articleId: article._id };
       const now = Date.now();
-      // Setup never moves an existing article between public and internal;
-      // that transition withdraws search copies and needs an editor's action.
-      const updates = { ...fields, visibility: article.visibility, version: article.version + 1, meilisearchSynced: false, ragSynced: false, updatedAt: now };
+      // No editor has changed the article, so setup may move it between
+      // public and internal as an editor's update would: becoming internal
+      // removes its public copies (RAG chunks, external search) and counts;
+      // becoming public marks it unsynced like any edit.
+      const updates = { ...fields, version: article.version + 1, meilisearchSynced: false, ragSynced: false, updatedAt: now };
       if (body.mediaIds.length) await assertMediaAttachments(ctx, "kb_articles", {}, undefined, body.mediaIds);
       await patchWithMediaReferences(ctx, "kb_articles", article._id, updates);
       await setArticleContexts(ctx, article._id, helpContexts);
       await applyKbPublicCounts(ctx, article._id, article, { ...article, ...updates });
+      if (!isInternalKbArticle(article) && fields.visibility === "internal") {
+        await withdrawInternalKbArticle(ctx, article, { subject: args.actorId, issuer: SETUP_ISSUER, tokenIdentifier: `${SETUP_ISSUER}|${args.actorId}` });
+      }
       await accept(article._id);
       return { outcome: "updated", articleId: article._id };
     }
