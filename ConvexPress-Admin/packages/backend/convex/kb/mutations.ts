@@ -42,6 +42,7 @@ import {
   removeArticleArgs,
   toggleFeaturedArgs,
   createVersionArgs,
+  markReviewedArgs,
   MAX_KB_TITLE_LENGTH,
   MAX_KB_EXCERPT_LENGTH,
   MAX_KEYWORDS,
@@ -221,6 +222,9 @@ export const update = mutation({
       if (bodyChanged) {
         updates.meilisearchSynced = false;
         updates.ragSynced = false;
+        // Rewriting the body is a review.
+        updates.lastReviewedAt = Date.now();
+        updates.reviewedBy = user._id;
       }
     }
 
@@ -243,6 +247,16 @@ export const update = mutation({
       updates.ragSynced = false;
     }
     if (args.parentArticleId !== undefined) updates.parentArticleId = args.parentArticleId;
+    if (args.ownerId !== undefined) {
+      if (args.ownerId !== null && !(await ctx.db.get("users", args.ownerId))) throw new ConvexError({ code: "NOT_FOUND", message: "The owner isn't a user of this site." });
+      updates.ownerId = args.ownerId ?? undefined;
+    }
+    if (args.reviewIntervalDays !== undefined) {
+      if (args.reviewIntervalDays !== null && (!Number.isInteger(args.reviewIntervalDays) || args.reviewIntervalDays < 1 || args.reviewIntervalDays > 3650)) {
+        throw new ConvexError({ code: "VALIDATION_ERROR", message: "Review every 1 to 3,650 days." });
+      }
+      updates.reviewIntervalDays = args.reviewIntervalDays ?? undefined;
+    }
     if (args.metaTitle !== undefined) updates.metaTitle = args.metaTitle;
     if (args.metaDescription !== undefined) updates.metaDescription = args.metaDescription;
     if (args.featuredImageId !== undefined) updates.featuredImageId = args.featuredImageId;
@@ -606,5 +620,21 @@ export const createVersion = mutation({
     });
 
     return versionId;
+  },
+});
+
+// ─── Mark Reviewed ──────────────────────────────────────────────────────────
+
+/** An editor confirms the article is still right without changing it. */
+export const markReviewed = mutation({
+  args: markReviewedArgs,
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    const user = await requireArticleEditor(ctx, article);
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", article._id, { lastReviewedAt: Date.now(), reviewedBy: user._id });
+    return null;
   },
 });

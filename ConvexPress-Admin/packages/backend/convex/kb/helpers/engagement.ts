@@ -28,7 +28,9 @@ export function assertKbSessionId(sessionId: string): void {
   }
 }
 
-export type KbHelpfulFeedbackInput = { sessionId: string; isHelpful: boolean; comment?: string; userId?: Id<"users"> };
+export type KbFeedbackReason = "outdated" | "incorrect" | "unclear" | "incomplete" | "other";
+/** `reason` only accompanies a "not helpful" answer; it is dropped from a helpful one. */
+export type KbHelpfulFeedbackInput = { sessionId: string; isHelpful: boolean; reason?: KbFeedbackReason; comment?: string; userId?: Id<"users"> };
 
 /**
  * Record helpful/not-helpful feedback, once per session and article. A repeat
@@ -48,8 +50,9 @@ export async function recordKbHelpfulFeedback(
     .withIndex("by_session_article", (q) => q.eq("sessionId", input.sessionId).eq("articleId", article._id))
     .first();
 
+  const reason = input.isHelpful ? undefined : input.reason;
   if (existing) {
-    await ctx.db.patch("kb_articleFeedback", existing._id, { isHelpful: input.isHelpful, comment: input.comment });
+    await ctx.db.patch("kb_articleFeedback", existing._id, { isHelpful: input.isHelpful, reason, comment: input.comment });
     if (existing.isHelpful !== input.isHelpful) {
       await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", article._id, input.isHelpful
         ? { helpfulVotes: article.helpfulVotes + 1, notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1) }
@@ -63,6 +66,7 @@ export async function recordKbHelpfulFeedback(
     userId: input.userId,
     sessionId: input.sessionId,
     isHelpful: input.isHelpful,
+    ...(reason ? { reason } : {}),
     comment: input.comment,
     createdAt: Date.now(),
   });

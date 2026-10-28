@@ -87,6 +87,15 @@ export const kbSearchSourceValidator = v.union(
 
 export { kbArticleVisibilityValidator };
 
+/** Why a reader said an article didn't help. */
+export const kbFeedbackReasonValidator = v.union(
+  v.literal("outdated"),
+  v.literal("incorrect"),
+  v.literal("unclear"),
+  v.literal("incomplete"),
+  v.literal("other"),
+);
+
 export const kbOutlineEntryValidator = v.object({
   id: v.string(),
   level: v.union(v.literal(2), v.literal(3), v.literal(4)),
@@ -164,6 +173,13 @@ export const kbTables = {
     // Derived from `content` on every write, never supplied by a client.
     outline: v.optional(v.array(kbOutlineEntryValidator)),
     linkedArticleIds: v.optional(v.array(v.id("kb_articles"))),
+    // Content health (kb/health.ts): who answers for the article, and how
+    // often it must be checked. Absent owner means the author; absent
+    // interval means the site default.
+    ownerId: v.optional(v.id("users")),
+    reviewIntervalDays: v.optional(v.number()),
+    lastReviewedAt: v.optional(v.number()),
+    reviewedBy: v.optional(v.id("users")),
     meilisearchSynced: v.boolean(),
     meilisearchSyncedAt: v.optional(v.number()),
     ragSynced: v.boolean(),
@@ -361,13 +377,15 @@ export const kbTables = {
     userId: v.optional(v.id("users")),
     sessionId: v.string(),
     isHelpful: v.boolean(),
+    reason: v.optional(kbFeedbackReasonValidator),
     rating: v.optional(v.number()),
     comment: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_article", ["articleId"])
     .index("by_user", ["userId"])
-    .index("by_session_article", ["sessionId", "articleId"]),
+    .index("by_session_article", ["sessionId", "articleId"])
+    .index("by_date", ["createdAt"]),
 
   kb_bookmarks: defineTable({
     userId: v.id("users"),

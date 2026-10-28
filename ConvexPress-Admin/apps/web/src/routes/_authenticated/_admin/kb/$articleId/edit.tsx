@@ -67,6 +67,8 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
   const updateArticle = useMutation(api.kb.mutations.update);
   const publishArticle = useMutation(api.kb.mutations.publish);
   const unpublishArticle = useMutation(api.kb.mutations.unpublish);
+  const markReviewed = useMutation(api.kb.mutations.markReviewed);
+  const updateReview = useMutation(api.kb.mutations.update);
 
   const [form, setForm] = useState<Form | null>(null);
   const contentRef = useRef("");
@@ -420,6 +422,49 @@ function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
               <KBAudienceInput audiences={form.audiences} onChange={(next) => edit("audiences", next)} />
               <p className="text-xs text-foreground/40 mt-1">Labels for integrations, such as staff or doctor.</p>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">Review</h3>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-foreground/60">Owner</span>
+              <span>{article.owner?.displayName ?? "—"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <label htmlFor="kb-review-interval" className="text-foreground/60">Review every</label>
+              <select
+                id="kb-review-interval"
+                value={String(article.reviewIntervalDays ?? "")}
+                onChange={(e) => {
+                  ownSave.current = !isDirty;
+                  void updateReview({ articleId, reviewIntervalDays: e.target.value ? Number(e.target.value) : null }).catch((err: unknown) => toast.error(errorMessage(err, "Couldn't change the review interval")));
+                }}
+                className="rounded-md border border-border bg-background px-1.5 py-0.5"
+              >
+                <option value="">Site default (6 months)</option>
+                <option value="30">Month</option>
+                <option value="90">3 months</option>
+                <option value="365">Year</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-foreground/60">Next review</span>
+              <span className={article.reviewDueAt < Date.now() ? "font-medium text-warning" : ""}>
+                {new Date(article.reviewDueAt).toLocaleDateString()}
+                {article.reviewDueAt < Date.now() ? " · overdue" : ""}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                ownSave.current = !isDirty;
+                void markReviewed({ articleId }).then(() => toast.success("Marked reviewed"), (err: unknown) => toast.error(errorMessage(err, "Couldn't mark it reviewed")));
+              }}
+              className="w-full rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+            >
+              Still correct — mark reviewed
+            </button>
+            <p className="text-xs text-foreground/40">Saving a change to the text also counts as a review.</p>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4 space-y-2">

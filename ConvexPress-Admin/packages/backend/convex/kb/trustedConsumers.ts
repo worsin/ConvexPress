@@ -23,7 +23,8 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type QueryCtx } from "../_generated/server";
 import { requirePluginEnabled } from "../helpers/plugins";
-import { recordKbHelpfulFeedback, recordKbPageView } from "./helpers/engagement";
+import { recordKbHelpfulFeedback, recordKbPageView, type KbFeedbackReason } from "./helpers/engagement";
+import { kbFeedbackReasonValidator } from "../schema/kb";
 
 /** Longest page-view duration accepted: one hour, as updateDuration allows. */
 const MAX_PAGE_VIEW_DURATION_MS = 3_600_000;
@@ -34,14 +35,14 @@ async function requirePublishedKbArticle(ctx: QueryCtx, articleId: Id<"kb_articl
   return article;
 }
 
-type HelpfulFeedbackArgs = { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; comment?: string };
+type HelpfulFeedbackArgs = { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; reason?: KbFeedbackReason; comment?: string };
 export const recordHelpfulFeedback: RegisteredMutation<"internal", HelpfulFeedbackArgs, { feedbackId: Id<"kb_articleFeedback"> }> = internalMutation({
-  args: { articleId: v.id("kb_articles"), sessionId: v.string(), isHelpful: v.boolean(), comment: v.optional(v.string()) },
+  args: { articleId: v.id("kb_articles"), sessionId: v.string(), isHelpful: v.boolean(), reason: v.optional(kbFeedbackReasonValidator), comment: v.optional(v.string()) },
   returns: v.object({ feedbackId: v.id("kb_articleFeedback") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const article = await requirePublishedKbArticle(ctx, args.articleId);
-    const feedbackId = await recordKbHelpfulFeedback(ctx, article, { sessionId: args.sessionId, isHelpful: args.isHelpful, comment: args.comment });
+    const feedbackId = await recordKbHelpfulFeedback(ctx, article, { sessionId: args.sessionId, isHelpful: args.isHelpful, reason: args.reason, comment: args.comment });
     return { feedbackId };
   },
 });

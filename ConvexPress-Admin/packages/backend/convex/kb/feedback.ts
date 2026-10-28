@@ -24,13 +24,13 @@ import {
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { readPublicKbArticle, requirePublicKbArticle } from "./publicAccess";
-import { recordKbHelpfulFeedback } from "./helpers/engagement";
+import { recordKbHelpfulFeedback, type KbFeedbackReason } from "./helpers/engagement";
 
 import { v } from "convex/values";
 import { kbDocs } from "../schema/kb.docs.generated";
 // ─── Submit Helpful ─────────────────────────────────────────────────────────
 
-export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; comment?: string }, Id<"kb_articleFeedback">> = mutation({
+export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; reason?: KbFeedbackReason; comment?: string }, Id<"kb_articleFeedback">> = mutation({
   args: submitHelpfulArgs,
   returns: v.id("kb_articleFeedback"),
   handler: async (ctx, args) => {
@@ -39,7 +39,7 @@ export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_art
     // A hidden (internal, unpublished or restricted) article is "not found".
     const article = await requirePublicKbArticle(ctx, args.articleId);
     return recordKbHelpfulFeedback(ctx, article, {
-      sessionId: args.sessionId, isHelpful: args.isHelpful, comment: args.comment, userId: user?._id,
+      sessionId: args.sessionId, isHelpful: args.isHelpful, reason: args.reason, comment: args.comment, userId: user?._id,
     });
   },
 });
