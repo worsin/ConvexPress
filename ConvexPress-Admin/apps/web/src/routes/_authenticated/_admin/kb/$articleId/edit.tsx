@@ -20,6 +20,7 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
+import { useBreadcrumbTitle } from "@/lib/admin-shell/breadcrumb-titles";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save, Globe, EyeOff, ArrowLeft, Loader2, History, RotateCcw } from "lucide-react";
@@ -61,6 +62,7 @@ function errorMessage(err: unknown, fallback: string) {
 
 function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
   const article = useQuery(api.kb.queries.getById, { articleId });
+  useBreadcrumbTitle(articleId, article?.title);
   const versions = useQuery(api.kb.queries.getVersions, { articleId });
   const helpSpots = useQuery(api.kb.helpContexts.forArticle, { articleId });
   const categories = useQuery(api.kb.categories.list) ?? [];

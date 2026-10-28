@@ -16,5 +16,10 @@ describe("breadcrumbs", () => {
     ]);
     expect(deriveBreadcrumbs(path, new Map([[id, "Avery Quinn"]])).at(-1)).toEqual({ label: "Avery Quinn", to: undefined });
     expect(deriveBreadcrumbs("/commerce/subscriptions/dunning").at(-1)?.label).toBe("Failed Payments");
+    expect(deriveBreadcrumbs("/kb/help").map((segment) => segment.label)).toEqual(["Dashboard", "Knowledge Base", "In-app help"]);
+    expect(deriveBreadcrumbs("/kb/health").at(-1)?.label).toBe("Content health");
+    expect(deriveBreadcrumbs(`/kb/${id}/edit`, new Map([[id, "Uploading documents"]])).map((segment) => segment.label)).toEqual([
+      "Dashboard", "Knowledge Base", "Uploading documents", "Edit",
+    ]);
   });
 });

@@ -82,6 +82,17 @@ function ToolButton({ label, active, disabled, onClick, children }: { label: str
   );
 }
 
+/**
+ * Rendered once the editor exists. useEditorState keeps the snapshot it was
+ * created with until the next transaction, so a count kept beside useEditor
+ * (whose editor starts as null) read 0 words on every article until it was
+ * edited.
+ */
+function WordCount({ editor }: { editor: Editor }) {
+  const words = useEditorState({ editor, selector: ({ editor: e }) => (e.storage.characterCount as { words: () => number }).words() });
+  return <>{words === 1 ? "1 word" : `${words} words`}</>;
+}
+
 function Divider() {
   return <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />;
 }
@@ -326,7 +337,6 @@ export function KbEditor({ initialContent, onChange, currentArticleId, placehold
     })();
   };
 
-  const words = useEditorState({ editor, selector: ({ editor: e }) => (e ? (e.storage.characterCount as { words: () => number }).words() : 0) });
   const linkInitial = useMemo<KbLinkValue | null>(() => {
     if (!editor || !linkOpen) return null;
     const attrs = editor.getAttributes("link") as Partial<KbLinkValue>;
@@ -360,7 +370,7 @@ export function KbEditor({ initialContent, onChange, currentArticleId, placehold
           ))}
         </div>
         <span className="text-[11px] text-foreground/50" aria-live="polite">
-          {uploading > 0 ? `Uploading ${uploading} image${uploading === 1 ? "" : "s"}…` : `${words} words`}
+          {uploading > 0 ? `Uploading ${uploading} image${uploading === 1 ? "" : "s"}…` : <WordCount editor={editor} />}
         </span>
       </div>
       {mode === "write" ? (
