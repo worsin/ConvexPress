@@ -407,6 +407,10 @@
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"
   },
+  "kb_articleSlugHistory": {
+    "module": "schema/kb.docs.generated",
+    "exportName": "kbDocs"
+  },
   "kb_articleTags": {
     "module": "schema/kb.docs.generated",
     "exportName": "kbDocs"

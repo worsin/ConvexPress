@@ -1,8 +1,9 @@
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-/** Core · help.article — knowledge base article reader with TipTap rendering, feedback and related articles. */
+/** Core · help.article — knowledge base article reader: rendered body, outline, feedback and related articles. */
 import { Link } from "@tanstack/react-router";
-import type React from "react";
 
+import { KbArticleBody } from "@/components/help/KbArticleBody";
+import { KbArticleOutline, type KbOutlineEntry } from "@/components/help/KbArticleOutline";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { helpTrail } from "@/lib/help-trail";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -13,11 +14,13 @@ export type KbArticle = {
   _id: Id<"kb_articles">;
   title: string;
   slug: string;
-  content?: string;
-  contentPlainText?: string;
+  /** The rendered body (backend kb/content/render.ts). */
+  html?: string;
+  outline?: KbOutlineEntry[];
   excerpt?: string;
   readingTimeMinutes?: number;
   publishedAt?: number;
+  updatedAt?: number;
   author?: { _id: string; displayName: string; avatarUrl?: string } | null;
   category?: { _id: string; name: string; slug: string } | null;
   tags?: Array<{ _id: string; name: string; slug: string }>;
@@ -37,147 +40,6 @@ export interface HelpArticleSurfaceData {
     /** Record a helpful / not-helpful vote. */
     sendFeedback: (isHelpful: boolean) => void;
   };
-}
-
-// ─── Content Renderer ─────────────────────────────────────────────────────────
-
-function ArticleContent({ content, plainText }: { content?: string; plainText?: string }) {
-  // Try TipTap JSON first
-  if (content) {
-    try {
-      const doc = JSON.parse(content);
-      if (doc.type === "doc" && Array.isArray(doc.content)) {
-        return <div className="max-w-none leading-relaxed text-foreground [&_p]:mb-4 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mb-2 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-4 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_code]:bg-muted [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-sm [&_hr]:border-border [&_hr]:my-6 [&_a]:text-primary [&_a]:underline">{renderTipTapNodes(doc.content)}</div>;
-      }
-    } catch {
-      // Not JSON, fall through
-    }
-  }
-
-  // Fallback to plain text
-  if (plainText) {
-    return (
-      <div className="max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
-        {plainText}
-      </div>
-    );
-  }
-
-  return <p className="text-muted-foreground italic">This article has no content yet.</p>;
-}
-
-function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
-  return nodes.map((node, i) => {
-    switch (node.type) {
-      case "paragraph":
-        return <p key={i}>{renderInlineContent(node.content)}</p>;
-      case "heading": {
-        const level = Math.min(
-          6,
-          Math.max(1, Number(node.attrs?.level ?? 2)),
-        ) as 1 | 2 | 3 | 4 | 5 | 6;
-        const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-        return <Tag key={i}>{renderInlineContent(node.content)}</Tag>;
-      }
-      case "bulletList":
-        return <ul key={i}>{renderTipTapNodes(node.content ?? [])}</ul>;
-      case "orderedList":
-        return <ol key={i}>{renderTipTapNodes(node.content ?? [])}</ol>;
-      case "listItem":
-        return <li key={i}>{renderTipTapNodes(node.content ?? [])}</li>;
-      case "blockquote":
-        return <blockquote key={i}>{renderTipTapNodes(node.content ?? [])}</blockquote>;
-      case "codeBlock":
-        return <pre key={i}><code>{renderInlineContent(node.content)}</code></pre>;
-      case "horizontalRule":
-        return <hr key={i} />;
-      case "image": {
-        const src = sanitizeLinkHref(node.attrs?.src);
-        return src ? <img key={i} src={src} alt={node.attrs?.alt ?? ""} title={node.attrs?.title ?? undefined} /> : null;
-      }
-      case "table":
-        return <table key={i} className="w-full border-collapse border border-border my-4"><tbody>{renderTipTapNodes(node.content ?? [])}</tbody></table>;
-      case "tableRow":
-        return <tr key={i}>{renderTipTapNodes(node.content ?? [])}</tr>;
-      case "tableCell":
-        return <td key={i} className="border border-border px-3 py-2">{renderTipTapNodes(node.content ?? [])}</td>;
-      case "tableHeader":
-        return <th key={i} className="border border-border px-3 py-2 font-semibold bg-muted">{renderTipTapNodes(node.content ?? [])}</th>;
-      case "taskList":
-        return <ul key={i} className="list-none pl-0">{renderTipTapNodes(node.content ?? [])}</ul>;
-      case "taskItem": {
-        const checked = node.attrs?.checked ?? false;
-        return (
-          <li key={i} className="flex items-start gap-2 mb-1">
-            <input type="checkbox" checked={checked} readOnly className="mt-1" />
-            <span>{renderTipTapNodes(node.content ?? [])}</span>
-          </li>
-        );
-      }
-      case "hardBreak":
-        return <br key={i} />;
-      case "details":
-        return <details key={i} className="my-4">{renderTipTapNodes(node.content ?? [])}</details>;
-      case "detailsSummary":
-        return <summary key={i} className="cursor-pointer font-medium">{renderInlineContent(node.content)}</summary>;
-      case "detailsContent":
-        return <div key={i}>{renderTipTapNodes(node.content ?? [])}</div>;
-      default:
-        // Unknown node with children: render children in a div
-        if (node.content) return <div key={i}>{renderTipTapNodes(node.content)}</div>;
-        // Unknown leaf node: skip
-        return null;
-    }
-  });
-}
-
-function sanitizeLinkHref(href: string | undefined): string | undefined {
-  if (!href) return undefined;
-  const trimmed = href.trim();
-  if (/^(javascript|data|vbscript|blob):/i.test(trimmed)) return undefined;
-  return href;
-}
-
-function isExternalLink(href: string): boolean {
-  return href.startsWith("http://") || href.startsWith("https://") || href.startsWith("//");
-}
-
-function renderInlineContent(content?: any[]): React.ReactNode {
-  if (!content) return null;
-  return content.map((node, i) => {
-    if (node.type === "text") {
-      let text: React.ReactNode = node.text;
-      if (node.marks) {
-        for (const [markIndex, mark] of node.marks.entries()) {
-          const markKey = `${i}-${markIndex}`;
-          if (mark.type === "bold") text = <strong key={markKey}>{text}</strong>;
-          else if (mark.type === "italic") text = <em key={markKey}>{text}</em>;
-          else if (mark.type === "code") text = <code key={markKey}>{text}</code>;
-          else if (mark.type === "underline") text = <u key={markKey}>{text}</u>;
-          else if (mark.type === "strike") text = <s key={markKey}>{text}</s>;
-          else if (mark.type === "highlight") text = <mark key={markKey}>{text}</mark>;
-          else if (mark.type === "superscript") text = <sup key={markKey}>{text}</sup>;
-          else if (mark.type === "subscript") text = <sub key={markKey}>{text}</sub>;
-          else if (mark.type === "link") {
-            const safeHref = sanitizeLinkHref(mark.attrs?.href);
-            const external = safeHref ? isExternalLink(safeHref) : false;
-            text = (
-              <a
-                key={markKey}
-                href={safeHref}
-                className="text-primary underline"
-                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              >
-                {text}
-              </a>
-            );
-          }
-        }
-      }
-      return <span key={i}>{text}</span>;
-    }
-    return null;
-  });
 }
 
 // ─── Article Reader ───────────────────────────────────────────────────────────
@@ -217,9 +79,9 @@ export default function CoreHelpArticle({ data }: SurfaceProps<HelpArticleSurfac
         <h1 className="text-3xl font-bold leading-tight">{art.title}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
           {art.author && <span>By {art.author.displayName}</span>}
-          {art.publishedAt && (
+          {(art.updatedAt ?? art.publishedAt) && (
             <span>
-              Updated {new Date(art.publishedAt).toLocaleDateString()}
+              Updated {new Date(art.updatedAt ?? art.publishedAt!).toLocaleDateString()}
             </span>
           )}
           {art.readingTimeMinutes && (
@@ -229,8 +91,9 @@ export default function CoreHelpArticle({ data }: SurfaceProps<HelpArticleSurfac
       </header>
 
       {/* Article content */}
+      <KbArticleOutline outline={art.outline} className="mb-8 rounded-lg border border-border bg-card p-4" />
       <article>
-        <ArticleContent content={art.content} plainText={art.contentPlainText} />
+        <KbArticleBody html={art.html} className="text-foreground" />
       </article>
 
       {/* Helpful feedback widget */}

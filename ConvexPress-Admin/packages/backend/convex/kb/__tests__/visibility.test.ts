@@ -39,6 +39,8 @@ const modules = {
 
 const ISSUER = "https://convexpress-admin.local";
 const BODY = '{"type":"doc","content":[]}';
+/** A body whose derived plain text is exactly `text` (writers no longer send plain text). */
+const bodyWith = (text: string) => JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
 const EDITOR_CAPABILITIES = ["kb.view", "kb.create", "kb.edit", "kb.editOwn", "kb.publish", "kb.delete", "kb.manageTags", "kb.manageCollections", "kb.moderateComments", "manage_options"];
 
 /** A public and an internal article, both published in one category, tagged
@@ -69,7 +71,7 @@ async function fixture() {
   const editor = as(ids.editor), writer = as(ids.writer), reader = as(ids.reader);
   async function article(title: string, visibility: "public" | "internal") {
     const articleId = await editor.mutation(api.kb.mutations.create, {
-      title, content: BODY, contentPlainText: `${title} visibility guide body`, categoryId: ids.category, visibility,
+      title, content: bodyWith(`${title} visibility guide body`), categoryId: ids.category, visibility,
     });
     await editor.mutation(api.kb.tags.addToArticle, { articleId, tagId: ids.tag });
     await editor.mutation(api.kb.collections.addArticle, { collectionId: ids.collection, articleId });
@@ -283,7 +285,8 @@ test("admin reads and edits internal articles, and filters the list by visibilit
   await expect(f.reader.query(api.kb.collections.getById, { collectionId: f.ids.collection })).rejects.toThrow();
   await expect(f.reader.query(api.kb.collections.list, {})).rejects.toThrow();
   await expect(f.reader.mutation(api.kb.workflows.startWorkflow, { articleId: f.ids.publicId })).rejects.toThrow();
-  expect(await f.editor.query(api.kb.queries.getVersions, { articleId: f.ids.internalId })).toEqual([]);
+  // The title edit above kept the previous title and body as version 1; editors read it.
+  expect((await f.editor.query(api.kb.queries.getVersions, { articleId: f.ids.internalId })).map((version) => [version.version, version.title])).toEqual([[1, "Internal guide"]]);
 });
 
 test("audiences are trimmed, lowercased, deduplicated, validated and capped", async () => {
@@ -502,7 +505,7 @@ test("a category lists its articles in their set order, the oldest first within 
   const f = await fixture();
   const write = async (title: string, sortOrder: number, viewCount: number) => {
     const articleId = await f.editor.mutation(api.kb.mutations.create, {
-      title, content: BODY, contentPlainText: `${title} body`, categoryId: f.ids.category, visibility: "public",
+      title, content: bodyWith(`${title} body`), categoryId: f.ids.category, visibility: "public",
     });
     await f.editor.mutation(api.kb.mutations.update, { articleId, sortOrder });
     await f.editor.mutation(api.kb.mutations.publish, { articleId });

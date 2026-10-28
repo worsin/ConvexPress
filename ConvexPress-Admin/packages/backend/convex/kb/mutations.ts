@@ -22,19 +22,16 @@ import { requireAssignableCategory } from "./helpers/categoryHierarchy";
  *   - createVersion: kb.edit or kb.editOwn
  */
 
-import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { assertMediaAttachments, deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
-import {
-  generateArticleSlug,
-  extractPlainText,
-  calculateReadingTime,
-  generateExcerpt,
-} from "./helpers/utils";
-import { sanitizeTipTapContent } from "../helpers/sanitize";
+import { articleDoc, prepareArticleContent } from "./helpers/content";
+import { recordPublishedSlug, requireArticleEditor, resolveArticleSlug, snapshotArticle } from "./helpers/editing";
+import { kbExcerpt } from "./content/derive";
 import {
   createArticleArgs,
   updateArticleArgs,
@@ -88,18 +85,12 @@ export const create = mutation({
       });
     }
 
-    const MAX_KB_CONTENT_LENGTH = 5 * 1024 * 1024; // 5MB
-    if (args.content && args.content.length > MAX_KB_CONTENT_LENGTH) {
-      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Content exceeds maximum length" });
-    }
     const audiences = args.audiences === undefined ? undefined : storedKbAudiences(args.audiences);
 
-    const slug = await generateArticleSlug(ctx, title || "untitled");
-    let content = args.content ?? "";
-    let contentPlainText = args.contentPlainText ?? extractPlainText(content);
-    let readingTimeMinutes = calculateReadingTime(contentPlainText);
+    const slug = (await resolveArticleSlug(ctx, { title, ...(args.slug !== undefined ? { slug: args.slug } : {}) }))!;
+    let source = args.content;
 
-    // If a template was specified, increment its usage count and apply content
+    // A template supplies the body when the caller didn't write one.
     if (args.templateId) {
       const template = await ctx.db.get("kb_templates", args.templateId);
       if (template) {
@@ -107,20 +98,14 @@ export const create = mutation({
           usageCount: template.usageCount + 1,
           updatedAt: Date.now(),
         });
-        // Apply template content if caller didn't provide their own
-        if (!args.content && template.content) {
-          content = template.content;
-          contentPlainText = extractPlainText(template.content);
-          readingTimeMinutes = calculateReadingTime(contentPlainText);
-        }
+        if (!args.content && template.content) source = template.content;
       }
     }
 
-    // Sanitize TipTap content to prevent XSS
-    content = sanitizeTipTapContent(content);
-
-    const plainText = contentPlainText;
-    const excerpt = args.excerpt ?? generateExcerpt(plainText);
+    // The body is normalized and everything else is derived from it here;
+    // writers never supply plain text, outline or reading time.
+    const body = prepareArticleContent(ctx, source);
+    const excerpt = args.excerpt ?? body.excerpt;
 
     if (args.categoryId) await requireAssignableCategory(ctx, args.categoryId);
     const now = Date.now();
@@ -128,8 +113,11 @@ export const create = mutation({
       title: title || "Untitled Article",
       slug,
       excerpt,
-      content,
-      contentPlainText: plainText,
+      content: body.content,
+      contentVersion: body.contentVersion,
+      contentPlainText: body.contentPlainText,
+      outline: body.outline,
+      linkedArticleIds: body.linkedArticleIds,
       status: "draft",
       authorId: user._id,
       contributors: [],
@@ -145,7 +133,7 @@ export const create = mutation({
       uniqueViewCount: 0,
       helpfulVotes: 0,
       notHelpfulVotes: 0,
-      readingTimeMinutes: readingTimeMinutes,
+      readingTimeMinutes: body.readingTimeMinutes,
       version: 1,
       lastMajorUpdate: undefined,
       isFeatured: false,
@@ -158,7 +146,7 @@ export const create = mutation({
       ragSyncedAt: undefined,
       createdAt: now,
       updatedAt: now,
-    });
+    }, undefined, undefined, body.mediaIds);
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_CREATED, SYSTEM.KB, {
       articleId,
@@ -177,25 +165,14 @@ export const update = mutation({
   returns: v.id("kb_articles"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-
     const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
-
-    // Check edit permission: kb.edit for any article, kb.editOwn for own articles
-    const isOwner = article.authorId === user._id;
-    if (!isOwner) {
-      await requireCan(ctx, "kb.edit");
-    } else {
-      await requireCan(ctx, "kb.editOwn");
-    }
+    const user = await requireArticleEditor(ctx, article);
 
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
+    let mediaIds: Id<"media">[] | undefined;
 
     if (args.title !== undefined) {
       const title = args.title.trim();
@@ -206,7 +183,11 @@ export const update = mutation({
         });
       }
       updates.title = title;
-      updates.slug = await generateArticleSlug(ctx, title, args.articleId);
+    }
+    const slug = await resolveArticleSlug(ctx, { ...(args.title !== undefined ? { title: args.title.trim() } : {}), ...(args.slug !== undefined ? { slug: args.slug } : {}) }, article);
+    if (slug !== undefined && slug !== article.slug) {
+      await recordPublishedSlug(ctx, article, slug);
+      updates.slug = slug;
     }
 
     if (args.excerpt !== undefined) {
@@ -219,15 +200,25 @@ export const update = mutation({
       updates.excerpt = args.excerpt;
     }
 
+    let bodyChanged = false;
     if (args.content !== undefined) {
-      // Sanitize TipTap content to prevent XSS
-      updates.content = sanitizeTipTapContent(args.content);
-      const plainText = args.contentPlainText ?? extractPlainText(args.content);
-      updates.contentPlainText = plainText;
-      updates.readingTimeMinutes = calculateReadingTime(plainText);
-      // Mark search sync as stale
-      updates.meilisearchSynced = false;
-      updates.ragSynced = false;
+      const body = prepareArticleContent(ctx, args.content, args.articleId);
+      bodyChanged = body.content !== article.content;
+      updates.content = body.content;
+      updates.contentVersion = body.contentVersion;
+      updates.contentPlainText = body.contentPlainText;
+      updates.outline = body.outline;
+      updates.linkedArticleIds = body.linkedArticleIds;
+      updates.readingTimeMinutes = body.readingTimeMinutes;
+      mediaIds = body.mediaIds;
+      // An excerpt nobody wrote follows the body.
+      if (args.excerpt === undefined && (!article.excerpt || article.excerpt === kbExcerpt(articleDoc(article)))) {
+        updates.excerpt = body.excerpt;
+      }
+      if (bodyChanged) {
+        updates.meilisearchSynced = false;
+        updates.ragSynced = false;
+      }
     }
 
     if (args.categoryId !== undefined) {
@@ -269,6 +260,14 @@ export const update = mutation({
       updates.contributors = [...article.contributors, user._id];
     }
 
+    // Each saved change to the body or title keeps the previous text.
+    if (bodyChanged || (updates.title !== undefined && updates.title !== article.title)) {
+      await snapshotArticle(ctx, article, user._id, args.changeSummary?.trim() || "Saved");
+      updates.version = article.version + 1;
+    }
+
+    // Every image in a new body must still be usable in the library.
+    if (mediaIds?.length) await assertMediaAttachments(ctx, "kb_articles", {}, undefined, mediaIds);
     await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, updates);
     await applyKbPublicCounts(ctx, args.articleId, article, {
       status: article.status, visibility: storedKbVisibility(visibility), categoryId: args.categoryId ?? article.categoryId,
@@ -584,33 +583,14 @@ export const createVersion = mutation({
   returns: v.id("kb_articleVersions"),
   handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_articleVersions">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-
     const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
-
-    const isOwner = article.authorId === user._id;
-    if (!isOwner) {
-      await requireCan(ctx, "kb.edit");
-    } else {
-      await requireCan(ctx, "kb.editOwn");
-    }
+    const user = await requireArticleEditor(ctx, article);
 
     const now = Date.now();
-    const versionId: import("../_generated/dataModel").Id<"kb_articleVersions"> = await insertWithMediaReferences<"kb_articleVersions">(ctx, "kb_articleVersions", {
-      articleId: args.articleId,
-      version: article.version,
-      title: article.title,
-      content: article.content,
-      changeSummary: args.changeSummary,
-      authorId: user._id,
-      createdAt: now,
-    });
+    const versionId = await snapshotArticle(ctx, article, user._id, args.changeSummary);
 
     await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
       version: article.version + 1,

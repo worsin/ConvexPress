@@ -13,10 +13,9 @@ import { ConvexError, v, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { canonicalJson, sha256Hex } from "../canonicalDocuments/foundation/shared/fingerprints";
-import { sanitizeTipTapContent } from "../helpers/sanitize";
-import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { assertMediaAttachments, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { applyKbPublicCounts } from "./helpers/publicCounts";
-import { calculateReadingTime, extractPlainText } from "./helpers/utils";
+import { prepareArticleContent } from "./helpers/content";
 import { MAX_KB_EXCERPT_LENGTH, MAX_KB_TITLE_LENGTH, MAX_KEYWORDS } from "./validators";
 
 export const kbSetupOutcomeValidator = v.union(
@@ -142,7 +141,7 @@ export const writeCategory = internalMutation({
 // ─── Articles ───────────────────────────────────────────────────────────────
 
 /** What an editor can change about an article (views, votes and search sync aren't edits). */
-function articleDigest(article: Doc<"kb_articles">): string {
+export function articleDigest(article: Doc<"kb_articles">): string {
   const { title, slug, excerpt, content, categoryId, keywords, status, visibility, isFeatured, sortOrder, parentArticleId } = article;
   return sha256Hex(
     canonicalJson({
@@ -167,7 +166,7 @@ export const writeArticle = internalMutation({
     title: v.string(),
     slug: v.string(),
     excerpt: v.string(),
-    /** TipTap JSON, as the editor stores it. */
+    /** A KbDoc (kb/content) as JSON, as the editor stores it. */
     content: v.string(),
     categoryId: v.id("kb_categories"),
     keywords: v.optional(v.array(v.string())),
@@ -189,22 +188,24 @@ export const writeArticle = internalMutation({
     try {
       parsed = JSON.parse(args.content);
     } catch {
-      refuse("INVALID_CONTENT", "Article content must be TipTap JSON.");
+      refuse("INVALID_CONTENT", "Article content must be a KbDoc (ProseMirror JSON).");
     }
-    if (!parsed || typeof parsed !== "object" || Reflect.get(parsed, "type") !== "doc") refuse("INVALID_CONTENT", "Article content must be a TipTap document.");
-    const content = sanitizeTipTapContent(args.content);
-    const contentPlainText = extractPlainText(content);
+    if (!parsed || typeof parsed !== "object" || Reflect.get(parsed, "type") !== "doc") refuse("INVALID_CONTENT", "Article content must be a KbDoc document.");
+    const body = prepareArticleContent(ctx, args.content);
     const fields = {
       title,
       slug: args.slug,
-      excerpt: args.excerpt.trim(),
-      content,
-      contentPlainText,
+      excerpt: args.excerpt.trim() || body.excerpt,
+      content: body.content,
+      contentVersion: body.contentVersion,
+      contentPlainText: body.contentPlainText,
+      outline: body.outline,
+      linkedArticleIds: body.linkedArticleIds,
       categoryId: args.categoryId,
       keywords,
       sortOrder: args.sortOrder,
       isFeatured: args.isFeatured ?? false,
-      readingTimeMinutes: calculateReadingTime(contentPlainText),
+      readingTimeMinutes: body.readingTimeMinutes,
     };
     const requestDigest = sha256Hex(
       canonicalJson({
@@ -234,6 +235,7 @@ export const writeArticle = internalMutation({
       if (articleDigest(article) !== receipt.acceptedDigest) return { outcome: "kept_edited", articleId: article._id };
       const now = Date.now();
       const updates = { ...fields, version: article.version + 1, meilisearchSynced: false, ragSynced: false, updatedAt: now };
+      if (body.mediaIds.length) await assertMediaAttachments(ctx, "kb_articles", {}, undefined, body.mediaIds);
       await patchWithMediaReferences(ctx, "kb_articles", article._id, updates);
       await applyKbPublicCounts(ctx, article._id, article, { ...article, ...updates });
       await accept(article._id);
@@ -260,7 +262,7 @@ export const writeArticle = internalMutation({
       createdAt: now,
       updatedAt: now,
     };
-    const articleId = await insertWithMediaReferences(ctx, "kb_articles", article);
+    const articleId = await insertWithMediaReferences(ctx, "kb_articles", article, undefined, undefined, body.mediaIds);
     await applyKbPublicCounts(ctx, articleId, null, article);
     await accept(articleId);
     return { outcome: "created", articleId };

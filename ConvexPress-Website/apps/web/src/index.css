@@ -8,6 +8,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 @import "./styles/theme.css";
+/* Article bodies; global so SSR delivers it with the page (see __root.tsx). */
+@import "./components/help/kb-doc.css";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -59,7 +59,11 @@ function reachable(entry: string): Set<string> {
   const queue = [entry];
   for (let file = queue.pop(); file; file = queue.pop()) {
     if (NESTED_BODY.has(file)) continue;
-    for (const next of importsOf(file)) if (!seen.has(next)) (seen.add(next), queue.push(next));
+    for (const next of importsOf(file)) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      queue.push(next);
+    }
   }
   return seen;
 }

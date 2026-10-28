@@ -82,7 +82,7 @@ describe("knowledge base site setup", () => {
     const { categoryId } = await f.category();
     if (!categoryId) throw new Error("category missing");
     const base = { setupKey: "site:x", title: "X", slug: "x", excerpt: "", categoryId, sortOrder: 0, actorId: f.actorId };
-    await expect(f.t.mutation(internal.kb.siteSetup.writeArticle, { ...base, content: "not json" })).rejects.toThrow(/TipTap/);
+    await expect(f.t.mutation(internal.kb.siteSetup.writeArticle, { ...base, content: "not json" })).rejects.toThrow(/KbDoc/);
     await expect(f.t.mutation(internal.kb.siteSetup.writeArticle, { ...base, content: doc("ok"), slug: "Not A Slug" })).rejects.toThrow(/slug/);
     await expect(f.t.mutation(internal.kb.siteSetup.writeArticle, { ...base, content: doc("ok"), setupKey: "has space" })).rejects.toThrow(/setup key/);
   });

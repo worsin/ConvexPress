@@ -9,6 +9,7 @@
  *   remove  - Delete a template
  */
 
+import { prepareKbContent } from "./content";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
@@ -80,7 +81,8 @@ export const create = mutation({
       name,
       slug,
       description: args.description,
-      content: args.content,
+      // Templates hold the same document format as articles.
+      content: prepareKbContent(args.content).content,
       category: args.category,
       isDefault: args.isDefault ?? false,
       isActive: true,
@@ -133,7 +135,7 @@ export const update = mutation({
     }
 
     if (args.description !== undefined) updates.description = args.description;
-    if (args.content !== undefined) updates.content = args.content;
+    if (args.content !== undefined) updates.content = prepareKbContent(args.content).content;
     if (args.category !== undefined) updates.category = args.category;
     if (args.isActive !== undefined) updates.isActive = args.isActive;
 

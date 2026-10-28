@@ -305,6 +305,7 @@ export const opaqueMediaReferences = {
     "keywords",
     "metaDescription",
     "metaTitle",
+    "outline",
     "slug",
     "title"
   ],
