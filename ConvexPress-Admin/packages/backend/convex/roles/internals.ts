@@ -25,8 +25,12 @@ const REQUIRED_ADMIN_PAGE_ACCESS = ["/admin/setup", "/admin/*"];
  * Idempotent seed function that creates the 5 built-in WordPress-standard roles.
  *
  * Behavior:
- *   - If a role with the same slug already exists, it is SKIPPED (not overwritten)
- *   - Only creates missing roles
+ *   - Creates missing roles
+ *   - Keeps an existing role's customizations, but grants it capabilities its
+ *     built-in definition gained since they were last applied
+ *     (`builtInCapabilities`); a capability an administrator removed stays
+ *     removed. A role from before that record exists is only completed when
+ *     it is the protected Administrator, which holds every capability.
  *   - Safe to call multiple times
  *
  * Usage:
@@ -34,10 +38,16 @@ const REQUIRED_ADMIN_PAGE_ACCESS = ["/admin/setup", "/admin/*"];
  */
 export const seedRoles = internalMutation({
   args: {},
-  returns: v.object({ message: v.string(), created: v.array(v.string()), skipped: v.array(v.string()) }),
+  returns: v.object({
+    message: v.string(),
+    created: v.array(v.string()),
+    skipped: v.array(v.string()),
+    granted: v.array(v.object({ slug: v.string(), capabilities: v.array(v.string()) })),
+  }),
   handler: async (ctx) => {
     const created: string[] = [];
     const skipped: string[] = [];
+    const granted: Array<{ slug: string; capabilities: string[] }> = [];
 
     for (const roleDef of BUILT_IN_ROLES) {
       // Check if this role already exists by slug
@@ -47,7 +57,19 @@ export const seedRoles = internalMutation({
         .unique();
 
       if (existing) {
-        skipped.push(roleDef.slug);
+        const definition: readonly string[] = roleDef.capabilities;
+        const known = existing.builtInCapabilities ?? (existing.isProtected && roleDef.slug === "administrator" ? [] : definition);
+        const added = definition.filter((capability) => !known.includes(capability) && !existing.capabilities.includes(capability));
+        const baselineCurrent = existing.builtInCapabilities !== undefined && definition.length === existing.builtInCapabilities.length && definition.every((capability) => existing.builtInCapabilities!.includes(capability));
+        if (added.length || !baselineCurrent) {
+          await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", existing._id, {
+            ...(added.length ? { capabilities: [...existing.capabilities, ...added] } : {}),
+            builtInCapabilities: [...definition],
+            updatedAt: Date.now(),
+          });
+        }
+        if (added.length) granted.push({ slug: roleDef.slug, capabilities: added });
+        else skipped.push(roleDef.slug);
         continue;
       }
 
@@ -61,6 +83,7 @@ export const seedRoles = internalMutation({
         isDefault: roleDef.isDefault,
         isProtected: roleDef.isProtected,
         capabilities: roleDef.capabilities,
+        builtInCapabilities: [...roleDef.capabilities],
         pageAccess: roleDef.pageAccess,
         status: roleDef.status,
         createdAt: now,
@@ -71,7 +94,8 @@ export const seedRoles = internalMutation({
     }
 
     return {
-      message: `Seed complete. Created: ${created.length}, Skipped: ${skipped.length}`,
+      message: `Seed complete. Created: ${created.length}, Granted new capabilities: ${granted.length}, Skipped: ${skipped.length}`,
+      granted,
       created,
       skipped,
     };
@@ -114,6 +138,7 @@ export const reseedRoles = internalMutation({
           isDefault: roleDef.isDefault,
           isProtected: roleDef.isProtected,
           capabilities: roleDef.capabilities,
+          builtInCapabilities: [...roleDef.capabilities],
           pageAccess: roleDef.pageAccess,
           status: roleDef.status,
           updatedAt: now,
@@ -129,6 +154,7 @@ export const reseedRoles = internalMutation({
           isDefault: roleDef.isDefault,
           isProtected: roleDef.isProtected,
           capabilities: roleDef.capabilities,
+          builtInCapabilities: [...roleDef.capabilities],
           pageAccess: roleDef.pageAccess,
           status: roleDef.status,
           createdAt: now,
