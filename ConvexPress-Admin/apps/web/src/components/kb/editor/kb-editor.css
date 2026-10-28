@@ -1,0 +1,44 @@
+/* Editor chrome around the shared .kb-doc article styles. */
+.kb-editor .kb-editor-content { min-height: 22rem; padding: 1.25rem 1.5rem 2rem; outline: none; }
+.kb-editor .kb-editor-content:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--primary) 30%, transparent); }
+.kb-editor .kb-editor-content p.is-empty::before {
+  content: attr(data-placeholder); float: left; height: 0; pointer-events: none; color: var(--muted-foreground, #8a857b);
+}
+.kb-editor .ProseMirror-selectednode { outline: 2px solid color-mix(in oklch, var(--primary) 55%, transparent); outline-offset: 3px; border-radius: 6px; }
+.kb-editor .kb-editor-content a { cursor: text; }
+
+/* Figures being edited. */
+.kb-editor .kb-editor-figure { position: relative; }
+.kb-editor .kb-editor-figure.is-selected img { outline: 2px solid var(--primary); outline-offset: 3px; }
+.kb-editor .kb-editor-figure__missing {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 8rem; border-radius: var(--radius);
+  border: 1px dashed var(--border); color: var(--muted-foreground, #8a857b); font-size: 0.85rem;
+}
+.kb-editor .kb-editor-figure__caption { width: 100%; text-align: center; background: transparent; border: 0; outline: none; font: inherit; color: inherit; }
+.kb-editor .kb-editor-figure__caption::placeholder { color: color-mix(in oklch, var(--muted-foreground, #8a857b) 70%, transparent); }
+.kb-editor .kb-editor-figure__tools {
+  display: grid; gap: 0.5rem; margin-top: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); font-size: 0.8rem; line-height: 1.4;
+}
+
+/* Callouts and questions being edited. */
+.kb-editor .kb-editor-inline-select, .kb-editor .kb-editor-inline-input {
+  background: transparent; border: 0; outline: none; font: inherit; color: inherit; padding: 0;
+}
+.kb-editor .kb-editor-inline-select { font-weight: 600; cursor: pointer; }
+.kb-editor .kb-editor-inline-input { flex: 1; min-width: 6rem; }
+.kb-editor .kb-editor-callout .kb-callout__title { margin-bottom: 0.35em; }
+.kb-editor .kb-editor-callout__body > :last-child { margin-bottom: 0; }
+.kb-editor .kb-editor-details { padding: 0.6em 1em 0.2em; }
+.kb-editor .kb-editor-details__summary { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.4em; }
+.kb-editor .kb-editor-details__summary > span { transform: rotate(90deg); color: var(--muted-foreground, #8a857b); }
+.kb-editor .kb-editor-details .kb-details__body { padding: 0 0 0.4em 1.4em; }
+
+/* Tables while editing. */
+.kb-editor .kb-editor-content table { width: 100%; border-collapse: collapse; margin: 0 0 1em; }
+.kb-editor .kb-editor-content th, .kb-editor .kb-editor-content td { border: 1px solid var(--border); padding: 0.45em 0.7em; vertical-align: top; position: relative; }
+.kb-editor .kb-editor-content th { background: var(--muted); font-weight: 600; text-align: left; }
+.kb-editor .kb-editor-content td > :last-child, .kb-editor .kb-editor-content th > :last-child { margin-bottom: 0; }
+.kb-editor .kb-editor-content .selectedCell::after { content: ""; position: absolute; inset: 0; background: color-mix(in oklch, var(--primary) 12%, transparent); pointer-events: none; }
+
+/* MediaPicker's trigger, sized for the toolbar. */
+.kb-editor .kb-editor-media-button button { height: 2rem; padding: 0 0.6rem; font-size: 0.75rem; }

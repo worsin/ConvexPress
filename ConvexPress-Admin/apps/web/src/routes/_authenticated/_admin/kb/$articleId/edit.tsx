@@ -1,15 +1,19 @@
 import { KBInheritedCategoryAccess } from "@/components/kb/KBInheritedCategoryAccess";
 import { KBAudienceInput } from "@/components/kb/KBAudienceInput";
+import { KbEditor } from "@/components/kb/editor/KbEditor";
 /**
  * KB Article Editor - /admin/kb/$articleId/edit
  *
- * Full article editor: title, content, excerpt, slug, category, visibility,
- * audiences, SEO fields.
- * Publish / Unpublish actions.
- * Wired to api.kb.queries.getById, api.kb.mutations.update, api.kb.mutations.publish
+ * Title and body (KbEditor), excerpt, address, category and position,
+ * visibility and audiences, SEO fields, version history with restore, and
+ * Publish / Unpublish.
+ *
+ * The form loads an article once. Later reactive updates never overwrite what
+ * the author is typing: a change someone else saves shows a notice instead,
+ * and loads only when asked (or at once when there is nothing unsaved).
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
@@ -17,7 +21,7 @@ import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
-import { Save, Globe, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { Save, Globe, EyeOff, ArrowLeft, Loader2, History, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/kb/$articleId/edit")({
   component: EditKBArticlePage,
@@ -28,137 +32,155 @@ function EditKBArticlePage() {
   const { articleId } = Route.useParams();
   return (
     <RoutePermissionGuard requiredAccess="/admin/kb">
-      <ArticleEditor articleId={articleId} />
+      <ArticleEditor key={articleId} articleId={articleId as Id<"kb_articles">} />
     </RoutePermissionGuard>
   );
 }
 
-// Local type matching the shape returned by api.kb.queries.getById
-type KBArticle = {
-  _id: Id<"kb_articles">;
+type Form = {
   title: string;
-  content?: string;
-  excerpt?: string;
+  excerpt: string;
   slug: string;
-  status: "draft" | "review" | "published" | "archived";
-  categoryId?: Id<"kb_categories">;
-  hasInheritedCategoryAccess?: boolean;
-  visibility?: "public" | "internal";
-  audiences?: string[];
-  metaTitle?: string;
-  metaDescription?: string;
-  keywords?: string[];
-  readingTimeMinutes?: number;
-  sortOrder: number;
-  viewCount: number;
-  version: number;
-  publishedAt?: number;
-  updatedAt: number;
+  categoryId: string;
+  position: string;
+  metaTitle: string;
+  metaDescription: string;
+  keywords: string;
+  visibility: "public" | "internal";
+  audiences: string[];
 };
 
-function ArticleEditor({ articleId }: { articleId: string }) {
-  const article = useQuery(api.kb.queries.getById, { articleId: articleId as Id<"kb_articles"> });
-  const categories = (useQuery(api.kb.categories.list) ?? []) as Array<{
-    _id: string;
-    name: string;
-  }>;
+const inputClass = "w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary/30";
+const labelClass = "block text-xs font-medium text-foreground/70 mb-1";
+
+function errorMessage(err: unknown, fallback: string) {
+  return (err as { data?: { message?: string } })?.data?.message ?? fallback;
+}
+
+function ArticleEditor({ articleId }: { articleId: Id<"kb_articles"> }) {
+  const article = useQuery(api.kb.queries.getById, { articleId });
+  const versions = useQuery(api.kb.queries.getVersions, { articleId });
+  const categories = useQuery(api.kb.categories.list) ?? [];
   const updateArticle = useMutation(api.kb.mutations.update);
   const publishArticle = useMutation(api.kb.mutations.publish);
   const unpublishArticle = useMutation(api.kb.mutations.unpublish);
 
-  // Form state
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [slug, setSlug] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [position, setPosition] = useState("0");
-  const [metaTitle, setMetaTitle] = useState("");
-  const [metaDescription, setMetaDescription] = useState("");
-  const [keywords, setKeywords] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "internal">("public");
-  const [audiences, setAudiences] = useState<string[]>([]);
-
+  const [form, setForm] = useState<Form | null>(null);
+  const contentRef = useRef("");
+  const [contentChanged, setContentChanged] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+  const [changeSummary, setChangeSummary] = useState("");
+  const [baseline, setBaseline] = useState<number | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  const ownSave = useRef(false);
 
-  const art = article as KBArticle | null | undefined;
-
-  // Populate form when article loads or changes (Convex returns new references on data change)
-  useEffect(() => {
-    if (!art) return;
-    setTitle(art.title ?? "");
-    setContent(art.content ?? "");
-    setExcerpt(art.excerpt ?? "");
-    setSlug(art.slug ?? "");
-    setCategoryId(art.categoryId ?? "");
-    setPosition(String(art.sortOrder ?? 0));
-    setMetaTitle(art.metaTitle ?? "");
-    setMetaDescription(art.metaDescription ?? "");
-    setKeywords((art.keywords ?? []).join(", "));
-    setVisibility(art.visibility ?? "public");
-    setAudiences(art.audiences ?? []);
+  function load(source: NonNullable<typeof article>) {
+    setForm({
+      title: source.title,
+      excerpt: source.excerpt ?? "",
+      slug: source.slug,
+      categoryId: source.categoryId ?? "",
+      position: String(source.sortOrder ?? 0),
+      metaTitle: source.metaTitle ?? "",
+      metaDescription: source.metaDescription ?? "",
+      keywords: (source.keywords ?? []).join(", "),
+      visibility: source.visibility,
+      audiences: source.audiences,
+    });
+    contentRef.current = source.content;
+    setContentChanged(false);
+    setEditorKey((key) => key + 1);
+    setBaseline(source.updatedAt);
     setIsDirty(false);
-  }, [art]);
+  }
 
-  function markDirty() {
+  useEffect(() => {
+    if (!article) return;
+    if (baseline === null) return load(article);
+    if (article.updatedAt === baseline) return;
+    // Our own save came back: it becomes the baseline without reloading the form.
+    if (ownSave.current) {
+      ownSave.current = false;
+      setBaseline(article.updatedAt);
+      return;
+    }
+    // Someone else saved. Nothing unsaved here: take their version.
+    if (!isDirty) load(article);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load is stable in effect; only article changes matter
+  }, [article]);
+
+  const changedElsewhere = article && baseline !== null && article.updatedAt !== baseline && isDirty;
+
+  function edit<K extends keyof Form>(key: K, value: Form[K]) {
+    setForm((current) => (current ? { ...current, [key]: value } : current));
     setIsDirty(true);
   }
 
-  /** The form as an update, or null (with a message) when the position isn't a whole number from 0 to 9,999. */
+  /** The form as an update, or null (with a message) when something can't be saved. */
   function articleUpdate() {
-    const sortOrder = Number(position);
+    if (!form || !article) return null;
+    const sortOrder = Number(form.position);
     if (!Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 9999) {
       toast.error("Position in category must be a whole number from 0 to 9,999.");
       return null;
     }
-    const kwArray = keywords
-      .split(",")
-      .map((k) => k.trim())
-      .filter(Boolean);
+    if (!form.title.trim()) {
+      toast.error("An article needs a title.");
+      return null;
+    }
+    const keywords = form.keywords.split(",").map((k) => k.trim()).filter(Boolean);
     return {
-      articleId: articleId as Id<"kb_articles">,
-      title: title.trim(),
-      content: content || undefined,
-      excerpt: excerpt || undefined,
-      categoryId: (categoryId as Id<"kb_categories">) || undefined,
+      articleId,
+      title: form.title.trim(),
+      ...(contentChanged ? { content: contentRef.current } : {}),
+      ...(form.slug.trim() && form.slug.trim() !== article.slug ? { slug: form.slug.trim() } : {}),
+      excerpt: form.excerpt.trim() || undefined,
+      categoryId: (form.categoryId as Id<"kb_categories">) || undefined,
       sortOrder,
-      metaTitle: metaTitle || undefined,
-      metaDescription: metaDescription || undefined,
-      keywords: kwArray.length > 0 ? kwArray : undefined,
-      visibility,
-      audiences,
+      metaTitle: form.metaTitle || undefined,
+      metaDescription: form.metaDescription || undefined,
+      keywords,
+      visibility: form.visibility,
+      audiences: form.audiences,
+      ...(changeSummary.trim() ? { changeSummary: changeSummary.trim() } : {}),
     };
   }
 
-  async function handleSave() {
+  async function save(): Promise<boolean> {
     const update = articleUpdate();
-    if (!update) return;
-    setIsSaving(true);
+    if (!update) return false;
+    ownSave.current = true;
     try {
       await updateArticle(update);
-      toast.success("Article saved");
       setIsDirty(false);
-    } catch (err: unknown) {
-      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to save article");
-    } finally {
-      setIsSaving(false);
+      setContentChanged(false);
+      setChangeSummary("");
+      return true;
+    } catch (err) {
+      ownSave.current = false;
+      toast.error(errorMessage(err, "Failed to save article"));
+      return false;
     }
   }
 
+  async function handleSave() {
+    setIsSaving(true);
+    if (await save()) toast.success("Article saved");
+    setIsSaving(false);
+  }
+
   async function handlePublish() {
-    const update = articleUpdate();
-    if (!update) return;
     setIsPublishing(true);
     try {
-      // Save first
-      await updateArticle(update);
-      await publishArticle({ articleId: articleId as Id<"kb_articles"> });
+      if (isDirty && !(await save())) return;
+      ownSave.current = true;
+      await publishArticle({ articleId });
       toast.success("Article published");
-      setIsDirty(false);
-    } catch (err: unknown) {
-      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to publish article");
+    } catch (err) {
+      ownSave.current = false;
+      toast.error(errorMessage(err, "Failed to publish article"));
     } finally {
       setIsPublishing(false);
     }
@@ -167,16 +189,35 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   async function handleUnpublish() {
     setIsPublishing(true);
     try {
-      await unpublishArticle({ articleId: articleId as Id<"kb_articles"> });
+      ownSave.current = true;
+      await unpublishArticle({ articleId });
       toast.success("Article reverted to draft");
-    } catch (err: unknown) {
-      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to unpublish article");
+    } catch (err) {
+      ownSave.current = false;
+      toast.error(errorMessage(err, "Failed to unpublish article"));
     } finally {
       setIsPublishing(false);
     }
   }
 
-  if (article === undefined) {
+  function restore(version: NonNullable<typeof versions>[number]) {
+    contentRef.current = version.content;
+    setContentChanged(true);
+    setEditorKey((key) => key + 1);
+    edit("title", version.title);
+    setChangeSummary(`Restored version ${version.version}`);
+    toast.message(`Version ${version.version} is in the editor. Save to keep it.`);
+  }
+
+  // Warn before leaving with unsaved work.
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty]);
+
+  if (article === undefined || (article && !form)) {
     return (
       <div className="flex items-center justify-center h-48">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -184,7 +225,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     );
   }
 
-  if (article === null) {
+  if (article === null || !form) {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground mb-4">Article not found.</p>
@@ -195,46 +236,45 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     );
   }
 
-  // At this point article is guaranteed non-null/undefined
-  const isPublished = art?.status === "published";
+  const isPublished = article.status === "published";
+  const slugChanged = form.slug.trim() !== "" && form.slug.trim() !== article.slug;
 
   return (
     <div className="space-y-5">
-      {art?.hasInheritedCategoryAccess && <KBInheritedCategoryAccess articleId={articleId as Id<"kb_articles">} />}
+      {article.hasInheritedCategoryAccess && <KBInheritedCategoryAccess articleId={articleId} />}
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/kb"
-            aria-label="Back to articles"
-            className="text-foreground/50 hover:text-foreground transition-colors"
-          >
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/kb" aria-label="Back to articles" className="text-foreground/50 hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <h1 className="text-xl font-bold truncate max-w-md">{art?.title || "Untitled Article"}</h1>
+          <h1 className="text-xl font-bold truncate max-w-md">{form.title || "Untitled Article"}</h1>
           <span
             className={[
               "text-xs px-2 py-0.5 rounded-full border",
               isPublished
                 ? "border-success/30 bg-success/10 text-success"
-                : art?.status === "review"
+                : article.status === "review"
                 ? "border-warning/30 bg-warning/10 text-warning"
                 : "border-border bg-muted text-foreground/50",
             ].join(" ")}
           >
-            {art?.status ?? "draft"}
+            {article.status}
           </span>
-          {art?.visibility === "internal" && (
-            <span className="text-xs px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10 text-primary">
-              Internal
-            </span>
+          {article.visibility === "internal" && (
+            <span className="text-xs px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10 text-primary">Internal</span>
           )}
-          {isDirty && (
-            <span className="text-xs text-foreground/40">Unsaved changes</span>
-          )}
+          {isDirty && <span className="text-xs text-foreground/40">Unsaved changes</span>}
         </div>
 
         <div className="flex items-center gap-2">
+          <input
+            aria-label="Note for this save"
+            value={changeSummary}
+            onChange={(e) => setChangeSummary(e.target.value)}
+            placeholder="What changed? (optional)"
+            className="hidden lg:block w-52 px-2 py-1.5 text-xs border border-border rounded-md bg-background"
+          />
           <button
             onClick={() => void handleSave()}
             disabled={isSaving || !isDirty}
@@ -266,40 +306,48 @@ function ArticleEditor({ articleId }: { articleId: string }) {
         </div>
       </div>
 
+      {changedElsewhere && (
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm">
+          <span>Someone else saved this article while you were editing. Saving now replaces their changes with yours.</span>
+          <button type="button" onClick={() => load(article)} className="shrink-0 rounded-md border border-border bg-card px-3 py-1 text-xs hover:bg-muted">
+            Load their version
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-5">
         {/* Main editing area */}
         <div className="col-span-2 space-y-4">
-          {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-foreground/60 mb-1">Title</label>
+            <label className="block text-xs font-medium text-foreground/60 mb-1" htmlFor="kb-title">Title</label>
             <input
+              id="kb-title"
               type="text"
-              value={title}
-              onChange={(e) => { setTitle(e.target.value); markDirty(); }}
+              value={form.title}
+              onChange={(e) => edit("title", e.target.value)}
               placeholder="Article title"
               className="w-full px-3 py-2 text-base font-medium border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
-          {/* Content */}
-          <div>
-            <label className="block text-xs font-medium text-foreground/60 mb-1">Content</label>
-            <textarea
-              value={content}
-              onChange={(e) => { setContent(e.target.value); markDirty(); }}
-              placeholder="Write article content here…"
-              rows={16}
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30 font-mono"
-            />
-          </div>
+          <KbEditor
+            key={editorKey}
+            initialContent={contentRef.current}
+            currentArticleId={articleId}
+            onChange={(json) => {
+              contentRef.current = json;
+              setContentChanged(true);
+              setIsDirty(true);
+            }}
+          />
 
-          {/* Excerpt */}
           <div>
-            <label className="block text-xs font-medium text-foreground/60 mb-1">Excerpt</label>
+            <label className="block text-xs font-medium text-foreground/60 mb-1" htmlFor="kb-excerpt">Excerpt</label>
             <textarea
-              value={excerpt}
-              onChange={(e) => { setExcerpt(e.target.value); markDirty(); }}
-              placeholder="Short summary of the article"
+              id="kb-excerpt"
+              value={form.excerpt}
+              onChange={(e) => edit("excerpt", e.target.value)}
+              placeholder="Leave empty to use the opening of the article"
               rows={3}
               className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-none focus:outline-hidden focus:ring-2 focus:ring-primary/30"
             />
@@ -308,160 +356,122 @@ function ArticleEditor({ articleId }: { articleId: string }) {
 
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Article Details */}
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">
-              Article Details
-            </h3>
+            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">Article Details</h3>
 
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Slug</label>
-              <input
-                type="text"
-                value={slug}
-                readOnly
-                className="w-full px-2 py-1.5 text-xs border border-border rounded-md bg-muted text-foreground/60 font-mono"
-              />
-              <p className="text-xs text-foreground/40 mt-0.5">Auto-generated from title</p>
+              <label className={labelClass} htmlFor="kb-slug">Address</label>
+              <input id="kb-slug" type="text" value={form.slug} onChange={(e) => edit("slug", e.target.value)} className={`${inputClass} font-mono text-xs`} />
+              <p className="text-xs text-foreground/40 mt-0.5">
+                {slugChanged && isPublished
+                  ? "The old address will keep working and send readers here."
+                  : isPublished
+                  ? "Published articles keep their address when retitled."
+                  : "Follows the title until the article is published."}
+              </p>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Category</label>
-              <select
-                value={categoryId}
-                onChange={(e) => { setCategoryId(e.target.value); markDirty(); }}
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
-              >
+              <label className={labelClass} htmlFor="kb-category">Category</label>
+              <select id="kb-category" value={form.categoryId} onChange={(e) => edit("categoryId", e.target.value)} className={inputClass}>
                 <option value="">— Uncategorized —</option>
                 {categories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="kb-position" className="block text-xs font-medium text-foreground/70 mb-1">Position in category</label>
-              <input
-                id="kb-position"
-                type="number"
-                min={0}
-                max={9999}
-                step={1}
-                value={position}
-                onChange={(e) => { setPosition(e.target.value); markDirty(); }}
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
-              />
+              <label htmlFor="kb-position" className={labelClass}>Position in category</label>
+              <input id="kb-position" type="number" min={0} max={9999} step={1} value={form.position} onChange={(e) => edit("position", e.target.value)} className={inputClass} />
               <p className="text-xs text-foreground/40 mt-0.5">The category page lists lower numbers first; equal numbers list the oldest article first.</p>
             </div>
 
-            {art?.readingTimeMinutes && (
-              <div className="text-xs text-foreground/50">
-                Reading time: ~{art.readingTimeMinutes} min
-              </div>
-            )}
+            <div className="text-xs text-foreground/50">Reading time: ~{article.readingTimeMinutes} min</div>
           </div>
 
-          {/* Visibility */}
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">
-              Visibility
-            </h3>
-
+            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">Visibility</h3>
             <div>
-              <label htmlFor="kb-visibility" className="block text-xs font-medium text-foreground/70 mb-1">Visibility</label>
-              <select
-                id="kb-visibility"
-                value={visibility}
-                onChange={(e) => { setVisibility(e.target.value === "internal" ? "internal" : "public"); markDirty(); }}
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
-              >
+              <label htmlFor="kb-visibility" className={labelClass}>Visibility</label>
+              <select id="kb-visibility" value={form.visibility} onChange={(e) => edit("visibility", e.target.value === "internal" ? "internal" : "public")} className={inputClass}>
                 <option value="public">Public</option>
                 <option value="internal">Internal</option>
               </select>
               <p className="text-xs text-foreground/40 mt-0.5">
-                {visibility === "internal"
+                {form.visibility === "internal"
                   ? "Internal articles never appear on the website; only trusted integrations can read them."
                   : "Public articles appear on the website once published."}
               </p>
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">
+              <label className={labelClass}>
                 Audiences
                 <span className="ml-1 text-foreground/40 font-normal">(optional)</span>
               </label>
-              <KBAudienceInput
-                audiences={audiences}
-                onChange={(next) => { setAudiences(next); markDirty(); }}
-              />
+              <KBAudienceInput audiences={form.audiences} onChange={(next) => edit("audiences", next)} />
               <p className="text-xs text-foreground/40 mt-1">Labels for integrations, such as staff or doctor.</p>
             </div>
           </div>
 
-          {/* SEO */}
           <div className="rounded-lg border border-border bg-card p-4 space-y-3">
             <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">SEO</h3>
-
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Meta Title</label>
-              <input
-                type="text"
-                value={metaTitle}
-                onChange={(e) => { setMetaTitle(e.target.value); markDirty(); }}
-                placeholder="SEO title override"
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
-              />
+              <label className={labelClass} htmlFor="kb-meta-title">Meta Title</label>
+              <input id="kb-meta-title" type="text" value={form.metaTitle} onChange={(e) => edit("metaTitle", e.target.value)} placeholder="SEO title override" className={inputClass} />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Meta Description</label>
-              <textarea
-                value={metaDescription}
-                onChange={(e) => { setMetaDescription(e.target.value); markDirty(); }}
-                placeholder="SEO description"
-                rows={3}
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background resize-none"
-              />
+              <label className={labelClass} htmlFor="kb-meta-description">Meta Description</label>
+              <textarea id="kb-meta-description" value={form.metaDescription} onChange={(e) => edit("metaDescription", e.target.value)} placeholder="SEO description" rows={3} className={`${inputClass} resize-none`} />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">
+              <label className={labelClass} htmlFor="kb-keywords">
                 Keywords
                 <span className="ml-1 text-foreground/40 font-normal">(comma-separated)</span>
               </label>
-              <input
-                type="text"
-                value={keywords}
-                onChange={(e) => { setKeywords(e.target.value); markDirty(); }}
-                placeholder="keyword1, keyword2"
-                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
-              />
+              <input id="kb-keywords" type="text" value={form.keywords} onChange={(e) => edit("keywords", e.target.value)} placeholder="keyword1, keyword2" className={inputClass} />
             </div>
           </div>
 
-          {/* Article Info */}
-          {art && (
-            <div className="rounded-lg border border-border bg-card p-4 space-y-1.5 text-xs text-foreground/50">
-              <div className="flex justify-between">
-                <span>Version</span>
-                <span>{art.version}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Views</span>
-                <span>{art.viewCount}</span>
-              </div>
-              {art.publishedAt && (
-                <div className="flex justify-between">
-                  <span>Published</span>
-                  <span>{new Date(art.publishedAt).toLocaleDateString()}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>Updated</span>
-                <span>{new Date(art.updatedAt).toLocaleDateString()}</span>
-              </div>
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <h3 className="flex items-center gap-1.5 text-xs font-semibold text-foreground/60 uppercase tracking-wider">
+              <History className="h-3.5 w-3.5" aria-hidden="true" /> History
+            </h3>
+            {versions === undefined ? (
+              <p className="text-xs text-foreground/40">Loading…</p>
+            ) : versions.length === 0 ? (
+              <p className="text-xs text-foreground/40">Each save keeps the previous text here.</p>
+            ) : (
+              <ul className="max-h-64 space-y-1 overflow-y-auto">
+                {versions.map((version) => (
+                  <li key={version._id} className="flex items-start justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60">
+                    <div className="min-w-0 text-xs">
+                      <div className="font-medium">
+                        Version {version.version}
+                        <span className="ml-1 font-normal text-foreground/50">· {version.changeSummary}</span>
+                      </div>
+                      <div className="text-foreground/50">
+                        {new Date(version.createdAt).toLocaleString()} {version.author ? `· ${version.author.displayName}` : ""}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => restore(version)}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] hover:bg-card"
+                    >
+                      <RotateCcw className="h-3 w-3" aria-hidden="true" /> Restore
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex justify-between border-t border-border pt-2 text-xs text-foreground/50">
+              <span>Current version {article.version}</span>
+              <span>{article.viewCount} views</span>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

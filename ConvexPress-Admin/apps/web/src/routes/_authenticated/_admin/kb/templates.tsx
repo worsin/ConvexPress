@@ -5,6 +5,7 @@
  * Wired to api.kb.templates.*
  */
 
+import { KbEditor } from "@/components/kb/editor/KbEditor";
 import type { FunctionArgs } from "convex/server";
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -197,12 +198,11 @@ function KBTemplatesContent() {
               <label className="block text-xs font-medium text-foreground/70 mb-1">
                 Content (starting template body)
               </label>
-              <textarea
-                value={form.content}
-                onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
-                placeholder="Template starter content…"
-                rows={6}
-                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-background resize-y font-mono"
+              <KbEditor
+                key={editingId ?? "new"}
+                initialContent={form.content}
+                placeholder="The outline new articles start from. Type “/” for blocks."
+                onChange={(content) => setForm((p) => ({ ...p, content }))}
               />
             </div>
             <div className="col-span-2 flex items-center gap-2">
