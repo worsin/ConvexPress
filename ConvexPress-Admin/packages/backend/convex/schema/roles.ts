@@ -31,6 +31,12 @@ export const rolesTables = {
     isDefault: v.boolean(),
     isProtected: v.boolean(),
     capabilities: v.array(v.string()),
+    /**
+     * A built-in role's definition capabilities as last applied (roles/internals
+     * seedRoles). Capabilities the definition gains later are granted once; ones
+     * an administrator removed stay removed.
+     */
+    builtInCapabilities: v.optional(v.array(v.string())),
     pageAccess: v.array(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
