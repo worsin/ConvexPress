@@ -29,7 +29,8 @@ import { PUBLIC_VISIBILITY_KEY } from "./helpers/visibility";
 import { matchingPassage } from "./helpers/searchText";
 import { isPluginEnabled } from "../helpers/plugins";
 
-const helpListItem = v.object({
+/** The shapes these reads return, for integrators that re-expose them to their own clients. */
+export const helpListItem = v.object({
   _id: v.id("kb_articles"),
   title: v.string(),
   slug: v.string(),
@@ -39,7 +40,7 @@ const helpListItem = v.object({
 });
 type HelpListItem = typeof helpListItem.type;
 
-const helpSpot = v.object({ key: v.string(), label: v.string(), summary: v.optional(v.string()), routeHint: v.optional(v.string()) });
+export const helpSpot = v.object({ key: v.string(), label: v.string(), summary: v.optional(v.string()), routeHint: v.optional(v.string()) });
 
 function listItem(article: Doc<"kb_articles">): HelpListItem {
   return { _id: article._id, title: article.title, slug: article.slug, excerpt: article.excerpt, readingTimeMinutes: article.readingTimeMinutes, updatedAt: article.updatedAt };
@@ -64,9 +65,24 @@ async function spotArticles(ctx: Pick<QueryCtx, "db">, key: string, reader: Help
   return articles;
 }
 
+export const helpSpotResult = v.object({ spot: v.union(v.null(), helpSpot), articles: v.array(helpListItem) });
+
+export const helpArticle = v.object({
+  _id: v.id("kb_articles"),
+  title: v.string(),
+  slug: v.string(),
+  excerpt: v.string(),
+  html: v.string(),
+  outline: v.array(kbOutlineEntryValidator),
+  readingTimeMinutes: v.number(),
+  updatedAt: v.number(),
+  spots: v.array(v.object({ key: v.string(), label: v.string() })),
+  related: v.array(helpListItem),
+});
+
 export const spot = internalQuery({
   args: { key: v.string(), limit: v.optional(v.number()), ...helpReaderArgs },
-  returns: v.object({ spot: v.union(v.null(), helpSpot), articles: v.array(helpListItem) }),
+  returns: helpSpotResult,
   handler: async (ctx, args) => {
     const key = helpContextKey(args.key);
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { spot: null, articles: [] };
@@ -82,21 +98,7 @@ export const spot = internalQuery({
 
 export const article = internalQuery({
   args: { articleId: v.optional(v.id("kb_articles")), slug: v.optional(v.string()), ...helpReaderArgs },
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id("kb_articles"),
-      title: v.string(),
-      slug: v.string(),
-      excerpt: v.string(),
-      html: v.string(),
-      outline: v.array(kbOutlineEntryValidator),
-      readingTimeMinutes: v.number(),
-      updatedAt: v.number(),
-      spots: v.array(v.object({ key: v.string(), label: v.string() })),
-      related: v.array(helpListItem),
-    }),
-  ),
+  returns: v.union(v.null(), helpArticle),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const reader = helpReader(args);
