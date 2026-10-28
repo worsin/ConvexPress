@@ -207,3 +207,42 @@ test("site setup can keep a category off the public help center", async () => {
   expect(await publicSlugs()).toEqual([]);
   expect((await f.t.run(async (ctx) => await ctx.db.get(created.categoryId!)))?.isPublished).toBe(false);
 });
+
+test("site setup moves an article it owns between public and internal, with its public copies and counts", async () => {
+  const f = await fixture();
+  const write = (visibility: "public" | "internal") =>
+    f.t.mutation(internal.kb.siteSetup.writeArticle, {
+      setupKey: "help:site:inviting",
+      title: "Inviting your team",
+      slug: "inviting-your-team",
+      excerpt: "Give each person their own sign-in.",
+      content: doc(p(t("Open Settings, then Team."))),
+      categoryId: f.ids.category,
+      sortOrder: 0,
+      actorId: f.ids.editor,
+      visibility,
+      ...(visibility === "internal" ? { audiences: ["doctor"] } : {}),
+    });
+  const state = (articleId: Id<"kb_articles">) =>
+    f.t.run(async (ctx) => ({
+      visibility: (await ctx.db.get(articleId))?.visibility,
+      count: (await ctx.db.get(f.ids.category))?.articleCount,
+      chunks: (await ctx.db.query("kb_ragChunks").withIndex("by_article", (q) => q.eq("articleId", articleId)).collect()).length,
+    }));
+
+  const { articleId } = await write("public");
+  await f.t.run(async (ctx) => {
+    await ctx.db.insert("kb_ragChunks", { articleId: articleId!, articleSlug: "inviting-your-team", content: "Open Settings", chunkIndex: 0, embedding: [0.1], metadata: { title: "Inviting your team" }, createdAt: 1, updatedAt: 1 });
+  });
+  expect(await state(articleId!)).toEqual({ visibility: undefined, count: 1, chunks: 1 });
+
+  // Withdrawn: internal, uncounted, its RAG copy gone, readable only in the app.
+  expect((await write("internal")).outcome).toBe("updated");
+  expect(await state(articleId!)).toEqual({ visibility: "internal", count: 0, chunks: 0 });
+  expect(await f.t.query(internal.kb.help.search, { query: "inviting", ...VISITOR })).toEqual([]);
+  expect((await f.t.query(internal.kb.help.search, { query: "inviting", ...DOCTOR })).map((a) => a.slug)).toEqual(["inviting-your-team"]);
+  expect((await write("internal")).outcome).toBe("unchanged");
+
+  expect((await write("public")).outcome).toBe("updated");
+  expect(await state(articleId!)).toEqual({ visibility: undefined, count: 1, chunks: 0 });
+});
