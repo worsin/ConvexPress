@@ -136,7 +136,9 @@ async function provisionClerkIdentity(
           console.warn(
             `[ClerkProvisioning] Email ${normalizedEmail} belongs to an account with delegated sign-in; not linking to Clerk user ${clerkUserId}.`,
           );
-          decline.reason = "email_conflict";
+          // A staff account: say so, rather than "a different sign-in", which sent
+          // site owners looking for an account they never made.
+          decline.reason = "local_account";
           return null;
         }
         if (!byEmail.clerkUserId) {

@@ -47,7 +47,7 @@ const UNAVAILABLE_COPY: Record<"registration_closed" | "email_conflict" | "email
   registration_closed: "New accounts can't be created on this site right now. Contact us to finish signing up.",
   email_conflict: "That email already belongs to another account here. Sign in with it instead, or use a different email.",
   email_unverified: "Verify your email address to continue. Check your inbox for the code we sent.",
-  local_account: "That email belongs to an existing account. Sign in with it to continue.",
+  local_account: "That email belongs to a site administrator account. Use a different email for your customer account.",
   error: "We couldn't set up your account. Please try again in a moment.",
 };
 
