@@ -245,6 +245,40 @@ describe("Clerk session provisioning", () => {
     expect(snapshot.invitation?.acceptedBy).toBe(snapshot.user?._id);
   });
 
+  test("tells a staff member that their email is a staff account, and never links it", async () => {
+    const t = createHarness();
+    await seedSubscriberRole(t);
+    const staffId = await t.run(async (ctx) => {
+      const now = Date.now();
+      return await ctx.db.insert("users", {
+        authSource: "external",
+        email: "owner@example.com",
+        emailVerified: true,
+        displayName: "Site Owner",
+        slug: "site-owner",
+        status: "active",
+        registrationMethod: "invite",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+    const customer = t.withIdentity({
+      issuer: CLERK_ISSUER,
+      subject: "user_owner_as_customer",
+      tokenIdentifier: `${CLERK_ISSUER}|user_owner_as_customer`,
+      name: "Owner",
+      email: "owner@example.com",
+      emailVerified: true,
+    });
+
+    expect(await customer.mutation(api.auth.clerkProvisioning.ensureClerkUser)).toEqual({
+      ok: false,
+      reason: "local_account",
+    });
+    expect((await t.run((ctx) => ctx.db.get(staffId)))?.clerkUserId).toBeUndefined();
+  });
+
   test("requires verified email before linking an imported user by email", async () => {
     const t = createHarness();
     await seedSubscriberRole(t);
