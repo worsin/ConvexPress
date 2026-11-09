@@ -96,8 +96,17 @@ export interface ClerkApiErrorLike {
   message?: string;
 }
 
+/** Clerk errors whose own wording means nothing to a visitor, in plain words. */
+const PLAIN_CLERK_ERRORS: Readonly<Record<string, string>> = {
+  // A password sign-in on an account that only has Google, Apple or Microsoft.
+  strategy_for_user_invalid:
+    "This account doesn't have a password. Sign in with the Google, Apple or Microsoft button you used before, or choose Forgot password to add one.",
+};
+
 export function clerkErrorMessage(error: unknown, fallback: string): string {
   const clerkError = error as ClerkApiErrorLike | null;
+  const code = clerkError?.errors?.[0]?.code;
+  if (code && PLAIN_CLERK_ERRORS[code]) return PLAIN_CLERK_ERRORS[code];
   return clerkError?.errors?.[0]?.longMessage ?? clerkError?.errors?.[0]?.message ?? clerkError?.message ?? fallback;
 }
 
